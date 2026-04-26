@@ -1,0 +1,337 @@
+const express = require('express');
+const router = express.Router();
+const { User, AuditLog, PendingRegistration } = require('../models');
+const { sendSecurityCode, sendTemporaryPassword } = require('../services/emailService');
+const jwt = require('jsonwebtoken');
+const auth = require('../middleware/auth');
+const { Op } = require('sequelize');
+
+const generateUniqueCode = async (formType) => {
+    const prefixes = {
+        'Fondos Registros contables': 'SFAR',
+        'Corporación': 'PTLC',
+        'Fundaciones': 'PTLF',
+        'Cumplimiento Individual': 'KYCI',
+        'Cumplimiento Entidades': 'KYCE'
+    };
+
+    const prefix = prefixes[formType] || 'NDOC';
+    const date = new Date();
+    const dateStr = date.getFullYear() + 
+                  String(date.getMonth() + 1).padStart(2, '0') + 
+                  String(date.getDate()).padStart(2, '0');
+    
+    const searchPattern = `${prefix}-${dateStr}-%`;
+    
+    // Find last sequence for today and this prefix
+    const lastUser = await User.findOne({
+        where: {
+            uniqueCode: { [Op.like]: searchPattern }
+        },
+        order: [['uniqueCode', 'DESC']]
+    });
+
+    let nextSequence = 1;
+    if (lastUser && lastUser.uniqueCode) {
+        const parts = lastUser.uniqueCode.split('-');
+        const lastSeq = parseInt(parts[parts.length - 1]);
+        if (!isNaN(lastSeq)) nextSequence = lastSeq + 1;
+    }
+
+    return `${prefix}-${dateStr}-${String(nextSequence).padStart(3, '0')}`;
+};
+
+// @route   POST api/auth/register
+// @desc    Register user (step 1: store pending & send code)
+router.post('/register', async (req, res) => {
+    try {
+        const { name, nationality, email, initialForm, idNumber } = req.body;
+
+        if (!idNumber) {
+            return res.status(400).json({ msg: 'La cédula de identidad es obligatoria para el registro.' });
+        }
+
+        // Blindaje de Identidad Doble (Cédula y Email)
+        let existingUser = await User.findOne({ 
+            where: { 
+                [Op.or]: [
+                    { email },
+                    { idNumber: idNumber || '---NONE---' }
+                ]
+            } 
+        });
+
+        if (existingUser) {
+            if (existingUser.email === email) {
+                return res.status(400).json({ msg: 'El correo electrónico ya está registrado en el sistema.' });
+            }
+            if (existingUser.idNumber === idNumber) {
+                return res.status(400).json({ msg: 'La cédula de identidad ya está registrada en el sistema.' });
+            }
+        }
+
+        // Cleanup any old pending attempts for this email
+        await PendingRegistration.destroy({ where: { email } });
+
+        // Generate Security Code
+        const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Update or create pending registration
+        await PendingRegistration.upsert({
+            name,
+            nationality,
+            email,
+            initialForm,
+            idNumber,
+            code: securityCode
+        });
+
+        // Send Email
+        await sendSecurityCode(email, securityCode);
+
+        res.json({ msg: 'Código enviado al correo' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/auth/verify
+// @desc    Verify security code and CREATE user
+router.post('/verify', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        const pending = await PendingRegistration.findOne({ where: { email } });
+
+        if (!pending || pending.code !== code) {
+            return res.status(400).json({ msg: 'Código inválido' });
+        }
+
+        // Generate a random temporary password (the user will need to change it later or admin will set it)
+        const tempPassword = Math.random().toString(36).slice(-10) + '*';
+
+        // Generate Unique Code
+        const uniqueCode = await generateUniqueCode(pending.initialForm);
+
+        // CREATE the real user now
+        try {
+            await User.create({
+                name: pending.name,
+                email: pending.email,
+                nationality: pending.nationality,
+                initialForm: pending.initialForm,
+                idNumber: pending.idNumber,
+                uniqueCode,
+                password: tempPassword,
+                status: 'pending',
+                mustChangePassword: true
+            });
+        } catch (dbErr) {
+            if (dbErr.name === 'SequelizeUniqueConstraintError') {
+                return res.status(400).json({ msg: 'Esta cédula o correo electrónico ya ha sido registrado por otro usuario.' });
+            }
+            throw dbErr;
+        }
+
+        // Send the TEMPORARY PASSWORD to the user
+        await sendTemporaryPassword(pending.email, tempPassword);
+
+        // Delete pending record
+        await pending.destroy();
+
+        res.json({ msg: 'Código verificado con éxito. Tu clave temporal ha sido enviada a tu correo.' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route    GET api/auth/me
+// @desc     Get current user
+// @access   Private
+router.get('/me', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id, {
+            attributes: { exclude: ['password'] }
+        });
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST api/auth/login
+// @desc    Authenticate user & get token
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            return res.status(400).json({ msg: 'Credenciales inválidas' });
+        }
+
+        if (user.status === 'blocked') {
+            return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
+        }
+
+        if (user.status !== 'authorized') {
+            return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
+        }
+
+        const isMatch = await user.comparePassword(password);
+        
+        if (!isMatch) {
+            // Increment attempts
+            user.loginAttempts += 1;
+            if (user.loginAttempts >= 3) {
+                user.status = 'blocked';
+                await user.save();
+                return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos.' });
+            }
+            await user.save();
+            return res.status(400).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
+        }
+
+        // Reset attempts on success
+        user.loginAttempts = 0;
+        await user.save();
+
+        // Create Audit Log for Login
+        await AuditLog.create({
+            userId: user.id,
+            action: 'LOGIN',
+            description: `Usuario ${user.email} inició sesión correctamente`
+        });
+
+        const payload = {
+            user: {
+                id: user.id,
+                role: user.role
+            }
+        };
+
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' },
+            async (err, token) => {
+                if (err) throw err;
+                
+                // Blindaje: Guardar el token como el ÚNICO activo
+                user.activeToken = token;
+                await user.save();
+
+                res.json({ 
+                    token, 
+                    user: { 
+                        id: user.id, 
+                        name: user.name, 
+                        email: user.email, 
+                        role: user.role, 
+                        initialForm: user.initialForm, 
+                        mustChangePassword: user.mustChangePassword 
+                    } 
+                });
+            }
+        );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   PUT api/auth/update-profile
+// @desc    Update user email and/or password
+router.put('/update-profile', auth, async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ msg: 'Sesión no válida o ID faltante' });
+        }
+
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado en la base de datos' });
+
+        // Update email if provided
+        if (email && email !== user.email) {
+            const existingUser = await User.findOne({ where: { email, id: { [Op.ne]: user.id } } });
+            if (existingUser) return res.status(400).json({ msg: 'El correo ya está en uso por otro usuario' });
+            user.email = email;
+        }
+
+        // Update password if provided
+        if (newPassword && newPassword.trim() !== '') {
+            if (newPassword.length < 7) {
+                return res.status(400).json({ msg: 'La contraseña debe tener al menos 7 caracteres' });
+            }
+            user.password = newPassword;
+            user.mustChangePassword = false;
+        }
+
+        await user.save();
+
+        await AuditLog.create({
+            userId: user.id,
+            action: 'PROFILE_UPDATE',
+            description: `Usuario ${user.email} actualizó su perfil (técnico)`
+        });
+
+        res.json({ 
+            msg: 'Perfil actualizado correctamente', 
+            user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+        });
+    } catch (err) {
+        console.error('❌ CRITICAL PROFILE UPDATE ERROR:', err);
+        res.status(500).json({ 
+            msg: 'Error interno del servidor al actualizar perfil', 
+            error: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+        });
+    }
+});
+
+// @route   POST api/auth/forgot-password
+// @desc    Step 1: Request security code for password recovery
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ where: { email } });
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+
+        const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
+        user.securityCode = securityCode;
+        await user.save();
+
+        await sendSecurityCode(email, securityCode);
+        res.json({ msg: 'Código de seguridad enviado a tu correo' });
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/auth/verify-forgot-password
+// @desc    Step 2: Verify code and send temporary password
+router.post('/verify-forgot-password', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        const user = await User.findOne({ where: { email, securityCode: code } });
+        
+        if (!user) return res.status(400).json({ msg: 'Código incorrecto o expirado' });
+
+        const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + '@RECOV';
+        user.password = tempPassword;
+        user.securityCode = null; // Clear code
+        user.mustChangePassword = true;
+        await user.save();
+
+        await sendTemporaryPassword(email, tempPassword);
+        res.json({ msg: 'Código validado. Se ha enviado una nueva clave temporal a tu correo.' });
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+module.exports = router;

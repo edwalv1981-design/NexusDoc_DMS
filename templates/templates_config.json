@@ -1,0 +1,21 @@
+{
+  "referencia_maestra": {
+    "file_path": "referencia_maestra.pdf",
+    "x_top": 293,
+    "x_bot": 315,
+    "x_address_top": 293,
+    "y_address_fallback": 278,
+    "anchors": [
+      {"keywords": ["company", "compañia"], "x_key": "x_top", "data_key": "companyName", "min_y": 100, "max_y": 200},
+      {"keywords": ["activities", "actividades"], "x_key": "x_top", "data_key": "activities", "min_y": 150, "max_y": 250},
+      {"keywords": ["country", "pais"], "x_key": "x_top", "data_key": "country", "min_y": 180, "max_y": 280},
+      {"keywords": ["beneficial", "beneficiario"], "x_key": "x_top", "data_key": "beneficiaryName", "min_y": 210, "max_y": 310},
+      {"keywords": ["birth", "nacimiento"], "x_key": "x_top", "data_key": "birthDate", "min_y": 240, "max_y": 340},
+      {"keywords": ["place", "lugar"], "x_key": "x_top", "data_key": "birthPlace", "min_y": 260, "max_y": 360},
+      {"keywords": ["domicilio"], "x_key": "x_address_top", "data_key": "address", "min_y": 250, "max_y": 450},
+      {"keywords": ["nombre", "name"], "x_key": "x_bot", "data_key": "custodyName", "min_y": 500, "max_y": 650},
+      {"keywords": ["telefono", "telephone"], "x_key": "x_bot", "data_key": "custodyPhone", "min_y": 550, "max_y": 680},
+      {"keywords": ["electronico", "email"], "x_key": "x_bot", "data_key": "custodyEmail", "min_y": 600, "max_y": 720}
+    ]
+  }
+}
