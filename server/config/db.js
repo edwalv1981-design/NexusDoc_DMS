@@ -1,20 +1,18 @@
 const { Sequelize } = require('sequelize');
-const url = require('url');
 require('dotenv').config();
 
 let sequelize;
-const dbUrl = process.env.DATABASE_URL;
+let dbUrl = process.env.DATABASE_URL;
 
 if (dbUrl) {
-    console.log('📡 Analizando DATABASE_URL para conexión segura...');
+    console.log('📡 Iniciando conexión de alta disponibilidad...');
     
-    // Parseo manual de la URL para evitar fallos del constructor de Sequelize
-    const params = url.parse(dbUrl);
-    const auth = params.auth.split(':');
-    
-    sequelize = new Sequelize(params.pathname.split('/')[1], auth[0], auth[1], {
-        host: params.hostname,
-        port: params.port,
+    // Corrección técnica: Sequelize 6 prefiere 'postgres://' sobre 'postgresql://'
+    if (dbUrl.startsWith('postgresql://')) {
+        dbUrl = dbUrl.replace('postgresql://', 'postgres://');
+    }
+
+    sequelize = new Sequelize(dbUrl, {
         dialect: 'postgres',
         logging: false,
         dialectOptions: {
@@ -29,7 +27,7 @@ if (dbUrl) {
         }
     });
 } else {
-    console.log('🏠 Usando configuración de base de datos local...');
+    console.log('🏠 Usando configuración local...');
     sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
         host: process.env.DB_HOST,
         dialect: 'postgres',
@@ -47,7 +45,7 @@ const connectDB = async () => {
         await sequelize.authenticate();
         console.log('✅ PostgreSQL Connected Successfully!');
     } catch (err) {
-        console.error('❌ FATAL: Error de conexión a la base de datos:', err.message);
+        console.error('❌ FATAL: Error de conexión:', err.message);
         process.exit(1);
     }
 };
