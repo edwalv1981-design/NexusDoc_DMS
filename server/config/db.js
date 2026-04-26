@@ -3,15 +3,19 @@ require('dotenv').config();
 
 let sequelize;
 
-// LÓGICA HÍBRIDA: Railway (URL) o Local (Variables separadas)
-if (process.env.DATABASE_URL) {
-    sequelize = new Sequelize(process.env.DATABASE_URL, {
+// LOGICA DE CONEXIÓN ROBUSTA PARA PRODUCCIÓN
+const dbUrl = process.env.DATABASE_URL;
+
+if (dbUrl) {
+    console.log('📡 Intentando conexión vía DATABASE_URL...');
+    sequelize = new Sequelize(dbUrl, {
         dialect: 'postgres',
+        protocol: 'postgres',
         logging: false,
         dialectOptions: {
             ssl: {
                 require: true,
-                rejectUnauthorized: false // Vital para Railway/Render/AWS
+                rejectUnauthorized: false
             }
         },
         define: {
@@ -20,6 +24,7 @@ if (process.env.DATABASE_URL) {
         }
     });
 } else {
+    console.log('🏠 Intentando conexión local...');
     sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
         host: process.env.DB_HOST,
         dialect: 'postgres',
@@ -35,9 +40,10 @@ if (process.env.DATABASE_URL) {
 const connectDB = async () => {
     try {
         await sequelize.authenticate();
-        console.log('✅ PostgreSQL Connected...');
+        console.log('✅ PostgreSQL Connected Successfully!');
     } catch (err) {
-        console.error('❌ Unable to connect to the database:', err.message);
+        console.error('❌ FATAL: Error de conexión a la base de datos:');
+        console.error('Mensaje:', err.message);
         process.exit(1);
     }
 };
