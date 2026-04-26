@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodePackages.npm", "python311", "gcc"]
+
+[phases.install]
+cmds = ["npm install", "cd server && npm install", "cd client && npm install", "pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["cd client && npm run build"]
+
+[start]
+cmd = "cd server && node index.js"
