@@ -9,23 +9,34 @@ const app = express();
 // Middlewares
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
+
+// Servir plantillas PDF
 app.use('/templates', express.static(path.join(__dirname, '../templates')));
 
-// Routes
+// Rutas de la API
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/forms', require('./routes/formRoutes'));
 
-app.get('/', (req, res) => {
-    res.send('NexusDoc DMS API Running...');
-});
+// --- CONFIGURACIÓN DE PRODUCCIÓN (Servir React) ---
+if (process.env.NODE_ENV === 'production' || true) { // Forzamos para Railway
+    // Servir archivos estáticos desde la carpeta 'client/dist' (generada por Vite)
+    app.use(express.static(path.join(__dirname, '../client/dist')));
+
+    // Cualquier ruta que no sea de la API, entrega el index.html de React
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.resolve(__dirname, '../client/dist', 'index.html'));
+        }
+    });
+}
 
 const startServer = async () => {
     try {
-        // Connect to Database
+        // Conexión a Base de Datos
         await connectDB();
 
-        // Sync Database
+        // Sincronización (alter: true para no borrar datos existentes)
         await sequelize.sync({ alter: true });
         console.log('✅ Database Synced');
 
