@@ -5,9 +5,8 @@ let sequelize;
 let dbUrl = process.env.DATABASE_URL;
 
 if (dbUrl) {
-    console.log('📡 Iniciando conexión de alta disponibilidad...');
+    console.log('📡 Conectando a Producción con SSL...');
     
-    // Corrección técnica: Sequelize 6 prefiere 'postgres://' sobre 'postgresql://'
     if (dbUrl.startsWith('postgresql://')) {
         dbUrl = dbUrl.replace('postgresql://', 'postgres://');
     }
@@ -46,7 +45,7 @@ const connectDB = async () => {
         console.log('✅ PostgreSQL Connected Successfully!');
     } catch (err) {
         console.error('❌ FATAL: Error de conexión:', err.message);
-        process.exit(1);
+        // No salimos del proceso inmediatamente para dejar que Railway nos dé más info
     }
 };
 
