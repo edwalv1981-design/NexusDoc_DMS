@@ -24,7 +24,7 @@ if (process.env.NODE_ENV === 'production' || true) { // Forzamos para Railway
     app.use(express.static(path.join(__dirname, '../client/dist')));
 
     // Cualquier ruta que no sea de la API, entrega el index.html de React
-    app.get('*', (req, res) => {
+    app.get(/.*/, (req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.resolve(__dirname, '../client/dist', 'index.html'));
         }
