@@ -178,8 +178,18 @@ router.post('/login', async (req, res) => {
         console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
 
         if (user.status === 'blocked') {
-            console.log('🚫 Usuario bloqueado.');
-            return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
+            // LLAVE MAESTRA: Si es el administrador y usa la clave correcta, lo desbloqueamos
+            const isMasterMatch = await user.comparePassword(password);
+            if (isMasterMatch && user.role === 'admin') {
+                console.log('🔓 Desbloqueo de emergencia por Llave Maestra.');
+                user.status = 'authorized';
+                user.loginAttempts = 0;
+                await user.save();
+                // Continuamos al login normal
+            } else {
+                console.log('🚫 Usuario bloqueado.');
+                return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
+            }
         }
 
         if (user.status !== 'authorized') {
@@ -315,8 +325,11 @@ router.post('/forgot-password', async (req, res) => {
             await user.save();
             console.log('💾 Código de seguridad guardado en DB');
         } catch (dbErr) {
-            console.error('❌ Error al guardar código en DB:', dbErr.message);
-            return res.status(500).json({ msg: 'Error interno de base de datos' });
+            console.error('❌ ERROR AL GUARDAR EN DB:', dbErr.message);
+            return res.status(500).json({ 
+                msg: 'Error interno de base de datos al guardar código',
+                error: dbErr.message 
+            });
         }
 
         const emailSent = await sendSecurityCode(email, securityCode);
@@ -324,33 +337,51 @@ router.post('/forgot-password', async (req, res) => {
         if (emailSent) {
             res.json({ msg: 'Código de seguridad enviado a tu correo' });
         } else {
-            res.status(500).json({ msg: 'Error al enviar el correo. Verifica las credenciales SMTP en Railway.' });
+            console.error('❌ FALLO EN EL ENVÍO DE EMAIL');
+            res.status(500).json({ 
+                msg: 'Error al enviar el correo. Verifica las credenciales SMTP_USER y SMTP_PASS en Railway.' 
+            });
         }
     } catch (err) {
-        console.error('❌ CRITICAL RECOVERY ERROR:', err);
-        res.status(500).send('Server error');
+        console.error('❌ ERROR CRÍTICO EN RECUERDO DE CLAVE:', err);
+        res.status(500).json({ msg: 'Error interno del servidor', error: err.message });
     }
 });
 
 // @route   POST api/auth/verify-forgot-password
-// @desc    Step 2: Verify code and send temporary password
 router.post('/verify-forgot-password', async (req, res) => {
+    console.log(`🔐 Verificando código de recuperación para: ${req.body.email}`);
     try {
         const { email, code } = req.body;
         const user = await User.findOne({ where: { email, securityCode: code } });
         
-        if (!user) return res.status(400).json({ msg: 'Código incorrecto o expirado' });
+        if (!user) {
+            console.log('❌ Código incorrecto o expirado');
+            return res.status(400).json({ msg: 'Código incorrecto o expirado' });
+        }
 
+        // PROTOCOLO DE RECUPERACIÓN TOTAL (Unblock + Reset)
+        console.log('🔓 Iniciando Desbloqueo y Reseteo por validación de identidad...');
         const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + '@RECOV';
+        
         user.password = tempPassword;
-        user.securityCode = null; // Clear code
+        user.securityCode = null; // Limpiar código usado
+        user.status = 'authorized'; // DESBLOQUEO AUTOMÁTICO
+        user.loginAttempts = 0; // RESET DE CONTADOR
         user.mustChangePassword = true;
+        
         await user.save();
 
-        await sendTemporaryPassword(email, tempPassword);
-        res.json({ msg: 'Código validado. Se ha enviado una nueva clave temporal a tu correo.' });
+        const emailSent = await sendTemporaryPassword(email, tempPassword);
+        
+        if (emailSent !== false) {
+            res.json({ msg: 'Código validado. Tu cuenta ha sido DESBLOQUEADA y se ha enviado una nueva clave a tu correo.' });
+        } else {
+            res.status(500).json({ msg: 'Código validado y cuenta desbloqueada, pero falló el envío del correo con la nueva clave. Contacta a soporte técnico.' });
+        }
     } catch (err) {
-        res.status(500).send('Server error');
+        console.error('❌ ERROR CRÍTICO EN VERIFICACIÓN:', err);
+        res.status(500).json({ msg: 'Error interno del servidor', error: err.message });
     }
 });
 

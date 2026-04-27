@@ -36,7 +36,9 @@ const Login = () => {
     try {
       await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email: recoveryEmail });
       setRecoveryStep(2);
-    } catch (err) { setError(err.response?.data?.msg || 'Error'); } finally { setRecoveryLoading(false); }
+    } catch (err) { 
+        setError(err.response?.data?.msg || err.response?.data?.error || 'Error al enviar código'); 
+    } finally { setRecoveryLoading(false); }
   };
 
   const handleVerifyRecovery = async (e) => {
@@ -45,7 +47,9 @@ const Login = () => {
     try {
       await axios.post(`${API_BASE_URL}/api/auth/verify-forgot-password`, { email: recoveryEmail, code: recoveryCode });
       setRecoveryStep(3);
-    } catch (err) { setError(err.response?.data?.msg || 'Error'); } finally { setRecoveryLoading(false); }
+    } catch (err) { 
+        setError(err.response?.data?.msg || err.response?.data?.error || 'Error al validar código'); 
+    } finally { setRecoveryLoading(false); }
   };
 
   return (
@@ -109,6 +113,7 @@ const Login = () => {
           {recoveryStep > 0 && (
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
               <div style={{ width: '100%', maxWidth: '350px', background: 'white', padding: '30px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
                 {recoveryStep === 1 && (
                   <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Recuperar Acceso</h3>

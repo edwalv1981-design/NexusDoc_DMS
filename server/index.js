@@ -74,3 +74,11 @@ app.listen(PORT, '0.0.0.0', async () => {
         console.error('⚠️ ALERTA TÉCNICA:', error.message);
     }
 });
+// 6. MANEJADOR GLOBAL DE ERRORES (Telemetría final)
+app.use((err, req, res, next) => {
+    console.error('🔥 ERROR NO CONTROLADO:', err.stack);
+    res.status(500).json({ 
+        msg: 'Error crítico en el servidor', 
+        error: err.message 
+    });
+});
