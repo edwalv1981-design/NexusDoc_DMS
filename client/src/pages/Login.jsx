@@ -115,7 +115,7 @@ const Login = () => {
               <div style={{ width: '100%', maxWidth: '350px', background: 'white', padding: '30px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
                 {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
                 {recoveryStep === 1 && (
-                  <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Recuperar Acceso</h3>
                     <div>
                         <label style={{ fontSize: '11px', fontWeight: 700, marginBottom: 6, display: 'block' }}>EMAIL REGISTRADO</label>
@@ -123,16 +123,16 @@ const Login = () => {
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button type="button" onClick={() => setRecoveryStep(0)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
-                      <button type="submit" className="btn-primary" style={{ flex: 1.5 }}>Enviar Código</button>
+                      <button type="button" onClick={(e) => { console.log('📡 Disparando recuperación...'); handleForgotPassword(e); }} className="btn-primary" style={{ flex: 1.5 }}>Enviar Código</button>
                     </div>
-                  </form>
+                  </div>
                 )}
                 {recoveryStep === 2 && (
-                  <form onSubmit={handleVerifyRecovery} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Verificar Código</h3>
                     <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px' }} />
-                    <button type="submit" className="btn-primary">Validar</button>
-                  </form>
+                    <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary">Validar</button>
+                  </div>
                 )}
                 {recoveryStep === 3 && (
                   <div style={{ textAlign: 'center' }}>
