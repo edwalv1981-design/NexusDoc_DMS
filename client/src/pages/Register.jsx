@@ -54,101 +54,158 @@ const Register = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', background: '#f8fafc' }}>
-      <div className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '60px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f4f7fa' }}>
+      <div style={{ 
+        maxWidth: '550px', 
+        width: '100%', 
+        background: 'white', 
+        borderRadius: '24px', 
+        padding: '50px', 
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.08)',
+        border: '1px solid #e2e8f0'
+      }}>
+        
+        {/* Breadcrumb / Back Link */}
         <button 
           onClick={() => navigate('/onboarding')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-sub)', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: '32px', fontSize: '15px' }}
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: '#64748b', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 6, 
+            cursor: 'pointer', 
+            marginBottom: '35px', 
+            fontSize: '13px',
+            fontWeight: 600,
+            padding: 0
+          }}
         >
-          <ChevronLeft size={18} /> Cambiar formulario
+          <ChevronLeft size={16} /> Cambiar formulario
         </button>
 
+        {/* Header Section */}
         <div style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Datos de Usuario</h1>
-          <p style={{ color: 'var(--text-sub)' }}>
-            Estás iniciando el proceso para: <strong style={{ color: 'var(--primary)' }}>{formData.initialForm}</strong>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--primary)', marginBottom: '10px', letterSpacing: '-0.02em' }}>Datos de Usuario</h1>
+          <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.5 }}>
+            Estás iniciando el proceso para: <span style={{ color: 'var(--primary)', fontWeight: 700, background: '#eff6ff', padding: '3px 8px', borderRadius: '6px' }}>{formData.initialForm}</span>
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>
-              <User size={16} /> Nombres completos
+        {/* Form Section */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+          
+          <div className="input-group-expert">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <User size={14} color="var(--primary)" /> Nombres completos
             </label>
             <input 
               type="text" 
-              className="input-field" 
-              placeholder="Ej: Juan Pérez"
+              className="input-expert" 
+              placeholder="Ej: Juan Alberto Pérez"
               required
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
+              style={{ padding: '14px 18px', fontSize: '15px' }}
             />
           </div>
 
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>
-              <CreditCard size={16} /> Cédula o Pasaporte
+          <div className="input-group-expert">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <CreditCard size={14} color="var(--primary)" /> Cédula o Pasaporte
             </label>
             <input 
               type="text" 
-              className="input-field" 
-              placeholder="Ej: 1712345678"
+              className="input-expert" 
+              placeholder="Ej: 1600050254"
               required
               value={formData.idNumber}
               onChange={(e) => setFormData({...formData, idNumber: e.target.value})}
+              style={{ padding: '14px 18px', fontSize: '15px' }}
             />
           </div>
 
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>
-              <Globe size={16} /> Nacionalidad
-            </label>
-            <input 
-              type="text" 
-              className="input-field" 
-              placeholder="Ej: Ecuatoriana"
-              required
-              value={formData.nationality}
-              onChange={(e) => setFormData({...formData, nationality: e.target.value})}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="input-group-expert">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <Globe size={14} color="var(--primary)" /> Nacionalidad
+                </label>
+                <input 
+                  type="text" 
+                  className="input-expert" 
+                  placeholder="Ej: Peruana"
+                  required
+                  value={formData.nationality}
+                  onChange={(e) => setFormData({...formData, nationality: e.target.value})}
+                  style={{ padding: '14px 18px', fontSize: '15px' }}
+                />
+              </div>
+
+              <div className="input-group-expert">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <Mail size={14} color="var(--primary)" /> Email
+                </label>
+                <input 
+                  type="email" 
+                  className="input-expert" 
+                  placeholder="correo@ejemplo.com"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  style={{ padding: '14px 18px', fontSize: '15px' }}
+                />
+              </div>
           </div>
 
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>
-              <Mail size={16} /> Correo Electrónico
-            </label>
-            <input 
-              type="email" 
-              className="input-field" 
-              placeholder="ejemplo@correo.com"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: '12px', borderRadius: '10px', color: '#dc2626', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+               <X size={16} /> {error}
+            </div>
+          )}
 
-          {error && <p style={{ color: 'var(--error)', fontSize: '14px', fontWeight: 500 }}>{error}</p>}
-
-          <div style={{ display: 'flex', gap: 16, marginTop: '16px' }}>
+          <div style={{ display: 'flex', gap: 15, marginTop: '15px' }}>
             <button 
               type="button"
-              onClick={() => navigate('/')}
-              className="btn-primary" 
-              style={{ flex: 1, background: '#f1f5f9', color: '#64748b' }}
+              onClick={() => navigate('/onboarding')}
+              style={{ 
+                flex: 1, 
+                padding: '16px', 
+                borderRadius: '14px', 
+                border: '1px solid #e2e8f0', 
+                background: 'white', 
+                color: '#64748b', 
+                fontWeight: 700, 
+                fontSize: '14px', 
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#f8fafc'}
+              onMouseLeave={(e) => e.target.style.background = 'white'}
             >
               Regresar
             </button>
             <button 
               type="submit"
               className="btn-primary" 
-              style={{ flex: 1.5 }}
+              style={{ 
+                flex: 2, 
+                padding: '16px', 
+                borderRadius: '14px', 
+                fontSize: '14px', 
+                boxShadow: '0 10px 15px -3px rgba(0, 120, 212, 0.25)' 
+              }}
               disabled={loading}
             >
               {loading ? 'Procesando...' : 'Continuar'}
-              {!loading && <ArrowRight size={18} style={{ marginLeft: 8, verticalAlign: 'middle' }} />}
+              {!loading && <ArrowRight size={18} />}
             </button>
           </div>
         </form>
+
+        <p style={{ marginTop: '35px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
+          Al continuar, aceptas nuestros términos de seguridad y manejo de datos.
+        </p>
       </div>
     </div>
   );
