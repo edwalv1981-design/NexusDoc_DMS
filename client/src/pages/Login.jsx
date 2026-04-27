@@ -31,24 +31,54 @@ const Login = () => {
   };
 
   const handleForgotPassword = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setRecoveryLoading(true);
+    console.log('📡 Iniciando Fetch de recuperación para:', recoveryEmail);
+    
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email: recoveryEmail });
-      setRecoveryStep(2);
+      const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recoveryEmail.toLowerCase().trim() })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Respuesta de servidor recibida con éxito');
+        setRecoveryStep(2);
+      } else {
+        console.error('❌ El servidor respondió con error:', data.msg);
+        setError(data.msg || data.error || 'Error en el servidor');
+      }
     } catch (err) { 
-        setError(err.response?.data?.msg || err.response?.data?.error || 'Error al enviar código'); 
+      console.error('🔥 Error de red o crítico en Frontend:', err);
+      setError('Error de conexión. Revisa tu internet o el estado del servidor.'); 
     } finally { setRecoveryLoading(false); }
   };
 
   const handleVerifyRecovery = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setRecoveryLoading(true);
+    console.log('📡 Iniciando Fetch de verificación...');
+    
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/verify-forgot-password`, { email: recoveryEmail, code: recoveryCode });
-      setRecoveryStep(3);
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recoveryEmail.toLowerCase().trim(), code: recoveryCode })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setRecoveryStep(3);
+      } else {
+        setError(data.msg || data.error || 'Código inválido');
+      }
     } catch (err) { 
-        setError(err.response?.data?.msg || err.response?.data?.error || 'Error al validar código'); 
+      console.error('🔥 Error de red en verificación:', err);
+      setError('Error de conexión al validar código.'); 
     } finally { setRecoveryLoading(false); }
   };
 
