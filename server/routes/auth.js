@@ -308,14 +308,21 @@ router.put('/update-profile', auth, async (req, res) => {
 
 // @route   POST api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
-    console.log(`🔍 Solicitud de recuperación para: ${req.body.email}`);
+    console.log(`🔍 Solicitud de recuperación proactiva para: ${req.body.email}`);
     try {
         const { email } = req.body;
         const user = await User.findOne({ where: { email } });
         
         if (!user) {
-            console.log('❌ Usuario no encontrado para recuperación');
+            console.log('❌ Usuario no encontrado');
             return res.status(404).json({ msg: 'Usuario no encontrado' });
+        }
+
+        // DESBLOQUEO PROACTIVO: Si es admin, limpiamos su estado al momento de pedir el código
+        if (user.role === 'admin') {
+            console.log('🔓 Desbloqueo proactivo ejecutado para Administrador.');
+            user.status = 'authorized';
+            user.loginAttempts = 0;
         }
 
         const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -323,28 +330,21 @@ router.post('/forgot-password', async (req, res) => {
         
         try {
             await user.save();
-            console.log('💾 Código de seguridad guardado en DB');
         } catch (dbErr) {
-            console.error('❌ ERROR AL GUARDAR EN DB:', dbErr.message);
-            return res.status(500).json({ 
-                msg: 'Error interno de base de datos al guardar código',
-                error: dbErr.message 
-            });
+            console.error('❌ Error DB:', dbErr.message);
+            return res.status(500).json({ msg: 'Error al actualizar estado en base de datos' });
         }
 
         const emailSent = await sendSecurityCode(email, securityCode);
         
         if (emailSent) {
-            res.json({ msg: 'Código de seguridad enviado a tu correo' });
+            res.json({ msg: 'Código de seguridad enviado. Tu cuenta ha sido habilitada.' });
         } else {
-            console.error('❌ FALLO EN EL ENVÍO DE EMAIL');
-            res.status(500).json({ 
-                msg: 'Error al enviar el correo. Verifica las credenciales SMTP_USER y SMTP_PASS en Railway.' 
-            });
+            res.status(500).json({ msg: 'Cuenta habilitada, pero falló el envío del correo. Revisa tus variables SMTP.' });
         }
     } catch (err) {
-        console.error('❌ ERROR CRÍTICO EN RECUERDO DE CLAVE:', err);
-        res.status(500).json({ msg: 'Error interno del servidor', error: err.message });
+        console.error('❌ ERROR:', err);
+        res.status(500).json({ msg: 'Error interno del servidor' });
     }
 });
 
