@@ -45,7 +45,15 @@ def fill_pdf_universal_engine(data, output_path, template_name):
                         return y_center
         return None
 
-    # 3. Inyectar Página 1
+    # 3. Restauración de Nitidez de Logo (Inyección de Alta Resolución)
+    logo_path = os.path.join(base_dir, "templates", "logo_real.png")
+    if os.path.exists(logo_path):
+        # Ajustamos las coordenadas para un encuadre perfecto y nítido
+        # Rect(x0, y0, x1, y1) -> Centro superior con mayor tamaño para nitidez
+        logo_rect = fitz.Rect(200, 15, 400, 75) 
+        page1.insert_image(logo_rect, filename=logo_path)
+
+    # 4. Inyectar Página 1
     for entry in config["anchors"]:
         key = entry["data_key"]
         if key in data and data[key]:
