@@ -167,24 +167,33 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        console.log(`🔐 Intento de login para: ${email}`);
         const user = await User.findOne({ where: { email } });
+        
         if (!user) {
+            console.log('❌ Usuario no encontrado en la base de datos.');
             return res.status(400).json({ msg: 'Credenciales inválidas' });
         }
 
+        console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
+
         if (user.status === 'blocked') {
+            console.log('🚫 Usuario bloqueado.');
             return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
         }
 
         if (user.status !== 'authorized') {
+            console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
             return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
         }
 
         const isMatch = await user.comparePassword(password);
+        console.log(`🔑 ¿Contraseña coincide?: ${isMatch}`);
         
         if (!isMatch) {
             // Increment attempts
             user.loginAttempts += 1;
+            console.log(`📉 Intento fallido #${user.loginAttempts}`);
             if (user.loginAttempts >= 3) {
                 user.status = 'blocked';
                 await user.save();
