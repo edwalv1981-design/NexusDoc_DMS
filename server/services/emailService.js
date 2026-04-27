@@ -15,6 +15,9 @@ const transporter = nodemailer.createTransport({
         user: user,
         pass: pass,
     },
+    tls: {
+        rejectUnauthorized: false // Permite conexiones desde entornos de nube como Railway
+    }
 });
 
 const sendSecurityCode = async (toEmail, code) => {

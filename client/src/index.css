@@ -10,6 +10,8 @@
   --radius: 8px;
   --radius-lg: 16px;
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --error: #ef4444;
+  --success: #10b981;
 }
 
 * {
