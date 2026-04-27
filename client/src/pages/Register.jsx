@@ -26,13 +26,28 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    console.log('📡 Iniciando registro para:', formData.email);
     
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
-      localStorage.setItem('userEmail', formData.email);
-      navigate('/verify');
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Registro exitoso, redirigiendo a verificación');
+        localStorage.setItem('userEmail', formData.email);
+        navigate('/verify');
+      } else {
+        console.error('❌ Error de registro:', data.msg);
+        setError(data.msg || 'Error al procesar el registro');
+      }
     } catch (err) {
-      setError(err.response?.data?.msg || 'Error al procesar el registro');
+      console.error('🔥 Error de red en registro:', err);
+      setError('Error de conexión. El servidor tardó demasiado en responder.');
     } finally {
       setLoading(false);
     }

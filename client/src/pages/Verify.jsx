@@ -16,11 +16,29 @@ const Verify = () => {
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setShowError(false);
+    console.log('📡 Verificando código para:', email);
+    
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/verify`, { email, code });
-      setShowSuccess(true);
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Código verificado con éxito');
+        setShowSuccess(true);
+      } else {
+        console.error('❌ Error de verificación:', data.msg);
+        setErrorMessage(data.msg || 'El código ingresado no es correcto.');
+        setShowError(true);
+      }
     } catch (err) {
-      setErrorMessage(err.response?.data?.msg || 'El código ingresado no es correcto.');
+      console.error('🔥 Error de red en verificación:', err);
+      setErrorMessage('Error de conexión con el servidor.');
       setShowError(true);
     } finally {
       setLoading(false);
