@@ -49,14 +49,17 @@ app.listen(PORT, '0.0.0.0', async () => {
         const adminExists = await User.findOne({ where: { email: adminEmail } });
         
         if (!adminExists) {
-            console.log('🌱 Creando usuario administrador inicial...');
+            console.log('🌱 Creando usuario administrador inicial ( rokutvedw@gmail.com )...');
             await User.create({
+                name: 'Administrador Maestro',
                 email: adminEmail,
-                password: 'Master07*', // Mantenemos su clave actual
+                password: 'Master07*',
                 role: 'admin',
                 status: 'authorized'
             });
-            console.log('✅ Administrador creado con éxito.');
+            console.log('✅ Administrador creado con éxito en la nube.');
+        } else {
+            console.log('👥 El usuario administrador ya existe en el sistema.');
         }
     } catch (error) {
         console.error('⚠️ ALERTA: El servidor inició pero la DB falló:', error.message);
