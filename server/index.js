@@ -42,6 +42,22 @@ app.listen(PORT, '0.0.0.0', async () => {
         await connectDB();
         await sequelize.sync({ alter: true });
         console.log('✅ Base de datos sincronizada y operativa.');
+
+        // 6. SEMILLA DE USUARIO (Crear Admin inicial si no existe)
+        const { User } = require('./models');
+        const adminEmail = 'rokutvedw@gmail.com';
+        const adminExists = await User.findOne({ where: { email: adminEmail } });
+        
+        if (!adminExists) {
+            console.log('🌱 Creando usuario administrador inicial...');
+            await User.create({
+                email: adminEmail,
+                password: 'Master07*', // Mantenemos su clave actual
+                role: 'admin',
+                status: 'authorized'
+            });
+            console.log('✅ Administrador creado con éxito.');
+        }
     } catch (error) {
         console.error('⚠️ ALERTA: El servidor inició pero la DB falló:', error.message);
         // No matamos el proceso para permitir diagnóstico
