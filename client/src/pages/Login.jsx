@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
+import API_BASE_URL from '../config';
 
 const Login = () => {
   const navigate = useNavigate();

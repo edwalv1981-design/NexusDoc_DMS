@@ -4,6 +4,7 @@ import {
     FileText, Clock, User, LogOut, 
     Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download
 } from 'lucide-react';
+import API_BASE_URL from '../config';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();

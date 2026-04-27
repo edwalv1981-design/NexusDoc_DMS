@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     ChevronLeft, ChevronRight, Check, Save, 
-    FileCheck, Trash2, X 
+    FileCheck, Trash2, X, Building, Wallet, Shield 
 } from 'lucide-react';
+import API_BASE_URL from '../config';
 
 const FondosForm = () => {
     const navigate = useNavigate();
