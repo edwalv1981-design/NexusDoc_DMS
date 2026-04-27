@@ -308,14 +308,21 @@ router.put('/update-profile', auth, async (req, res) => {
 
 // @route   POST api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
-    console.log(`🔍 Solicitud de recuperación proactiva para: ${req.body.email}`);
+    const rawEmail = req.body.email || '';
+    const email = rawEmail.toLowerCase().trim();
+    console.log(`🔍 Buscando cuenta (insensible): ${email}`);
+    
     try {
-        const { email } = req.body;
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findOne({ 
+            where: sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('email')),
+                email
+            )
+        });
         
         if (!user) {
-            console.log('❌ Usuario no encontrado');
-            return res.status(404).json({ msg: 'Usuario no encontrado' });
+            console.log(`❌ No existe cuenta para: ${email}`);
+            return res.status(404).json({ msg: 'No se encontró ninguna cuenta registrada con este correo electrónico.' });
         }
 
         // DESBLOQUEO PROACTIVO: Si es admin, limpiamos su estado al momento de pedir el código
