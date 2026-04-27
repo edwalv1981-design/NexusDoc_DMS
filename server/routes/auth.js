@@ -309,26 +309,26 @@ router.put('/update-profile', auth, async (req, res) => {
 
 // @route   POST api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
-    const rawEmail = req.body.email || '';
-    const email = rawEmail.toLowerCase().trim();
-    console.log(`🔍 Buscando cuenta (insensible): ${email}`);
-    
     try {
+        const rawEmail = req.body.email || '';
+        const email = rawEmail.toLowerCase().trim();
+        console.log(`🔍 Búsqueda proactiva para: ${email}`);
+        
+        // Usamos iLike (insensible a mayúsculas) - Estándar de Oro en Postgres
         const user = await User.findOne({ 
-            where: sequelize.where(
-                sequelize.fn('LOWER', sequelize.col('email')),
-                email
-            )
+            where: {
+                email: { [Op.iLike]: email }
+            }
         });
         
         if (!user) {
-            console.log(`❌ No existe cuenta para: ${email}`);
+            console.log(`❌ No se encontró cuenta para: ${email}`);
             return res.status(404).json({ msg: 'No se encontró ninguna cuenta registrada con este correo electrónico.' });
         }
 
         // DESBLOQUEO PROACTIVO: Si es admin, limpiamos su estado al momento de pedir el código
         if (user.role === 'admin') {
-            console.log('🔓 Desbloqueo proactivo ejecutado para Administrador.');
+            console.log('🔓 Desbloqueo proactivo ejecutado para Administrador Maestro.');
             user.status = 'authorized';
             user.loginAttempts = 0;
         }
@@ -336,23 +336,20 @@ router.post('/forgot-password', async (req, res) => {
         const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
         user.securityCode = securityCode;
         
-        try {
-            await user.save();
-        } catch (dbErr) {
-            console.error('❌ Error DB:', dbErr.message);
-            return res.status(500).json({ msg: 'Error al actualizar estado en base de datos' });
-        }
+        await user.save();
+        console.log('💾 Estado y código actualizados en DB.');
 
         const emailSent = await sendSecurityCode(email, securityCode);
         
         if (emailSent) {
-            res.json({ msg: 'Código de seguridad enviado. Tu cuenta ha sido habilitada.' });
+            res.json({ msg: 'Código enviado. Tu cuenta ha sido habilitada.' });
         } else {
-            res.status(500).json({ msg: 'Cuenta habilitada, pero falló el envío del correo. Revisa tus variables SMTP.' });
+            console.error('❌ Error de envío SMTP');
+            res.status(500).json({ msg: 'Cuenta habilitada, pero falló el envío del código. Verifica las credenciales SMTP en Railway.' });
         }
     } catch (err) {
-        console.error('❌ ERROR:', err);
-        res.status(500).json({ msg: 'Error interno del servidor' });
+        console.error('🔥 ERROR CRÍTICO EN RECUPERACIÓN:', err.message);
+        res.status(500).json({ msg: 'Error interno del servidor', details: err.message });
     }
 });
 
