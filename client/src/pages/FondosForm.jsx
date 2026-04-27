@@ -36,10 +36,32 @@ const FondosForm = () => {
 
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
+    const [validationErrors, setValidationErrors] = useState([]);
 
     useEffect(() => {
         if (editId) fetchExistingData();
     }, [editId]);
+
+    const validateStep = () => {
+        let errors = [];
+        if (step === 1) {
+            if (!formData.companyName) errors.push('companyName');
+            if (!formData.activities) errors.push('activities');
+            if (!formData.country) errors.push('country');
+            if (!formData.beneficiaryName) errors.push('beneficiaryName');
+        }
+        if (step === 2) {
+            if (formData.fundsSource.length === 0) errors.push('fundsSource');
+        }
+        if (step === 3) {
+            if (!formData.custodyName) errors.push('custodyName');
+            if (!formData.custodyPhone) errors.push('custodyPhone');
+            if (!formData.custodyEmail) errors.push('custodyEmail');
+            if (!formData.custodyAddress) errors.push('custodyAddress');
+        }
+        setValidationErrors(errors);
+        return errors.length === 0;
+    };
 
     const fetchExistingData = async () => {
         try {
@@ -55,17 +77,28 @@ const FondosForm = () => {
         }
     };
 
-    const handleNext = () => setStep(step + 1);
-    const handleBack = () => setStep(step - 1);
+    const handleNext = () => {
+        if (validateStep()) {
+            setStep(step + 1);
+            window.scrollTo(0, 0);
+        }
+    };
+
+    const handleBack = () => {
+        setValidationErrors([]);
+        setStep(step - 1);
+    };
 
     const toggleFund = (fund) => {
         const updated = formData.fundsSource.includes(fund)
             ? formData.fundsSource.filter(f => f !== fund)
             : [...formData.fundsSource, fund];
         setFormData({ ...formData, fundsSource: updated });
+        if (updated.length > 0) setValidationErrors(prev => prev.filter(e => e !== 'fundsSource'));
     };
 
     const handleFinish = async () => {
+        if (!validateStep()) return;
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
@@ -96,6 +129,7 @@ const FondosForm = () => {
     const renderStep = () => {
         const headerStyle = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: '35px', borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' };
         const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' };
+        const getErrorStyle = (field) => validationErrors.includes(field) ? { borderColor: '#ef4444', boxShadow: '0 0 0 4px #ef444415' } : {};
 
         switch(step) {
             case 1:
@@ -111,23 +145,24 @@ const FondosForm = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
                             <div>
                                 <label style={labelStyle}>Razón Social de la Compañía</label>
-                                <input className="corporate-input" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} placeholder="Ingrese el nombre oficial..." />
+                                <input className="corporate-input" style={getErrorStyle('companyName')} value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder="Ingrese el nombre oficial..." />
                             </div>
                             <div>
                                 <label style={labelStyle}>Actividades Principales</label>
-                                <textarea className="corporate-input" rows={3} value={formData.activities} onChange={e => setFormData({...formData, activities: e.target.value})} />
+                                <textarea className="corporate-input" style={getErrorStyle('activities')} rows={3} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'activities')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>Jurisdicción / País</label>
-                                    <input className="corporate-input" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
+                                    <input className="corporate-input" style={getErrorStyle('country')} value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Beneficiario Final</label>
-                                    <input className="corporate-input" value={formData.beneficiaryName} onChange={e => setFormData({...formData, beneficiaryName: e.target.value})} />
+                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
                                 </div>
                             </div>
                         </div>
+                        {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>⚠️ Por favor complete todos los campos resaltados en rojo.</p>}
                         <button onClick={handleNext} className="corporate-btn-primary" style={{ marginTop: '40px' }}>
                             Siguiente Paso <ChevronRight size={18} />
                         </button>
@@ -143,8 +178,8 @@ const FondosForm = () => {
                             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>II. Declaración de Origen de Fondos</h2>
                         </div>
 
-                        <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
-                            <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '20px' }}>Marque las opciones que correspondan:</p>
+                        <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: validationErrors.includes('fundsSource') ? '2px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '25px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 4px #ef444415' : 'none' }}>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '20px' }}>Marque al menos una opción obligatoria:</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {['Bienes personales', 'Inversiones Financieras', 'Negocios', 'Prestamos', 'Herencia o Fondo Fiduciario'].map(f => (
                                     <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '10px 15px', borderRadius: '8px', border: formData.fundsSource.includes(f) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(f) ? `${PRIMARY_COLOR}08` : 'transparent', transition: '0.2s' }}>
@@ -160,6 +195,7 @@ const FondosForm = () => {
                             <input className="corporate-input" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} />
                         </div>
 
+                        {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>⚠️ Debe seleccionar al menos una fuente de origen de fondos.</p>}
                         <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
                             <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> Anterior</button>
                             <button onClick={handleNext} className="corporate-btn-primary" style={{ flex: 1 }}>Continuar <ChevronRight size={18} /></button>
@@ -179,24 +215,25 @@ const FondosForm = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             <div>
                                 <label style={labelStyle}>Nombre del Responsable de Custodia</label>
-                                <input className="corporate-input" value={formData.custodyName} onChange={e => setFormData({...formData, custodyName: e.target.value})} />
+                                <input className="corporate-input" style={getErrorStyle('custodyName')} value={formData.custodyName} onChange={e => { setFormData({...formData, custodyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>Teléfono Corporativo</label>
-                                    <input className="corporate-input" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value})} />
+                                    <input className="corporate-input" style={getErrorStyle('custodyPhone')} value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Email Institucional</label>
-                                    <input className="corporate-input" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} />
+                                    <input className="corporate-input" style={getErrorStyle('custodyEmail')} value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} />
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>Dirección de Almacenamiento de Registros</label>
-                                <input className="corporate-input" value={formData.custodyAddress} onChange={e => setFormData({...formData, custodyAddress: e.target.value})} />
+                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} value={formData.custodyAddress} onChange={e => { setFormData({...formData, custodyAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
                         </div>
 
+                        {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>⚠️ Por favor complete los datos de custodia obligatorios.</p>}
                         <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
                             <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> Atrás</button>
                             <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '16px' }} disabled={loading}>
