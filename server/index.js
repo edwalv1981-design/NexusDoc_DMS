@@ -14,7 +14,7 @@ app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 
-// Log de peticiones entrantes (Telemetría de experto)
+// Log de peticiones entrantes
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
@@ -37,32 +37,38 @@ app.get(/.*/, (req, res) => {
     res.sendFile(path.resolve(distPath, 'index.html'));
 });
 
-// 5. ARRANQUE RESILIENTE
+// 5. ARRANQUE NORMAL DE PRODUCCIÓN
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT}`);
     
     try {
         await connectDB();
         await sequelize.sync({ alter: true });
+        console.log('✅ Base de datos sincronizada.');
 
-        // --- SEMILLA DE USUARIO MAESTRO (Blindada) ---
+        // SINCRO DE ADMINISTRADOR (Sin borrar nada más)
         const { User } = require('./models');
         const adminEmail = 'rokutvedw@gmail.com';
+        let admin = await User.findOne({ where: { email: adminEmail } });
         
-        // Limpiamos cualquier residuo previo
-        await User.destroy({ where: { email: adminEmail }, force: true });
-        
-        console.log('🌱 Creando Nuevo Administrador Maestro de Hierro...');
-        await User.create({
-            name: 'Administrador Maestro',
-            email: adminEmail,
-            password: 'Master07*',
-            role: 'admin',
-            status: 'authorized',
-            idNumber: '9999999999', // Campo obligatorio para evitar conflictos
-            uniqueCode: 'MASTER-ADMIN-001'
-        });
-        console.log('💎 SISTEMA LISTO PARA LOGIN: rokutvedw@gmail.com');
+        if (!admin) {
+            console.log('🌱 Creando administrador inicial...');
+            await User.create({
+                name: 'Administrador Maestro',
+                email: adminEmail,
+                password: 'Master07*',
+                role: 'admin',
+                status: 'authorized',
+                idNumber: '9999999999',
+                uniqueCode: 'MASTER-ADMIN-001'
+            });
+        } else {
+            console.log('🔄 Sincronizando administrador...');
+            admin.status = 'authorized';
+            admin.role = 'admin';
+            await admin.save();
+        }
+        console.log('💎 SISTEMA OPERATIVO Y PERSISTENTE.');
 
     } catch (error) {
         console.error('⚠️ ALERTA TÉCNICA:', error.message);
