@@ -21,12 +21,13 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendSecurityCode = async (toEmail, code) => {
-    console.log(`📧 Intentando enviar código a: ${toEmail}...`);
+    console.log(`📧 Intentando enviar código de seguridad a: ${toEmail}...`);
     try {
         const mailOptions = {
-            from: `"NexusDoc Security" <${user}>`,
+            from: user, // Simplificado al máximo para Yahoo
             to: toEmail,
             subject: 'Tu Código de Seguridad - NexusDoc DMS',
+            priority: 'high', // Prioridad alta para filtros
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2 style="color: #0078d4;">NexusDoc DMS</h2>
@@ -50,9 +51,10 @@ const sendSecurityCode = async (toEmail, code) => {
 
 const sendTemporaryPassword = async (toEmail, tempPassword) => {
     const mailOptions = {
-        from: `"NexusDoc" <${user}>`,
+        from: user,
         to: toEmail,
         subject: 'NexusDoc - Nueva Clave de Acceso',
+        priority: 'high',
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
                 <h2 style="color: #0078d4; text-align: center;">Acceso NexusDoc</h2>
