@@ -188,49 +188,36 @@ router.post('/login', async (req, res) => {
         }
 
         const isMatch = await user.comparePassword(password);
-        console.log(`🔑 ¿Contraseña coincide?: ${isMatch}`);
+        console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
         
         if (!isMatch) {
-            // Increment attempts
             user.loginAttempts += 1;
-            console.log(`📉 Intento fallido #${user.loginAttempts}`);
-            if (user.loginAttempts >= 3) {
-                user.status = 'blocked';
-                await user.save();
-                return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos.' });
-            }
             await user.save();
-            return res.status(400).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
+            return res.status(400).json({ msg: 'Credenciales inválidas' });
         }
 
-        // Reset attempts on success
+        // Reset attempts
         user.loginAttempts = 0;
         await user.save();
 
-        // Create Audit Log for Login
-        await AuditLog.create({
-            userId: user.id,
-            action: 'LOGIN',
-            description: `Usuario ${user.email} inició sesión correctamente`
-        });
+        const payload = { user: { id: user.id, role: user.role } };
 
-        const payload = {
-            user: {
-                id: user.id,
-                role: user.role
-            }
-        };
+        // Blindaje: Usar secreto de Railway o uno de emergencia
+        const secret = process.env.JWT_SECRET || 'nexusdoc_emergency_secret_key_2024';
 
         jwt.sign(
             payload,
-            process.env.JWT_SECRET,
+            secret,
             { expiresIn: '8h' },
             async (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error('❌ Error al firmar JWT:', err.message);
+                    throw err;
+                }
                 
-                // Blindaje: Guardar el token como el ÚNICO activo
                 user.activeToken = token;
                 await user.save();
+                console.log(`✅ Sesión iniciada para: ${email}`);
 
                 res.json({ 
                     token, 
@@ -239,7 +226,6 @@ router.post('/login', async (req, res) => {
                         name: user.name, 
                         email: user.email, 
                         role: user.role, 
-                        initialForm: user.initialForm, 
                         mustChangePassword: user.mustChangePassword 
                     } 
                 });

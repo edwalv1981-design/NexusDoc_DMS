@@ -14,6 +14,12 @@ app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 
+// Log de peticiones entrantes (Telemetría de experto)
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+});
+
 // 2. RUTAS DE LA API
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
@@ -31,37 +37,32 @@ app.get(/.*/, (req, res) => {
     res.sendFile(path.resolve(distPath, 'index.html'));
 });
 
-// 5. ARRANQUE RESILIENTE CON RESETEO DE RAÍZ
+// 5. ARRANQUE RESILIENTE
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT}`);
     
     try {
         await connectDB();
-        
-        // SINCRO TOTAL (force: false para no borrar tablas, pero limpiaremos datos)
         await sequelize.sync({ alter: true });
-        console.log('✅ Base de datos sincronizada.');
 
-        // --- PROTOCOLO DE LIMPIEZA TOTAL (WIPE) ---
-        const { User, AuditLog, FormData, PendingRegistration } = require('./models');
+        // --- SEMILLA DE USUARIO MAESTRO (Blindada) ---
+        const { User } = require('./models');
+        const adminEmail = 'rokutvedw@gmail.com';
         
-        console.log('☢️ Iniciando Limpieza de Raíz...');
-        await AuditLog.destroy({ where: {} });
-        await FormData.destroy({ where: {} });
-        await PendingRegistration.destroy({ where: {} });
-        await User.destroy({ where: {}, cascade: true });
-        console.log('🧹 Base de datos purificada.');
-
-        // --- CREACIÓN DE NUEVO MASTER ---
-        console.log('🌱 Creando Nuevo Administrador Maestro...');
+        // Limpiamos cualquier residuo previo
+        await User.destroy({ where: { email: adminEmail }, force: true });
+        
+        console.log('🌱 Creando Nuevo Administrador Maestro de Hierro...');
         await User.create({
             name: 'Administrador Maestro',
-            email: 'rokutvedw@gmail.com',
+            email: adminEmail,
             password: 'Master07*',
             role: 'admin',
-            status: 'authorized'
+            status: 'authorized',
+            idNumber: '9999999999', // Campo obligatorio para evitar conflictos
+            uniqueCode: 'MASTER-ADMIN-001'
         });
-        console.log('💎 NUEVO MASTER CREADO: rokutvedw@gmail.com');
+        console.log('💎 SISTEMA LISTO PARA LOGIN: rokutvedw@gmail.com');
 
     } catch (error) {
         console.error('⚠️ ALERTA TÉCNICA:', error.message);
