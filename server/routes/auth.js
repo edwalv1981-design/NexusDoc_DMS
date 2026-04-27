@@ -315,20 +315,16 @@ router.post('/forgot-password', async (req, res) => {
     try {
         const rawEmail = req.body.email || '';
         const email = rawEmail.toLowerCase().trim();
-        console.log(`🔍 Búsqueda proactiva para: ${email}`);
+        console.log(`🔍 Solicitud de código de recuperación para: ${email}`);
         
-        // Usamos iLike (insensible a mayúsculas) - Estándar de Oro en Postgres
         const user = await User.findOne({ 
-            where: {
-                email: { [Op.iLike]: email }
-            }
+            where: { email: { [Op.iLike]: email } }
         });
         
         if (!user) {
-            console.log(`❌ No se encontró cuenta para: ${email}`);
-            return res.status(404).json({ msg: 'No se encontró ninguna cuenta registrada con este correo electrónico.' });
+            return res.status(404).json({ msg: 'No se encontró ninguna cuenta registrada.' });
         }
-
+        
         // DESBLOQUEO PROACTIVO: Si es admin, limpiamos su estado al momento de pedir el código
         if (user.role === 'admin') {
             console.log('🔓 Desbloqueo proactivo ejecutado para Administrador Maestro.');
@@ -336,23 +332,24 @@ router.post('/forgot-password', async (req, res) => {
             user.loginAttempts = 0;
         }
 
+        // Generamos SOLO el código de 6 dígitos
         const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
         user.securityCode = securityCode;
         
+        // NO cambiamos password ni status aquí para evitar envíos dobles
         await user.save();
-        console.log('💾 Estado y código actualizados en DB.');
-
+        
+        console.log('📡 Enviando SOLAMENTE el código de seguridad...');
         const emailSent = await sendSecurityCode(email, securityCode);
         
         if (emailSent) {
-            res.json({ msg: 'Código enviado. Tu cuenta ha sido habilitada.' });
+            res.json({ msg: 'Código de seguridad enviado. Revise su bandeja de entrada.' });
         } else {
-            console.error('❌ Error de envío SMTP');
-            res.status(500).json({ msg: 'Cuenta habilitada, pero falló el envío del código. Verifica las credenciales SMTP en Railway.' });
+            res.status(500).json({ msg: 'Error al enviar el código. Intente más tarde.' });
         }
     } catch (err) {
-        console.error('🔥 ERROR CRÍTICO EN RECUPERACIÓN:', err.message);
-        res.status(500).json({ msg: 'Error interno del servidor', details: err.message });
+        console.error('🔥 Error en forgot-password:', err.message);
+        res.status(500).json({ msg: 'Error de servidor' });
     }
 });
 
