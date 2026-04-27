@@ -37,10 +37,10 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       if (activeTab === 'users') {
-        const res = await axios.get('http://127.0.0.1:5000/api/admin/users', { headers: { 'x-auth-token': token } });
+        const res = await axios.get(`${API_BASE_URL}/api/admin/users`, { headers: { 'x-auth-token': token } });
         setUsers(res.data);
       } else if (activeTab === 'logs') {
-        const res = await axios.get('http://127.0.0.1:5000/api/admin/logs', { headers: { 'x-auth-token': token } });
+        const res = await axios.get(`${API_BASE_URL}/api/admin/logs`, { headers: { 'x-auth-token': token } });
         setLogs(res.data);
       }
     } catch (err) { 
@@ -52,7 +52,7 @@ const AdminDashboard = () => {
   const handleStatusChange = async (userId, newStatus) => {
     const token = localStorage.getItem('token');
     try {
-      await axios.put(`http://127.0.0.1:5000/api/admin/users/${userId}/status`, { status: newStatus }, { headers: { 'x-auth-token': token } });
+      await axios.put(`${API_BASE_URL}/api/admin/users/${userId}/status`, { status: newStatus }, { headers: { 'x-auth-token': token } });
       fetchData();
       toast.success('Estado actualizado');
     } catch (err) { 
@@ -65,7 +65,7 @@ const AdminDashboard = () => {
     const token = localStorage.getItem('token');
     if (window.confirm('¿Eliminar?')) {
       try {
-        await axios.delete(`http://127.0.0.1:5000/api/admin/users/${userId}`, { headers: { 'x-auth-token': token } });
+        await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, { headers: { 'x-auth-token': token } });
         fetchData();
         toast.success('Eliminado');
       } catch (err) { 
@@ -81,7 +81,7 @@ const AdminDashboard = () => {
     setSavingSettings(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://127.0.0.1:5000/api/auth/update-profile', { email: adminEmail, newPassword: newPassword || undefined }, { headers: { 'x-auth-token': token } });
+      await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { email: adminEmail, newPassword: newPassword || undefined }, { headers: { 'x-auth-token': token } });
       toast.success('Guardado');
       setNewPassword(''); setConfirmPassword('');
     } catch (err) { 
