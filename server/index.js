@@ -5,7 +5,10 @@ require('dotenv').config();
 const { connectDB, sequelize } = require('./config/db');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000; // Forzamos 5000 para coincidir con el Dominio de Railway
+
+// RUTA DE SALUD (Para probar si el servidor responde)
+app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 
 // 1. MIDDLEWARES INICIALES
 app.use(cors({ origin: '*', credentials: true }));
