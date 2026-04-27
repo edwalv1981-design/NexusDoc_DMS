@@ -162,7 +162,24 @@ const FondosForm = () => {
                                 </div>
                             </div>
                         </div>
-                        {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>⚠️ Por favor complete todos los campos resaltados en rojo.</p>}
+                        {validationErrors.length > 0 && (
+                            <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '10px', marginTop: '20px', border: '1px solid #fee2e2' }}>
+                                <p style={{ color: '#ef4444', fontSize: '13px', fontWeight: 700, margin: 0 }}>
+                                    ⚠️ Falta completar información importante:
+                                </p>
+                                <ul style={{ margin: '8px 0 0', paddingLeft: '20px', color: '#b91c1c', fontSize: '12px', fontWeight: 600 }}>
+                                    {validationErrors.map(err => {
+                                        const labels = {
+                                            companyName: 'Razón Social de la Compañía',
+                                            activities: 'Actividades Principales',
+                                            country: 'Jurisdicción / País',
+                                            beneficiaryName: 'Nombre del Beneficiario Final'
+                                        };
+                                        return <li key={err}>{labels[err] || err}</li>;
+                                    })}
+                                </ul>
+                            </div>
+                        )}
                         <button onClick={handleNext} className="corporate-btn-primary" style={{ marginTop: '40px' }}>
                             Siguiente Paso <ChevronRight size={18} />
                         </button>
