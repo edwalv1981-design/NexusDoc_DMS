@@ -355,14 +355,23 @@ router.post('/forgot-password', async (req, res) => {
 
 // @route   POST api/auth/verify-forgot-password
 router.post('/verify-forgot-password', async (req, res) => {
-    console.log(`🔐 Verificando código de recuperación para: ${req.body.email}`);
     try {
         const { email, code } = req.body;
-        const user = await User.findOne({ where: { email, securityCode: code } });
+        const cleanEmail = email ? email.toLowerCase().trim() : '';
+        const cleanCode = code ? code.toString().trim() : '';
+
+        console.log(`🔐 Verificando código [${cleanCode}] para: ${cleanEmail}`);
+        
+        const user = await User.findOne({ 
+            where: { 
+                email: { [Op.iLike]: cleanEmail },
+                securityCode: cleanCode 
+            } 
+        });
         
         if (!user) {
-            console.log('❌ Código incorrecto o expirado');
-            return res.status(400).json({ msg: 'Código incorrecto o expirado' });
+            console.log('❌ Validación fallida: Correo o código incorrectos.');
+            return res.status(400).json({ msg: 'Código incorrecto o expirado. Asegúrate de usar el último código recibido.' });
         }
 
         // PROTOCOLO DE RECUPERACIÓN TOTAL (Unblock + Reset)

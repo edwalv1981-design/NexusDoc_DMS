@@ -9,7 +9,7 @@ import os
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8')
 
 def fill_pdf_universal_engine(data, output_path, template_name):
-    # RUTAS RELATIVAS PARA PORTABILIDAD (Funcionan en Windows y Linux/Railway)
+    # RUTAS RELATIVAS PARA PORTABILIDAD
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     config_path = os.path.join(base_dir, "templates", "templates_config.json")
     
@@ -24,10 +24,10 @@ def fill_pdf_universal_engine(data, output_path, template_name):
     
     config = master_config[template_name]
     
-    # Ruta absoluta del PDF basada en la ubicación del proyecto
+    # Ruta del PDF base
     pdf_path = os.path.join(base_dir, "templates", os.path.basename(config["file_path"]))
     
-    # 2. Abrir PDF
+    # Abrir PDF y cargar datos
     doc = fitz.open(pdf_path)
     page1 = doc[0]
     words = page1.get_text("words") 
@@ -45,16 +45,14 @@ def fill_pdf_universal_engine(data, output_path, template_name):
                         return y_center
         return None
 
-    # 3. Inyectar Página 1
+    # INYECTAR TEXTO ÚNICAMENTE (Versión Estable Original)
     for entry in config["anchors"]:
         key = entry["data_key"]
         if key in data and data[key]:
             x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
             y = find_y_by_keywords(entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
-            
             if not y and key == "address":
                 y = config.get("y_address_fallback", 328)
-            
             if y:
                 page1.insert_text((x_val, y), str(data[key]), fontsize=10, fontname="helv")
 
@@ -63,14 +61,14 @@ def fill_pdf_universal_engine(data, output_path, template_name):
     if y_final_label and data.get("custodyAddress"):
         page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
 
-    # 4. Página 2
+    # Página 2
     if len(doc) > 1:
         if data.get("signerName"):
             doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="helv")
         if data.get("date"):
             doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="helv")
 
-    # 5. Checkboxes
+    # Checkboxes
     checkbox_anchors = [
         (["personal", "bienes"], "Bienes personales"),
         (["financial", "inversiones"], "Inversiones Financieras"),
@@ -89,7 +87,8 @@ def fill_pdf_universal_engine(data, output_path, template_name):
         fy = find_y_by_keywords(["specify", "especificar"])
         if fy: page1.insert_text((73, fy + 20), str(data["fundsOther"]), fontsize=10, fontname="helv")
 
-    doc.save(output_path)
+    # Guardado limpio sin capas extra
+    doc.save(output_path, incremental=False, encryption=0)
     doc.close()
 
 if __name__ == "__main__":
@@ -98,7 +97,6 @@ if __name__ == "__main__":
         input_data = json.loads(raw_input)
         out_file = input_data.get("output_path", "filled_temp.pdf")
         t_name = input_data.get("template_name", "referencia_maestra")
-        
         fill_pdf_universal_engine(input_data.get("data", {}), out_file, t_name)
         print(out_file)
     except Exception as e:
