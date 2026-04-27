@@ -87,9 +87,12 @@ router.post('/register', async (req, res) => {
             code: securityCode
         });
 
-        // Send Email
-        await sendSecurityCode(email, securityCode);
+        // ENVÍO ASÍNCRONO (No bloqueante): Respondemos al usuario de inmediato
+        sendSecurityCode(email, securityCode).catch(err => {
+            console.error('⚠️ Fallo en envío de correo de registro (segundo plano):', err.message);
+        });
 
+        console.log(`✅ Registro pendiente creado para ${email}. Respondiendo al cliente.`);
         res.json({ msg: 'Código enviado al correo' });
     } catch (err) {
         console.error(err.message);
