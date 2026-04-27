@@ -192,8 +192,16 @@ router.post('/login', async (req, res) => {
         
         if (!isMatch) {
             user.loginAttempts += 1;
+            console.log(`📉 Intento fallido #${user.loginAttempts}`);
+            
+            if (user.loginAttempts >= 3) {
+                user.status = 'blocked';
+                await user.save();
+                return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos. Contacta al soporte.' });
+            }
+            
             await user.save();
-            return res.status(400).json({ msg: 'Credenciales inválidas' });
+            return res.status(400).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
         }
 
         // Reset attempts
