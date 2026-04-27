@@ -297,20 +297,37 @@ router.put('/update-profile', auth, async (req, res) => {
 });
 
 // @route   POST api/auth/forgot-password
-// @desc    Step 1: Request security code for password recovery
 router.post('/forgot-password', async (req, res) => {
+    console.log(`🔍 Solicitud de recuperación para: ${req.body.email}`);
     try {
         const { email } = req.body;
         const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+        
+        if (!user) {
+            console.log('❌ Usuario no encontrado para recuperación');
+            return res.status(404).json({ msg: 'Usuario no encontrado' });
+        }
 
         const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
         user.securityCode = securityCode;
-        await user.save();
+        
+        try {
+            await user.save();
+            console.log('💾 Código de seguridad guardado en DB');
+        } catch (dbErr) {
+            console.error('❌ Error al guardar código en DB:', dbErr.message);
+            return res.status(500).json({ msg: 'Error interno de base de datos' });
+        }
 
-        await sendSecurityCode(email, securityCode);
-        res.json({ msg: 'Código de seguridad enviado a tu correo' });
+        const emailSent = await sendSecurityCode(email, securityCode);
+        
+        if (emailSent) {
+            res.json({ msg: 'Código de seguridad enviado a tu correo' });
+        } else {
+            res.status(500).json({ msg: 'Error al enviar el correo. Verifica las credenciales SMTP en Railway.' });
+        }
     } catch (err) {
+        console.error('❌ CRITICAL RECOVERY ERROR:', err);
         res.status(500).send('Server error');
     }
 });
