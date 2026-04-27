@@ -81,23 +81,37 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
         const outputPath = path.join(__dirname, `../../temp_filled_${form.id}.pdf`);
+        const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
         const scriptPath = path.join(__dirname, '../scripts/fill_pdf_expert.py');
 
-        const pythonProcess = exec(`python "${scriptPath}"`, (error, stdout, stderr) => {
+        console.log(`📡 Iniciando motor PDF (${pythonCommand})...`);
+
+        const pythonProcess = exec(`${pythonCommand} "${scriptPath}"`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`exec error: ${error}`);
-                return res.status(500).json({ msg: 'Error al generar PDF' });
+                console.error(`❌ Error en motor Python: ${error.message}`);
+                console.error(`🔍 Detalle Stderr: ${stderr}`);
+                return res.status(500).json({ msg: 'Error interno en el motor de PDF' });
             }
-            res.download(outputPath, `SFAR_Fiel_Copia_${form.id}.pdf`, (err) => {
-                if (err) console.error('Error enviando archivo:', err);
-                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+            
+            if (!fs.existsSync(outputPath)) {
+                console.error('❌ El script de Python terminó pero no generó el archivo.');
+                return res.status(500).json({ msg: 'El motor no generó el documento final' });
+            }
+
+            console.log('✅ PDF generado con éxito, iniciando descarga.');
+            res.download(outputPath, `NexusDoc_DMS_${form.id}.pdf`, (err) => {
+                if (err) console.error('❌ Error enviando archivo al navegador:', err);
+                // Limpiar temporal después de enviar
+                if (fs.existsSync(outputPath)) {
+                    try { fs.unlinkSync(outputPath); } catch(e) {}
+                }
             });
         });
 
         pythonProcess.stdin.write(JSON.stringify({ 
             data: form.data, 
             output_path: outputPath,
-            template_name: "referencia_maestra" // Por ahora forzamos esta, pero ya está preparado para ser dinámico
+            template_name: "referencia_maestra"
         }));
         pythonProcess.stdin.end();
 
