@@ -8,15 +8,13 @@ const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com'
 const port = process.env.SMTP_PORT || process.env.EMAIL_PORT || 465;
 
 const transporter = nodemailer.createTransport({
-    host: host,
-    port: parseInt(port),
-    secure: parseInt(port) === 465, 
+    service: 'gmail', // Motor nativo de Gmail (Más robusto para Railway)
     auth: {
         user: user,
         pass: pass,
     },
     tls: {
-        rejectUnauthorized: false // Permite conexiones desde entornos de nube como Railway
+        rejectUnauthorized: false
     }
 });
 
