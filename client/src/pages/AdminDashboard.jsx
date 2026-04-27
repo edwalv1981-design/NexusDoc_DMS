@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -13,7 +13,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const itemsPerPage = 12;
@@ -77,13 +77,12 @@ const AdminDashboard = () => {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (newPassword && newPassword !== confirmPassword) return toast.error('Error claves');
     setSavingSettings(true);
     try {
       const token = localStorage.getItem('token');
       await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { email: adminEmail, newPassword: newPassword || undefined }, { headers: { 'x-auth-token': token } });
-      toast.success('Guardado');
-      setNewPassword(''); setConfirmPassword('');
+      toast.success('Perfil actualizado con éxito');
+      setNewPassword('');
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
         toast.error('Error'); 
@@ -194,7 +193,22 @@ const AdminDashboard = () => {
                   </div>
                   <div className="field-group-admin">
                     <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVA CONTRASEÑA</label>
-                    <input className="input-modern-admin" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        className="input-modern-admin" 
+                        type={showPassword ? 'text' : 'password'} 
+                        value={newPassword} 
+                        onChange={e => setNewPassword(e.target.value)} 
+                        style={{ paddingRight: '40px' }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: '#666' }}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" disabled={savingSettings} className="btn-primary" style={{ width: '100%', marginTop: 10 }}>
                     {savingSettings ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
