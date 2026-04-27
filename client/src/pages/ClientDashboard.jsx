@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-    FileText, Clock, User, LogOut, 
-    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download
+    FileText, Clock, User as UserIcon, LogOut, 
+    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 
@@ -12,6 +12,9 @@ const ClientDashboard = () => {
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
     const showForm = queryParams.get('view') === 'form';
+    const formTypeQuery = queryParams.get('type');
+
+    const [currentFormType, setCurrentFormType] = useState(formTypeQuery || '');
 
     const PRIMARY = '#0078d4';
     const BG = '#f8fafc';
@@ -41,10 +44,19 @@ const ClientDashboard = () => {
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
     });
 
+    const formOptions = [
+        { id: 'Fondos Registros contables', label: 'Fondos Registros contables', icon: <ClipboardList size={24} />, color: '#6366f1' },
+        { id: 'Corporación', label: 'Corporación', icon: <Building size={24} />, color: '#10b981' },
+        { id: 'Fundaciones', label: 'Fundaciones', icon: <Heart size={24} />, color: '#ef4444' },
+        { id: 'Cumplimiento Individual', label: 'Cumplimiento Individual', icon: <UserIcon size={24} />, color: '#f59e0b' },
+        { id: 'Cumplimiento Entidades', label: 'Cumplimiento Entidades', icon: <ShieldAlert size={24} />, color: '#3b82f6' },
+    ];
+
     useEffect(() => {
         fetchData();
         if (editId) fetchFormData(editId);
-    }, [editId]);
+        if (formTypeQuery) setCurrentFormType(formTypeQuery);
+    }, [editId, formTypeQuery]);
 
     const showToast = (msg, type = 'error') => {
         setToast({ show: true, msg, type });
@@ -73,6 +85,7 @@ const ClientDashboard = () => {
             if (response.ok) {
                 const result = await response.json();
                 if (result.data) setFormData(result.data);
+                if (result.type) setCurrentFormType(result.type);
             }
         } catch (e) { console.error(e); }
     };
@@ -110,7 +123,7 @@ const ClientDashboard = () => {
             const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify({ id: cleanId, type: user?.initialForm || 'Documento', data: formData })
+                body: JSON.stringify({ id: cleanId, type: currentFormType || user?.initialForm || 'Documento', data: formData })
             });
             if (response.status === 401) { localStorage.clear(); return navigate('/'); }
             if (response.ok) { 
@@ -211,10 +224,10 @@ const ClientDashboard = () => {
                     <span style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.5px' }}>NEXUSDOC DMS</span>
                 </div>
                 <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div onClick={() => { navigate('/dashboard'); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: !showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
+                    <div onClick={() => { navigate('/dashboard'); setCurrentFormType(''); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: !showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
                         <LayoutGrid size={15} /> <span>ESCRITORIO</span>
                     </div>
-                    <div onClick={() => { navigate('/dashboard?view=form'); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
+                    <div onClick={() => { navigate('/dashboard?view=form'); setCurrentFormType(''); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
                         <Plus size={15} /> <span>NUEVO TRÁMITE</span>
                     </div>
                 </nav>
@@ -276,9 +289,33 @@ const ClientDashboard = () => {
                             ))}
                         </div>
                     </div>
-                ) : (
+                ) : !currentFormType ? (
+                    <div style={{ maxWidth: '900px' }}>
+                        <h1 style={{ marginBottom: '25px', color: '#1e293b' }}>Seleccione el tipo de trámite</h1>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                          {formOptions.map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => { setCurrentFormType(opt.id); navigate(`/dashboard?view=form&type=${opt.id}`); }}
+                              style={{
+                                padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px',
+                                cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #e2e8f0', background: 'white',
+                                borderRadius: RADIUS_LG, outline: 'none'
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.borderColor = opt.color; e.currentTarget.style.boxShadow = `0 10px 15px -3px ${opt.color}20`; }}
+                              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none'; }}
+                            >
+                              <div style={{ background: `${opt.color}15`, color: opt.color, width: '50px', height: '50px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {opt.icon}
+                              </div>
+                              <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                    </div>
+                ) : currentFormType === 'Fondos Registros contables' ? (
                     <div style={{ maxWidth: '800px' }}>
-                        <h1 style={{ marginBottom: '25px' }}>{user?.initialForm || 'REGISTRO DE INFORMACIÓN'}</h1>
+                        <h1 style={{ marginBottom: '25px' }}>{currentFormType}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '10px', fontWeight: 800, color: PRIMARY, letterSpacing: '1px' }}>ESTADO DEL REGISTRO</span>
@@ -346,6 +383,19 @@ const ClientDashboard = () => {
                                 </div>
                             )}
                         </form>
+                    </div>
+                ) : (
+                    <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
+                        <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
+                            <Construction size={40} />
+                        </div>
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '15px' }}>Formulario en Construcción</h2>
+                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '30px', maxWidth: '400px', margin: '0 auto 30px' }}>
+                            El formulario interactivo para <strong>{currentFormType}</strong> se encuentra en desarrollo y pronto estará disponible en el sistema.
+                        </p>
+                        <button onClick={() => { setCurrentFormType(''); navigate('/dashboard?view=form'); }} style={{ padding: '12px 25px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+                            Elegir otro trámite
+                        </button>
                     </div>
                 )}
             </main>
