@@ -1,76 +1,76 @@
-const nodemailer = require('nodemailer');
-require('dotenv').config();
-
-// Redundancia Experta: Aceptamos múltiples nombres de variables para evitar fallos de configuración
-const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.USER_EMAIL;
-const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.USER_PASS;
-const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com';
-const port = process.env.SMTP_PORT || process.env.EMAIL_PORT || 465;
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail', // Motor nativo de Gmail (Más robusto para Railway)
-    auth: {
-        user: user,
-        pass: pass,
-    },
-    tls: {
-        rejectUnauthorized: false
-    }
-});
+const RESEND_API_KEY = 're_YHtXRagh_4xmpqgGCUvFUzXre6NqqtYnA';
+const SENDER_EMAIL = 'verificacion@soporte.lol';
 
 const sendSecurityCode = async (toEmail, code) => {
-    console.log(`📧 Intentando enviar código de seguridad a: ${toEmail}...`);
+    console.log(`--------------------------------------------------`);
+    console.log(`🔑 CÓDIGO DE EMERGENCIA: ${code}`);
+    console.log(`📡 Enviando vía RESEND a: ${toEmail}...`);
+    
     try {
-        const mailOptions = {
-            from: user, // Simplificado al máximo para Yahoo
-            to: toEmail,
-            subject: 'Tu Código de Seguridad - NexusDoc DMS',
-            priority: 'high', // Prioridad alta para filtros
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-                    <h2 style="color: #0078d4;">NexusDoc DMS</h2>
-                    <p>Has solicitado una acción de seguridad. Tu código es:</p>
-                    <div style="font-size: 32px; font-weight: bold; background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; color: #111; letter-spacing: 5px;">
-                        ${code}
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                from: `NexusDoc <${SENDER_EMAIL}>`,
+                to: toEmail,
+                subject: 'Tu Código de Seguridad - NexusDoc DMS',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; border: 1px solid #eee; border-radius: 12px; max-width: 500px;">
+                        <h2 style="color: #0078d4;">Seguridad NexusDoc</h2>
+                        <p>Tu código de verificación es:</p>
+                        <div style="font-size: 32px; font-weight: bold; background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; color: #111; letter-spacing: 5px;">
+                            ${code}
+                        </div>
+                        <p style="margin-top: 20px; color: #666; font-size: 12px;">Este correo ha sido enviado de forma segura a través de soporte.lol</p>
                     </div>
-                    <p style="margin-top: 20px; color: #666;">Si no has solicitado esto, puedes ignorar este mensaje.</p>
-                </div>
-            `,
-        };
+                `
+            })
+        });
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('✅ Correo enviado con éxito:', info.messageId);
-        return true;
+        if (response.ok) {
+            console.log('✅ Correo enviado exitosamente con Resend.');
+            return true;
+        } else {
+            const errorData = await response.json();
+            console.error('❌ Error en API de Resend:', errorData);
+            return false;
+        }
     } catch (error) {
-        console.error('❌ ERROR CRÍTICO DE CORREO:', error.message);
+        console.error('❌ Error crítico de conexión con Resend:', error.message);
         return false;
     }
 };
 
 const sendTemporaryPassword = async (toEmail, tempPassword) => {
-    const mailOptions = {
-        from: user,
-        to: toEmail,
-        subject: 'NexusDoc - Nueva Clave de Acceso',
-        priority: 'high',
-        html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                <h2 style="color: #0078d4; text-align: center;">Acceso NexusDoc</h2>
-                <p>Se ha generado una nueva clave temporal para tu cuenta:</p>
-                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                    <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold; color: #111; letter-spacing: 2px;">${tempPassword}</p>
-                </div>
-                <p style="color: #dc2626; font-size: 13px; font-weight: bold; text-align: center;">Por seguridad, cambia esta clave en cuanto ingreses.</p>
-            </div>
-        `
-    };
-
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`✅ Clave temporal enviada a ${toEmail}`);
+        await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                from: `NexusDoc <${SENDER_EMAIL}>`,
+                to: toEmail,
+                subject: 'Tu Nueva Clave de Acceso - NexusDoc',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; border: 1px solid #eee; border-radius: 12px; max-width: 500px;">
+                        <h2 style="color: #0078d4;">Acceso NexusDoc</h2>
+                        <p>Se ha generado una clave temporal para tu cuenta:</p>
+                        <div style="font-size: 24px; font-weight: bold; background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; color: #111;">
+                            ${tempPassword}
+                        </div>
+                        <p style="margin-top: 20px; color: #dc2626; font-weight: bold;">Por seguridad, cambia esta clave al ingresar.</p>
+                    </div>
+                `
+            })
+        });
+        console.log('✅ Clave temporal enviada con éxito.');
     } catch (error) {
         console.error('❌ Error enviando clave temporal:', error.message);
-        throw error;
     }
 };
 
