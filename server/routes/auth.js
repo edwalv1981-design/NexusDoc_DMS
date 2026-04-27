@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { User, AuditLog, PendingRegistration } = require('../models');
+const { sequelize } = require('../config/db');
 const { sendSecurityCode, sendTemporaryPassword } = require('../services/emailService');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
