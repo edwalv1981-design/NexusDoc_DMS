@@ -45,7 +45,20 @@ def fill_pdf_universal_engine(data, output_path, template_name):
                         return y_center
         return None
 
-    # 3. Inyectar Página 1
+    # 3. Optimización de Nitidez de Imagen (Renderizado RGB de Alta Fidelidad)
+    logo_path = os.path.join(base_dir, "templates", "logo_real.png")
+    if os.path.exists(logo_path):
+        # Cargamos la imagen como un Pixmap para procesar la nitidez
+        pix = fitz.Pixmap(logo_path)
+        # Si tiene transparencia, la convertimos a RGB puro para evitar cuadros negros
+        if pix.alpha:
+            pix = fitz.Pixmap(fitz.csRGB, pix)
+        
+        # Rectángulo de precisión para el logo (Centro superior)
+        logo_rect = fitz.Rect(200, 15, 400, 75) 
+        page1.insert_image(logo_rect, pixmap=pix, overlay=True)
+
+    # 4. Inyectar Página 1
     for entry in config["anchors"]:
         key = entry["data_key"]
         if key in data and data[key]:
