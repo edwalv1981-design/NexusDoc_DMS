@@ -45,7 +45,15 @@ def fill_pdf_universal_engine(data, output_path, template_name):
                         return y_center
         return None
 
-    # 3. Inyectar Página 1
+    # 3. Inyectar Logo en Alta Definición (Inyección Premium)
+    logo_path = os.path.join(base_dir, "templates", "logo_real.png")
+    if os.path.exists(logo_path):
+        # Coordenadas calculadas para la cabecera (Centro superior)
+        # Rect(x0, y0, x1, y1)
+        logo_rect = fitz.Rect(210, 20, 385, 60) 
+        page1.insert_image(logo_rect, filename=logo_path)
+
+    # 4. Inyectar Datos Página 1
     for entry in config["anchors"]:
         key = entry["data_key"]
         if key in data and data[key]:
