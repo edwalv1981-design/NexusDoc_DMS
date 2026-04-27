@@ -100,7 +100,7 @@ const Login = () => {
 
             {error && <p style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>{error}</p>}
 
-            <button type="button" onClick={() => setRecoveryStep(1)} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '-5px' }}>
+            <button type="button" onClick={() => { setError(''); setRecoveryStep(1); }} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '-5px' }}>
               ¿Olvidaste tu contraseña?
             </button>
 
