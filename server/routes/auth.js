@@ -107,8 +107,25 @@ router.post('/verify', async (req, res) => {
         const { email, code } = req.body;
         const pending = await PendingRegistration.findOne({ where: { email } });
 
-        if (!pending || pending.code !== code) {
-            return res.status(400).json({ msg: 'Código inválido' });
+        if (!pending) {
+            return res.status(400).json({ msg: 'Registro no encontrado o expirado' });
+        }
+
+        if (pending.lockUntil && pending.lockUntil > new Date()) {
+            const remainingMinutes = Math.ceil((pending.lockUntil - new Date()) / 60000);
+            return res.status(403).json({ msg: `Límite de intentos superado. Por seguridad, espere ${remainingMinutes} minuto(s) e intente nuevamente.` });
+        }
+
+        if (pending.code !== code) {
+            pending.attempts += 1;
+            if (pending.attempts >= 3) {
+                pending.lockUntil = new Date(Date.now() + 3 * 60 * 1000);
+                pending.attempts = 0;
+                await pending.save();
+                return res.status(403).json({ msg: 'Ha ingresado un código incorrecto 3 veces seguidas. Por seguridad, el sistema se ha bloqueado por 3 minutos.' });
+            }
+            await pending.save();
+            return res.status(400).json({ msg: `Código de verificación incorrecto. Le quedan ${3 - pending.attempts} intentos.` });
         }
 
         // Generate a random temporary password (the user will need to change it later or admin will set it)
@@ -363,15 +380,29 @@ router.post('/verify-forgot-password', async (req, res) => {
         console.log(`🔐 Verificando código [${cleanCode}] para: ${cleanEmail}`);
         
         const user = await User.findOne({ 
-            where: { 
-                email: { [Op.iLike]: cleanEmail },
-                securityCode: cleanCode 
-            } 
+            where: { email: { [Op.iLike]: cleanEmail } } 
         });
         
         if (!user) {
-            console.log('❌ Validación fallida: Correo o código incorrectos.');
-            return res.status(400).json({ msg: 'Código incorrecto o expirado. Asegúrate de usar el último código recibido.' });
+            return res.status(400).json({ msg: 'No se encontró ninguna cuenta registrada.' });
+        }
+
+        if (user.lockUntil && user.lockUntil > new Date()) {
+            const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
+            return res.status(403).json({ msg: `Límite de intentos superado. Por seguridad, espere ${remainingMinutes} minuto(s) e intente nuevamente.` });
+        }
+
+        if (user.securityCode !== cleanCode) {
+            console.log('❌ Validación fallida: Código incorrecto.');
+            user.codeAttempts += 1;
+            if (user.codeAttempts >= 3) {
+                user.lockUntil = new Date(Date.now() + 3 * 60 * 1000);
+                user.codeAttempts = 0;
+                await user.save();
+                return res.status(403).json({ msg: 'Ha ingresado un código incorrecto 3 veces seguidas. Por seguridad, el sistema se ha bloqueado por 3 minutos.' });
+            }
+            await user.save();
+            return res.status(400).json({ msg: `Código incorrecto o expirado. Le quedan ${3 - user.codeAttempts} intentos.` });
         }
 
         // PROTOCOLO DE RECUPERACIÓN TOTAL (Unblock + Reset)

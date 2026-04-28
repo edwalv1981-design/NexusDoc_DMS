@@ -58,6 +58,14 @@ const User = sequelize.define('User', {
     securityCode: {
         type: DataTypes.STRING,
     },
+    codeAttempts: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    lockUntil: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     mustChangePassword: {
         type: DataTypes.BOOLEAN,
         defaultValue: false

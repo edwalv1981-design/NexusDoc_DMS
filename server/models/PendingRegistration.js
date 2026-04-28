@@ -29,6 +29,14 @@ const PendingRegistration = sequelize.define('PendingRegistration', {
     code: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    attempts: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    lockUntil: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     timestamps: true

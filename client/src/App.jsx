@@ -17,23 +17,18 @@ function App() {
   const timerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
 
-  // 1. LÓGICA DE INACTIVIDAD (RESETEO)
-  const resetTimer = () => {
-    // Si no hay token o ya está el modal, no hacemos nada
+  // 1. LÓGICA DE INACTIVIDAD (PERSISTENTE EN LOCALSTORAGE)
+  const TIMEOUT_DURATION = 60000; // 60 segundos de inactividad antes de advertir
+
+  const updateActivity = () => {
     const token = localStorage.getItem('token');
     if (!token || showTimeoutModal) return;
-    
-    if (timerRef.current) clearTimeout(timerRef.current);
-    
-    // Si no hay actividad por 60 segundos, mostramos el modal
-    timerRef.current = setTimeout(() => {
-      setShowTimeoutModal(true);
-    }, 60000); 
+    localStorage.setItem('lastActivityTime', Date.now().toString());
   };
 
   // 2. MANEJO DE CIERRE DE SESIÓN
   const handleLogout = () => {
-    clearInterval(countdownIntervalRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     localStorage.clear();
     setShowTimeoutModal(false);
     window.location.href = '/'; 
@@ -41,10 +36,10 @@ function App() {
 
   const handleStay = () => {
     setShowTimeoutModal(false);
-    resetTimer();
+    updateActivity();
   };
 
-  // 3. EFECTO PARA EL COUNTDOWN (INDEPENDIENTE)
+  // 3. EFECTO PARA EL COUNTDOWN (INDEPENDIENTE Y PERSISTENTE)
   useEffect(() => {
     if (showTimeoutModal) {
       setRemainingTime(60);
@@ -65,23 +60,31 @@ function App() {
     };
   }, [showTimeoutModal]);
 
-  // 4. EFECTO PARA DETECTAR ACTIVIDAD
+  // 4. EFECTO PARA DETECTAR ACTIVIDAD Y CHEQUEAR TIEMPO MUERTO
   useEffect(() => {
-    const navEntries = performance.getEntriesByType('navigation');
-    if (navEntries.length > 0 && navEntries[0].type === 'reload') {
-      localStorage.clear();
-      window.location.href = '/';
-      return;
+    // Inicializar si no existe
+    if (!localStorage.getItem('lastActivityTime')) {
+        localStorage.setItem('lastActivityTime', Date.now().toString());
     }
 
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => window.addEventListener(event, resetTimer));
-    
-    resetTimer();
+    events.forEach(event => window.addEventListener(event, updateActivity));
+
+    const checkInactivity = setInterval(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const lastActivity = parseInt(localStorage.getItem('lastActivityTime') || Date.now().toString(), 10);
+        const timeSinceLastActivity = Date.now() - lastActivity;
+
+        if (timeSinceLastActivity >= TIMEOUT_DURATION && !showTimeoutModal) {
+            setShowTimeoutModal(true);
+        }
+    }, 1000);
 
     return () => {
-      events.forEach(event => window.removeEventListener(event, resetTimer));
-      if (timerRef.current) clearTimeout(timerRef.current);
+      events.forEach(event => window.removeEventListener(event, updateActivity));
+      clearInterval(checkInactivity);
     };
   }, [showTimeoutModal]);
 
