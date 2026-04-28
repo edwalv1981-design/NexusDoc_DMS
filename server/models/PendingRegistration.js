@@ -30,6 +30,10 @@ const PendingRegistration = sequelize.define('PendingRegistration', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    codeExpiresAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     attempts: {
         type: DataTypes.INTEGER,
         defaultValue: 0

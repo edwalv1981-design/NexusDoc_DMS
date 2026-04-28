@@ -11,6 +11,7 @@ const Verify = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [hasExpired, setHasExpired] = useState(false);
   const email = localStorage.getItem('userEmail');
 
   const handleVerify = async (e) => {
@@ -34,12 +35,39 @@ const Verify = () => {
       } else {
         console.error('❌ Error de verificación:', data.msg);
         setErrorMessage(data.msg || 'El código ingresado no es correcto.');
+        if (data.expired) setHasExpired(true);
         setShowError(true);
       }
     } catch (err) {
       console.error('🔥 Error de red en verificación:', err);
       setErrorMessage('Error de conexión con el servidor.');
       setShowError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/resend-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setHasExpired(false);
+        setShowError(false);
+        setCode('');
+        alert('Nuevo código enviado a tu correo.');
+      } else {
+        setErrorMessage(data.msg || 'Error al reenviar el código.');
+        setShowError(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Error de conexión.');
     } finally {
       setLoading(false);
     }
@@ -93,10 +121,22 @@ const Verify = () => {
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Atención</h3>
               <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>{errorMessage}</p>
+              
+              {hasExpired ? (
+                <button 
+                  onClick={handleResend}
+                  className="btn-primary" 
+                  style={{ width: '100%', background: '#f59e0b', marginBottom: '10px' }}
+                  disabled={loading}
+                >
+                  {loading ? 'Generando...' : 'Generar nuevo código'}
+                </button>
+              ) : null}
+
               <button 
                 onClick={() => setShowError(false)}
                 className="btn-primary" 
-                style={{ width: '100%', background: 'var(--error)' }}
+                style={{ width: '100%', background: hasExpired ? '#94a3b8' : 'var(--error)' }}
               >
                 Cerrar
               </button>

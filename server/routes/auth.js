@@ -84,7 +84,8 @@ router.post('/register', async (req, res) => {
             email,
             initialForm,
             idNumber,
-            code: securityCode
+            code: securityCode,
+            codeExpiresAt: new Date(Date.now() + 3 * 60000)
         });
 
         // ENVÍO ASÍNCRONO (No bloqueante): Respondemos al usuario de inmediato
@@ -100,6 +101,32 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// @route   POST api/auth/resend-code
+// @desc    Resend security code for pending registration
+router.post('/resend-code', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const pending = await PendingRegistration.findOne({ where: { email } });
+
+        if (!pending) {
+            return res.status(400).json({ msg: 'No hay un registro pendiente para este correo.' });
+        }
+
+        const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
+        pending.code = securityCode;
+        pending.codeExpiresAt = new Date(Date.now() + 3 * 60000);
+        pending.attempts = 0; // reset attempts
+        pending.lockUntil = null; // unlock
+        await pending.save();
+
+        sendSecurityCode(email, securityCode).catch(err => console.error(err));
+        res.json({ msg: 'Nuevo código enviado al correo.' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 // @route   POST api/auth/verify
 // @desc    Verify security code and CREATE user
 router.post('/verify', async (req, res) => {
@@ -109,6 +136,10 @@ router.post('/verify', async (req, res) => {
 
         if (!pending) {
             return res.status(400).json({ msg: 'Registro no encontrado o expirado' });
+        }
+
+        if (pending.codeExpiresAt && pending.codeExpiresAt < new Date()) {
+            return res.status(400).json({ msg: 'El código ha caducado (máximo 3 minutos). Por favor, genere un nuevo código.', expired: true });
         }
 
         if (pending.lockUntil && pending.lockUntil > new Date()) {
@@ -357,6 +388,7 @@ router.post('/forgot-password', async (req, res) => {
         // Generamos SOLO el código de 6 dígitos
         const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
         user.securityCode = securityCode;
+        user.codeExpiresAt = new Date(Date.now() + 3 * 60000);
         
         // NO cambiamos password ni status aquí para evitar envíos dobles
         await user.save();
@@ -390,6 +422,10 @@ router.post('/verify-forgot-password', async (req, res) => {
         
         if (!user) {
             return res.status(400).json({ msg: 'No se encontró ninguna cuenta registrada.' });
+        }
+
+        if (user.codeExpiresAt && user.codeExpiresAt < new Date()) {
+            return res.status(400).json({ msg: 'El código ha caducado (máximo 3 minutos). Por favor, genere un nuevo código.', expired: true });
         }
 
         if (user.lockUntil && user.lockUntil > new Date()) {

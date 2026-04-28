@@ -58,6 +58,10 @@ const User = sequelize.define('User', {
     securityCode: {
         type: DataTypes.STRING,
     },
+    codeExpiresAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     codeAttempts: {
         type: DataTypes.INTEGER,
         defaultValue: 0

@@ -1,7 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { User, AuditLog } = require('../models');
+const { User, AuditLog, DocumentTemplate } = require('../models');
 const { sendTemporaryPassword } = require('../services/emailService');
+const multer = require('multer');
+
+// Configure multer for memory storage (we will save the buffer to the DB)
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
+});
 
 const auth = require('../middleware/auth');
 
@@ -115,6 +122,59 @@ router.get('/logs', [auth, isAdmin], async (req, res) => {
             order: [['createdAt', 'DESC']] 
         });
         res.json(logs);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/admin/upload-template
+// @desc    Admin uploads a new PDF template to DB
+router.post('/upload-template', [auth, isAdmin, upload.single('template')], async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ msg: 'No se subió ningún archivo' });
+        }
+
+        const templateName = req.body.name || req.file.originalname;
+
+        // Check if a template with this name already exists
+        let template = await DocumentTemplate.findOne({ where: { name: templateName } });
+
+        if (template) {
+            // Update existing
+            template.fileData = req.file.buffer;
+            template.uploadedBy = req.user.id;
+            await template.save();
+        } else {
+            // Create new
+            template = await DocumentTemplate.create({
+                name: templateName,
+                fileData: req.file.buffer,
+                uploadedBy: req.user.id
+            });
+        }
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_UPLOAD',
+            description: `Admin subió plantilla: ${templateName}`
+        });
+
+        res.json({ msg: 'Plantilla subida y guardada en base de datos correctamente' });
+    } catch (err) {
+        console.error('🔥 Error al subir plantilla:', err);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   GET api/admin/templates
+// @desc    Get list of templates (metadata only)
+router.get('/templates', [auth, isAdmin], async (req, res) => {
+    try {
+        const templates = await DocumentTemplate.findAll({
+            attributes: ['id', 'name', 'updatedAt']
+        });
+        res.json(templates);
     } catch (err) {
         res.status(500).send('Server error');
     }

@@ -8,7 +8,7 @@ import os
 # Forzamos a Python a usar UTF-8
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8')
 
-def fill_pdf_universal_engine(data, output_path, template_name):
+def fill_pdf_universal_engine(data, output_path, template_name, custom_template_path=None):
     # RUTAS RELATIVAS PARA PORTABILIDAD
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     config_path = os.path.join(base_dir, "templates", "templates_config.json")
@@ -25,7 +25,10 @@ def fill_pdf_universal_engine(data, output_path, template_name):
     config = master_config[template_name]
     
     # Ruta del PDF base
-    pdf_path = os.path.join(base_dir, "templates", os.path.basename(config["file_path"]))
+    if custom_template_path and os.path.exists(custom_template_path):
+        pdf_path = custom_template_path
+    else:
+        pdf_path = os.path.join(base_dir, "templates", os.path.basename(config["file_path"]))
     
     # Abrir PDF y cargar datos
     doc = fitz.open(pdf_path)
@@ -97,7 +100,8 @@ if __name__ == "__main__":
         input_data = json.loads(raw_input)
         out_file = input_data.get("output_path", "filled_temp.pdf")
         t_name = input_data.get("template_name", "referencia_maestra")
-        fill_pdf_universal_engine(input_data.get("data", {}), out_file, t_name)
+        c_path = input_data.get("custom_template_path", None)
+        fill_pdf_universal_engine(input_data.get("data", {}), out_file, t_name, c_path)
         print(out_file)
     except Exception as e:
         print(f"ERROR_PY: {str(e)}", file=sys.stderr)

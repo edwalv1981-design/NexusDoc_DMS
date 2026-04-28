@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { FormData, User } = require('../models');
+const { FormData, User, DocumentTemplate } = require('../models');
 const auth = require('../middleware/auth');
 const { exec } = require('child_process');
 const path = require('path');
@@ -80,6 +80,15 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
+        const templateName = "referencia_maestra";
+        const dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
+        let customTemplatePath = null;
+
+        if (dbTemplate && dbTemplate.fileData) {
+            customTemplatePath = path.join(__dirname, `../../temp_custom_template_${form.id}.pdf`);
+            fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
+        }
+
         const outputPath = path.join(__dirname, `../../temp_filled_${form.id}.pdf`);
         const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
         const scriptPath = path.join(__dirname, '../scripts/fill_pdf_expert.py');
@@ -105,13 +114,17 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 if (fs.existsSync(outputPath)) {
                     try { fs.unlinkSync(outputPath); } catch(e) {}
                 }
+                if (customTemplatePath && fs.existsSync(customTemplatePath)) {
+                    try { fs.unlinkSync(customTemplatePath); } catch(e) {}
+                }
             });
         });
 
         pythonProcess.stdin.write(JSON.stringify({ 
             data: form.data, 
             output_path: outputPath,
-            template_name: "referencia_maestra"
+            template_name: templateName,
+            custom_template_path: customTemplatePath
         }));
         pythonProcess.stdin.end();
 

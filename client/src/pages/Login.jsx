@@ -16,6 +16,7 @@ const Login = () => {
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [hasExpired, setHasExpired] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,6 +61,7 @@ const Login = () => {
   const handleVerifyRecovery = async (e) => {
     if (e) e.preventDefault();
     setRecoveryLoading(true);
+    setHasExpired(false);
     console.log('📡 Iniciando Fetch de verificación...');
     
     try {
@@ -75,6 +77,7 @@ const Login = () => {
         setRecoveryStep(3);
       } else {
         setError(data.msg || data.error || 'Código inválido');
+        if (data.expired) setHasExpired(true);
       }
     } catch (err) { 
       console.error('🔥 Error de red en verificación:', err);
@@ -170,9 +173,20 @@ const Login = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Verificar Código</h3>
                     <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px' }} />
+                    {hasExpired && (
+                      <button 
+                        type="button" 
+                        onClick={(e) => { setHasExpired(false); handleForgotPassword(e); }} 
+                        className="btn-primary" 
+                        style={{ background: '#f59e0b', marginBottom: '-10px' }}
+                        disabled={recoveryLoading}
+                      >
+                        {recoveryLoading ? 'Generando...' : 'Generar nuevo código'}
+                      </button>
+                    )}
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>Cancelar</button>
-                      <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5 }}>Validar</button>
+                      <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); setHasExpired(false); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>Cancelar</button>
+                      <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5, background: hasExpired ? '#94a3b8' : '' }} disabled={hasExpired}>Validar</button>
                     </div>
                   </div>
                 )}
