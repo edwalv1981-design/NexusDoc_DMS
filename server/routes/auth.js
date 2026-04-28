@@ -198,6 +198,11 @@ router.post('/login', async (req, res) => {
 
         console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
 
+        if (user.lockUntil && user.lockUntil > new Date()) {
+            const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
+            return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
+        }
+
         if (user.status === 'blocked') {
             // LLAVE MAESTRA: Si es el administrador y usa la clave correcta, lo desbloqueamos
             const isMasterMatch = await user.comparePassword(password);
