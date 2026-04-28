@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
-    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction
+    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 
@@ -243,9 +243,26 @@ const ClientDashboard = () => {
                             <div style={{ position: 'relative', zIndex: 2 }}>
                                 <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px' }}>Portal del Cliente</span>
                                 <h1 style={{ color: 'white', marginTop: '5px', marginBottom: '18px' }}>Bienvenido, {user?.name}</h1>
-                                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: RADIUS, padding: '12px 18px', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }}>
-                                    <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.9, marginBottom: '3px' }}>TRÁMITE ASIGNADO:</div>
-                                    <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm || 'No asignado'}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: RADIUS, padding: '12px 18px', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }}>
+                                        <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.9, marginBottom: '3px' }}>TRÁMITE ASIGNADO:</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm || 'No asignado'}</div>
+                                    </div>
+                                    {user?.initialForm && (
+                                        <button 
+                                            onClick={() => { setCurrentFormType(user.initialForm); navigate(`/dashboard?view=form&type=${user.initialForm}`); }} 
+                                            style={{ 
+                                                padding: '12px 24px', background: 'white', color: PRIMARY, border: 'none', 
+                                                borderRadius: RADIUS, fontWeight: 800, fontSize: '13px', cursor: 'pointer', 
+                                                display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+                                                transition: 'transform 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                        >
+                                            CONTINUAR CON EL TRÁMITE <Plus size={16} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -279,11 +296,15 @@ const ClientDashboard = () => {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <button onClick={() => handleDownloadPDF(doc.id)} style={{ padding: '6px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer' }} title="Descargar Fiel Copia PDF">
-                                            <Download size={14} />
+                                        <button onClick={() => handleDownloadPDF(doc.id)} style={{ padding: '8px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer', transition: 'all 0.2s' }} title="Descargar Documento PDF" onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background = '#eef6ff'}>
+                                            <Download size={16} />
                                         </button>
-                                        <button onClick={() => navigate(`/dashboard?view=form&id=${doc.id}`)} style={{ padding: '6px 14px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS, color: '#16a34a', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>EDITAR</button>
-                                        <button onClick={() => confirmDelete(doc.id)} style={{ padding: '6px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS, color: '#dc2626' }}><Trash2 size={14} /></button>
+                                        <button onClick={() => navigate(`/dashboard?view=form&id=${doc.id}`)} style={{ padding: '8px', background: '#f0fdf4', border: '1px solid #16a34a', borderRadius: RADIUS, color: '#16a34a', cursor: 'pointer', transition: 'all 0.2s' }} title="Editar este trámite" onMouseEnter={(e) => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={(e) => e.currentTarget.style.background = '#f0fdf4'}>
+                                            <Edit size={16} />
+                                        </button>
+                                        <button onClick={() => confirmDelete(doc.id)} style={{ padding: '8px', background: '#fef2f2', border: '1px solid #dc2626', borderRadius: RADIUS, color: '#dc2626', cursor: 'pointer', transition: 'all 0.2s' }} title="Eliminar registro permanentemente" onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}>
+                                            <Trash2 size={16} />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
