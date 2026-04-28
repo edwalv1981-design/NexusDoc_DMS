@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff, X } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
@@ -142,7 +142,16 @@ const Login = () => {
           {/* Recovery Flow Overlays */}
           {recoveryStep > 0 && (
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-              <div style={{ width: '100%', maxWidth: '350px', background: 'white', padding: '30px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+              <div style={{ position: 'relative', width: '100%', maxWidth: '350px', background: 'white', padding: '35px 30px 30px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                <button 
+                  onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); }} 
+                  style={{ position: 'absolute', top: '15px', right: '15px', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
+                  title="Cerrar"
+                >
+                  <X size={16} />
+                </button>
                 {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
                 {recoveryStep === 1 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -161,7 +170,10 @@ const Login = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Verificar Código</h3>
                     <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px' }} />
-                    <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary">Validar</button>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>Cancelar</button>
+                      <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5 }}>Validar</button>
+                    </div>
                   </div>
                 )}
                 {recoveryStep === 3 && (
