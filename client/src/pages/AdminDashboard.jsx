@@ -109,9 +109,6 @@ const AdminDashboard = () => {
     }
   };
 
-    }
-  };
-
   const handleTemplateUpload = async (e) => {
     e.preventDefault();
     if (!templateFile) return toast.error('Selecciona un archivo PDF');
