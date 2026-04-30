@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { FormData, User, DocumentTemplate } = require('../models');
+const { FormData, User, DocumentTemplate, AuditLog } = require('../models');
 const auth = require('../middleware/auth');
 const { exec } = require('child_process');
 const path = require('path');
@@ -109,6 +109,14 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
 
             console.log('✅ PDF generado con éxito, iniciando descarga.');
+            
+            // LOG ACCTION IN BITACORA
+            AuditLog.create({
+                userId: req.user.id,
+                action: 'DOCUMENT_DOWNLOAD',
+                description: `Usuario descargó PDF del trámite tipo: ${form.formType} (ID: ${form.id})`
+            }).catch(err => console.error('Error registrando en bitácora:', err));
+
             res.download(outputPath, `NexusDoc_DMS_${form.id}.pdf`, (err) => {
                 if (err) console.error('❌ Error enviando archivo al navegador:', err);
                 // Limpiar temporal después de enviar

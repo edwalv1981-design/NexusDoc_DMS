@@ -276,7 +276,6 @@ const AdminDashboard = () => {
                           <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
                             <th style={{ padding: '12px' }}>TIPO DE TRÁMITE</th>
                             <th style={{ padding: '12px' }}>ESTADO ACTUAL</th>
-                            <th style={{ padding: '12px' }}>ACCIÓN</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -297,14 +296,6 @@ const AdminDashboard = () => {
                                     ) : (
                                         <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>📄 Por Defecto (Local)</span>
                                     )}
-                                </td>
-                                <td style={{ padding: '12px' }}>
-                                    <button 
-                                        onClick={() => setTemplateName(type.id)} 
-                                        style={{ background: 'none', border: '1px solid #0078d4', color: '#0078d4', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 700 }}
-                                    >
-                                        Editar
-                                    </button>
                                 </td>
                               </tr>
                             );
