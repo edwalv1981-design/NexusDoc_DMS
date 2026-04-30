@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff, X } from 'lucide-react';
+import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff, X, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
