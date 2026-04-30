@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -9,9 +9,13 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [templateFile, setTemplateFile] = useState(null);
+  const [templateName, setTemplateName] = useState('referencia_maestra');
+  const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
@@ -42,6 +46,9 @@ const AdminDashboard = () => {
       } else if (activeTab === 'logs') {
         const res = await axios.get(`${API_BASE_URL}/api/admin/logs`, { headers: { 'x-auth-token': token } });
         setLogs(res.data);
+      } else if (activeTab === 'templates') {
+        const res = await axios.get(`${API_BASE_URL}/api/admin/templates`, { headers: { 'x-auth-token': token } });
+        setTemplates(res.data);
       }
     } catch (err) { 
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
@@ -102,6 +109,33 @@ const AdminDashboard = () => {
     }
   };
 
+    }
+  };
+
+  const handleTemplateUpload = async (e) => {
+    e.preventDefault();
+    if (!templateFile) return toast.error('Selecciona un archivo PDF');
+    setUploadingTemplate(true);
+    
+    const formData = new FormData();
+    formData.append('template', templateFile);
+    formData.append('name', templateName);
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/api/admin/upload-template`, formData, {
+        headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Plantilla subida con éxito');
+      setTemplateFile(null);
+      fetchData();
+    } catch (err) {
+      toast.error('Error al subir la plantilla');
+    } finally {
+      setUploadingTemplate(false);
+    }
+  };
+
   const logout = () => { localStorage.clear(); navigate('/'); };
 
   return (
@@ -112,7 +146,7 @@ const AdminDashboard = () => {
           <span style={{ fontWeight: 700, fontSize: '13px' }}>NEXUSDOC ADMIN</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[{ id: 'users', icon: Users, label: 'USUARIOS' }, { id: 'logs', icon: Clock, label: 'BITÁCORA' }, { id: 'settings', icon: Settings, label: 'AJUSTES' }].map(item => (
+          {[{ id: 'users', icon: Users, label: 'USUARIOS' }, { id: 'logs', icon: Clock, label: 'BITÁCORA' }, { id: 'templates', icon: FileText, label: 'PLANTILLAS PDF' }, { id: 'settings', icon: Settings, label: 'AJUSTES' }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS }}>
               <item.icon size={15} /> {item.label}
             </button>
@@ -229,6 +263,68 @@ const AdminDashboard = () => {
                     {savingSettings ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {activeTab === 'templates' && (
+              <div style={{ padding: '30px' }}>
+                <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>Plantillas en Base de Datos</h3>
+                    {templates.length === 0 ? (
+                      <p style={{ fontSize: '13px', color: '#64748b' }}>No hay plantillas personalizadas en la base de datos. Se está utilizando la plantilla local por defecto.</p>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
+                        <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                          <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
+                            <th style={{ padding: '12px' }}>NOMBRE (KEY)</th>
+                            <th style={{ padding: '12px' }}>ÚLTIMA ACTUALIZACIÓN</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {templates.map(t => (
+                            <tr key={t.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
+                              <td style={{ padding: '12px', fontWeight: 700, color: PRIMARY }}>{t.name}</td>
+                              <td style={{ padding: '12px', color: '#64748b' }}>{new Date(t.updatedAt).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  
+                  <div style={{ flex: 1, background: '#f8fafc', padding: '25px', borderRadius: RADIUS_LG, border: `1px dashed #cbd5e1` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                      <UploadCloud size={20} color={PRIMARY} />
+                      <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Subir/Reemplazar Plantilla</h3>
+                    </div>
+                    <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                      <div className="field-group-admin">
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>NOMBRE DE LA PLANTILLA</label>
+                        <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
+                          <option value="referencia_maestra">referencia_maestra (Master Corporativo)</option>
+                        </select>
+                      </div>
+                      <div className="field-group-admin">
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>ARCHIVO PDF</label>
+                        <input 
+                          type="file" 
+                          accept=".pdf" 
+                          onChange={(e) => setTemplateFile(e.target.files[0])} 
+                          className="input-modern-admin" 
+                          style={{ background: 'white', padding: '8px' }}
+                          required 
+                        />
+                      </div>
+                      <button type="submit" disabled={uploadingTemplate || !templateFile} className="btn-primary" style={{ marginTop: 10 }}>
+                        {uploadingTemplate ? 'SUBIENDO AL SISTEMA...' : 'INJECTAR EN BASE DE DATOS'}
+                      </button>
+                      <p style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>
+                        Al subir una plantilla con el mismo nombre, la anterior será reemplazada permanentemente.
+                      </p>
+                    </form>
+                  </div>
+                </div>
               </div>
             )}
           </div>
