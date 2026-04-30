@@ -80,7 +80,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
-        const templateName = "referencia_maestra";
+        // Map formType to template lookup
+        const templateName = form.formType || "fondos"; // Default if missing
         const dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
         let customTemplatePath = null;
 

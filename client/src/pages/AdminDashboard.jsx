@@ -14,7 +14,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [templateFile, setTemplateFile] = useState(null);
-  const [templateName, setTemplateName] = useState('referencia_maestra');
+  const [templateName, setTemplateName] = useState('fondos');
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -297,9 +297,13 @@ const AdminDashboard = () => {
                     </div>
                     <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                       <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>NOMBRE DE LA PLANTILLA</label>
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>TIPO DE TRÁMITE A VINCULAR</label>
                         <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
-                          <option value="referencia_maestra">referencia_maestra (Master Corporativo)</option>
+                          <option value="fondos">Fondos Registros contables</option>
+                          <option value="corporacion">Corporación</option>
+                          <option value="fundaciones">Fundaciones</option>
+                          <option value="cumplimiento_individual">Cumplimiento Individual</option>
+                          <option value="cumplimiento_entidades">Cumplimiento Entidades</option>
                         </select>
                       </div>
                       <div className="field-group-admin">
