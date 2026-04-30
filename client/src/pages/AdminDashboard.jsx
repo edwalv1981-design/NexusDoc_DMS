@@ -320,11 +320,16 @@ const AdminDashboard = () => {
                           required 
                         />
                       </div>
-                      <button type="submit" disabled={uploadingTemplate || !templateFile} className="btn-primary" style={{ marginTop: 10 }}>
-                        {uploadingTemplate ? 'SUBIENDO AL SISTEMA...' : 'INJECTAR EN BASE DE DATOS'}
+                      <button 
+                        type="submit" 
+                        disabled={uploadingTemplate || !templateFile} 
+                        className="btn-primary" 
+                        style={{ marginTop: 10, background: templates.some(t => t.name === templateName) ? '#f59e0b' : '#16a34a' }}
+                      >
+                        {uploadingTemplate ? 'PROCESANDO...' : (templates.some(t => t.name === templateName) ? 'ACTUALIZAR PLANTILLA EXISTENTE' : 'SUBIR NUEVA PLANTILLA')}
                       </button>
                       <p style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>
-                        Al subir una plantilla con el mismo nombre, la anterior será reemplazada permanentemente.
+                        {templates.some(t => t.name === templateName) ? 'Esta acción sobreescribirá el archivo actual en la base de datos.' : 'Se inyectará un nuevo archivo en el sistema maestro.'}
                       </p>
                     </form>
                   </div>

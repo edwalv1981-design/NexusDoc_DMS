@@ -81,10 +81,13 @@ const Verify = () => {
         </div>
 
         <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Código de Seguridad</h1>
-        <p style={{ color: 'var(--text-sub)', marginBottom: '40px' }}>
+        <p style={{ color: 'var(--text-sub)', marginBottom: '15px' }}>
           Ingresa el código que hemos enviado a tu correo: <br/>
           <strong style={{ color: 'var(--text)' }}>{email}</strong>
         </p>
+        <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '30px', border: '1px solid #fde68a' }}>
+            <AlertCircle size={16} /> Este código caduca en 3 minutos exactos
+        </div>
 
         <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <input 

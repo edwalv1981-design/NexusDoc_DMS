@@ -52,44 +52,75 @@ const Tutorial = () => {
             {/* Contenido Visual */}
             <div style={{ maxWidth: '1000px', margin: '-30px auto 0', padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '40px', position: 'relative', zIndex: 20 }}>
                 
-                {/* Paso 1 */}
+                {/* Paso 1: Registro */}
                 <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0' }}>
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ background: '#eff6ff', color: '#0078d4', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>1</div>
-                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Acceso Seguro (Sin Contraseñas)</h2>
+                            <div style={{ background: '#f5f3ff', color: '#8b5cf6', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>1</div>
+                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Registro de Nuevo Usuario</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
-                            Olvídese de recordar contraseñas complicadas. En NexusDoc su correo es su única llave. Cada vez que inicie sesión, le enviaremos un <strong>código de 6 dígitos</strong> a su bandeja de entrada.
+                            Crear una cuenta desde cero en NexusDoc es rápido y está diseñado para garantizar la autenticidad corporativa.
                         </p>
-                        <ul style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.8', paddingLeft: '20px' }}>
-                            <li>El código tiene una caducidad de <strong>3 minutos</strong> exactos.</li>
-                            <li>Si se demora, simplemente presione <span style={{ color: '#f59e0b', fontWeight: 700 }}>Generar nuevo código</span>.</li>
-                            <li>Si deja su computadora sola por 1 minuto, la sesión se cerrará automáticamente para proteger su información.</li>
-                        </ul>
+                        <ol style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.8', paddingLeft: '20px' }}>
+                            <li>En la pantalla inicial de la plataforma, haga clic en la opción <strong>"Registrarse"</strong>.</li>
+                            <li>Deberá proporcionar sus datos empresariales (Nombre, Correo y su Código Único Corporativo si aplica).</li>
+                            <li>La plataforma le enviará inmediatamente una <strong>Clave Temporal</strong> a su correo para verificar su identidad y activar la cuenta de forma segura.</li>
+                        </ol>
                     </div>
                     {/* Gráfico Paso 1 */}
                     <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderLeft: '1px solid #e2e8f0' }}>
-                        <div style={{ width: '100%', background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-                            <Mail size={40} color="#0078d4" style={{ marginBottom: '15px' }} />
-                            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, marginBottom: '10px' }}>CÓDIGO RECIBIDO EN SU CORREO</div>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
-                                {[7, 2, 9, 4, 1, 5].map((num, i) => (
-                                    <div key={i} style={{ width: '40px', height: '50px', background: '#eff6ff', border: '2px solid #bfdbfe', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 800, color: '#1e3a8a' }}>{num}</div>
-                                ))}
+                        <div style={{ width: '100%', background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                                <div style={{ background: '#8b5cf6', color: 'white', padding: '6px', borderRadius: '6px' }}><Shield size={16} /></div>
+                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>CREAR CUENTA</div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#f59e0b', fontSize: '12px', fontWeight: 700 }}>
-                                <Lock size={14} /> CADUCA EN 02:59
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>Nombre Completo</div>
+                                <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>Correo Electrónico Corporativo</div>
+                                <div style={{ height: '35px', background: '#8b5cf6', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700, marginTop: '5px' }}>REGISTRARSE</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Paso 2 */}
+                {/* Paso 2: Login */}
                 <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0', flexDirection: 'row-reverse' }}>
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ background: '#f0fdf4', color: '#16a34a', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>2</div>
+                            <div style={{ background: '#eff6ff', color: '#0078d4', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>2</div>
+                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Acceso y Recuperación de Clave</h2>
+                        </div>
+                        <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
+                            Puede ingresar a su cuenta usando su clave personal. Si alguna vez la olvida o necesita <strong>cambiar su clave</strong>, el proceso es muy sencillo:
+                        </p>
+                        <ul style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.8', paddingLeft: '20px' }}>
+                            <li>En la pantalla de inicio, haga clic en <strong style={{ color: '#0078d4' }}>"¿Olvidaste tu contraseña?"</strong>.</li>
+                            <li>Ingrese su correo y reciba un código de seguridad.</li>
+                            <li>Valide el código y el sistema le permitirá crear una <strong>Nueva Contraseña</strong> inmediatamente.</li>
+                        </ul>
+                    </div>
+                    {/* Gráfico Paso 2 */}
+                    <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderRight: '1px solid #e2e8f0' }}>
+                        <div style={{ width: '100%', background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', justifyContent: 'center' }}>
+                                <div style={{ background: '#0078d4', color: 'white', padding: '6px', borderRadius: '6px' }}><Lock size={16} /></div>
+                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>CAMBIAR CONTRASEÑA</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>Nueva Contraseña (••••••••)</div>
+                                <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>Confirmar Contraseña (••••••••)</div>
+                                <div style={{ height: '35px', background: '#0078d4', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700, marginTop: '5px' }}>GUARDAR NUEVA CLAVE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Paso 3: Tramites */}
+                <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0' }}>
+                    <div style={{ flex: 1, padding: '40px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+                            <div style={{ background: '#f0fdf4', color: '#16a34a', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>3</div>
                             <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Crear un Nuevo Trámite</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
@@ -101,8 +132,8 @@ const Tutorial = () => {
                             <li>Llene el formulario paso a paso. Cuando termine, haga clic en "Guardar Trámite".</li>
                         </ol>
                     </div>
-                    {/* Gráfico Paso 2 */}
-                    <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderRight: '1px solid #e2e8f0' }}>
+                    {/* Gráfico Paso 3 */}
+                    <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderLeft: '1px solid #e2e8f0' }}>
                         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             <div style={{ background: '#0078d4', color: 'white', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', width: '60%', fontWeight: 700, fontSize: '14px', boxShadow: '0 4px 10px rgba(0,120,212,0.3)' }}>
                                 <LayoutGrid size={18} /> ESCRITORIO
@@ -118,23 +149,23 @@ const Tutorial = () => {
                     </div>
                 </div>
 
-                {/* Paso 3 */}
-                <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0' }}>
+                {/* Paso 4: Descarga */}
+                <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0', flexDirection: 'row-reverse' }}>
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ background: '#fef3c7', color: '#d97706', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>3</div>
+                            <div style={{ background: '#fef3c7', color: '#d97706', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>4</div>
                             <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Descargar Documento PDF</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
-                            Una vez que guarde un trámite, regresará automáticamente a su Escritorio. Allí verá una tabla con todos sus trámites activos.
+                            Una vez que guarde un trámite, regresará a su Escritorio. Allí verá una tabla con todos sus trámites.
                         </p>
                         <ul style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.8', paddingLeft: '20px' }}>
-                            <li>Haga clic en el botón de la <strong style={{ color: '#16a34a' }}>Flecha Verde</strong> para generar y descargar instantáneamente el PDF oficial con todos sus datos.</li>
+                            <li>Presione la <strong style={{ color: '#16a34a' }}>Flecha Verde</strong> para generar y descargar instantáneamente el PDF oficial con todos sus datos.</li>
                             <li>Haga clic en el <strong style={{ color: '#0078d4' }}>Lápiz Azul</strong> si necesita corregir algún dato.</li>
                         </ul>
                     </div>
-                    {/* Gráfico Paso 3 */}
-                    <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderLeft: '1px solid #e2e8f0' }}>
+                    {/* Gráfico Paso 4 */}
+                    <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderRight: '1px solid #e2e8f0' }}>
                         <div style={{ width: '100%', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
                             <div style={{ background: '#f1f5f9', padding: '12px 15px', borderBottom: '1px solid #e2e8f0', fontSize: '10px', fontWeight: 800, color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>TRÁMITE</span> <span>ACCIONES</span>

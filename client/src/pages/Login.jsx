@@ -172,6 +172,9 @@ const Login = () => {
                 {recoveryStep === 2 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Verificar Código</h3>
+                    <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textAlign: 'center', border: '1px solid #fde68a' }}>
+                        <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '5px', marginBottom: '2px' }} /> Caduca en 3 minutos
+                    </div>
                     <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px' }} />
                     {hasExpired && (
                       <button 
