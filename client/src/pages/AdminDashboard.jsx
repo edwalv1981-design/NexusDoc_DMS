@@ -270,27 +270,47 @@ const AdminDashboard = () => {
               <div style={{ padding: '30px' }}>
                 <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>Plantillas en Base de Datos</h3>
-                    {templates.length === 0 ? (
-                      <p style={{ fontSize: '13px', color: '#64748b' }}>No hay plantillas personalizadas en la base de datos. Se está utilizando la plantilla local por defecto.</p>
-                    ) : (
+                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>Estado de Plantillas Base</h3>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
                         <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                           <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
-                            <th style={{ padding: '12px' }}>NOMBRE (KEY)</th>
-                            <th style={{ padding: '12px' }}>ÚLTIMA ACTUALIZACIÓN</th>
+                            <th style={{ padding: '12px' }}>TIPO DE TRÁMITE</th>
+                            <th style={{ padding: '12px' }}>ESTADO ACTUAL</th>
+                            <th style={{ padding: '12px' }}>ACCIÓN</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {templates.map(t => (
-                            <tr key={t.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
-                              <td style={{ padding: '12px', fontWeight: 700, color: PRIMARY }}>{t.name}</td>
-                              <td style={{ padding: '12px', color: '#64748b' }}>{new Date(t.updatedAt).toLocaleString()}</td>
-                            </tr>
-                          ))}
+                          {[
+                            { id: 'fondos', label: 'Fondos Registros contables' },
+                            { id: 'corporacion', label: 'Corporación' },
+                            { id: 'fundaciones', label: 'Fundaciones' },
+                            { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
+                            { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
+                          ].map(type => {
+                            const customTemplate = templates.find(t => t.name === type.id);
+                            return (
+                              <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
+                                <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{type.label}</td>
+                                <td style={{ padding: '12px' }}>
+                                    {customTemplate ? (
+                                        <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ Personalizada (DB)</span>
+                                    ) : (
+                                        <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>📄 Por Defecto (Local)</span>
+                                    )}
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                    <button 
+                                        onClick={() => setTemplateName(type.id)} 
+                                        style={{ background: 'none', border: '1px solid #0078d4', color: '#0078d4', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 700 }}
+                                    >
+                                        Editar
+                                    </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
-                    )}
                   </div>
                   
                   <div style={{ flex: 1, background: '#f8fafc', padding: '25px', borderRadius: RADIUS_LG, border: `1px dashed #cbd5e1` }}>

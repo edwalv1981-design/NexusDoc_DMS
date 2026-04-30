@@ -61,7 +61,18 @@ function App() {
     };
   }, [showTimeoutModal]);
 
-  // 4. EFECTO PARA DETECTAR ACTIVIDAD Y CHEQUEAR TIEMPO MUERTO
+  // 4. EFECTO PARA DESLOGUEAR AL RECARGAR PÁGINA (F5)
+  useEffect(() => {
+    const navEntries = window.performance.getEntriesByType('navigation');
+    if (navEntries.length > 0 && navEntries[0].type === 'reload') {
+      localStorage.clear();
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    }
+  }, []);
+
+  // 5. EFECTO PARA DETECTAR ACTIVIDAD Y CHEQUEAR TIEMPO MUERTO
   useEffect(() => {
     // Inicializar si no existe
     if (!localStorage.getItem('lastActivityTime')) {
