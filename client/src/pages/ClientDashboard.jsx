@@ -7,6 +7,7 @@ import {
 import API_BASE_URL from '../config';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
+import CorporacionForm from './CorporacionForm';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -140,6 +141,26 @@ const ClientDashboard = () => {
         } catch (error) { showToast('Falla de conexión con el servidor central'); } finally { setSaving(false); }
     };
 
+    const saveDynamicForm = async (dataToSave) => {
+        setSaving(true);
+        const token = localStorage.getItem('token');
+        const cleanId = (editId && editId !== 'null') ? editId : null;
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify({ id: cleanId, type: currentFormType || user?.initialForm || 'Documento', data: dataToSave })
+            });
+            if (response.status === 401) { localStorage.clear(); return navigate('/'); }
+            if (response.ok) { 
+                showToast('Documento guardado con éxito', 'success');
+                setTimeout(() => { navigate('/dashboard'); setStep(1); fetchData(); }, 1500);
+            } else { 
+                const errData = await response.json(); 
+                showToast(errData.msg || 'Error técnico al procesar el guardado'); 
+            }
+        } catch (error) { showToast('Falla de conexión con el servidor central'); } finally { setSaving(false); }
+    };
 
     const confirmDelete = (id) => {
         setModal({
@@ -422,6 +443,12 @@ const ClientDashboard = () => {
                             )}
                         </form>
                     </div>
+                ) : currentFormType === 'Corporación' ? (
+                    <CorporacionForm 
+                        initialData={formData} 
+                        onSave={saveDynamicForm} 
+                        saving={saving} 
+                    />
                 ) : (
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
