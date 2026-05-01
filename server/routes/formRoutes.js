@@ -83,12 +83,12 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         // Map formType to template lookup
         const templateName = form.formType || "fondos"; // Default if missing
         const dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
-        let customTemplatePath = null;
-
-        if (dbTemplate && dbTemplate.fileData) {
-            customTemplatePath = path.join(__dirname, `../../temp_custom_template_${form.id}.pdf`);
-            fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
+        if (!dbTemplate || !dbTemplate.fileData) {
+            return res.status(400).json({ msg: `No existe plantilla PDF para este trámite (${templateName}). Por favor, indicar al administrador que la suba.` });
         }
+
+        const customTemplatePath = path.join(__dirname, `../../temp_custom_template_${form.id}.pdf`);
+        fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
 
         const outputPath = path.join(__dirname, `../../temp_filled_${form.id}.pdf`);
         const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';

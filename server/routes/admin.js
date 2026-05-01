@@ -199,7 +199,7 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
             description: `Admin eliminó plantilla personalizada: ${name}`
         });
 
-        res.json({ msg: 'Plantilla eliminada. El sistema volverá a usar la plantilla por defecto.' });
+        res.json({ msg: 'Plantilla eliminada correctamente. La generación de PDF para este trámite ha sido desactivada.' });
     } catch (err) {
         console.error('🔥 Error al eliminar plantilla:', err);
         res.status(500).send('Server error');

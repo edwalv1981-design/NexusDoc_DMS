@@ -134,7 +134,7 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteTemplate = async (name) => {
-    if (!window.confirm(`¿Está seguro de eliminar la plantilla personalizada de "${name}"? El sistema volverá a usar la plantilla por defecto local.`)) return;
+    if (!window.confirm(`⚠️ ADVERTENCIA: ¿Está seguro de eliminar la plantilla de "${name}"? \n\nSi la elimina, los usuarios NO podrán generar PDFs para este trámite hasta que suba una nueva plantilla.`)) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE_URL}/api/admin/delete-template/${name}`, {
@@ -311,13 +311,13 @@ const AdminDashboard = () => {
                                             <button 
                                                 onClick={() => handleDeleteTemplate(type.id)}
                                                 style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Eliminar plantilla y usar por defecto"
+                                                title="Eliminar plantilla (Desactiva la generación de PDF para este trámite)"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
                                         </>
                                     ) : (
-                                        <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>📄 Por Defecto (Local)</span>
+                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>⚠️ Sin Plantilla (Inactivo)</span>
                                     )}
                                 </td>
                               </tr>
