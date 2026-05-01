@@ -90,6 +90,60 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         fy = find_y_by_keywords(["specify", "especificar"])
         if fy: page1.insert_text((73, fy + 20), str(data["fundsOther"]), fontsize=10, fontname="helv")
 
+    # --- INICIO MOTOR DE ANEXOS DINÁMICOS (OPCIÓN 1) ---
+    def append_dynamic_annex(doc, title, dict_list):
+        if not dict_list or not isinstance(dict_list, list): return
+        # Validar si al menos hay un dato real en el primer elemento
+        has_data = any(bool(v) for v in dict_list[0].values() if isinstance(v, str))
+        if not has_data: return
+        
+        page = doc.new_page()
+        page.insert_text((50, 50), f"ANEXO DOCUMENTAL: {title}", fontsize=14, fontname="hebo", color=(0, 0.47, 0.83))
+        page.insert_text((50, 65), "La información contenida en este anexo forma parte integral del trámite.", fontsize=9, fontname="helv", color=(0.5, 0.5, 0.5))
+        y = 90
+        
+        for index, item in enumerate(dict_list):
+            if y > 750: # Salto de página
+                page = doc.new_page()
+                y = 50
+            
+            page.draw_rect(fitz.Rect(50, y-10, 550, y+5), color=(0.9, 0.9, 0.9), fill=(0.95, 0.95, 0.95))
+            page.insert_text((55, y), f"REGISTRO {index+1}", fontsize=10, fontname="hebo", color=(0.2, 0.2, 0.2))
+            y += 15
+            
+            # Dibujar campos en dos columnas
+            col = 0
+            start_y = y
+            max_y_in_block = y
+            
+            for key, val in item.items():
+                if val:
+                    label = str(key).upper().replace('_', ' ')
+                    x_pos = 60 if col == 0 else 300
+                    
+                    page.insert_text((x_pos, y), f"{label}:", fontsize=8, fontname="hebo")
+                    page.insert_text((x_pos + 80, y), str(val)[:45], fontsize=8, fontname="helv")
+                    
+                    col += 1
+                    if col == 2:
+                        col = 0
+                        y += 15
+                    max_y_in_block = max(max_y_in_block, y)
+                    
+            if col == 1: y += 15 # Alinear si quedó impar
+            y += 10 # Espaciado entre bloques
+
+    # Extraer arrays dinámicos para la Corporación (Directores, Accionistas, etc)
+    if "directors" in data:
+        append_dynamic_annex(doc, "LISTADO DE DIRECTORES", data["directors"])
+    if "shareholders" in data:
+        append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS", data["shareholders"])
+    if "dignitaries" in data and isinstance(data["dignitaries"], dict):
+        # Convertir el objeto dignitaries a lista para el anexo
+        dig_list = [{"CARGO": k.upper(), **v} for k, v in data["dignitaries"].items()]
+        append_dynamic_annex(doc, "DIGNATARIOS REGISTRADOS", dig_list)
+    # --- FIN MOTOR DE ANEXOS DINÁMICOS ---
+
     # Guardado limpio sin capas extra
     doc.save(output_path, incremental=False, encryption=0)
     doc.close()
