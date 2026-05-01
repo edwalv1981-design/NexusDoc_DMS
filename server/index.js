@@ -25,6 +25,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/forms', require('./routes/formRoutes'));
 app.use('/api/documents', require('./routes/documents'));
+app.use('/api/signed-docs', require('./routes/signedDocuments'));
 app.use('/templates', express.static(path.join(__dirname, '../templates')));
 
 // 3. SERVIR FRONTEND

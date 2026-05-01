@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 import UserDocuments from './UserDocuments';
+import SignedDocuments from './SignedDocuments';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -14,6 +15,7 @@ const ClientDashboard = () => {
     const editId = queryParams.get('id');
     const showForm = queryParams.get('view') === 'form';
     const showDocuments = queryParams.get('view') === 'documents';
+    const showSignedDocs = queryParams.get('view') === 'signed-docs';
     const formTypeQuery = queryParams.get('type');
 
     const [currentFormType, setCurrentFormType] = useState(formTypeQuery || '');
@@ -235,6 +237,9 @@ const ClientDashboard = () => {
                     <div onClick={() => { navigate('/dashboard?view=documents'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showDocuments ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
                         <UploadCloud size={15} /> <span>MIS DOCUMENTOS</span>
                     </div>
+                    <div onClick={() => { navigate('/dashboard?view=signed-docs'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showSignedDocs ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '5px' }}>
+                        <Check size={15} /> <span>DOC. FIRMADOS</span>
+                    </div>
                     <div onClick={() => navigate('/tutorial')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
                         <BookOpen size={15} /> <span>AYUDA Y TUTORIAL</span>
                     </div>
@@ -245,7 +250,9 @@ const ClientDashboard = () => {
             </aside>
 
             <main style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
-                {showDocuments ? (
+                {showSignedDocs ? (
+                    <SignedDocuments />
+                ) : showDocuments ? (
                     <UserDocuments />
                 ) : !showForm ? (
                     <div style={{ maxWidth: '900px' }}>
