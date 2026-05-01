@@ -443,7 +443,7 @@ const ClientDashboard = () => {
                             )}
                         </form>
                     </div>
-                ) : currentFormType === 'Corporación' ? (
+                ) : currentFormType.startsWith('Corporaci') ? (
                     <CorporacionForm 
                         initialData={formData} 
                         onSave={saveDynamicForm} 
