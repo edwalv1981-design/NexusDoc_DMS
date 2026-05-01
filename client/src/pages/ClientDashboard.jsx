@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
-    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, BookOpen
+    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, BookOpen, UploadCloud
 } from 'lucide-react';
 import API_BASE_URL from '../config';
+import UserDocuments from './UserDocuments';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -12,6 +13,7 @@ const ClientDashboard = () => {
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
     const showForm = queryParams.get('view') === 'form';
+    const showDocuments = queryParams.get('view') === 'documents';
     const formTypeQuery = queryParams.get('type');
 
     const [currentFormType, setCurrentFormType] = useState(formTypeQuery || '');
@@ -230,6 +232,9 @@ const ClientDashboard = () => {
                     <div onClick={() => { navigate('/dashboard?view=form'); setCurrentFormType(''); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
                         <Plus size={15} /> <span>NUEVO TRÁMITE</span>
                     </div>
+                    <div onClick={() => { navigate('/dashboard?view=documents'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showDocuments ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
+                        <UploadCloud size={15} /> <span>MIS DOCUMENTOS</span>
+                    </div>
                     <div onClick={() => navigate('/tutorial')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
                         <BookOpen size={15} /> <span>AYUDA Y TUTORIAL</span>
                     </div>
@@ -240,7 +245,9 @@ const ClientDashboard = () => {
             </aside>
 
             <main style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
-                {!showForm ? (
+                {showDocuments ? (
+                    <UserDocuments />
+                ) : !showForm ? (
                     <div style={{ maxWidth: '900px' }}>
                         <div style={{ background: PRIMARY, borderRadius: RADIUS_LG, padding: '30px 35px', color: 'white', marginBottom: '35px', boxShadow: '0 10px 25px rgba(0, 120, 212, 0.1)', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ position: 'relative', zIndex: 2 }}>

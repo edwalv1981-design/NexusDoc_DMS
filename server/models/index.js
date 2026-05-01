@@ -4,6 +4,7 @@ const FormData = require('./FormData');
 const PendingRegistration = require('./PendingRegistration');
 
 const DocumentTemplate = require('./DocumentTemplate');
+const UserDocument = require('./UserDocument');
 
 // Relationships
 User.hasMany(FormData, { foreignKey: 'userId' });
@@ -12,11 +13,15 @@ FormData.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(AuditLog, { foreignKey: 'userId' });
 AuditLog.belongsTo(User, { foreignKey: 'userId' });
 
+User.hasMany(UserDocument, { foreignKey: 'userId' });
+UserDocument.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   User,
   AuditLog,
   FormData,
   PendingRegistration,
-  DocumentTemplate
+  DocumentTemplate,
+  UserDocument
 };
 
