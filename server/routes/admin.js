@@ -180,4 +180,30 @@ router.get('/templates', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   DELETE api/admin/delete-template/:name
+// @desc    Admin deletes a custom template from DB
+router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
+    try {
+        const { name } = req.params;
+        const template = await DocumentTemplate.findOne({ where: { name } });
+        
+        if (!template) {
+            return res.status(404).json({ msg: 'Plantilla no encontrada' });
+        }
+
+        await template.destroy();
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_DELETE',
+            description: `Admin eliminó plantilla personalizada: ${name}`
+        });
+
+        res.json({ msg: 'Plantilla eliminada. El sistema volverá a usar la plantilla por defecto.' });
+    } catch (err) {
+        console.error('🔥 Error al eliminar plantilla:', err);
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;

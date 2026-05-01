@@ -133,6 +133,20 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteTemplate = async (name) => {
+    if (!window.confirm(`¿Está seguro de eliminar la plantilla personalizada de "${name}"? El sistema volverá a usar la plantilla por defecto local.`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/api/admin/delete-template/${name}`, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success('Plantilla eliminada correctamente');
+      fetchData();
+    } catch (err) {
+      toast.error('Error al eliminar la plantilla');
+    }
+  };
+
   const logout = () => { localStorage.clear(); navigate('/'); };
 
   return (
@@ -290,9 +304,18 @@ const AdminDashboard = () => {
                             return (
                               <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
                                 <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{type.label}</td>
-                                <td style={{ padding: '12px' }}>
+                                <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     {customTemplate ? (
-                                        <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ Personalizada (DB)</span>
+                                        <>
+                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ Personalizada (DB)</span>
+                                            <button 
+                                                onClick={() => handleDeleteTemplate(type.id)}
+                                                style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                title="Eliminar plantilla y usar por defecto"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </>
                                     ) : (
                                         <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>📄 Por Defecto (Local)</span>
                                     )}
