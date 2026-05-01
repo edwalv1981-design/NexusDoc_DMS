@@ -92,7 +92,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
     # --- INICIO MOTOR DE ANEXOS DINÁMICOS (OPCIÓN 1) ---
     def append_dynamic_annex(doc, title, dict_list):
-        if not dict_list or not isinstance(dict_list, list): return
+        if not dict_list or not isinstance(dict_list, list) or len(dict_list) == 0: return
+        if not isinstance(dict_list[0], dict): return
         # Validar si al menos hay un dato real en el primer elemento
         has_data = any(bool(v) for v in dict_list[0].values() if isinstance(v, str))
         if not has_data: return
