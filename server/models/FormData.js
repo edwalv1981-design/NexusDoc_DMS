@@ -15,6 +15,10 @@ const FormData = sequelize.define('FormData', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  userUniqueCode: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   data: {
     type: DataTypes.JSONB,
     allowNull: false

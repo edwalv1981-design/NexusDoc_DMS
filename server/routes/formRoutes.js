@@ -22,9 +22,13 @@ router.post('/save', auth, async (req, res) => {
       return res.json({ msg: 'Actualizado con éxito', data: form });
     }
 
+    const userObj = await User.findByPk(req.user.id, { attributes: ['uniqueCode'] });
+    const userCode = userObj ? userObj.uniqueCode : null;
+
     const newForm = await FormData.create({
       userId: req.user.id,
       formType: formTypeLabel,
+      userUniqueCode: userCode,
       data: data
     });
 
