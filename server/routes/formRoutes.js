@@ -128,8 +128,15 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 description: `Usuario descargó PDF del trámite tipo: ${form.formType} (ID: ${form.id})`
             }).catch(err => console.error('Error registrando en bitácora:', err));
 
-            const userObj = await User.findByPk(req.user.id, { attributes: ['uniqueCode'] });
-            const prefix = form.userUniqueCode || (userObj ? userObj.uniqueCode : 'DOC');
+            // Prefix Mapping based on Form Type
+            const prefixMap = {
+                'Fondos Registros contables': 'SFAR',
+                'Corporación': 'PTLC',
+                'Fundaciones': 'PTLF',
+                'Cumplimiento Individual': 'KYCI',
+                'Cumplimiento Entidades': 'KYCE'
+            };
+            const prefix = prefixMap[form.formType] || 'DOC';
             
             res.download(outputPath, `${prefix}_${form.id}.pdf`, (err) => {
                 if (err) console.error('❌ Error enviando archivo al navegador:', err);

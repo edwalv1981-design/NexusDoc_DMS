@@ -52,49 +52,122 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
     for entry in config["anchors"]:
         key = entry["data_key"]
         if key in data and data[key]:
-            x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
-            y = find_y_by_keywords(entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
-            if not y and key == "address":
-                y = config.get("y_address_fallback", 328)
-            if y:
-                page1.insert_text((x_val, y), str(data[key]), fontsize=10, fontname="helv")
+    page1 = doc[0]
+    
+    # === MODO CORPORACIÓN ===
+    if template_name == "corporacion" or "corpNameSA" in data:
+        # PÁGINA 1
+        if data.get("corpNameSA"): page1.insert_text((130, 207), str(data["corpNameSA"]), fontsize=10, fontname="helv")
+        if data.get("corpNameCorp"): page1.insert_text((130, 243), str(data["corpNameCorp"]), fontsize=10, fontname="helv")
+        if data.get("corpNameInc"): page1.insert_text((130, 278), str(data["corpNameInc"]), fontsize=10, fontname="helv")
+        if data.get("capitalSocial"): page1.insert_text((270, 325), str(data["capitalSocial"]), fontsize=10, fontname="helv")
 
-    # Dirección Final
-    y_final_label = find_y_by_keywords(["direccion", "address"], min_y=700)
-    if y_final_label and data.get("custodyAddress"):
-        page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
+        directors = data.get("directors", [])
+        # Director 1
+        if len(directors) > 0:
+            d = directors[0]
+            y_base = 452
+            for i, key in enumerate(["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address"]):
+                if d.get(key): page1.insert_text((230, y_base + (i*16.5)), str(d[key])[:25], fontsize=9, fontname="helv")
+            if d.get("city"): page1.insert_text((230, 680), str(d["city"])[:25], fontsize=9, fontname="helv")
+            if d.get("country"): page1.insert_text((230, 705), str(d["country"])[:25], fontsize=9, fontname="helv")
 
-    # Página 2
-    if len(doc) > 1:
-        if data.get("signerName"):
-            doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="helv")
-        if data.get("date"):
-            doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="helv")
+        # Director 2
+        if len(directors) > 1:
+            d = directors[1]
+            y_base = 452
+            for i, key in enumerate(["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address"]):
+                if d.get(key): page1.insert_text((440, y_base + (i*16.5)), str(d[key])[:25], fontsize=9, fontname="helv")
+            if d.get("city"): page1.insert_text((440, 680), str(d["city"])[:25], fontsize=9, fontname="helv")
+            if d.get("country"): page1.insert_text((440, 705), str(d["country"])[:25], fontsize=9, fontname="helv")
 
-    # Checkboxes
-    checkbox_anchors = [
-        (["personal", "bienes"], "Bienes personales"),
-        (["financial", "inversiones"], "Inversiones Financieras"),
-        (["business", "negocios"], "Negocios"),
-        (["loans", "prestamos"], "Prestamos"),
-        (["inheritance", "herencia"], "Herencia o Fondo Fiduciario")
-    ]
-    user_sources = data.get("fundsSource", [])
-    if isinstance(user_sources, str): user_sources = [user_sources]
-    for kws, ui_key in checkbox_anchors:
-        if ui_key in user_sources:
-            fy = find_y_by_keywords(kws, min_y=350, max_y=480)
-            if fy: page1.insert_text((73, fy), "X", fontsize=10, fontname="hebo")
+        # Director 3
+        if len(directors) > 2:
+            d = directors[2]
+            y_base = 745
+            for i, key in enumerate(["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]):
+                if d.get(key): page1.insert_text((230, y_base + (i*16.5)), str(d[key])[:25], fontsize=9, fontname="helv")
+            if d.get("address"): page1.insert_text((440, 755), str(d["address"])[:25], fontsize=9, fontname="helv")
+            if d.get("city"): page1.insert_text((440, 785), str(d["city"])[:25], fontsize=9, fontname="helv")
+            if d.get("country"): page1.insert_text((440, 815), str(d["country"])[:25], fontsize=9, fontname="helv")
 
-    if data.get("fundsOther"):
-        fy = find_y_by_keywords(["specify", "especificar"])
-        if fy: page1.insert_text((73, fy + 20), str(data["fundsOther"]), fontsize=10, fontname="helv")
+        # PÁGINA 2
+        if len(doc) > 1:
+            page2 = doc[1]
+            # Dignatarios (Presidente, Secretario, Tesorero)
+            dig = data.get("dignitaries", {})
+            y_digs = {"presidente": 195, "secretario": 215, "tesorero": 235}
+            for rol, y_pos in y_digs.items():
+                if rol in dig:
+                    if dig[rol].get("fullName"): page2.insert_text((180, y_pos), str(dig[rol]["fullName"])[:30], fontsize=9, fontname="helv")
+                    if dig[rol].get("birthDate"): page2.insert_text((360, y_pos), str(dig[rol]["birthDate"])[:15], fontsize=9, fontname="helv")
+                    if dig[rol].get("passport"): page2.insert_text((430, y_pos), str(dig[rol]["passport"])[:15], fontsize=9, fontname="helv")
+                    if dig[rol].get("registrationNumber"): page2.insert_text((510, y_pos), str(dig[rol]["registrationNumber"])[:15], fontsize=9, fontname="helv")
 
-    # --- INICIO MOTOR DE ANEXOS DINÁMICOS (OPCIÓN 1) ---
+            # Accionistas (Máximo 4 en la hoja principal)
+            shareholders = data.get("shareholders", [])
+            for i in range(min(4, len(shareholders))):
+                s = shareholders[i]
+                y_pos = 320 + (i*18)
+                if s.get("certificate"): page2.insert_text((55, y_pos), str(s["certificate"])[:10], fontsize=9, fontname="helv")
+                if s.get("value"): page2.insert_text((130, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
+                if s.get("shares"): page2.insert_text((195, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
+                if s.get("name"): page2.insert_text((260, y_pos), str(s["name"])[:30], fontsize=9, fontname="helv")
+                if s.get("address"): page2.insert_text((430, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
+
+            # Actividades
+            if data.get("companyActivities"): page2.insert_text((55, 545), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
+            
+            # Declaración
+            if data.get("declarationName"): page2.insert_text((180, 785), str(data["declarationName"]), fontsize=11, fontname="helv")
+            if data.get("declarationDate"): page2.insert_text((180, 825), str(data["declarationDate"]), fontsize=11, fontname="helv")
+
+    # === MODO FONDOS REGISTROS CONTABLES ===
+    else:
+        # INYECTAR TEXTO ÚNICAMENTE PARA FONDOS
+        for entry in config["anchors"]:
+            key = entry["data_key"]
+            if key in data and data[key]:
+                fy = find_y_by_keywords(entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
+                if fy:
+                    x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
+                    page1.insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="helv")
+
+        # Dirección Final
+        y_final_label = find_y_by_keywords(["direccion", "address"], min_y=700)
+        if y_final_label and data.get("custodyAddress"):
+            page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
+
+        # Página 2 (Firmas Fondos)
+        if len(doc) > 1:
+            if data.get("signerName"):
+                doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="helv")
+            if data.get("date"):
+                doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="helv")
+
+        # Checkboxes (Fondos)
+        checkbox_anchors = [
+            (["personal", "bienes"], "Bienes personales"),
+            (["financial", "inversiones"], "Inversiones Financieras"),
+            (["business", "negocios"], "Negocios"),
+            (["loans", "prestamos"], "Prestamos"),
+            (["inheritance", "herencia"], "Herencia o Fondo Fiduciario")
+        ]
+        user_sources = data.get("fundsSource", [])
+        if isinstance(user_sources, str): user_sources = [user_sources]
+        for kws, ui_key in checkbox_anchors:
+            if ui_key in user_sources:
+                fy = find_y_by_keywords(kws, min_y=350, max_y=480)
+                if fy: page1.insert_text((73, fy), "X", fontsize=10, fontname="hebo")
+
+        if data.get("fundsOther"):
+            fy = find_y_by_keywords(["specify", "especificar"])
+            if fy: page1.insert_text((73, fy + 20), str(data["fundsOther"]), fontsize=10, fontname="helv")
+
+    # --- MOTOR COMÚN DE ANEXOS DINÁMICOS ---
     def append_dynamic_annex(doc, title, dict_list):
         if not dict_list or not isinstance(dict_list, list) or len(dict_list) == 0: return
         if not isinstance(dict_list[0], dict): return
-        # Validar si al menos hay un dato real en el primer elemento
         has_data = any(bool(v) for v in dict_list[0].values() if isinstance(v, str))
         if not has_data: return
         
@@ -107,43 +180,39 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             if y > 750: # Salto de página
                 page = doc.new_page()
                 y = 50
-            
             page.draw_rect(fitz.Rect(50, y-10, 550, y+5), color=(0.9, 0.9, 0.9), fill=(0.95, 0.95, 0.95))
             page.insert_text((55, y), f"REGISTRO {index+1}", fontsize=10, fontname="hebo", color=(0.2, 0.2, 0.2))
             y += 15
             
-            # Dibujar campos en dos columnas
             col = 0
-            start_y = y
             max_y_in_block = y
-            
             for key, val in item.items():
                 if val:
                     label = str(key).upper().replace('_', ' ')
                     x_pos = 60 if col == 0 else 300
-                    
                     page.insert_text((x_pos, y), f"{label}:", fontsize=8, fontname="hebo")
                     page.insert_text((x_pos + 80, y), str(val)[:45], fontsize=8, fontname="helv")
-                    
                     col += 1
                     if col == 2:
                         col = 0
                         y += 15
                     max_y_in_block = max(max_y_in_block, y)
-                    
-            if col == 1: y += 15 # Alinear si quedó impar
-            y += 10 # Espaciado entre bloques
+            if col == 1: y += 15 
+            y += 10 
 
-    # Extraer arrays dinámicos para la Corporación (Directores, Accionistas, etc)
-    if "directors" in data:
-        append_dynamic_annex(doc, "LISTADO DE DIRECTORES", data["directors"])
-    if "shareholders" in data:
-        append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS", data["shareholders"])
-    if "dignitaries" in data and isinstance(data["dignitaries"], dict):
-        # Convertir el objeto dignitaries a lista para el anexo
-        dig_list = [{"CARGO": k.upper(), **v} for k, v in data["dignitaries"].items()]
-        append_dynamic_annex(doc, "DIGNATARIOS REGISTRADOS", dig_list)
-    # --- FIN MOTOR DE ANEXOS DINÁMICOS ---
+    if template_name == "corporacion" or "corpNameSA" in data:
+        directors = data.get("directors", [])
+        if len(directors) > 3: append_dynamic_annex(doc, "LISTADO DE DIRECTORES ADICIONALES", directors[3:])
+        shareholders = data.get("shareholders", [])
+        if len(shareholders) > 4: append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS ADICIONALES", shareholders[4:])
+        # Officers are capped at 3 strictly in frontend, so no overflow needed.
+    else:
+        # Fallback para otros si tuvieran
+        if "directors" in data: append_dynamic_annex(doc, "LISTADO DE DIRECTORES", data["directors"])
+        if "shareholders" in data: append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS", data["shareholders"])
+        if "dignitaries" in data and isinstance(data["dignitaries"], dict):
+            dig_list = [{"CARGO": k.upper(), **v} for k, v in data["dignitaries"].items()]
+            append_dynamic_annex(doc, "DIGNATARIOS REGISTRADOS", dig_list)
 
     # Guardado limpio sin capas extra
     doc.save(output_path, incremental=False, encryption=0)
