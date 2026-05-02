@@ -137,7 +137,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
             else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
 
-            res.download(outputPath, `${prefix}_${form.id}.pdf`, (err) => {
+            const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.substring(0, 8);
+            res.download(outputPath, `${prefix}_${safeId}.pdf`, (err) => {
                 if (err) console.error('❌ Error enviando archivo al navegador:', err);
                 // Limpiar temporal después de enviar
                 if (fs.existsSync(outputPath)) {
