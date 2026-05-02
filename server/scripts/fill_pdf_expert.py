@@ -173,7 +173,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         y = 90
         
         for index, item in enumerate(dict_list):
-            if y > 750: # Salto de página
+            if y > 750:
                 page = doc.new_page()
                 y = 50
             page.draw_rect(fitz.Rect(50, y-10, 550, y+5), color=(0.9, 0.9, 0.9), fill=(0.95, 0.95, 0.95))
@@ -196,14 +196,100 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             if col == 1: y += 15 
             y += 10 
 
+    # --- GENERADORES CORPORATIVOS NATIVOS ---
+    def draw_corporate_director_block(page, x_start, y_start, d_data, d_num, color):
+        width = 247.5
+        row_height = 17
+        labels = [
+            "First name / Nombre", "Middle name / Segundo nombre", "Surname(s) / Apellidos",
+            "Date of birth/ Fecha de nacimiento", "Marital Status / Estado civil", "Citizenship / Nacionalidad",
+            "Passport / Pasaporte", "Phone / Teléfono", "Email", "Address / Dirección", "City / ciudad", "Country / País"
+        ]
+        keys = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address", "city", "country"]
+        
+        total_height = 20 + row_height * len(labels)
+        page.draw_rect(fitz.Rect(x_start, y_start, x_start + width, y_start + total_height), color=color, width=1)
+        page.draw_line((x_start, y_start + 20), (x_start + width, y_start + 20), color=color, width=1)
+        page.insert_text((x_start + width/2 - 25, y_start + 14), f"Director {d_num}", fontsize=10, fontname="hebo", color=(0,0,0))
+        
+        y = y_start + 20
+        mid_x = x_start + 110
+        page.draw_line((mid_x, y), (mid_x, y + row_height * len(labels)), color=color, width=1)
+        
+        for i, label in enumerate(labels):
+            if i > 0: page.draw_line((x_start, y), (x_start + width, y), color=color, width=1)
+            page.insert_text((x_start + 5, y + 12), label, fontsize=7.5, fontname="helv", color=(0,0,0))
+            if d_data.get(keys[i]): page.insert_text((mid_x + 5, y + 12), str(d_data[keys[i]])[:30], fontsize=8, fontname="helv", color=(0,0,0))
+            y += row_height
+
+    def draw_corporate_directors_annex(doc, directors_list, start_idx=4):
+        if not directors_list: return
+        has_data = any(bool(v) for d in directors_list for v in d.values() if isinstance(v, str))
+        if not has_data: return
+        
+        blue_color = (0.29, 0.64, 0.77)
+        idx = 0
+        while idx < len(directors_list):
+            page = doc.new_page()
+            page.insert_text((50, 40), "ANEXO DOCUMENTAL: DIRECTORES ADICIONALES", fontsize=14, fontname="hebo", color=blue_color)
+            y_start = 70
+            for row in range(2):
+                if idx >= len(directors_list): break
+                page.draw_rect(fitz.Rect(50, y_start, 545, y_start + 20), color=blue_color, fill=blue_color)
+                page.insert_text((55, y_start + 14), "Directors / directores:", fontsize=11, fontname="hebo", color=(1,1,1))
+                y_base = y_start + 20
+                draw_corporate_director_block(page, 50, y_base, directors_list[idx], start_idx + idx, blue_color)
+                idx += 1
+                if idx < len(directors_list):
+                    draw_corporate_director_block(page, 297.5, y_base, directors_list[idx], start_idx + idx, blue_color)
+                    idx += 1
+                y_start += 250
+
+    def draw_corporate_shareholders_annex(doc, sh_list):
+        if not sh_list: return
+        has_data = any(bool(v) for d in sh_list for v in d.values() if isinstance(v, str))
+        if not has_data: return
+        
+        blue_color = (0.29, 0.64, 0.77)
+        page = doc.new_page()
+        page.insert_text((50, 40), "ANEXO DOCUMENTAL: ACCIONISTAS ADICIONALES", fontsize=14, fontname="hebo", color=blue_color)
+        y = 70
+        page.draw_rect(fitz.Rect(50, y, 545, y + 20), color=blue_color, fill=blue_color)
+        page.insert_text((55, y + 14), "Shareholders / Accionistas:", fontsize=11, fontname="hebo", color=(1,1,1))
+        y += 20
+        sub_h = 25
+        page.draw_rect(fitz.Rect(50, y, 545, y + sub_h), color=blue_color, width=1)
+        col_x = [50, 110, 180, 240, 380, 545]
+        for x in col_x[1:-1]: page.draw_line((x, y), (x, y + sub_h), color=blue_color, width=1)
+        page.insert_text((52, y + 15), "Cert.", fontsize=8, fontname="hebo")
+        page.insert_text((112, y + 15), "Value/Valor", fontsize=8, fontname="hebo")
+        page.insert_text((182, y + 15), "Shares", fontsize=8, fontname="hebo")
+        page.insert_text((242, y + 15), "Shareholder / Accionista", fontsize=8, fontname="hebo")
+        page.insert_text((382, y + 15), "Address / dirección", fontsize=8, fontname="hebo")
+        y += sub_h
+        row_height = 20
+        for s in sh_list:
+            if y > 750:
+                page = doc.new_page()
+                y = 50
+            page.draw_rect(fitz.Rect(50, y, 545, y + row_height), color=blue_color, width=1)
+            for x in col_x[1:-1]: page.draw_line((x, y), (x, y + row_height), color=blue_color, width=1)
+            if s.get("certificate"): page.insert_text((55, y + 13), str(s["certificate"])[:10], fontsize=8, fontname="helv")
+            if s.get("value"): page.insert_text((115, y + 13), str(s["value"])[:10], fontsize=8, fontname="helv")
+            if s.get("shares"): page.insert_text((185, y + 13), str(s["shares"])[:10], fontsize=8, fontname="helv")
+            if s.get("name"): page.insert_text((245, y + 13), str(s["name"])[:30], fontsize=8, fontname="helv")
+            if s.get("address"): page.insert_text((385, y + 13), str(s["address"])[:30], fontsize=8, fontname="helv")
+            y += row_height
+
     if template_name == "corporacion" or "corpNameSA" in data:
         directors = data.get("directors", [])
-        if len(directors) > 3: append_dynamic_annex(doc, "LISTADO DE DIRECTORES ADICIONALES", directors[3:])
+        if len(directors) > 3: 
+            draw_corporate_directors_annex(doc, directors[3:], 4)
         shareholders = data.get("shareholders", [])
-        if len(shareholders) > 4: append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS ADICIONALES", shareholders[4:])
-        # Officers are capped at 3 strictly in frontend, so no overflow needed.
+        if len(shareholders) > 4: 
+            draw_corporate_shareholders_annex(doc, shareholders[4:])
     else:
-        # Fallback para otros si tuvieran
+        # Fallback genérico para otros
         if "directors" in data: append_dynamic_annex(doc, "LISTADO DE DIRECTORES", data["directors"])
         if "shareholders" in data: append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS", data["shareholders"])
         if "dignitaries" in data and isinstance(data["dignitaries"], dict):
