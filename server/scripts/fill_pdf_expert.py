@@ -52,71 +52,93 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
     
     # === MODO CORPORACIÓN ===
     if template_name == "corporacion" or "corpNameSA" in data:
+        def find_y_advanced(page, keywords, min_x=0, max_x=1000, min_y=0, max_y=1000):
+            p_words = page.get_text("words")
+            for w in p_words:
+                if min_x <= w[0] <= max_x and min_y <= w[1] <= max_y:
+                    word_norm = normalize(w[4])
+                    for kw in keywords:
+                        if normalize(kw) in word_norm:
+                            return w[3] - 2 # Baseline
+            return None
+
         # PÁGINA 1
-        if data.get("corpNameSA"): page1.insert_text((250, 155), str(data["corpNameSA"]), fontsize=10, fontname="helv")
-        if data.get("corpNameCorp"): page1.insert_text((250, 195), str(data["corpNameCorp"]), fontsize=10, fontname="helv")
-        if data.get("corpNameInc"): page1.insert_text((250, 235), str(data["corpNameInc"]), fontsize=10, fontname="helv")
-        if data.get("capitalSocial"): page1.insert_text((320, 280), str(data["capitalSocial"]), fontsize=10, fontname="helv")
+        y_sa = find_y_advanced(page1, ["1st"], min_y=100, max_y=300)
+        if y_sa and data.get("corpNameSA"): page1.insert_text((200, y_sa), str(data["corpNameSA"]), fontsize=10, fontname="helv")
+        y_corp = find_y_advanced(page1, ["2nd"], min_y=100, max_y=300)
+        if y_corp and data.get("corpNameCorp"): page1.insert_text((200, y_corp), str(data["corpNameCorp"]), fontsize=10, fontname="helv")
+        y_inc = find_y_advanced(page1, ["3rd"], min_y=100, max_y=300)
+        if y_inc and data.get("corpNameInc"): page1.insert_text((200, y_inc), str(data["corpNameInc"]), fontsize=10, fontname="helv")
+        
+        y_cap = find_y_advanced(page1, ["authorized", "autorizado"], min_y=200, max_y=350)
+        if y_cap and data.get("capitalSocial"): page1.insert_text((300, y_cap), str(data["capitalSocial"]), fontsize=10, fontname="helv")
 
         directors = data.get("directors", [])
         
-        def draw_dir(d, page, x_base, y_base):
-            fields = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]
-            for i, k in enumerate(fields):
-                if d.get(k): page.insert_text((x_base, y_base + (i*17)), str(d[k])[:25], fontsize=9, fontname="helv")
+        def fill_dir_dynamic(d, page, x_val, min_x, max_x, min_y, max_y):
+            mapping = [
+                ("firstName", ["first"]), ("secondName", ["middle"]), ("lastName", ["surname"]),
+                ("birthDate", ["birth"]), ("maritalStatus", ["marital"]), ("nationality", ["citizenship"]),
+                ("passport", ["passport"]), ("phone", ["phone", "tel"]), ("email", ["email"]),
+                ("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])
+            ]
+            for key, kws in mapping:
+                if d.get(key):
+                    y = find_y_advanced(page, kws, min_x, max_x, min_y, max_y)
+                    if y: page.insert_text((x_val, y), str(d[key])[:25], fontsize=9, fontname="helv")
 
         # Director 1
-        if len(directors) > 0:
-            d = directors[0]
-            draw_dir(d, page1, 180, 385)
-            if d.get("address"): page1.insert_text((180, 537), str(d["address"])[:25], fontsize=9, fontname="helv")
-            if d.get("city"): page1.insert_text((180, 595), str(d["city"])[:25], fontsize=9, fontname="helv")
-            if d.get("country"): page1.insert_text((180, 615), str(d["country"])[:25], fontsize=9, fontname="helv")
-
+        if len(directors) > 0: fill_dir_dynamic(directors[0], page1, 200, 0, 250, 300, 650)
         # Director 2
-        if len(directors) > 1:
-            d = directors[1]
-            draw_dir(d, page1, 410, 385)
-            if d.get("address"): page1.insert_text((410, 537), str(d["address"])[:25], fontsize=9, fontname="helv")
-            if d.get("city"): page1.insert_text((410, 595), str(d["city"])[:25], fontsize=9, fontname="helv")
-            if d.get("country"): page1.insert_text((410, 615), str(d["country"])[:25], fontsize=9, fontname="helv")
-
+        if len(directors) > 1: fill_dir_dynamic(directors[1], page1, 410, 260, 550, 300, 650)
         # Director 3
-        if len(directors) > 2:
+        if len(directors) > 2: 
             d = directors[2]
-            draw_dir(d, page1, 180, 680)
-            if d.get("address"): page1.insert_text((410, 680), str(d["address"])[:25], fontsize=9, fontname="helv")
-            if d.get("city"): page1.insert_text((410, 725), str(d["city"])[:25], fontsize=9, fontname="helv")
-            if d.get("country"): page1.insert_text((410, 755), str(d["country"])[:25], fontsize=9, fontname="helv")
+            # Left side logic for basic fields
+            fill_dir_dynamic(d, page1, 200, 0, 250, 650, 950)
+            # Address, City, Country are on the right side for Dir 3
+            for k, kws in [("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])]:
+                if d.get(k):
+                    y = find_y_advanced(page1, kws, 260, 550, 650, 950)
+                    if y: page1.insert_text((410, y), str(d[k])[:25], fontsize=9, fontname="helv")
 
         # PÁGINA 2
         if len(doc) > 1:
             page2 = doc[1]
             # Dignatarios
             dig = data.get("dignitaries", {})
-            y_digs = {"presidente": 175, "secretario": 195, "tesorero": 215}
-            for rol, y_pos in y_digs.items():
+            for rol in ["presidente", "secretario", "tesorero"]:
                 if rol in dig:
-                    if dig[rol].get("fullName"): page2.insert_text((160, y_pos), str(dig[rol]["fullName"])[:30], fontsize=9, fontname="helv")
-                    if dig[rol].get("birthDate"): page2.insert_text((340, y_pos), str(dig[rol]["birthDate"])[:15], fontsize=9, fontname="helv")
-                    if dig[rol].get("passport"): page2.insert_text((430, y_pos), str(dig[rol]["passport"])[:15], fontsize=9, fontname="helv")
-                    if dig[rol].get("registrationNumber"): page2.insert_text((520, y_pos), str(dig[rol]["registrationNumber"])[:15], fontsize=9, fontname="helv")
+                    y_rol = find_y_advanced(page2, [rol[:5]], min_y=100, max_y=300)
+                    if y_rol:
+                        if dig[rol].get("fullName"): page2.insert_text((160, y_rol), str(dig[rol]["fullName"])[:30], fontsize=9, fontname="helv")
+                        if dig[rol].get("birthDate"): page2.insert_text((340, y_rol), str(dig[rol]["birthDate"])[:15], fontsize=9, fontname="helv")
+                        if dig[rol].get("passport"): page2.insert_text((430, y_rol), str(dig[rol]["passport"])[:15], fontsize=9, fontname="helv")
+                        if dig[rol].get("registrationNumber"): page2.insert_text((520, y_rol), str(dig[rol]["registrationNumber"])[:15], fontsize=9, fontname="helv")
 
             # Accionistas
             shareholders = data.get("shareholders", [])
-            for i in range(min(4, len(shareholders))):
-                s = shareholders[i]
-                y_pos = 295 + (i*18)
-                if s.get("certificate"): page2.insert_text((55, y_pos), str(s["certificate"])[:10], fontsize=9, fontname="helv")
-                if s.get("value"): page2.insert_text((140, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
-                if s.get("shares"): page2.insert_text((220, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
-                if s.get("name"): page2.insert_text((300, y_pos), str(s["name"])[:30], fontsize=9, fontname="helv")
-                if s.get("address"): page2.insert_text((450, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
+            y_cert = find_y_advanced(page2, ["certificate", "certificado"], min_y=200, max_y=400)
+            if y_cert:
+                for i in range(min(4, len(shareholders))):
+                    s = shareholders[i]
+                    y_pos = y_cert + 18 + (i*18)
+                    if s.get("certificate"): page2.insert_text((55, y_pos), str(s["certificate"])[:10], fontsize=9, fontname="helv")
+                    if s.get("value"): page2.insert_text((140, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
+                    if s.get("shares"): page2.insert_text((220, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
+                    if s.get("name"): page2.insert_text((300, y_pos), str(s["name"])[:30], fontsize=9, fontname="helv")
+                    if s.get("address"): page2.insert_text((450, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
 
             # Actividades y Declaración
-            if data.get("companyActivities"): page2.insert_text((55, 430), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
-            if data.get("declarationName"): page2.insert_text((150, 660), str(data["declarationName"]), fontsize=11, fontname="helv")
-            if data.get("declarationDate"): page2.insert_text((150, 700), str(data["declarationDate"]), fontsize=11, fontname="helv")
+            y_act = find_y_advanced(page2, ["activities", "actividades"], min_y=400, max_y=600)
+            if y_act and data.get("companyActivities"): 
+                page2.insert_text((55, y_act + 40), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
+                
+            y_sig = find_y_advanced(page2, ["signature", "firma"], min_y=600, max_y=850)
+            if y_sig and data.get("declarationName"): 
+                page2.insert_text((150, y_sig + 35), str(data["declarationName"]), fontsize=11, fontname="helv")
+            if y_sig and data.get("declarationDate"): 
+                page2.insert_text((150, y_sig + 70), str(data["declarationDate"]), fontsize=11, fontname="helv")
 
     # === MODO FONDOS REGISTROS CONTABLES ===
     else:

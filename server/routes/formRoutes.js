@@ -129,15 +129,14 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }).catch(err => console.error('Error registrando en bitácora:', err));
 
             // Prefix Mapping based on Form Type
-            const prefixMap = {
-                'Fondos Registros contables': 'SFAR',
-                'Corporación': 'PTLC',
-                'Fundaciones': 'PTLF',
-                'Cumplimiento Individual': 'KYCI',
-                'Cumplimiento Entidades': 'KYCE'
-            };
-            const prefix = prefixMap[form.formType] || 'DOC';
-            
+            const normType = form.formType.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            let prefix = 'DOC';
+            if (normType.includes('fondos')) prefix = 'SFAR';
+            else if (normType.includes('corporacion') || normType.includes('corporativos')) prefix = 'PTLC';
+            else if (normType.includes('fundacion')) prefix = 'PTLF';
+            else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
+            else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
+
             res.download(outputPath, `${prefix}_${form.id}.pdf`, (err) => {
                 if (err) console.error('❌ Error enviando archivo al navegador:', err);
                 // Limpiar temporal después de enviar
