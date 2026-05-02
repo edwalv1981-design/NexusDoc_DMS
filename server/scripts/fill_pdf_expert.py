@@ -53,70 +53,70 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
     # === MODO CORPORACIÓN ===
     if template_name == "corporacion" or "corpNameSA" in data:
         # PÁGINA 1
-        if data.get("corpNameSA"): page1.insert_text((130, 207), str(data["corpNameSA"]), fontsize=10, fontname="helv")
-        if data.get("corpNameCorp"): page1.insert_text((130, 243), str(data["corpNameCorp"]), fontsize=10, fontname="helv")
-        if data.get("corpNameInc"): page1.insert_text((130, 278), str(data["corpNameInc"]), fontsize=10, fontname="helv")
-        if data.get("capitalSocial"): page1.insert_text((270, 325), str(data["capitalSocial"]), fontsize=10, fontname="helv")
+        if data.get("corpNameSA"): page1.insert_text((250, 155), str(data["corpNameSA"]), fontsize=10, fontname="helv")
+        if data.get("corpNameCorp"): page1.insert_text((250, 195), str(data["corpNameCorp"]), fontsize=10, fontname="helv")
+        if data.get("corpNameInc"): page1.insert_text((250, 235), str(data["corpNameInc"]), fontsize=10, fontname="helv")
+        if data.get("capitalSocial"): page1.insert_text((320, 280), str(data["capitalSocial"]), fontsize=10, fontname="helv")
 
         directors = data.get("directors", [])
+        
+        def draw_dir(d, page, x_base, y_base):
+            fields = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]
+            for i, k in enumerate(fields):
+                if d.get(k): page.insert_text((x_base, y_base + (i*17)), str(d[k])[:25], fontsize=9, fontname="helv")
+
         # Director 1
         if len(directors) > 0:
             d = directors[0]
-            y_base = 452
-            for i, key in enumerate(["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address"]):
-                if d.get(key): page1.insert_text((230, y_base + (i*16.5)), str(d[key])[:25], fontsize=9, fontname="helv")
-            if d.get("city"): page1.insert_text((230, 680), str(d["city"])[:25], fontsize=9, fontname="helv")
-            if d.get("country"): page1.insert_text((230, 705), str(d["country"])[:25], fontsize=9, fontname="helv")
+            draw_dir(d, page1, 180, 385)
+            if d.get("address"): page1.insert_text((180, 537), str(d["address"])[:25], fontsize=9, fontname="helv")
+            if d.get("city"): page1.insert_text((180, 595), str(d["city"])[:25], fontsize=9, fontname="helv")
+            if d.get("country"): page1.insert_text((180, 615), str(d["country"])[:25], fontsize=9, fontname="helv")
 
         # Director 2
         if len(directors) > 1:
             d = directors[1]
-            y_base = 452
-            for i, key in enumerate(["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address"]):
-                if d.get(key): page1.insert_text((440, y_base + (i*16.5)), str(d[key])[:25], fontsize=9, fontname="helv")
-            if d.get("city"): page1.insert_text((440, 680), str(d["city"])[:25], fontsize=9, fontname="helv")
-            if d.get("country"): page1.insert_text((440, 705), str(d["country"])[:25], fontsize=9, fontname="helv")
+            draw_dir(d, page1, 410, 385)
+            if d.get("address"): page1.insert_text((410, 537), str(d["address"])[:25], fontsize=9, fontname="helv")
+            if d.get("city"): page1.insert_text((410, 595), str(d["city"])[:25], fontsize=9, fontname="helv")
+            if d.get("country"): page1.insert_text((410, 615), str(d["country"])[:25], fontsize=9, fontname="helv")
 
         # Director 3
         if len(directors) > 2:
             d = directors[2]
-            y_base = 745
-            for i, key in enumerate(["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]):
-                if d.get(key): page1.insert_text((230, y_base + (i*16.5)), str(d[key])[:25], fontsize=9, fontname="helv")
-            if d.get("address"): page1.insert_text((440, 755), str(d["address"])[:25], fontsize=9, fontname="helv")
-            if d.get("city"): page1.insert_text((440, 785), str(d["city"])[:25], fontsize=9, fontname="helv")
-            if d.get("country"): page1.insert_text((440, 815), str(d["country"])[:25], fontsize=9, fontname="helv")
+            draw_dir(d, page1, 180, 680)
+            if d.get("address"): page1.insert_text((410, 680), str(d["address"])[:25], fontsize=9, fontname="helv")
+            if d.get("city"): page1.insert_text((410, 725), str(d["city"])[:25], fontsize=9, fontname="helv")
+            if d.get("country"): page1.insert_text((410, 755), str(d["country"])[:25], fontsize=9, fontname="helv")
 
         # PÁGINA 2
         if len(doc) > 1:
             page2 = doc[1]
-            # Dignatarios (Presidente, Secretario, Tesorero)
+            # Dignatarios
             dig = data.get("dignitaries", {})
-            y_digs = {"presidente": 195, "secretario": 215, "tesorero": 235}
+            y_digs = {"presidente": 175, "secretario": 195, "tesorero": 215}
             for rol, y_pos in y_digs.items():
                 if rol in dig:
-                    if dig[rol].get("fullName"): page2.insert_text((180, y_pos), str(dig[rol]["fullName"])[:30], fontsize=9, fontname="helv")
-                    if dig[rol].get("birthDate"): page2.insert_text((360, y_pos), str(dig[rol]["birthDate"])[:15], fontsize=9, fontname="helv")
+                    if dig[rol].get("fullName"): page2.insert_text((160, y_pos), str(dig[rol]["fullName"])[:30], fontsize=9, fontname="helv")
+                    if dig[rol].get("birthDate"): page2.insert_text((340, y_pos), str(dig[rol]["birthDate"])[:15], fontsize=9, fontname="helv")
                     if dig[rol].get("passport"): page2.insert_text((430, y_pos), str(dig[rol]["passport"])[:15], fontsize=9, fontname="helv")
-                    if dig[rol].get("registrationNumber"): page2.insert_text((510, y_pos), str(dig[rol]["registrationNumber"])[:15], fontsize=9, fontname="helv")
+                    if dig[rol].get("registrationNumber"): page2.insert_text((520, y_pos), str(dig[rol]["registrationNumber"])[:15], fontsize=9, fontname="helv")
 
-            # Accionistas (Máximo 4 en la hoja principal)
+            # Accionistas
             shareholders = data.get("shareholders", [])
             for i in range(min(4, len(shareholders))):
                 s = shareholders[i]
-                y_pos = 320 + (i*18)
+                y_pos = 295 + (i*18)
                 if s.get("certificate"): page2.insert_text((55, y_pos), str(s["certificate"])[:10], fontsize=9, fontname="helv")
-                if s.get("value"): page2.insert_text((130, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
-                if s.get("shares"): page2.insert_text((195, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
-                if s.get("name"): page2.insert_text((260, y_pos), str(s["name"])[:30], fontsize=9, fontname="helv")
-                if s.get("address"): page2.insert_text((430, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
+                if s.get("value"): page2.insert_text((140, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
+                if s.get("shares"): page2.insert_text((220, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
+                if s.get("name"): page2.insert_text((300, y_pos), str(s["name"])[:30], fontsize=9, fontname="helv")
+                if s.get("address"): page2.insert_text((450, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
 
-            # Actividades
-            if data.get("companyActivities"): page2.insert_text((55, 545), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
-            
-            # Declaración
-            if data.get("declarationName"): page2.insert_text((180, 785), str(data["declarationName"]), fontsize=11, fontname="helv")
-            if data.get("declarationDate"): page2.insert_text((180, 825), str(data["declarationDate"]), fontsize=11, fontname="helv")
+            # Actividades y Declaración
+            if data.get("companyActivities"): page2.insert_text((55, 430), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
+            if data.get("declarationName"): page2.insert_text((150, 660), str(data["declarationName"]), fontsize=11, fontname="helv")
+            if data.get("declarationDate"): page2.insert_text((150, 700), str(data["declarationDate"]), fontsize=11, fontname="helv")
 
     # === MODO FONDOS REGISTROS CONTABLES ===
     else:
