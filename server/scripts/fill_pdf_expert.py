@@ -48,10 +48,6 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                         return y_center
         return None
 
-    # INYECTAR TEXTO ÚNICAMENTE (Versión Estable Original)
-    for entry in config["anchors"]:
-        key = entry["data_key"]
-        if key in data and data[key]:
     page1 = doc[0]
     
     # === MODO CORPORACIÓN ===
