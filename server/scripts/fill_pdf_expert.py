@@ -159,5 +159,7 @@ if __name__ == "__main__":
         fill_pdf_universal_engine(input_data.get("data", {}), out_file, t_name, c_path)
         print(out_file)
     except Exception as e:
-        print(f"ERROR_PY: {str(e)}", file=sys.stderr)
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR_PY: {str(e)} | Details: {error_details}", file=sys.stderr)
         sys.exit(1)
