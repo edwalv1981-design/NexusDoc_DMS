@@ -84,8 +84,15 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
-        // Map formType to template lookup
-        const templateName = form.formType || "fondos"; // Default if missing
+        // Strict Mapping: FormType (DB) -> TemplateName (Admin Dashboard)
+        const templateMap = {
+            'Fondos Registros contables': 'fondos',
+            'Corporación': 'corporacion',
+            'Fundaciones': 'fundaciones',
+            'Cumplimiento Individual': 'cumplimiento_individual',
+            'Cumplimiento Entidades': 'cumplimiento_entidades'
+        };
+        const templateName = templateMap[form.formType] || form.formType || "fondos"; 
         const dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
         if (!dbTemplate || !dbTemplate.fileData) {
             return res.status(400).json({ msg: `No existe plantilla PDF para este trámite (${templateName}). Por favor, indicar al administrador que la suba.` });
