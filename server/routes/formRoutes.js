@@ -128,7 +128,10 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 description: `Usuario descargó PDF del trámite tipo: ${form.formType} (ID: ${form.id})`
             }).catch(err => console.error('Error registrando en bitácora:', err));
 
-            res.download(outputPath, `NexusDoc_DMS_${form.id}.pdf`, (err) => {
+            const userObj = await User.findByPk(req.user.id, { attributes: ['uniqueCode'] });
+            const prefix = form.userUniqueCode || (userObj ? userObj.uniqueCode : 'DOC');
+            
+            res.download(outputPath, `${prefix}_${form.id}.pdf`, (err) => {
                 if (err) console.error('❌ Error enviando archivo al navegador:', err);
                 // Limpiar temporal después de enviar
                 if (fs.existsSync(outputPath)) {

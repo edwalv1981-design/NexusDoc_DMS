@@ -17,5 +17,19 @@
       {"keywords": ["telefono", "telephone"], "x_key": "x_bot", "data_key": "custodyPhone", "min_y": 550, "max_y": 680},
       {"keywords": ["electronico", "email"], "x_key": "x_bot", "data_key": "custodyEmail", "min_y": 600, "max_y": 720}
     ]
+  },
+  "corporacion": {
+    "file_path": "corporacion.pdf",
+    "x_top": 200,
+    "x_bot": 200,
+    "x_address_top": 200,
+    "anchors": [
+      {"keywords": ["s.a.", "sa"], "x_key": "x_top", "data_key": "corpNameSA", "min_y": 100, "max_y": 300},
+      {"keywords": ["corp.", "corp"], "x_key": "x_top", "data_key": "corpNameCorp", "min_y": 150, "max_y": 350},
+      {"keywords": ["inc.", "inc"], "x_key": "x_top", "data_key": "corpNameInc", "min_y": 200, "max_y": 400},
+      {"keywords": ["capital"], "x_key": "x_top", "data_key": "capitalSocial", "min_y": 250, "max_y": 450},
+      {"keywords": ["name", "nombre"], "x_key": "x_top", "data_key": "declarationName", "min_y": 600, "max_y": 750},
+      {"keywords": ["date", "fecha"], "x_key": "x_top", "data_key": "declarationDate", "min_y": 650, "max_y": 780}
+    ]
   }
 }
