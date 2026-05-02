@@ -107,7 +107,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
 
         console.log(`📡 Iniciando motor PDF (${pythonCommand})...`);
 
-        const pythonProcess = exec(`${pythonCommand} "${scriptPath}"`, (error, stdout, stderr) => {
+        const pythonProcess = exec(`${pythonCommand} "${scriptPath}"`, async (error, stdout, stderr) => {
             if (error) {
                 console.error(`❌ Error en motor Python: ${error.message}`);
                 console.error(`🔍 Detalle Stderr: ${stderr}`);
