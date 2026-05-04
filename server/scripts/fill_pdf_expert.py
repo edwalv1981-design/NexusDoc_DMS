@@ -59,7 +59,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                     word_norm = normalize(w[4])
                     for kw in keywords:
                         if normalize(kw) in word_norm:
-                            return w[3] + 4 # Shift down to center in cell
+                            return w[3] - 2 # Center precisely with the label
             return None
 
         # PÁGINA 1
@@ -71,7 +71,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         if y_inc and data.get("corpNameInc"): page1.insert_text((270, y_inc), str(data["corpNameInc"]), fontsize=10, fontname="helv")
         
         y_cap = find_y_advanced(page1, ["authorized", "autorizado"], min_y=200, max_y=350)
-        if y_cap and data.get("capitalSocial"): page1.insert_text((320, y_cap), str(data["capitalSocial"]), fontsize=10, fontname="helv")
+        if y_cap and data.get("capitalSocial"): page1.insert_text((420, y_cap), str(data["capitalSocial"]), fontsize=10, fontname="helv")
 
         directors = data.get("directors", [])
         
@@ -122,7 +122,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             if y_cert:
                 for i in range(min(4, len(shareholders))):
                     s = shareholders[i]
-                    y_pos = y_cert + 18 + (i*18)
+                    y_pos = y_cert + 15 + (i*16) # Align properly into the grid
                     if s.get("certificate"): page2.insert_text((55, y_pos), str(s["certificate"])[:10], fontsize=9, fontname="helv")
                     if s.get("value"): page2.insert_text((140, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
                     if s.get("shares"): page2.insert_text((220, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
@@ -251,8 +251,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         
         blue_color = (0.29, 0.64, 0.77)
         idx = 0
+        insert_idx = 1 # Insert immediately after Page 1 (index 0) to maintain sequence!
         while idx < len(directors_list):
-            page = doc.new_page()
+            page = doc.new_page(pno=insert_idx)
+            insert_idx += 1
             page.insert_text((50, 40), "ANEXO DOCUMENTAL: DIRECTORES ADICIONALES", fontsize=14, fontname="hebo", color=blue_color)
             y_start = 70
             for row in range(2):

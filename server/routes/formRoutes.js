@@ -51,7 +51,8 @@ router.get('/my-forms', auth, async (req, res) => {
         id: f.id,
         type: f.formType,
         date: f.updatedAt, // DEVOLVER ÚLTIMA FECHA DE MODIFICACIÓN
-        data: f.data
+        data: f.data,
+        userUniqueCode: f.userUniqueCode
     }));
     res.json(mapped);
   } catch (err) {

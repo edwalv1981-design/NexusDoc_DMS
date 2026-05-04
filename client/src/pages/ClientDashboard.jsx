@@ -182,11 +182,11 @@ const ClientDashboard = () => {
             }
         } catch (e) { showToast('No se pudo procesar la eliminación'); }
     };
-    const handleDownloadPDF = async (id) => {
+    const handleDownloadPDF = async (doc) => {
         const token = localStorage.getItem('token');
         showToast('Generando Fiel Copia...', 'success');
         try {
-            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${doc.id}`, {
                 headers: { 'x-auth-token': token }
             });
             if (response.ok) {
@@ -194,7 +194,19 @@ const ClientDashboard = () => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `SFAR_${id}.pdf`;
+                
+                // Construct proper filename locally
+                let prefix = 'DOC';
+                const type = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+                if (type.includes('fondos')) prefix = 'SFAR';
+                else if (type.includes('corporacion') || type.includes('corporativos')) prefix = 'PTLC';
+                else if (type.includes('fundacion')) prefix = 'PTLF';
+                else if (type.includes('cumplimiento individual')) prefix = 'KYCI';
+                else if (type.includes('cumplimiento entidades')) prefix = 'KYCE';
+                
+                const safeId = doc.userUniqueCode ? doc.userUniqueCode : doc.id.substring(0, 8);
+                a.download = `${prefix}_${safeId}.pdf`;
+                
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -334,7 +346,7 @@ const ClientDashboard = () => {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <button onClick={() => handleDownloadPDF(doc.id)} style={{ padding: '8px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer', transition: 'all 0.2s' }} title="Descargar Documento PDF" onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background = '#eef6ff'}>
+                                        <button onClick={() => handleDownloadPDF(doc)} style={{ padding: '8px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer', transition: 'all 0.2s' }} title="Descargar Documento PDF" onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background = '#eef6ff'}>
                                             <Download size={16} />
                                         </button>
                                         <button onClick={() => navigate(`/dashboard?view=form&id=${doc.id}`)} style={{ padding: '8px', background: '#f0fdf4', border: '1px solid #16a34a', borderRadius: RADIUS, color: '#16a34a', cursor: 'pointer', transition: 'all 0.2s' }} title="Editar este trámite" onMouseEnter={(e) => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={(e) => e.currentTarget.style.background = '#f0fdf4'}>
