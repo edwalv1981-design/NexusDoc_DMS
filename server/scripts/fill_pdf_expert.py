@@ -51,135 +51,149 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
     page1 = doc[0]
     
     # === MODO CORPORACIÓN ===    if template_name == "corporacion" or "corpNameSA" in data:
-        def find_y_advanced(page, keywords, min_x=0, max_x=1000, min_y=0, max_y=1000):
-            p_words = page.get_text("words")
-            for w in p_words:
-                if min_x <= w[0] <= max_x and min_y <= w[1] <= max_y:
-                    word_norm = normalize(w[4])
-                    for kw in keywords:
-                        if normalize(kw) in word_norm:
-                            return w[3] - 1 # Baseline exacto del texto
+        # --- MOTOR DE ANCLAJE EXPERTO ---
+        def get_anchor(page, text, min_y=0, max_y=1000):
+            for w in page.get_text("words"):
+                if min_y <= w[1] <= max_y and normalize(text) in normalize(w[4]):
+                    return w[3] # Retorna el límite inferior del banner como anclaje
             return None
 
         directors = data.get("directors", [])
-        
-        def fill_dir_dynamic(d, page, x_val, min_x, max_x, min_y, max_y):
-            mapping = [
-                ("firstName", ["first"]), ("secondName", ["middle"]), ("lastName", ["surname"]),
-                ("birthDate", ["birth"]), ("maritalStatus", ["marital"]), ("nationality", ["citizenship"]),
-                ("passport", ["passport"]), ("phone", ["phone", "tel"]), ("email", ["email"]),
-                ("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])
-            ]
-            for key, kws in mapping:
+        shareholders = data.get("shareholders", [])
+
+        def fill_director_block(page, d, anchor_y, col_idx):
+            # col_idx 0 = Izquierda, 1 = Derecha
+            x_val = 150 if col_idx == 0 else 430
+            # Offsets verticales fijos desde el anclaje del bloque 'Director X'
+            # Estos offsets son universales para este diseño de formulario
+            offsets = {
+                "firstName": 14, "secondName": 31, "lastName": 48,
+                "birthDate": 65, "maritalStatus": 82, "nationality": 99,
+                "passport": 116, "phone": 133, "email": 150,
+                "address": 167, "city": 201, "country": 218
+            }
+            for key, off in offsets.items():
                 if d.get(key):
-                    y = find_y_advanced(page, kws, min_x, max_x, min_y, max_y)
-                    if y: page.insert_text((x_val, y), str(d[key])[:35], fontsize=8, fontname="helv")
+                    page.insert_text((x_val, anchor_y + off), str(d[key])[:35], fontsize=8, fontname="helv")
 
-        def process_directors_page(page, d_chunk, p_idx):
-            if p_idx > 1:
-                # Find the 'Directors' banner dynamically to blank out everything above it
-                y_directors = find_y_advanced(page, ["directors"], min_y=100, max_y=500)
-                if not y_directors: y_directors = 270 # Fallback
-                
-                page.draw_rect(fitz.Rect(30, 30, 570, y_directors - 20), color=(1,1,1), fill=(1,1,1))
-                page.insert_text((50, y_directors - 40), f"CONTINUACION DIRECTORES (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-                
-                def rename_dir(x, y, text):
-                    page.draw_rect(fitz.Rect(x-20, y-10, x+60, y+5), color=(1,1,1), fill=(1,1,1))
-                    page.insert_text((x, y), text, fontsize=9, fontname="hebo")
-                    
-                y_dir1 = find_y_advanced(page, ["director"], min_x=100, max_x=300, min_y=250, max_y=400)
-                if not y_dir1: y_dir1 = 286
-                y_dir2 = find_y_advanced(page, ["director"], min_x=350, max_x=500, min_y=250, max_y=400)
-                if not y_dir2: y_dir2 = 286
-                y_dir3 = find_y_advanced(page, ["director"], min_x=200, max_x=400, min_y=550, max_y=700)
-                if not y_dir3: y_dir3 = 618
+        def process_directors_page(page, d_chunk, p_idx, is_annex=False):
+            # 1. Encontrar el banner principal de 'Directors'
+            y_banner = get_anchor(page, "directores", 100, 500)
+            if not y_banner: y_banner = 270 # Fallback
 
-                if len(d_chunk) > 0: rename_dir(140, y_dir1, f"Director {(p_idx-1)*3 + 1}")
-                if len(d_chunk) > 1: rename_dir(420, y_dir2, f"Director {(p_idx-1)*3 + 2}")
-                if len(d_chunk) > 2: rename_dir(275, y_dir3, f"Director {(p_idx-1)*3 + 3}")
+            if is_annex:
+                # En un anexo, mantenemos el logo/título pero limpiamos los datos previos
+                # No blanqueamos el banner ni lo de arriba para no perder 'formato'
+                page.insert_text((50, y_banner - 40), f"CONTINUACION DIRECTORES (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                # Blanqueamos solo las áreas de las cajas de directores originales
+                page.draw_rect(fitz.Rect(40, y_banner + 5, 570, 900), color=(1,1,1), fill=(1,1,1))
+                # Redibujamos las líneas de los bloques para que no se pierda el diseño
+                page.draw_rect(fitz.Rect(50, y_banner + 30, 290, y_banner + 280), color=(0.29, 0.64, 0.77), width=1)
+                page.draw_rect(fitz.Rect(300, y_banner + 30, 545, y_banner + 280), color=(0.29, 0.64, 0.77), width=1)
+                page.draw_rect(fitz.Rect(50, y_banner + 290, 545, y_banner + 540), color=(0.29, 0.64, 0.77), width=1)
 
-            if len(d_chunk) > 0: fill_dir_dynamic(d_chunk[0], page, 150, 0, 250, 200, 650)
-            if len(d_chunk) > 1: fill_dir_dynamic(d_chunk[1], page, 430, 260, 550, 200, 650)
-            if len(d_chunk) > 2: 
-                d = d_chunk[2]
-                fill_dir_dynamic(d, page, 150, 0, 250, 600, 950)
-                for k, kws in [("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])]:
-                    if d.get(k):
-                        y = find_y_advanced(page, kws, 260, 550, 600, 950)
-                        if y: page.insert_text((430, y), str(d[k])[:35], fontsize=8, fontname="helv")
+            # Encontrar anclajes individuales de 'Director 1', 'Director 2', etc.
+            # En la plantilla, están a alturas predecibles tras el banner
+            y_dir_top = y_banner + 25 
+            y_dir_bot = y_banner + 285
 
+            if len(d_chunk) > 0:
+                page.insert_text((140, y_dir_top + 5), f"Director {(p_idx-1)*3 + 1}", fontsize=9, fontname="hebo")
+                fill_director_block(page, d_chunk[0], y_dir_top + 10, 0)
+            if len(d_chunk) > 1:
+                page.insert_text((420, y_dir_top + 5), f"Director {(p_idx-1)*3 + 2}", fontsize=9, fontname="hebo")
+                fill_director_block(page, d_chunk[1], y_dir_top + 10, 1)
+            if len(d_chunk) > 2:
+                page.insert_text((275, y_dir_bot + 5), f"Director {(p_idx-1)*3 + 3}", fontsize=9, fontname="hebo")
+                fill_director_block(page, d_chunk[2], y_dir_bot + 10, 0)
+                # Datos extra a la derecha del Director 3
+                d3 = d_chunk[2]
+                for key, off in [("address", 10), ("city", 44), ("country", 61)]:
+                    if d3.get(key):
+                        page.insert_text((430, y_dir_bot + 10 + off), str(d3[key])[:35], fontsize=8, fontname="helv")
+
+        # --- PÁGINA 1: CABECERA Y PRIMEROS DIRECTORES ---
         page1 = doc[0]
-        y_sa = find_y_advanced(page1, ["1st"], min_y=100, max_y=300)
-        if y_sa and data.get("corpNameSA"): page1.insert_text((230, y_sa), str(data["corpNameSA"]), fontsize=9, fontname="helv")
-        y_corp = find_y_advanced(page1, ["2nd"], min_y=100, max_y=300)
-        if y_corp and data.get("corpNameCorp"): page1.insert_text((230, y_corp), str(data["corpNameCorp"]), fontsize=9, fontname="helv")
-        y_inc = find_y_advanced(page1, ["3rd"], min_y=100, max_y=300)
-        if y_inc and data.get("corpNameInc"): page1.insert_text((230, y_inc), str(data["corpNameInc"]), fontsize=9, fontname="helv")
-        y_cap = find_y_advanced(page1, ["authorized", "autorizado"], min_y=150, max_y=350)
-        if y_cap and data.get("capitalSocial"): page1.insert_text((280, y_cap), str(data["capitalSocial"]), fontsize=9, fontname="helv")
+        y_choice = get_anchor(page1, "choice", 100, 300)
+        if y_choice:
+            if data.get("corpNameSA"): page1.insert_text((230, y_choice - 4), str(data["corpNameSA"]), fontsize=9, fontname="helv")
+            if data.get("corpNameCorp"): page1.insert_text((230, y_choice + 26), str(data["corpNameCorp"]), fontsize=9, fontname="helv")
+            if data.get("corpNameInc"): page1.insert_text((230, y_choice + 56), str(data["corpNameInc"]), fontsize=9, fontname="helv")
+        
+        y_cap = get_anchor(page1, "capital", 150, 400)
+        if y_cap and data.get("capitalSocial"):
+            page1.insert_text((280, y_cap - 3), str(data["capitalSocial"]), fontsize=9, fontname="helv")
 
         process_directors_page(page1, directors[:3], 1)
-        
+
+        # --- ANEXOS DE DIRECTORES ---
         pages_added = 0
         src_doc = None
-        shareholders = data.get("shareholders", [])
         if len(directors) > 3 or len(shareholders) > 3:
             src_doc = fitz.open(custom_template_path if custom_template_path else "templates/referencia_maestra.pdf")
-        
+
         for i in range(3, len(directors), 3):
             pages_added += 1
             doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=pages_added)
-            process_directors_page(doc[pages_added], directors[i:i+3], pages_added + 1)
+            process_directors_page(doc[pages_added], directors[i:i+3], pages_added + 1, is_annex=True)
 
+        # --- PÁGINA 2: DIGNATARIOS Y ACCIONISTAS ---
         orig_p2_idx = 1 + pages_added
         if len(doc) > orig_p2_idx:
             page2 = doc[orig_p2_idx]
             
-            def process_shareholders_page(page, sh_chunk, p_idx):
-                if p_idx > 1:
-                    y_sh = find_y_advanced(page, ["shareholders", "accionistas"], min_y=200, max_y=500)
-                    if not y_sh: y_sh = 250
-                    page.draw_rect(fitz.Rect(30, 30, 570, y_sh - 20), color=(1,1,1), fill=(1,1,1))
-                    page.draw_rect(fitz.Rect(30, y_sh + 200, 570, 900), color=(1,1,1), fill=(1,1,1))
-                    page.insert_text((50, y_sh - 40), f"CONTINUACION ACCIONISTAS (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-                
-                y_cert = find_y_advanced(page, ["certificate", "certificado"], min_y=200, max_y=500)
-                if y_cert:
-                    for i in range(min(3, len(sh_chunk))):
-                        s = sh_chunk[i]
-                        y_pos = y_cert + 32 + (i*21)
-                        if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"])[:15], fontsize=8, fontname="helv")
-                        if s.get("value"): page.insert_text((130, y_pos), str(s["value"])[:15], fontsize=8, fontname="helv")
-                        if s.get("shares"): page.insert_text((210, y_pos), str(s["shares"])[:15], fontsize=8, fontname="helv")
-                        if s.get("name"): page.insert_text((270, y_pos), str(s["name"])[:30], fontsize=8, fontname="helv")
-                        if s.get("address"): page.insert_text((400, y_pos), str(s["address"])[:35], fontsize=8, fontname="helv")
-
-            dig = data.get("dignitaries", {})
-            for rol in ["presidente", "secretario", "tesorero"]:
-                if rol in dig:
-                    y_rol = find_y_advanced(page2, [rol[:5]], min_y=100, max_y=300)
-                    if y_rol:
-                        if dig[rol].get("fullName"): page2.insert_text((170, y_rol), str(dig[rol]["fullName"])[:30], fontsize=8, fontname="helv")
-                        if dig[rol].get("birthDate"): page2.insert_text((330, y_rol), str(dig[rol]["birthDate"])[:15], fontsize=8, fontname="helv")
-                        if dig[rol].get("passport"): page2.insert_text((400, y_rol), str(dig[rol]["passport"])[:15], fontsize=8, fontname="helv")
-                        if dig[rol].get("registrationNumber"): page2.insert_text((480, y_rol), str(dig[rol]["registrationNumber"])[:15], fontsize=8, fontname="helv")
-
-            y_act = find_y_advanced(page2, ["activities", "actividades"], min_y=400, max_y=700)
-            if y_act and data.get("companyActivities"): 
-                page2.insert_text((55, y_act + 40), str(data["companyActivities"])[:150], fontsize=8, fontname="helv")
-            y_sig = find_y_advanced(page2, ["signature", "firma"], min_y=600, max_y=900)
-            if y_sig and data.get("declarationName"): 
-                page2.insert_text((150, y_sig + 35), str(data["declarationName"]), fontsize=9, fontname="helv")
-            if y_sig and data.get("declarationDate"): 
-                page2.insert_text((150, y_sig + 70), str(data["declarationDate"]), fontsize=9, fontname="helv")
-
-            process_shareholders_page(page2, shareholders[:3], 1)
+            # Anclaje de Dignatarios
+            y_dig_banner = get_anchor(page2, "dignatarios", 100, 400)
+            if not y_dig_banner: y_dig_banner = 118 # Fallback
             
+            dig = data.get("dignitaries", {})
+            # Roles: Presidente (+40), Secretario (+60), Tesorero (+80) aprox
+            role_offsets = {"presidente": 38, "secretario": 58, "tesorero": 78}
+            for rol, off in role_offsets.items():
+                if rol in dig:
+                    y_row = y_dig_banner + off
+                    d = dig[rol]
+                    if d.get("fullName"): page2.insert_text((170, y_row), str(d["fullName"])[:30], fontsize=8, fontname="helv")
+                    if d.get("birthDate"): page2.insert_text((330, y_row), str(d["birthDate"])[:15], fontsize=8, fontname="helv")
+                    if d.get("passport"): page2.insert_text((400, y_row), str(d["passport"])[:15], fontsize=8, fontname="helv")
+                    if d.get("registrationNumber"): page2.insert_text((480, y_row), str(d["registrationNumber"])[:15], fontsize=8, fontname="helv")
+
+            # Anclaje de Accionistas
+            y_sh_banner = get_anchor(page2, "accionistas", 200, 600)
+            if not y_sh_banner: y_sh_banner = 270 # Fallback
+
+            def fill_shareholders(page, sh_chunk, anchor_y, is_annex=False):
+                if is_annex:
+                    page.insert_text((50, anchor_y - 40), "CONTINUACION ACCIONISTAS", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                    # Limpiar pero no borrar el banner
+                    page.draw_rect(fitz.Rect(40, anchor_y + 5, 570, 900), color=(1,1,1), fill=(1,1,1))
+                
+                y_start = anchor_y + 45
+                for i, s in enumerate(sh_chunk[:3]):
+                    y_pos = y_start + (i * 22)
+                    if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"])[:15], fontsize=8, fontname="helv")
+                    if s.get("value"): page.insert_text((130, y_pos), str(s["value"])[:15], fontsize=8, fontname="helv")
+                    if s.get("shares"): page.insert_text((210, y_pos), str(s["shares"])[:15], fontsize=8, fontname="helv")
+                    if s.get("name"): page.insert_text((270, y_pos), str(s["name"])[:30], fontsize=8, fontname="helv")
+                    if s.get("address"): page.insert_text((400, y_pos), str(s["address"])[:35], fontsize=8, fontname="helv")
+
+            fill_shareholders(page2, shareholders[:3], y_sh_banner)
+
+            # Actividades y Firma (solo en la página original final)
+            y_act_banner = get_anchor(page2, "actividades", 400, 800)
+            if y_act_banner and data.get("companyActivities"):
+                page2.insert_text((55, y_act_banner + 40), str(data["companyActivities"])[:150], fontsize=8, fontname="helv")
+            
+            y_sig_anchor = get_anchor(page2, "declaration", 600, 950)
+            if not y_sig_anchor: y_sig_anchor = 750
+            if data.get("declarationName"): page2.insert_text((150, y_sig_anchor + 65), str(data["declarationName"]), fontsize=9, fontname="helv")
+            if data.get("declarationDate"): page2.insert_text((150, y_sig_anchor + 95), str(data["declarationDate"]), fontsize=9, fontname="helv")
+
+            # --- ANEXOS DE ACCIONISTAS ---
             for i in range(3, len(shareholders), 3):
                 insert_idx = orig_p2_idx + (i//3)
                 doc.insert_pdf(src_doc, from_page=1, to_page=1, start_at=insert_idx)
-                process_shareholders_page(doc[insert_idx], shareholders[i:i+3], (i//3) + 1)
+                fill_shareholders(doc[insert_idx], shareholders[i:i+3], y_sh_banner, is_annex=True)
                 
         if src_doc: src_doc.close()
 
