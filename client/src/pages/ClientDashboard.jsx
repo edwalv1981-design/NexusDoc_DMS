@@ -183,30 +183,30 @@ const ClientDashboard = () => {
         } catch (e) { showToast('No se pudo procesar la eliminación'); }
     };
     const handleDownloadPDF = async (doc) => {
+        const id = doc.id;
         const token = localStorage.getItem('token');
         showToast('Generando Fiel Copia...', 'success');
         try {
-            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${doc.id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${id}`, {
                 headers: { 'x-auth-token': token }
             });
             if (response.ok) {
+                const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+                let prefix = 'DOC';
+                if (normType.includes('fondos')) prefix = 'SFAR';
+                else if (normType.includes('corporacion') || normType.includes('corporativos')) prefix = 'PTLC';
+                else if (normType.includes('fundacion')) prefix = 'PTLF';
+                else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
+                else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
+                
+                const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.substring(0, 8);
+                const filename = `${prefix}_${safeId}.pdf`;
+
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                
-                // Construct proper filename locally
-                let prefix = 'DOC';
-                const type = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
-                if (type.includes('fondos')) prefix = 'SFAR';
-                else if (type.includes('corporacion') || type.includes('corporativos')) prefix = 'PTLC';
-                else if (type.includes('fundacion')) prefix = 'PTLF';
-                else if (type.includes('cumplimiento individual')) prefix = 'KYCI';
-                else if (type.includes('cumplimiento entidades')) prefix = 'KYCE';
-                
-                const safeId = doc.userUniqueCode ? doc.userUniqueCode : doc.id.substring(0, 8);
-                a.download = `${prefix}_${safeId}.pdf`;
-                
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
