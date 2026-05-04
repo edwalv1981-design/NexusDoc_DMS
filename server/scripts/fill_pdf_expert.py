@@ -50,7 +50,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
     page1 = doc[0]
     
-    # === MODO CORPORACIÓN ===    if template_name == "corporacion" or "corpNameSA" in data:
+    # === MODO CORPORACIÓN ===
+    if template_name == "corporacion" or "corpNameSA" in data:
         # --- MOTOR DE ANCLAJE EXPERTO ---
         def get_anchor(page, text, min_y=0, max_y=1000):
             for w in page.get_text("words"):
