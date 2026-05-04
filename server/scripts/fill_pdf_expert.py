@@ -50,32 +50,20 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
     page1 = doc[0]
     
-    # === MODO CORPORACIÓN ===
-    if template_name == "corporacion" or "corpNameSA" in data:
-        def find_pos_advanced(page, keywords, min_x=0, max_x=1000, min_y=0, max_y=1000):
+    # === MODO CORPORACIÓN ===    if template_name == "corporacion" or "corpNameSA" in data:
+        def find_y_advanced(page, keywords, min_x=0, max_x=1000, min_y=0, max_y=1000):
             p_words = page.get_text("words")
             for w in p_words:
                 if min_x <= w[0] <= max_x and min_y <= w[1] <= max_y:
                     word_norm = normalize(w[4])
                     for kw in keywords:
                         if normalize(kw) in word_norm:
-                            return w[0], w[3] # Left edge, Bottom edge
-            return None, None
-
-        # PÁGINA 1
-        x_sa, y_sa = find_pos_advanced(page1, ["1st"], min_y=100, max_y=300)
-        if y_sa and data.get("corpNameSA"): page1.insert_text((x_sa + 170, y_sa + 4), str(data["corpNameSA"]), fontsize=10, fontname="helv")
-        x_corp, y_corp = find_pos_advanced(page1, ["2nd"], min_y=100, max_y=300)
-        if y_corp and data.get("corpNameCorp"): page1.insert_text((x_corp + 170, y_corp + 4), str(data["corpNameCorp"]), fontsize=10, fontname="helv")
-        x_inc, y_inc = find_pos_advanced(page1, ["3rd"], min_y=100, max_y=300)
-        if y_inc and data.get("corpNameInc"): page1.insert_text((x_inc + 170, y_inc + 4), str(data["corpNameInc"]), fontsize=10, fontname="helv")
-        
-        x_cap, y_cap = find_pos_advanced(page1, ["authorized", "autorizado"], min_y=200, max_y=350)
-        if y_cap and data.get("capitalSocial"): page1.insert_text((x_cap + 200, y_cap + 4), str(data["capitalSocial"]), fontsize=10, fontname="helv")
+                            return w[3] + 4
+            return None
 
         directors = data.get("directors", [])
         
-        def fill_dir_dynamic(d, page, min_x, max_x, min_y, max_y):
+        def fill_dir_dynamic(d, page, x_val, min_x, max_x, min_y, max_y):
             mapping = [
                 ("firstName", ["first"]), ("secondName", ["middle"]), ("lastName", ["surname"]),
                 ("birthDate", ["birth"]), ("maritalStatus", ["marital"]), ("nationality", ["citizenship"]),
@@ -84,59 +72,100 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             ]
             for key, kws in mapping:
                 if d.get(key):
-                    x, y = find_pos_advanced(page, kws, min_x, max_x, min_y, max_y)
-                    if y: page.insert_text((x + 150, y + 4), str(d[key])[:25], fontsize=9, fontname="helv")
+                    y = find_y_advanced(page, kws, min_x, max_x, min_y, max_y)
+                    if y: page.insert_text((x_val, y), str(d[key])[:35], fontsize=8, fontname="helv")
 
-        # Director 1
-        if len(directors) > 0: fill_dir_dynamic(directors[0], page1, 0, 250, 300, 650)
-        # Director 2
-        if len(directors) > 1: fill_dir_dynamic(directors[1], page1, 260, 550, 300, 650)
-        # Director 3
-        if len(directors) > 2: 
-            d = directors[2]
-            fill_dir_dynamic(d, page1, 0, 250, 650, 950)
-            for k, kws in [("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])]:
-                if d.get(k):
-                    x, y = find_pos_advanced(page1, kws, 260, 550, 650, 950)
-                    if y: page1.insert_text((x + 150, y + 4), str(d[k])[:25], fontsize=9, fontname="helv")
+        def process_directors_page(page, d_chunk, p_idx):
+            if p_idx > 1:
+                page.draw_rect(fitz.Rect(40, 40, 560, 250), color=(1,1,1), fill=(1,1,1))
+                page.insert_text((50, 100), f"CONTINUACION DIRECTORES (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                def rename_dir(x, y, text):
+                    page.draw_rect(fitz.Rect(x-20, y-10, x+60, y+5), color=(1,1,1), fill=(1,1,1))
+                    page.insert_text((x, y), text, fontsize=9, fontname="hebo")
+                if len(d_chunk) > 0: rename_dir(140, 276, f"Director {(p_idx-1)*3 + 1}")
+                if len(d_chunk) > 1: rename_dir(420, 276, f"Director {(p_idx-1)*3 + 2}")
+                if len(d_chunk) > 2: rename_dir(275, 608, f"Director {(p_idx-1)*3 + 3}")
 
-        # PÁGINA 2
-        if len(doc) > 1:
-            page2 = doc[1]
-            # Dignatarios
+            if len(d_chunk) > 0: fill_dir_dynamic(d_chunk[0], page, 150, 0, 250, 300, 650)
+            if len(d_chunk) > 1: fill_dir_dynamic(d_chunk[1], page, 430, 260, 550, 300, 650)
+            if len(d_chunk) > 2: 
+                d = d_chunk[2]
+                fill_dir_dynamic(d, page, 150, 0, 250, 650, 950)
+                for k, kws in [("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])]:
+                    if d.get(k):
+                        y = find_y_advanced(page, kws, 260, 550, 650, 950)
+                        if y: page.insert_text((430, y), str(d[k])[:35], fontsize=8, fontname="helv")
+
+        y_sa = find_y_advanced(page1, ["1st"], min_y=100, max_y=300)
+        if y_sa and data.get("corpNameSA"): page1.insert_text((230, y_sa), str(data["corpNameSA"]), fontsize=9, fontname="helv")
+        y_corp = find_y_advanced(page1, ["2nd"], min_y=100, max_y=300)
+        if y_corp and data.get("corpNameCorp"): page1.insert_text((230, y_corp), str(data["corpNameCorp"]), fontsize=9, fontname="helv")
+        y_inc = find_y_advanced(page1, ["3rd"], min_y=100, max_y=300)
+        if y_inc and data.get("corpNameInc"): page1.insert_text((230, y_inc), str(data["corpNameInc"]), fontsize=9, fontname="helv")
+        y_cap = find_y_advanced(page1, ["authorized", "autorizado"], min_y=200, max_y=350)
+        if y_cap and data.get("capitalSocial"): page1.insert_text((280, y_cap), str(data["capitalSocial"]), fontsize=9, fontname="helv")
+
+        process_directors_page(page1, directors[:3], 1)
+        
+        pages_added = 0
+        src_doc = None
+        shareholders = data.get("shareholders", [])
+        if len(directors) > 3 or len(shareholders) > 3:
+            src_doc = fitz.open(custom_template_path if custom_template_path else "templates/referencia_maestra.pdf")
+        
+        for i in range(3, len(directors), 3):
+            pages_added += 1
+            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=pages_added)
+            process_directors_page(doc[pages_added], directors[i:i+3], pages_added + 1)
+
+        orig_p2_idx = 1 + pages_added
+        if len(doc) > orig_p2_idx:
+            page2 = doc[orig_p2_idx]
+            
+            def process_shareholders_page(page, sh_chunk, p_idx):
+                if p_idx > 1:
+                    page.draw_rect(fitz.Rect(40, 100, 560, 250), color=(1,1,1), fill=(1,1,1))
+                    page.draw_rect(fitz.Rect(40, 420, 560, 900), color=(1,1,1), fill=(1,1,1))
+                    page.insert_text((50, 150), f"CONTINUACION ACCIONISTAS (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                
+                y_cert = find_y_advanced(page, ["certificate", "certificado"], min_y=200, max_y=400)
+                if y_cert:
+                    for i in range(min(3, len(sh_chunk))):
+                        s = sh_chunk[i]
+                        y_pos = y_cert + 35 + (i*20)
+                        if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"])[:15], fontsize=8, fontname="helv")
+                        if s.get("value"): page.insert_text((130, y_pos), str(s["value"])[:15], fontsize=8, fontname="helv")
+                        if s.get("shares"): page.insert_text((210, y_pos), str(s["shares"])[:15], fontsize=8, fontname="helv")
+                        if s.get("name"): page.insert_text((270, y_pos), str(s["name"])[:30], fontsize=8, fontname="helv")
+                        if s.get("address"): page.insert_text((400, y_pos), str(s["address"])[:35], fontsize=8, fontname="helv")
+
             dig = data.get("dignitaries", {})
             for rol in ["presidente", "secretario", "tesorero"]:
                 if rol in dig:
-                    x_rol, y_rol = find_pos_advanced(page2, [rol[:5]], min_y=100, max_y=300)
+                    y_rol = find_y_advanced(page2, [rol[:5]], min_y=100, max_y=300)
                     if y_rol:
-                        if dig[rol].get("fullName"): page2.insert_text((x_rol + 100, y_rol + 4), str(dig[rol]["fullName"])[:30], fontsize=9, fontname="helv")
-                        if dig[rol].get("birthDate"): page2.insert_text((x_rol + 280, y_rol + 4), str(dig[rol]["birthDate"])[:15], fontsize=9, fontname="helv")
-                        if dig[rol].get("passport"): page2.insert_text((x_rol + 360, y_rol + 4), str(dig[rol]["passport"])[:15], fontsize=9, fontname="helv")
-                        if dig[rol].get("registrationNumber"): page2.insert_text((x_rol + 450, y_rol + 4), str(dig[rol]["registrationNumber"])[:15], fontsize=9, fontname="helv")
+                        if dig[rol].get("fullName"): page2.insert_text((210, y_rol), str(dig[rol]["fullName"])[:30], fontsize=8, fontname="helv")
+                        if dig[rol].get("birthDate"): page2.insert_text((360, y_rol), str(dig[rol]["birthDate"])[:15], fontsize=8, fontname="helv")
+                        if dig[rol].get("passport"): page2.insert_text((430, y_rol), str(dig[rol]["passport"])[:15], fontsize=8, fontname="helv")
+                        if dig[rol].get("registrationNumber"): page2.insert_text((500, y_rol), str(dig[rol]["registrationNumber"])[:15], fontsize=8, fontname="helv")
 
-            # Accionistas
-            shareholders = data.get("shareholders", [])
-            _, y_cert = find_pos_advanced(page2, ["certificate", "certificado"], min_y=200, max_y=400)
-            if y_cert:
-                for i in range(min(4, len(shareholders))):
-                    s = shareholders[i]
-                    y_pos = y_cert + 18 + (i*18)
-                    if s.get("certificate"): page2.insert_text((55, y_pos), str(s["certificate"])[:10], fontsize=9, fontname="helv")
-                    if s.get("value"): page2.insert_text((140, y_pos), str(s["value"])[:10], fontsize=9, fontname="helv")
-                    if s.get("shares"): page2.insert_text((220, y_pos), str(s["shares"])[:10], fontsize=9, fontname="helv")
-                    if s.get("name"): page2.insert_text((300, y_pos), str(s["name"])[:30], fontsize=9, fontname="helv")
-                    if s.get("address"): page2.insert_text((450, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
-
-            # Actividades y Declaración
-            _, y_act = find_pos_advanced(page2, ["activities", "actividades"], min_y=400, max_y=600)
+            y_act = find_y_advanced(page2, ["activities", "actividades"], min_y=400, max_y=600)
             if y_act and data.get("companyActivities"): 
-                page2.insert_text((55, y_act + 40), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
-                
-            _, y_sig = find_pos_advanced(page2, ["signature", "firma"], min_y=600, max_y=850)
+                page2.insert_text((55, y_act + 40), str(data["companyActivities"])[:150], fontsize=8, fontname="helv")
+            y_sig = find_y_advanced(page2, ["signature", "firma"], min_y=600, max_y=850)
             if y_sig and data.get("declarationName"): 
-                page2.insert_text((150, y_sig + 35), str(data["declarationName"]), fontsize=11, fontname="helv")
+                page2.insert_text((150, y_sig + 35), str(data["declarationName"]), fontsize=9, fontname="helv")
             if y_sig and data.get("declarationDate"): 
-                page2.insert_text((150, y_sig + 70), str(data["declarationDate"]), fontsize=11, fontname="helv")
+                page2.insert_text((150, y_sig + 70), str(data["declarationDate"]), fontsize=9, fontname="helv")
+
+            process_shareholders_page(page2, shareholders[:3], 1)
+            
+            for i in range(3, len(shareholders), 3):
+                insert_idx = orig_p2_idx + (i//3)
+                doc.insert_pdf(src_doc, from_page=1, to_page=1, start_at=insert_idx)
+                process_shareholders_page(doc[insert_idx], shareholders[i:i+3], (i//3) + 1)
+                
+        if src_doc: src_doc.close()
 
     # === MODO FONDOS REGISTROS CONTABLES ===
     else:
@@ -216,107 +245,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             if col == 1: y += 15 
             y += 10 
 
-    # --- GENERADORES CORPORATIVOS NATIVOS ---
-    def draw_corporate_director_block(page, x_start, y_start, d_data, d_num, color):
-        width = 247.5
-        row_height = 17
-        labels = [
-            "First name / Nombre", "Middle name / Segundo nombre", "Surname(s) / Apellidos",
-            "Date of birth/ Fecha de nacimiento", "Marital Status / Estado civil", "Citizenship / Nacionalidad",
-            "Passport / Pasaporte", "Phone / Teléfono", "Email", "Address / Dirección", "City / ciudad", "Country / País"
-        ]
-        keys = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address", "city", "country"]
-        
-        total_height = 20 + row_height * len(labels)
-        page.draw_rect(fitz.Rect(x_start, y_start, x_start + width, y_start + total_height), color=color, width=1)
-        page.draw_line((x_start, y_start + 20), (x_start + width, y_start + 20), color=color, width=1)
-        page.insert_text((x_start + width/2 - 25, y_start + 14), f"Director {d_num}", fontsize=10, fontname="hebo", color=(0,0,0))
-        
-        y = y_start + 20
-        mid_x = x_start + 140
-        page.draw_line((mid_x, y), (mid_x, y + row_height * len(labels)), color=color, width=1)
-        
-        for i, label in enumerate(labels):
-            if i > 0: page.draw_line((x_start, y), (x_start + width, y), color=color, width=1)
-            page.insert_text((x_start + 5, y + 12), label, fontsize=7, fontname="helv", color=(0,0,0))
-            if d_data.get(keys[i]): page.insert_text((mid_x + 5, y + 12), str(d_data[keys[i]])[:30], fontsize=8, fontname="helv", color=(0,0,0))
-            y += row_height
-
-    def draw_corporate_directors_annex(doc, directors_list, insert_idx, start_idx=4):
-        if not directors_list: return 0
-        has_data = any(bool(v) for d in directors_list for v in d.values() if isinstance(v, str))
-        if not has_data: return 0
-        
-        blue_color = (0.29, 0.64, 0.77)
-        idx = 0
-        pages = 0
-        while idx < len(directors_list):
-            page = doc.new_page(pno=insert_idx + pages)
-            pages += 1
-            page.insert_text((50, 40), "ANEXO DOCUMENTAL: DIRECTORES ADICIONALES", fontsize=14, fontname="hebo", color=blue_color)
-            y_start = 70
-            for row in range(2):
-                if idx >= len(directors_list): break
-                page.draw_rect(fitz.Rect(50, y_start, 545, y_start + 20), color=blue_color, fill=blue_color)
-                page.insert_text((55, y_start + 14), "Directors / directores:", fontsize=11, fontname="hebo", color=(1,1,1))
-                y_base = y_start + 20
-                draw_corporate_director_block(page, 50, y_base, directors_list[idx], start_idx + idx, blue_color)
-                idx += 1
-                if idx < len(directors_list):
-                    draw_corporate_director_block(page, 297.5, y_base, directors_list[idx], start_idx + idx, blue_color)
-                    idx += 1
-                y_start += 250
-        return pages
-
-    def draw_corporate_shareholders_annex(doc, sh_list, insert_idx):
-        if not sh_list: return 0
-        has_data = any(bool(v) for d in sh_list for v in d.values() if isinstance(v, str))
-        if not has_data: return 0
-        
-        blue_color = (0.29, 0.64, 0.77)
-        pages = 0
-        page = doc.new_page(pno=insert_idx + pages)
-        pages += 1
-        page.insert_text((50, 40), "ANEXO DOCUMENTAL: ACCIONISTAS ADICIONALES", fontsize=14, fontname="hebo", color=blue_color)
-        y = 70
-        page.draw_rect(fitz.Rect(50, y, 545, y + 20), color=blue_color, fill=blue_color)
-        page.insert_text((55, y + 14), "Shareholders / Accionistas:", fontsize=11, fontname="hebo", color=(1,1,1))
-        y += 20
-        sub_h = 25
-        page.draw_rect(fitz.Rect(50, y, 545, y + sub_h), color=blue_color, width=1)
-        col_x = [50, 110, 180, 240, 380, 545]
-        for x in col_x[1:-1]: page.draw_line((x, y), (x, y + sub_h), color=blue_color, width=1)
-        page.insert_text((52, y + 15), "Cert.", fontsize=8, fontname="hebo")
-        page.insert_text((112, y + 15), "Value/Valor", fontsize=8, fontname="hebo")
-        page.insert_text((182, y + 15), "Shares", fontsize=8, fontname="hebo")
-        page.insert_text((242, y + 15), "Shareholder / Accionista", fontsize=8, fontname="hebo")
-        page.insert_text((382, y + 15), "Address / dirección", fontsize=8, fontname="hebo")
-        y += sub_h
-        row_height = 20
-        for s in sh_list:
-            if y > 750:
-                page = doc.new_page(pno=insert_idx + pages)
-                pages += 1
-                y = 50
-            page.draw_rect(fitz.Rect(50, y, 545, y + row_height), color=blue_color, width=1)
-            for x in col_x[1:-1]: page.draw_line((x, y), (x, y + row_height), color=blue_color, width=1)
-            if s.get("certificate"): page.insert_text((55, y + 13), str(s["certificate"])[:10], fontsize=8, fontname="helv")
-            if s.get("value"): page.insert_text((115, y + 13), str(s["value"])[:10], fontsize=8, fontname="helv")
-            if s.get("shares"): page.insert_text((185, y + 13), str(s["shares"])[:10], fontsize=8, fontname="helv")
-            if s.get("name"): page.insert_text((245, y + 13), str(s["name"])[:30], fontsize=8, fontname="helv")
-            if s.get("address"): page.insert_text((385, y + 13), str(s["address"])[:30], fontsize=8, fontname="helv")
-            y += row_height
-        return pages
-
-    if template_name == "corporacion" or "corpNameSA" in data:
-        directors = data.get("directors", [])
-        pages_added = 0
-        if len(directors) > 3: 
-            pages_added = draw_corporate_directors_annex(doc, directors[3:], 1, 4)
-        shareholders = data.get("shareholders", [])
-        if len(shareholders) > 4: 
-            draw_corporate_shareholders_annex(doc, shareholders[4:], 2 + pages_added)
-    else:
+    # === FALLBACK GENÉRICO PARA OTRAS PLANTILLAS ===
+    if template_name != "corporacion" and "corpNameSA" not in data:
         # Fallback genérico para otros
         if "directors" in data: append_dynamic_annex(doc, "LISTADO DE DIRECTORES", data["directors"])
         if "shareholders" in data: append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS", data["shareholders"])
