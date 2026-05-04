@@ -116,7 +116,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
             # Accionistas
             shareholders = data.get("shareholders", [])
-            y_cert = find_y_advanced(page2, ["certificate", "certificado"], min_y=200, max_y=400)
+            _, y_cert = find_pos_advanced(page2, ["certificate", "certificado"], min_y=200, max_y=400)
             if y_cert:
                 for i in range(min(4, len(shareholders))):
                     s = shareholders[i]
@@ -128,11 +128,11 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                     if s.get("address"): page2.insert_text((450, y_pos), str(s["address"])[:25], fontsize=9, fontname="helv")
 
             # Actividades y Declaración
-            y_act = find_y_advanced(page2, ["activities", "actividades"], min_y=400, max_y=600)
+            _, y_act = find_pos_advanced(page2, ["activities", "actividades"], min_y=400, max_y=600)
             if y_act and data.get("companyActivities"): 
                 page2.insert_text((55, y_act + 40), str(data["companyActivities"])[:150], fontsize=9, fontname="helv")
                 
-            y_sig = find_y_advanced(page2, ["signature", "firma"], min_y=600, max_y=850)
+            _, y_sig = find_pos_advanced(page2, ["signature", "firma"], min_y=600, max_y=850)
             if y_sig and data.get("declarationName"): 
                 page2.insert_text((150, y_sig + 35), str(data["declarationName"]), fontsize=11, fontname="helv")
             if y_sig and data.get("declarationDate"): 
