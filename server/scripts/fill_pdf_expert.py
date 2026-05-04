@@ -58,7 +58,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                     word_norm = normalize(w[4])
                     for kw in keywords:
                         if normalize(kw) in word_norm:
-                            return w[3] + 4
+                            return w[3] - 1 # Baseline exacto del texto
             return None
 
         directors = data.get("directors", [])
@@ -77,32 +77,46 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
         def process_directors_page(page, d_chunk, p_idx):
             if p_idx > 1:
-                page.draw_rect(fitz.Rect(40, 40, 560, 250), color=(1,1,1), fill=(1,1,1))
-                page.insert_text((50, 100), f"CONTINUACION DIRECTORES (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                # Find the 'Directors' banner dynamically to blank out everything above it
+                y_directors = find_y_advanced(page, ["directors"], min_y=100, max_y=500)
+                if not y_directors: y_directors = 270 # Fallback
+                
+                page.draw_rect(fitz.Rect(30, 30, 570, y_directors - 20), color=(1,1,1), fill=(1,1,1))
+                page.insert_text((50, y_directors - 40), f"CONTINUACION DIRECTORES (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                
                 def rename_dir(x, y, text):
                     page.draw_rect(fitz.Rect(x-20, y-10, x+60, y+5), color=(1,1,1), fill=(1,1,1))
                     page.insert_text((x, y), text, fontsize=9, fontname="hebo")
-                if len(d_chunk) > 0: rename_dir(140, 276, f"Director {(p_idx-1)*3 + 1}")
-                if len(d_chunk) > 1: rename_dir(420, 276, f"Director {(p_idx-1)*3 + 2}")
-                if len(d_chunk) > 2: rename_dir(275, 608, f"Director {(p_idx-1)*3 + 3}")
+                    
+                y_dir1 = find_y_advanced(page, ["director"], min_x=100, max_x=300, min_y=250, max_y=400)
+                if not y_dir1: y_dir1 = 286
+                y_dir2 = find_y_advanced(page, ["director"], min_x=350, max_x=500, min_y=250, max_y=400)
+                if not y_dir2: y_dir2 = 286
+                y_dir3 = find_y_advanced(page, ["director"], min_x=200, max_x=400, min_y=550, max_y=700)
+                if not y_dir3: y_dir3 = 618
 
-            if len(d_chunk) > 0: fill_dir_dynamic(d_chunk[0], page, 150, 0, 250, 300, 650)
-            if len(d_chunk) > 1: fill_dir_dynamic(d_chunk[1], page, 430, 260, 550, 300, 650)
+                if len(d_chunk) > 0: rename_dir(140, y_dir1, f"Director {(p_idx-1)*3 + 1}")
+                if len(d_chunk) > 1: rename_dir(420, y_dir2, f"Director {(p_idx-1)*3 + 2}")
+                if len(d_chunk) > 2: rename_dir(275, y_dir3, f"Director {(p_idx-1)*3 + 3}")
+
+            if len(d_chunk) > 0: fill_dir_dynamic(d_chunk[0], page, 150, 0, 250, 200, 650)
+            if len(d_chunk) > 1: fill_dir_dynamic(d_chunk[1], page, 430, 260, 550, 200, 650)
             if len(d_chunk) > 2: 
                 d = d_chunk[2]
-                fill_dir_dynamic(d, page, 150, 0, 250, 650, 950)
+                fill_dir_dynamic(d, page, 150, 0, 250, 600, 950)
                 for k, kws in [("address", ["address"]), ("city", ["city", "ciudad"]), ("country", ["country", "pais"])]:
                     if d.get(k):
-                        y = find_y_advanced(page, kws, 260, 550, 650, 950)
+                        y = find_y_advanced(page, kws, 260, 550, 600, 950)
                         if y: page.insert_text((430, y), str(d[k])[:35], fontsize=8, fontname="helv")
 
+        page1 = doc[0]
         y_sa = find_y_advanced(page1, ["1st"], min_y=100, max_y=300)
         if y_sa and data.get("corpNameSA"): page1.insert_text((230, y_sa), str(data["corpNameSA"]), fontsize=9, fontname="helv")
         y_corp = find_y_advanced(page1, ["2nd"], min_y=100, max_y=300)
         if y_corp and data.get("corpNameCorp"): page1.insert_text((230, y_corp), str(data["corpNameCorp"]), fontsize=9, fontname="helv")
         y_inc = find_y_advanced(page1, ["3rd"], min_y=100, max_y=300)
         if y_inc and data.get("corpNameInc"): page1.insert_text((230, y_inc), str(data["corpNameInc"]), fontsize=9, fontname="helv")
-        y_cap = find_y_advanced(page1, ["authorized", "autorizado"], min_y=200, max_y=350)
+        y_cap = find_y_advanced(page1, ["authorized", "autorizado"], min_y=150, max_y=350)
         if y_cap and data.get("capitalSocial"): page1.insert_text((280, y_cap), str(data["capitalSocial"]), fontsize=9, fontname="helv")
 
         process_directors_page(page1, directors[:3], 1)
@@ -124,15 +138,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             
             def process_shareholders_page(page, sh_chunk, p_idx):
                 if p_idx > 1:
-                    page.draw_rect(fitz.Rect(40, 100, 560, 250), color=(1,1,1), fill=(1,1,1))
-                    page.draw_rect(fitz.Rect(40, 420, 560, 900), color=(1,1,1), fill=(1,1,1))
-                    page.insert_text((50, 150), f"CONTINUACION ACCIONISTAS (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                    y_sh = find_y_advanced(page, ["shareholders", "accionistas"], min_y=200, max_y=500)
+                    if not y_sh: y_sh = 250
+                    page.draw_rect(fitz.Rect(30, 30, 570, y_sh - 20), color=(1,1,1), fill=(1,1,1))
+                    page.draw_rect(fitz.Rect(30, y_sh + 200, 570, 900), color=(1,1,1), fill=(1,1,1))
+                    page.insert_text((50, y_sh - 40), f"CONTINUACION ACCIONISTAS (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
                 
-                y_cert = find_y_advanced(page, ["certificate", "certificado"], min_y=200, max_y=400)
+                y_cert = find_y_advanced(page, ["certificate", "certificado"], min_y=200, max_y=500)
                 if y_cert:
                     for i in range(min(3, len(sh_chunk))):
                         s = sh_chunk[i]
-                        y_pos = y_cert + 35 + (i*20)
+                        y_pos = y_cert + 32 + (i*21)
                         if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"])[:15], fontsize=8, fontname="helv")
                         if s.get("value"): page.insert_text((130, y_pos), str(s["value"])[:15], fontsize=8, fontname="helv")
                         if s.get("shares"): page.insert_text((210, y_pos), str(s["shares"])[:15], fontsize=8, fontname="helv")
@@ -144,15 +160,15 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                 if rol in dig:
                     y_rol = find_y_advanced(page2, [rol[:5]], min_y=100, max_y=300)
                     if y_rol:
-                        if dig[rol].get("fullName"): page2.insert_text((210, y_rol), str(dig[rol]["fullName"])[:30], fontsize=8, fontname="helv")
-                        if dig[rol].get("birthDate"): page2.insert_text((360, y_rol), str(dig[rol]["birthDate"])[:15], fontsize=8, fontname="helv")
-                        if dig[rol].get("passport"): page2.insert_text((430, y_rol), str(dig[rol]["passport"])[:15], fontsize=8, fontname="helv")
-                        if dig[rol].get("registrationNumber"): page2.insert_text((500, y_rol), str(dig[rol]["registrationNumber"])[:15], fontsize=8, fontname="helv")
+                        if dig[rol].get("fullName"): page2.insert_text((170, y_rol), str(dig[rol]["fullName"])[:30], fontsize=8, fontname="helv")
+                        if dig[rol].get("birthDate"): page2.insert_text((330, y_rol), str(dig[rol]["birthDate"])[:15], fontsize=8, fontname="helv")
+                        if dig[rol].get("passport"): page2.insert_text((400, y_rol), str(dig[rol]["passport"])[:15], fontsize=8, fontname="helv")
+                        if dig[rol].get("registrationNumber"): page2.insert_text((480, y_rol), str(dig[rol]["registrationNumber"])[:15], fontsize=8, fontname="helv")
 
-            y_act = find_y_advanced(page2, ["activities", "actividades"], min_y=400, max_y=600)
+            y_act = find_y_advanced(page2, ["activities", "actividades"], min_y=400, max_y=700)
             if y_act and data.get("companyActivities"): 
                 page2.insert_text((55, y_act + 40), str(data["companyActivities"])[:150], fontsize=8, fontname="helv")
-            y_sig = find_y_advanced(page2, ["signature", "firma"], min_y=600, max_y=850)
+            y_sig = find_y_advanced(page2, ["signature", "firma"], min_y=600, max_y=900)
             if y_sig and data.get("declarationName"): 
                 page2.insert_text((150, y_sig + 35), str(data["declarationName"]), fontsize=9, fontname="helv")
             if y_sig and data.get("declarationDate"): 
