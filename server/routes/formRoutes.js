@@ -93,9 +93,25 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             'Cumplimiento Entidades': 'cumplimiento_entidades'
         };
         const templateName = templateMap[form.formType] || form.formType || "fondos"; 
-        const dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
+        let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
+        
+        // AUTO-HEALING: Si no existe en DB, intentamos cargar desde el disco maestro
         if (!dbTemplate || !dbTemplate.fileData) {
-            return res.status(400).json({ msg: `No existe plantilla PDF para este trámite (${templateName}). Por favor, indicar al administrador que la suba.` });
+            const masterPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
+            const localSpecificPath = path.join(__dirname, `../../templates/${templateName}.pdf`);
+            const pathToImport = fs.existsSync(localSpecificPath) ? localSpecificPath : (fs.existsSync(masterPath) ? masterPath : null);
+
+            if (pathToImport) {
+                console.log(`🛠️ Auto-Healing: Cargando plantilla ${templateName} desde disco a la DB...`);
+                const fileBuffer = fs.readFileSync(pathToImport);
+                if (dbTemplate) {
+                    await dbTemplate.update({ fileData: fileBuffer });
+                } else {
+                    dbTemplate = await DocumentTemplate.create({ name: templateName, fileData: fileBuffer });
+                }
+            } else {
+                return res.status(400).json({ msg: `Error crítico: No existe plantilla (${templateName}) ni archivo base en el servidor.` });
+            }
         }
 
         const customTemplatePath = path.join(__dirname, `../../temp_custom_template_${form.id}.pdf`);

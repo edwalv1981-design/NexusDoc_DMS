@@ -211,7 +211,8 @@ const ClientDashboard = () => {
                 a.click();
                 a.remove();
             } else {
-                showToast('Error al generar el PDF');
+                const errData = await response.json().catch(() => ({}));
+                showToast(errData.msg || 'Error al generar el PDF. Verifique que la plantilla exista.');
             }
         } catch (e) {
             showToast('Falla de conexión al generar PDF');

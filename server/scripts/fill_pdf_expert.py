@@ -18,16 +18,19 @@ def insert_text_scaled(page, rect, text, fontname="helv", max_fontsize=9, min_fo
     text = str(text)
     fontsize = max_fontsize
     # Estimar ancho (aprox 0.5 * fontsize por carácter en Helvetica)
-    while fontsize > min_fontsize:
-        text_width = fitz.get_text_length(text, fontname=fontname, fontsize=fontsize)
-        if text_width <= rect.width:
-            break
-        fontsize -= 0.5
+    try:
+        while fontsize > min_fontsize:
+            text_width = fitz.get_text_length(text, fontname=fontname, fontsize=fontsize)
+            if text_width <= rect.width:
+                break
+            fontsize -= 0.5
+    except:
+        fontsize = min_fontsize
     
     # Punto de inserción (X inicial, Y base)
     page.insert_text((rect.x0, rect.y1 - 2), text, fontsize=fontsize, fontname=fontname, color=color)
 
-def fill_pdf_universal_engine(data, output_path, template_name, custom_template_path=None):
+def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     # 1. DETERMINAR PLANTILLA BASE
@@ -37,6 +40,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         # Fallback a la maestra si no hay específica
         pdf_path = os.path.join(base_dir, "templates", "referencia_maestra.pdf")
     
+    if not os.path.exists(pdf_path):
+        raise Exception(f"No se encontró el archivo base PDF en: {pdf_path}")
+
     doc = fitz.open(pdf_path)
     
     # --- MOTOR DE ANCLAJE SEMÁNTICO EXPERTO ---
@@ -80,7 +86,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
             if is_annex:
                 # Marcador de Continuación
-                page.insert_text((50, y_banner - 45), f"CONTINUACIÓN DIRECTORES - PÁGINA ANEXO {p_idx}", fontsize=11, fontname="hebo", color=(0.29, 0.64, 0.77))
+                page.insert_text((50, y_banner - 45), f"CONTINUACIÓN DIRECTORES - PÁGINA ANEXO {p_idx}", fontsize=11, fontname="helv", color=(0.29, 0.64, 0.77))
                 # Limpieza selectiva de celdas originales para preservar el diseño (Logo, bordes)
                 page.draw_rect(fitz.Rect(45, y_banner + 10, 550, y_banner + 550), color=(1,1,1), fill=(1,1,1))
                 # Redibujar bordes de bloques dinámicos
@@ -91,13 +97,13 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             y_bot = y_banner + 285
 
             if len(d_chunk) > 0:
-                page.insert_text((130, y_top + 5), f"Director {(p_idx-1)*3 + 1}", fontsize=8, fontname="hebo", color=(0.2, 0.2, 0.2))
+                page.insert_text((130, y_top + 5), f"Director {(p_idx-1)*3 + 1}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
                 fill_director_block(page, d_chunk[0], y_top + 10, 0)
             if len(d_chunk) > 1:
-                page.insert_text((420, y_top + 5), f"Director {(p_idx-1)*3 + 2}", fontsize=8, fontname="hebo", color=(0.2, 0.2, 0.2))
+                page.insert_text((420, y_top + 5), f"Director {(p_idx-1)*3 + 2}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
                 fill_director_block(page, d_chunk[1], y_top + 10, 1)
             if len(d_chunk) > 2:
-                page.insert_text((270, y_bot + 5), f"Director {(p_idx-1)*3 + 3}", fontsize=8, fontname="hebo", color=(0.2, 0.2, 0.2))
+                page.insert_text((270, y_bot + 5), f"Director {(p_idx-1)*3 + 3}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
                 fill_director_block(page, d_chunk[2], y_bot + 10, 0)
                 # Datos extendidos para Director 3 (Dirección)
                 d3 = d_chunk[2]
@@ -115,7 +121,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         
         y_cap = get_anchor(page1, ["capital", "authorized"], 150, 500)
         if y_cap and data.get("capitalSocial"):
-            page1.insert_text((280, y_cap - 2), f"{float(data['capitalSocial']):,.2f} USD", fontsize=9, fontname="helv", color=(0,0,0))
+            try:
+                page1.insert_text((280, y_cap - 2), f"{float(data['capitalSocial']):,.2f} USD", fontsize=9, fontname="helv", color=(0,0,0))
+            except: pass
 
         process_directors_page(page1, directors[:3], 1)
 
@@ -150,7 +158,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
             def fill_sh_block(page, sh_chunk, anchor_y, is_annex=False):
                 if is_annex:
-                    page.insert_text((50, anchor_y - 45), "CONTINUACIÓN ACCIONISTAS - PÁGINA ANEXO", fontsize=11, fontname="hebo", color=(0.29, 0.64, 0.77))
+                    page.insert_text((50, anchor_y - 45), "CONTINUACIÓN ACCIONISTAS - PÁGINA ANEXO", fontsize=11, fontname="helv", color=(0.29, 0.64, 0.77))
                     page.draw_rect(fitz.Rect(45, anchor_y + 30, 550, anchor_y + 150), color=(1,1,1), fill=(1,1,1))
                 
                 y_start = anchor_y + 45
@@ -168,12 +176,12 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             y_act = get_anchor(page2, ["actividades", "activities"], 400, 900)
             if y_act and data.get("companyActivities"):
                 rect_act = fitz.Rect(55, y_act + 40, 550, y_act + 120)
-                page.insert_textbox(rect_act, data["companyActivities"], fontsize=8, fontname="helv")
+                page2.insert_textbox(rect_act, data["companyActivities"], fontsize=8, fontname="helv")
 
             y_sig = get_anchor(page2, ["declaration", "signature", "firma"], 600, 1000)
             if not y_sig: y_sig = 750
-            if data.get("declarationName"): page.insert_text((150, y_sig + 65), str(data["declarationName"]), fontsize=9)
-            if data.get("declarationDate"): page.insert_text((150, y_sig + 95), str(data["declarationDate"]), fontsize=9)
+            if data.get("declarationName"): page2.insert_text((150, y_sig + 65), str(data["declarationName"]), fontsize=9)
+            if data.get("declarationDate"): page2.insert_text((150, y_sig + 95), str(data["declarationDate"]), fontsize=9)
 
             # ANEXOS ACCIONISTAS
             for i in range(3, len(shareholders), 3):
@@ -189,10 +197,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
         for entry in config.get("anchors", []):
             key = entry["data_key"]
             if key in data and data[key]:
-                fy = get_anchor(page1, entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
+                fy = get_anchor(doc[0], entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
                 if fy:
                     x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
-                    page1.insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="helv")
+                    doc[0].insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="helv")
 
     # Guardado seguro y aplanado (non-editable)
     doc.save(output_path, incremental=False, encryption=0)
@@ -206,15 +214,19 @@ if __name__ == "__main__":
         # Cargar configuración de templates
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         config_path = os.path.join(base_dir, "templates", "templates_config.json")
-        with open(config_path, 'r', encoding='utf-8') as f:
-            master_config = json.load(f)
+        master_conf = {}
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                master_conf = json.load(f)
             
         fill_pdf_universal_engine(
             input_data.get("data", {}), 
             input_data.get("output_path", "filled_temp.pdf"), 
             input_data.get("template_name", "referencia_maestra"), 
+            master_conf,
             input_data.get("custom_template_path")
         )
+        # Imprimir solo la ruta del archivo generado para que Node la reciba
         print(input_data.get("output_path", "filled_temp.pdf"))
     except Exception as e:
         import traceback
