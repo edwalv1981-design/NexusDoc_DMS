@@ -220,16 +220,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         if y_final_label and data.get("custodyAddress"):
             page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
 
-        # Checkboxes: Source of Funds (Fondos)
+        # Checkboxes: Source of Funds (Fondos) - Coordenadas de Precisión
         funds = data.get("fundsSource", [])
-        if funds:
+        if isinstance(funds, list):
             for f in funds:
-                # Coordenadas precisas detectadas vía debug (Arquitectura Senior)
-                if "Personal Assets" in f: page1.insert_text((72, 373.5), "X", fontsize=10, fontname="helv")
-                elif "Financial Investments" in f: page1.insert_text((72, 385.0), "X", fontsize=10, fontname="helv")
-                elif "Business" in f: page1.insert_text((72, 396.5), "X", fontsize=10, fontname="helv")
-                elif "Loans" in f: page1.insert_text((72, 408.0), "X", fontsize=10, fontname="helv")
-                elif "Inheritance" in f: page1.insert_text((72, 419.5), "X", fontsize=10, fontname="helv")
+                f_s = str(f)
+                if "Personal" in f_s: page1.insert_text((79.5, 373.5), "X", fontsize=10, fontname="helv")
+                if "Financial" in f_s: page1.insert_text((79.5, 385.0), "X", fontsize=10, fontname="helv")
+                if "Business" in f_s: page1.insert_text((79.5, 396.5), "X", fontsize=10, fontname="helv")
+                if "Loans" in f_s: page1.insert_text((79.5, 408.0), "X", fontsize=10, fontname="helv")
+                if "Inheritance" in f_s: page1.insert_text((79.5, 419.5), "X", fontsize=10, fontname="helv")
+
 
 
 
