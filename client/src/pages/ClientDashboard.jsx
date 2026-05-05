@@ -7,7 +7,7 @@ import {
 import API_BASE_URL from '../config';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
-import CorporacionForm from './CorporacionForm';
+
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -51,7 +51,7 @@ const ClientDashboard = () => {
 
     const formOptions = [
         { id: 'Fondos Registros contables', label: 'Fondos Registros contables', icon: <ClipboardList size={24} />, color: '#6366f1' },
-        { id: 'Corporación', label: 'Corporación', icon: <Building size={24} />, color: '#10b981' },
+
         { id: 'Fundaciones', label: 'Fundaciones', icon: <Heart size={24} />, color: '#ef4444' },
         { id: 'Cumplimiento Individual', label: 'Cumplimiento Individual', icon: <UserIcon size={24} />, color: '#f59e0b' },
         { id: 'Cumplimiento Entidades', label: 'Cumplimiento Entidades', icon: <ShieldAlert size={24} />, color: '#3b82f6' },
@@ -455,12 +455,7 @@ const ClientDashboard = () => {
                             )}
                         </form>
                     </div>
-                ) : currentFormType.startsWith('Corporaci') ? (
-                    <CorporacionForm 
-                        initialData={formData} 
-                        onSave={saveDynamicForm} 
-                        saving={saving} 
-                    />
+
                 ) : (
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>

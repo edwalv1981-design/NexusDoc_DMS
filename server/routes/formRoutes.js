@@ -87,7 +87,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         // Strict Mapping: FormType (DB) -> TemplateName (Admin Dashboard)
         const templateMap = {
             'Fondos Registros contables': 'fondos',
-            'Corporación': 'corporacion',
+
             'Fundaciones': 'fundaciones',
             'Cumplimiento Individual': 'cumplimiento_individual',
             'Cumplimiento Entidades': 'cumplimiento_entidades'
