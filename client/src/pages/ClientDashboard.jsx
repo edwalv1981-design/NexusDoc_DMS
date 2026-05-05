@@ -7,7 +7,7 @@ import {
 import API_BASE_URL from '../config';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
-
+import CorporacionForm from './CorporacionForm';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -455,8 +455,12 @@ const ClientDashboard = () => {
                             )}
                         </form>
                     </div>
-
-                ) : (
+                ) : currentFormType.startsWith('Corporaci') ? (
+                    <CorporacionForm 
+                        initialData={formData} 
+                        onSave={saveDynamicForm} 
+                        saving={saving} 
+                    />
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
                             <Construction size={40} />
