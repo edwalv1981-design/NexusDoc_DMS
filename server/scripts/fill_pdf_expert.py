@@ -224,12 +224,13 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         funds = data.get("fundsSource", [])
         if funds:
             for f in funds:
-                # Búsqueda por coincidencia parcial para manejar strings largos del frontend
-                if "Personal Assets" in f: page1.insert_text((142, 361), "X", fontsize=10, fontname="helv")
-                elif "Financial Investments" in f: page1.insert_text((142, 372), "X", fontsize=10, fontname="helv")
-                elif "Business" in f: page1.insert_text((142, 384), "X", fontsize=10, fontname="helv")
-                elif "Loans" in f: page1.insert_text((142, 395), "X", fontsize=10, fontname="helv")
-                elif "Inheritance" in f: page1.insert_text((142, 407), "X", fontsize=10, fontname="helv")
+                # Coordenadas precisas detectadas vía debug (Arquitectura Senior)
+                if "Personal Assets" in f: page1.insert_text((72, 373.5), "X", fontsize=10, fontname="helv")
+                elif "Financial Investments" in f: page1.insert_text((72, 385.0), "X", fontsize=10, fontname="helv")
+                elif "Business" in f: page1.insert_text((72, 396.5), "X", fontsize=10, fontname="helv")
+                elif "Loans" in f: page1.insert_text((72, 408.0), "X", fontsize=10, fontname="helv")
+                elif "Inheritance" in f: page1.insert_text((72, 419.5), "X", fontsize=10, fontname="helv")
+
 
 
 
