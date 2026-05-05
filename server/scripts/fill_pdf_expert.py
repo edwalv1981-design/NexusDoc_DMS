@@ -53,21 +53,21 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
     # === MODO CORPORACIÓN ===
     if template_name == "corporacion" or "corpNameSA" in data:
         # --- MOTOR DE ANCLAJE EXPERTO ---
-        def get_anchor(page, text, min_y=0, max_y=1000):
+        def get_anchor(page, keywords, min_y=0, max_y=1000):
             p_words = page.get_text("words")
             for w in p_words:
-                if min_y <= w[1] <= max_y and normalize(text) in normalize(w[4]):
-                    return w[3] # Retorna el límite inferior del banner como anclaje
+                if min_y <= w[1] <= max_y:
+                    word_norm = normalize(w[4])
+                    for kw in keywords:
+                        if normalize(kw) in word_norm:
+                            return w[3] # Retorna el límite inferior como anclaje
             return None
 
         directors = data.get("directors", [])
         shareholders = data.get("shareholders", [])
 
         def fill_director_block(page, d, anchor_y, col_idx):
-            # col_idx 0 = Izquierda, 1 = Derecha
             x_val = 150 if col_idx == 0 else 430
-            # Offsets verticales fijos desde el anclaje del bloque 'Director X'
-            # Estos offsets son universales para este diseño de formulario
             offsets = {
                 "firstName": 14, "secondName": 31, "lastName": 48,
                 "birthDate": 65, "maritalStatus": 82, "nationality": 99,
@@ -79,23 +79,18 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                     page.insert_text((x_val, anchor_y + off), str(d[key])[:35], fontsize=8, fontname="helv")
 
         def process_directors_page(page, d_chunk, p_idx, is_annex=False):
-            # 1. Encontrar el banner principal de 'Directors'
-            y_banner = get_anchor(page, "directores", 100, 500)
-            if not y_banner: y_banner = 270 # Fallback
+            y_banner = get_anchor(page, ["directores", "directors"], 100, 600)
+            if not y_banner: y_banner = 270 
 
             if is_annex:
-                # En un anexo, mantenemos el logo/título pero limpiamos los datos previos
-                # No blanqueamos el banner ni lo de arriba para no perder 'formato'
                 page.insert_text((50, y_banner - 40), f"CONTINUACION DIRECTORES (PAG {p_idx})", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-                # Blanqueamos solo las áreas de las cajas de directores originales
-                page.draw_rect(fitz.Rect(40, y_banner + 5, 570, 900), color=(1,1,1), fill=(1,1,1))
-                # Redibujamos las líneas de los bloques para que no se pierda el diseño
-                page.draw_rect(fitz.Rect(50, y_banner + 30, 290, y_banner + 280), color=(0.29, 0.64, 0.77), width=1)
-                page.draw_rect(fitz.Rect(300, y_banner + 30, 545, y_banner + 280), color=(0.29, 0.64, 0.77), width=1)
-                page.draw_rect(fitz.Rect(50, y_banner + 290, 545, y_banner + 540), color=(0.29, 0.64, 0.77), width=1)
+                # Solo blanqueamos las cajas de texto de los directores, NO toda la página
+                # Esto preserva el pie de página y otros elementos de diseño
+                page.draw_rect(fitz.Rect(45, y_banner + 30, 550, y_banner + 550), color=(1,1,1), fill=(1,1,1))
+                # Redibujamos contornos ligeros para las cajas de anexo
+                page.draw_rect(fitz.Rect(50, y_banner + 30, 290, y_banner + 280), color=(0.29, 0.64, 0.77), width=0.5)
+                page.draw_rect(fitz.Rect(300, y_banner + 30, 545, y_banner + 280), color=(0.29, 0.64, 0.77), width=0.5)
 
-            # Encontrar anclajes individuales de 'Director 1', 'Director 2', etc.
-            # En la plantilla, están a alturas predecibles tras el banner
             y_dir_top = y_banner + 25 
             y_dir_bot = y_banner + 285
 
@@ -108,27 +103,25 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             if len(d_chunk) > 2:
                 page.insert_text((275, y_dir_bot + 5), f"Director {(p_idx-1)*3 + 3}", fontsize=9, fontname="hebo")
                 fill_director_block(page, d_chunk[2], y_dir_bot + 10, 0)
-                # Datos extra a la derecha del Director 3
                 d3 = d_chunk[2]
                 for key, off in [("address", 10), ("city", 44), ("country", 61)]:
                     if d3.get(key):
                         page.insert_text((430, y_dir_bot + 10 + off), str(d3[key])[:35], fontsize=8, fontname="helv")
 
-        # --- PÁGINA 1: CABECERA Y PRIMEROS DIRECTORES ---
         page1 = doc[0]
-        y_choice = get_anchor(page1, "choice", 100, 300)
+        y_choice = get_anchor(page1, ["choice", "incorp", "form"], 100, 400)
         if y_choice:
-            if data.get("corpNameSA"): page1.insert_text((230, y_choice - 4), str(data["corpNameSA"]), fontsize=9, fontname="helv")
-            if data.get("corpNameCorp"): page1.insert_text((230, y_choice + 26), str(data["corpNameCorp"]), fontsize=9, fontname="helv")
-            if data.get("corpNameInc"): page1.insert_text((230, y_choice + 56), str(data["corpNameInc"]), fontsize=9, fontname="helv")
+            # Ajuste de cabecera más preciso
+            if data.get("corpNameSA"): page1.insert_text((230, y_choice - 5), str(data["corpNameSA"]), fontsize=9, fontname="helv")
+            if data.get("corpNameCorp"): page1.insert_text((230, y_choice + 24), str(data["corpNameCorp"]), fontsize=9, fontname="helv")
+            if data.get("corpNameInc"): page1.insert_text((230, y_choice + 54), str(data["corpNameInc"]), fontsize=9, fontname="helv")
         
-        y_cap = get_anchor(page1, "capital", 150, 400)
+        y_cap = get_anchor(page1, ["capital", "authorized"], 150, 500)
         if y_cap and data.get("capitalSocial"):
             page1.insert_text((280, y_cap - 3), str(data["capitalSocial"]), fontsize=9, fontname="helv")
 
         process_directors_page(page1, directors[:3], 1)
 
-        # --- ANEXOS DE DIRECTORES ---
         pages_added = 0
         src_doc = None
         if len(directors) > 3 or len(shareholders) > 3:
@@ -139,17 +132,14 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=pages_added)
             process_directors_page(doc[pages_added], directors[i:i+3], pages_added + 1, is_annex=True)
 
-        # --- PÁGINA 2: DIGNATARIOS Y ACCIONISTAS ---
         orig_p2_idx = 1 + pages_added
         if len(doc) > orig_p2_idx:
             page2 = doc[orig_p2_idx]
             
-            # Anclaje de Dignatarios
-            y_dig_banner = get_anchor(page2, "dignatarios", 100, 400)
-            if not y_dig_banner: y_dig_banner = 118 # Fallback
+            y_dig_banner = get_anchor(page2, ["dignatarios", "officers"], 100, 600)
+            if not y_dig_banner: y_dig_banner = 118 
             
             dig = data.get("dignitaries", {})
-            # Roles: Presidente (+40), Secretario (+60), Tesorero (+80) aprox
             role_offsets = {"presidente": 38, "secretario": 58, "tesorero": 78}
             for rol, off in role_offsets.items():
                 if rol in dig:
@@ -160,15 +150,14 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
                     if d.get("passport"): page2.insert_text((400, y_row), str(d["passport"])[:15], fontsize=8, fontname="helv")
                     if d.get("registrationNumber"): page2.insert_text((480, y_row), str(d["registrationNumber"])[:15], fontsize=8, fontname="helv")
 
-            # Anclaje de Accionistas
-            y_sh_banner = get_anchor(page2, "accionistas", 200, 600)
-            if not y_sh_banner: y_sh_banner = 270 # Fallback
+            y_sh_banner = get_anchor(page2, ["accionistas", "shareholders"], 200, 800)
+            if not y_sh_banner: y_sh_banner = 270 
 
             def fill_shareholders(page, sh_chunk, anchor_y, is_annex=False):
                 if is_annex:
                     page.insert_text((50, anchor_y - 40), "CONTINUACION ACCIONISTAS", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-                    # Limpiar pero no borrar el banner
-                    page.draw_rect(fitz.Rect(40, anchor_y + 5, 570, 900), color=(1,1,1), fill=(1,1,1))
+                    # Blanqueamos solo el área de la tabla de accionistas
+                    page.draw_rect(fitz.Rect(45, anchor_y + 30, 550, anchor_y + 150), color=(1,1,1), fill=(1,1,1))
                 
                 y_start = anchor_y + 45
                 for i, s in enumerate(sh_chunk[:3]):
@@ -181,17 +170,15 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
 
             fill_shareholders(page2, shareholders[:3], y_sh_banner)
 
-            # Actividades y Firma (solo en la página original final)
-            y_act_banner = get_anchor(page2, "actividades", 400, 800)
+            y_act_banner = get_anchor(page2, ["actividades", "activities"], 400, 900)
             if y_act_banner and data.get("companyActivities"):
                 page2.insert_text((55, y_act_banner + 40), str(data["companyActivities"])[:150], fontsize=8, fontname="helv")
             
-            y_sig_anchor = get_anchor(page2, "declaration", 600, 950)
+            y_sig_anchor = get_anchor(page2, ["declaration", "signature", "firma"], 600, 1000)
             if not y_sig_anchor: y_sig_anchor = 750
             if data.get("declarationName"): page2.insert_text((150, y_sig_anchor + 65), str(data["declarationName"]), fontsize=9, fontname="helv")
             if data.get("declarationDate"): page2.insert_text((150, y_sig_anchor + 95), str(data["declarationDate"]), fontsize=9, fontname="helv")
 
-            # --- ANEXOS DE ACCIONISTAS ---
             for i in range(3, len(shareholders), 3):
                 insert_idx = orig_p2_idx + (i//3)
                 doc.insert_pdf(src_doc, from_page=1, to_page=1, start_at=insert_idx)
