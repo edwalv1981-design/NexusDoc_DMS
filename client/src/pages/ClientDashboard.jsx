@@ -51,7 +51,7 @@ const ClientDashboard = () => {
 
     const formOptions = [
         { id: 'Fondos Registros contables', label: 'Fondos Registros contables', icon: <ClipboardList size={24} />, color: '#6366f1' },
-
+        { id: 'Corporación', label: 'Corporación', icon: <Building size={24} />, color: '#10b981' },
         { id: 'Fundaciones', label: 'Fundaciones', icon: <Heart size={24} />, color: '#ef4444' },
         { id: 'Cumplimiento Individual', label: 'Cumplimiento Individual', icon: <UserIcon size={24} />, color: '#f59e0b' },
         { id: 'Cumplimiento Entidades', label: 'Cumplimiento Entidades', icon: <ShieldAlert size={24} />, color: '#3b82f6' },

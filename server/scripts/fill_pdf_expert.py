@@ -116,12 +116,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
             if col == 1: y += 15 
             y += 10 
 
-    # Generar anexos genéricos para directores, accionistas, etc.
-    if "directors" in data: append_dynamic_annex(doc, "LISTADO DE DIRECTORES", data["directors"])
-    if "shareholders" in data: append_dynamic_annex(doc, "LISTADO DE ACCIONISTAS", data["shareholders"])
-    if "dignitaries" in data and isinstance(data["dignitaries"], dict):
-        dig_list = [{"CARGO": k.upper(), **v} for k, v in data["dignitaries"].items()]
-        append_dynamic_annex(doc, "DIGNATARIOS REGISTRADOS", dig_list)
+
 
     doc.save(output_path, incremental=False, encryption=0)
     doc.close()
