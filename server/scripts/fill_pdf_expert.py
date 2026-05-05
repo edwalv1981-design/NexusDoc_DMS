@@ -54,7 +54,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, custom_template_
     if template_name == "corporacion" or "corpNameSA" in data:
         # --- MOTOR DE ANCLAJE EXPERTO ---
         def get_anchor(page, text, min_y=0, max_y=1000):
-            for w in page.get_text("words"):
+            p_words = page.get_text("words")
+            for w in p_words:
                 if min_y <= w[1] <= max_y and normalize(text) in normalize(w[4]):
                     return w[3] # Retorna el límite inferior del banner como anclaje
             return None
