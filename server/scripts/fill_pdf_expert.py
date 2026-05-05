@@ -220,14 +220,16 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         if y_final_label and data.get("custodyAddress"):
             page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
 
-        # Checkboxes: Source of Funds (Fondos) - Ajuste Crítico de Coordenadas y Detección
+        # === BLINDAJE DE LÓGICA: Checkboxes Procedencia de Fondos (Máxima Alineación) ===
         f_d = str(data.get("fundsSource", [])).lower()
-        # X=77 (centro horizontal del gap), Y=center_y (alineación base corregida)
-        if "personal" in f_d: page1.insert_text((77, 374), "X", fontsize=10, fontname="helv")
-        if "finan" in f_d: page1.insert_text((77, 386), "X", fontsize=10, fontname="helv")
-        if "negocio" in f_d: page1.insert_text((77, 397), "X", fontsize=10, fontname="helv")
-        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((77, 409), "X", fontsize=10, fontname="helv")
-        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((77, 420), "X", fontsize=10, fontname="helv")
+        # Coordenadas maestras: X=77.5 (centro del cuadro), Y_base=375.5, Salto=11.5
+        if "personal" in f_d: page1.insert_text((77.5, 375.5), "X", fontsize=10, fontname="helv")
+        if "finan" in f_d: page1.insert_text((77.5, 387.0), "X", fontsize=10, fontname="helv")
+        if "negocio" in f_d: page1.insert_text((77.5, 398.5), "X", fontsize=10, fontname="helv")
+        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((77.5, 410.0), "X", fontsize=10, fontname="helv")
+        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((77.5, 421.5), "X", fontsize=10, fontname="helv")
+        # ==============================================================================
+
 
 
 
