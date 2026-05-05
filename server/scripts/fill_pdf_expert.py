@@ -223,16 +223,15 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         # Checkboxes: Source of Funds (Fondos)
         funds = data.get("fundsSource", [])
         if funds:
-            check_map = {
-                "Personal Assets": 361,
-                "Financial Investments": 372,
-                "Business": 384,
-                "Loans": 395,
-                "Inheritance": 407
-            }
             for f in funds:
-                if f in check_map:
-                    page1.insert_text((142, check_map[f]), "X", fontsize=10, fontname="helv")
+                # Búsqueda por coincidencia parcial para manejar strings largos del frontend
+                if "Personal Assets" in f: page1.insert_text((142, 361), "X", fontsize=10, fontname="helv")
+                elif "Financial Investments" in f: page1.insert_text((142, 372), "X", fontsize=10, fontname="helv")
+                elif "Business" in f: page1.insert_text((142, 384), "X", fontsize=10, fontname="helv")
+                elif "Loans" in f: page1.insert_text((142, 395), "X", fontsize=10, fontname="helv")
+                elif "Inheritance" in f: page1.insert_text((142, 407), "X", fontsize=10, fontname="helv")
+
+
 
         # Página 2 (Firmas - Fondos)
         if len(doc) > 1:
