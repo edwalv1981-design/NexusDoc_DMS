@@ -191,16 +191,41 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
         src_doc.close()
 
-    # === LÓGICA FONDOS / GENÉRICO ===
+    # === LÓGICA FONDOS / GENÉRICO (RESTAURADA PARA MÁXIMA PRECISIÓN) ===
     else:
+        page1 = doc[0]
+        words = page1.get_text("words")
         config = master_config.get(template_name, master_config["referencia_maestra"])
+        
+        def find_y_legacy(keywords, min_y=0, max_y=1000):
+            for w in words:
+                word_norm = normalize(w[4])
+                for kw in keywords:
+                    if normalize(kw) in word_norm:
+                        y_center = (w[1] + w[3]) / 2 + 3
+                        if min_y <= y_center <= max_y:
+                            return y_center
+            return None
+
         for entry in config.get("anchors", []):
             key = entry["data_key"]
             if key in data and data[key]:
-                fy = get_anchor(doc[0], entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
+                fy = find_y_legacy(entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
                 if fy:
                     x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
-                    doc[0].insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="helv")
+                    page1.insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="helv")
+
+        # Fallback para Dirección Final (Fondos)
+        y_final_label = find_y_legacy(["direccion", "address"], min_y=700)
+        if y_final_label and data.get("custodyAddress"):
+            page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
+
+        # Página 2 (Firmas - Fondos)
+        if len(doc) > 1:
+            if data.get("signerName"):
+                doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="helv")
+            if data.get("date"):
+                doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="helv")
 
     # Guardado seguro y aplanado (non-editable)
     doc.save(output_path, incremental=False, encryption=0)

@@ -42,12 +42,13 @@ const ClientDashboard = () => {
     const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
 
     const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({
+    const EMPTY_FORM = {
         companyName: '', activities: '', country: '', beneficiaryName: '',
         birthDate: '', birthPlace: '', address: '', fundsSource: [],
         fundsOther: '', custodyName: '', custodyPhone: '', custodyEmail: '',
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
-    });
+    };
+    const [formData, setFormData] = useState(EMPTY_FORM);
 
     const formOptions = [
         { id: 'Fondos Registros contables', label: 'Fondos Registros contables', icon: <ClipboardList size={24} />, color: '#6366f1' },
@@ -262,10 +263,10 @@ const ClientDashboard = () => {
                     <span style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.5px' }}>NEXUSDOC DMS</span>
                 </div>
                 <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div onClick={() => { navigate('/dashboard'); setCurrentFormType(''); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: !showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
+                    <div onClick={() => { navigate('/dashboard'); setCurrentFormType(''); setStep(1); setFormData(EMPTY_FORM); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: !showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
                         <LayoutGrid size={15} /> <span>ESCRITORIO</span>
                     </div>
-                    <div onClick={() => { navigate('/dashboard?view=form'); setCurrentFormType(''); setStep(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
+                    <div onClick={() => { navigate('/dashboard?view=form'); setCurrentFormType(''); setStep(1); setFormData(EMPTY_FORM); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
                         <Plus size={15} /> <span>NUEVO TRÁMITE</span>
                     </div>
                     <div onClick={() => { navigate('/dashboard?view=documents'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showDocuments ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
