@@ -220,14 +220,15 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         if y_final_label and data.get("custodyAddress"):
             page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
 
-        # Checkboxes: Source of Funds (Fondos) - Ajuste Fino (Tamaño y Posición)
-        funds_data = str(data.get("fundsSource", [])).lower()
-        # Coordenadas recalibradas: Baseline + 5.0px desde el centro geométrico
-        if "personal" in funds_data: page1.insert_text((79, 378.5), "X", fontsize=10, fontname="helv")
-        if "financial" in funds_data: page1.insert_text((79, 390.0), "X", fontsize=10, fontname="helv")
-        if "business" in funds_data: page1.insert_text((79, 401.5), "X", fontsize=10, fontname="helv")
-        if "loans" in funds_data: page1.insert_text((79, 413.0), "X", fontsize=10, fontname="helv")
-        if "inheritance" in funds_data: page1.insert_text((79, 424.5), "X", fontsize=10, fontname="helv")
+        # Checkboxes: Source of Funds (Fondos) - Detección Bilingüe y Alineación Final
+        f_d = str(data.get("fundsSource", [])).lower()
+        # Coordenadas: Baseline ajustado para centrar verticalmente (+8px desde el tope de la celda)
+        if "personal" in f_d: page1.insert_text((79.5, 381.5), "X", fontsize=10, fontname="helv")
+        if "financiera" in f_d or "financial" in f_d: page1.insert_text((79.5, 393.0), "X", fontsize=10, fontname="helv")
+        if "negocios" in f_d or "business" in f_d: page1.insert_text((79.5, 404.5), "X", fontsize=10, fontname="helv")
+        if "prestamos" in f_d or "loans" in f_d: page1.insert_text((79.5, 416.0), "X", fontsize=10, fontname="helv")
+        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((79.5, 427.5), "X", fontsize=10, fontname="helv")
+
 
 
 
