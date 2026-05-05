@@ -461,6 +461,7 @@ const ClientDashboard = () => {
                         onSave={saveDynamicForm} 
                         saving={saving} 
                     />
+                ) : (
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
                             <Construction size={40} />
