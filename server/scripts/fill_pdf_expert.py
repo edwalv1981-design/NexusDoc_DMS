@@ -222,12 +222,13 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
         # === BLINDAJE DE LÓGICA: Checkboxes Procedencia de Fondos (Máxima Alineación) ===
         f_d = str(data.get("fundsSource", [])).lower()
-        # Coordenadas maestras: X=77.5 (centro del cuadro), Y_base=375.5, Salto=11.5
-        if "personal" in f_d: page1.insert_text((77.5, 375.5), "X", fontsize=10, fontname="helv")
-        if "finan" in f_d: page1.insert_text((77.5, 387.0), "X", fontsize=10, fontname="helv")
-        if "negocio" in f_d: page1.insert_text((77.5, 398.5), "X", fontsize=10, fontname="helv")
-        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((77.5, 410.0), "X", fontsize=10, fontname="helv")
-        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((77.5, 421.5), "X", fontsize=10, fontname="helv")
+        # Coordenadas maestras recalibradas: X=79.0, Y_base=377.5, Salto=11.5
+        if "personal" in f_d: page1.insert_text((79.0, 377.5), "X", fontsize=10, fontname="helv")
+        if "finan" in f_d: page1.insert_text((79.0, 389.0), "X", fontsize=10, fontname="helv")
+        if "negocio" in f_d: page1.insert_text((79.0, 400.5), "X", fontsize=10, fontname="helv")
+        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((79.0, 412.0), "X", fontsize=10, fontname="helv")
+        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((79.0, 423.5), "X", fontsize=10, fontname="helv")
+
         # ==============================================================================
 
 
