@@ -220,6 +220,20 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         if y_final_label and data.get("custodyAddress"):
             page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
 
+        # Checkboxes: Source of Funds (Fondos)
+        funds = data.get("fundsSource", [])
+        if funds:
+            check_map = {
+                "Personal Assets": 361,
+                "Financial Investments": 372,
+                "Business": 384,
+                "Loans": 395,
+                "Inheritance": 407
+            }
+            for f in funds:
+                if f in check_map:
+                    page1.insert_text((142, check_map[f]), "X", fontsize=10, fontname="helv")
+
         # Página 2 (Firmas - Fondos)
         if len(doc) > 1:
             if data.get("signerName"):
