@@ -185,10 +185,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if k in f_d: 
                 page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
         
-        # Dirección de Custodia (Búsqueda manual de coordenadas para evitar colisión con el Address de arriba)
+        # Dirección de Custodia (Ajustada a la izquierda según feedback: x=115)
         if data.get("custodyAddress"):
-            # En el formulario SFAR, el segundo "Address:" está aproximadamente en y=750
-            page1.insert_text((144, 755), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
+            page1.insert_text((115, 755), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
         if len(doc) > 1:
             if data.get("signerName"): doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
