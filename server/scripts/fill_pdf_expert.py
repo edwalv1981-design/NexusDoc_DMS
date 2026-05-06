@@ -185,9 +185,16 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if k in f_d: 
                 page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
         
-        # Dirección de Custodia (Ajuste final: x=115, y=742 para centrar en el cuadro)
+        # Dirección de Custodia (Detección dinámica de coordenadas para precisión total)
         if data.get("custodyAddress"):
-            page1.insert_text((115, 742), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
+            y_target = 735 # Fallback
+            words = page1.get_text("words")
+            for w in words:
+                # Buscamos el "Address:" que está en la parte inferior (y > 700)
+                if "Address:" in w[4] and w[1] > 700:
+                    y_target = (w[1] + w[3]) / 2 + 2 # Alineación vertical centrada
+                    break
+            page1.insert_text((115, y_target), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
         if len(doc) > 1:
             if data.get("signerName"): doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
