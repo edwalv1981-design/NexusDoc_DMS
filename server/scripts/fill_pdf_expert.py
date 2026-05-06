@@ -57,71 +57,84 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         return None
 
     # === LÓGICA CORPORACIÓN (ARQUITECTO SENIOR - PRECISIÓN ABSOLUTA) ===
-    if template_name == "corporacion" or "corpNameSA" in data:
-        registry_path = os.path.join(base_dir, "templates", "coordinate_registry.json")
-
-        try:
-            with open(registry_path, 'r', encoding='utf-8') as rf:
-                reg = json.load(rf).get("corporacion_2025", {})
-        except: reg = {}
-
+    if template_name == "corporacion" or "corpNameSA        # === SISTEMA DE ALINEACIÓN IA: Corporación Dynamic Engine (BÚSQUEDA SEMÁNTICA) ===
         directors = data.get("directors", [])
         shareholders = data.get("shareholders", [])
         dignitaries = data.get("dignitaries", {})
 
-        def fill_director_block(page, d, anchor_y, col_idx):
-            cfg = reg.get("directors_section", {})
-            x_base = cfg.get("col_0_x", 135) if col_idx == 0 else cfg.get("col_1_x", 425)
-            w = cfg.get("width", 150)
-            offsets = cfg.get("field_offsets", {})
-            
-            for field, off in offsets.items():
-                val = d.get(field)
-                if val:
-                    # Alineación milimétrica con celdas pre-impresas
-                    rect = fitz.Rect(x_base, anchor_y + off - 6, x_base + w, anchor_y + off + 6)
-                    insert_text_scaled(page, rect, str(val), max_fontsize=9)
+        def fill_dynamic_table(page, data_dict, labels_map, x_min, x_max, value_x, min_y=0, max_y=1000):
+            words = page.get_text("words")
+            for field_key, keywords in labels_map.items():
+                val = data_dict.get(field_key)
+                if not val: continue
+                for w in words:
+                    if x_min <= w[0] <= x_max and min_y <= w[3] <= max_y:
+                        wn = normalize(w[4])
+                        if any(normalize(kw) in wn for kw in keywords):
+                            y_val = w[3] # Base de la palabra
+                            rect = fitz.Rect(value_x, y_val - 12, value_x + 130, y_val + 2)
+                            insert_text_scaled(page, rect, str(val), max_fontsize=9)
+                            break
+
+        dir_labels = {
+            "firstName": ["first", "nombre"],
+            "middleName": ["middle", "segundo"],
+            "lastName": ["surname", "apellidos"],
+            "birthDate": ["birth", "nacimiento"],
+            "maritalStatus": ["marital", "estado"],
+            "nationality": ["citizenship", "nacionalidad"],
+            "passport": ["passport", "pasaporte"],
+            "phone": ["phone", "teléfono", "telefono"],
+            "email": ["email", "correo"],
+            "address": ["address", "dirección", "direccion"],
+            "city": ["city", "ciudad"],
+            "country": ["country", "país", "pais"]
+        }
 
         def process_directors_page(page, d_chunk, p_idx, is_annex=False):
-            y_banner = get_anchor(page, ["directores", "directors"], 300, 600)
-            if not y_banner: y_banner = 485 # Fallback basado en imagen
-            
-            # SOLO inyectar "ANEXO" si no es la página principal
             if is_annex:
                 page.insert_text((50, 40), f"ANEXO PÁG. {p_idx}", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                # Limpiar la cabecera copiada para que no parezca página repetida
+                y_dir = get_anchor(page, ["directores", "directors"], 100, 600)
+                if not y_dir: y_dir = 280
+                page.draw_rect(fitz.Rect(0, 50, 600, y_dir - 20), color=(1,1,1), fill=(1,1,1))
+                
+                # Actualizar etiquetas de directores
+                page.draw_rect(fitz.Rect(100, y_dir + 10, 250, y_dir + 30), color=(1,1,1), fill=(1,1,1))
+                page.draw_rect(fitz.Rect(400, y_dir + 10, 550, y_dir + 30), color=(1,1,1), fill=(1,1,1))
+                base_dir_num = ((p_idx - 1) * 2) + 1
+                page.insert_text((150, y_dir + 25), f"Director {base_dir_num}", fontsize=10, fontname="hebo")
+                if len(d_chunk) > 1:
+                    page.insert_text((450, y_dir + 25), f"Director {base_dir_num + 1}", fontsize=10, fontname="hebo")
             
-            # Inyectar datos en celdas pre-existentes (Sin dibujar cajas nuevas)
+            y_dir = get_anchor(page, ["directores", "directors"], 100, 600)
+            if not y_dir: y_dir = 280
+
             for i, d in enumerate(d_chunk):
                 col = i % 2
-                row = i // 2
-                curr_y = y_banner + 10 if row == 0 else y_banner + 280
-                fill_director_block(page, d, curr_y, col)
+                x_min = 0 if col == 0 else 300
+                x_max = 300 if col == 0 else 600
+                value_x = 135 if col == 0 else 425
+                fill_dynamic_table(page, d, dir_labels, x_min, x_max, value_x, min_y=y_dir)
 
         # PÁGINA 1: Datos de la Compañía
         page1 = doc[0]
         y_names = get_anchor(page1, ["names", "incorp", "preference"], 100, 300)
         if not y_names: y_names = 150
         
-        # Inyectar nombres (Alineados con 1st, 2nd, 3rd choice)
         choices = ["corpNameSA", "corpNameCorp", "corpNameInc"]
         for i, c in enumerate(choices):
-            val = data.get(c)
-            if val:
-                page1.insert_text((240, y_names + 22 + (i * 35)), str(val), fontsize=10, fontname="hebo")
+            if data.get(c): page1.insert_text((240, y_names + 22 + (i * 35)), str(data[c]), fontsize=10, fontname="hebo")
         
-        # Capital Social
-        y_cap = get_anchor(page1, ["capital", "authorized"], 300, 500)
+        y_cap = get_anchor(page1, ["capital", "authorized"], 200, 500)
         if not y_cap: y_cap = 395
         if data.get("capitalSocial"):
-            try:
-                cap_val = f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD"
-                page1.insert_text((450, y_cap + 18), cap_val, fontsize=10, fontname="hebo")
+            try: page1.insert_text((450, y_cap + 18), f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD", fontsize=10, fontname="hebo")
             except: pass
 
-        # Procesar directores en página 1 (Ya vienen pre-impresos los cuadros)
         process_directors_page(page1, directors[:2], 1)
 
-        # ANEXOS (Si hay más de 2 directores)
+        # ANEXOS
         annex_count = 0
         src_doc = fitz.open(pdf_path)
         for i in range(2, len(directors), 2):
@@ -134,32 +147,34 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         orig_p2_idx = 1 + annex_count
         if len(doc) > orig_p2_idx:
             page2 = doc[orig_p2_idx]
-            y_dig = get_anchor(page2, ["dignatarios", "officers"], 50, 200)
-            if not y_dig: y_dig = 118
             
-            # Dignatarios (Alineación con tabla pre-impresa)
-            roles = {"presidente": 58, "secretario": 78, "tesorero": 98}
-            for role, off in roles.items():
-                if role in dignitaries:
-                    d = dignitaries[role]
-                    if not d: continue
-                    if isinstance(d, str): d = {"fullName": d}
-                    y_row = y_dig + off
-                    if isinstance(d, dict):
-                        if d.get("fullName"): page2.insert_text((185, y_row), str(d["fullName"]), fontsize=9)
-                        if d.get("birthDate"): page2.insert_text((595, y_row), str(d["birthDate"]), fontsize=8) # Basado en imagen p3
-                        if d.get("passport"): page2.insert_text((710, y_row), str(d["passport"]), fontsize=8)
-                        if d.get("registrationNumber"): page2.insert_text((810, y_row), str(d["registrationNumber"]), fontsize=8)
+            # Dignatarios
+            dign_roles = {"presidente": ["president"], "secretario": ["secretary"], "tesorero": ["treasurer"]}
+            for role_key, role_kws in dign_roles.items():
+                d = dignitaries.get(role_key)
+                if not d: continue
+                if isinstance(d, str): d = {"fullName": d}
+                y_role = get_anchor(page2, role_kws, 50, 400)
+                if y_role:
+                    if d.get("fullName"): page2.insert_text((220, y_role), str(d["fullName"]), fontsize=9)
+                    if d.get("birthDate"): page2.insert_text((500, y_role), str(d["birthDate"]), fontsize=8)
+                    if d.get("passport"): page2.insert_text((630, y_role), str(d["passport"]), fontsize=8)
+                    if d.get("registrationNumber"): page2.insert_text((750, y_role), str(d["registrationNumber"]), fontsize=8)
 
-            y_sh = get_anchor(page2, ["accionistas", "shareholders"], 200, 400)
+            # Accionistas
+            y_sh = get_anchor(page2, ["accionistas", "shareholders"], 200, 600)
             if not y_sh: y_sh = 270
 
             def fill_sh_block(page, sh_chunk, anchor_y, is_annex=False):
-                y_start = anchor_y + 65
+                if is_annex:
+                    page.insert_text((50, 40), "ANEXO ACCIONISTAS", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                    page.draw_rect(fitz.Rect(0, 50, 600, anchor_y - 20), color=(1,1,1), fill=(1,1,1))
+                
+                y_start = anchor_y + 40
                 for i, s in enumerate(sh_chunk[:3]):
                     if not s: continue
                     if isinstance(s, str): s = {"name": s}
-                    y_pos = y_start + (i * 45)
+                    y_pos = y_start + (i * 25)
                     if isinstance(s, dict):
                         if s.get("certificate"): page.insert_text((45, y_pos), str(s["certificate"]), fontsize=8)
                         if s.get("value"): page.insert_text((95, y_pos), str(s["value"]), fontsize=8)
@@ -170,7 +185,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             fill_sh_block(page2, shareholders[:3], y_sh)
 
             # Actividades y Firma
-            y_act = get_anchor(page2, ["actividades", "activities"], 400, 600)
+            y_act = get_anchor(page2, ["actividades", "activities"], 400, 800)
             if y_act and data.get("companyActivities"):
                 page2.insert_textbox(fitz.Rect(55, y_act + 40, 550, y_act + 120), data["companyActivities"], fontsize=8)
 
@@ -178,6 +193,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if not y_sig: y_sig = 740
             if data.get("declarationName"): page2.insert_text((150, y_sig + 105), str(data["declarationName"]), fontsize=9)
             if data.get("declarationDate"): page2.insert_text((220, y_sig + 138), f"{str(data['declarationDate'])} /2025", fontsize=9)
+
 
 
             # ANEXOS ACCIONISTAS
