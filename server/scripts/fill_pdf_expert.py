@@ -222,12 +222,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
         # === BLINDAJE DE LÓGICA: Checkboxes Procedencia de Fondos (Máxima Alineación) ===
         f_d = str(data.get("fundsSource", [])).lower()
-        # Coordenadas maestras (Alineación Final de Precisión): X=78.5, Y_base=379.5, Salto=11.5, Font=7
-        if "personal" in f_d: page1.insert_text((78.5, 379.5), "X", fontsize=7, fontname="helv")
-        if "finan" in f_d: page1.insert_text((78.5, 391.0), "X", fontsize=7, fontname="helv")
-        if "negocio" in f_d: page1.insert_text((78.5, 402.5), "X", fontsize=7, fontname="helv")
-        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((78.5, 414.0), "X", fontsize=7, fontname="helv")
-        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((78.5, 425.5), "X", fontsize=7, fontname="helv")
+        # === ALINEACIÓN MATEMÁTICA FINAL: Basada en Coordenadas de Vectores Reales ===
+        f_d = str(data.get("fundsSource", [])).lower()
+        # Centro de cuadrados detectado en X=77.0, Y={373.5, 385.0, 396.5...}
+        # Ajuste Baseline para fuente 7pt: X_start=74.5, Y_start=376.5
+        if "personal" in f_d: page1.insert_text((74.5, 376.5), "X", fontsize=7, fontname="helv")
+        if "finan" in f_d: page1.insert_text((74.5, 388.0), "X", fontsize=7, fontname="helv")
+        if "negocio" in f_d: page1.insert_text((74.5, 399.5), "X", fontsize=7, fontname="helv")
+        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((74.5, 411.0), "X", fontsize=7, fontname="helv")
+        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((74.5, 422.5), "X", fontsize=7, fontname="helv")
+        # ==============================================================================
+
 
 
 
