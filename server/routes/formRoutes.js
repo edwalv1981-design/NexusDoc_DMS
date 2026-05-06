@@ -17,8 +17,15 @@ router.post('/save', auth, async (req, res) => {
       if (!form) return res.status(404).json({ msg: 'Formulario no encontrado' });
       if (form.userId !== req.user.id) return res.status(401).json({ msg: 'No autorizado' });
 
-      // Sequelize actualiza updatedAt automáticamente
       await form.update({ formType: formTypeLabel, data: data });
+      
+      // BITÁCORA: Registro de actualización
+      AuditLog.create({
+        userId: req.user.id,
+        action: 'FORM_UPDATED',
+        description: `Usuario actualizó el trámite: ${formTypeLabel} (ID: ${form.id})`
+      }).catch(err => console.error('Error Bitácora:', err));
+
       return res.json({ msg: 'Actualizado con éxito', data: form });
     }
 
@@ -31,6 +38,13 @@ router.post('/save', auth, async (req, res) => {
       userUniqueCode: userCode,
       data: data
     });
+
+    // BITÁCORA: Registro de creación
+    AuditLog.create({
+      userId: req.user.id,
+      action: 'FORM_CREATED',
+      description: `Usuario creó un nuevo trámite: ${formTypeLabel} (ID: ${newForm.id})`
+    }).catch(err => console.error('Error Bitácora:', err));
 
     res.json({ msg: 'Guardado con éxito', data: newForm });
   } catch (err) {
@@ -74,6 +88,14 @@ router.delete('/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
         await form.destroy();
+        
+        // BITÁCORA: Registro de eliminación
+        AuditLog.create({
+            userId: req.user.id,
+            action: 'FORM_DELETED',
+            description: `Usuario eliminó el trámite: ${form.formType} (ID: ${form.id})`
+        }).catch(err => console.error('Error Bitácora:', err));
+
         res.json({ msg: 'Eliminado' });
     } catch (e) { res.status(500).json({ msg: 'Error' }); }
 });
