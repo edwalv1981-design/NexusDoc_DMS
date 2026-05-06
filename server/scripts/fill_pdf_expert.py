@@ -88,7 +88,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             # Dibujar encabezado de sección si es anexo o si no existe en el PDF
             header_color = (0.29, 0.64, 0.77)
             if is_annex or not get_anchor(page, ["directors", "directores"]):
-                page.insert_text((50, y_banner - 20), "INFORMACIÓN DE DIRECTORES", fontsize=12, fontname="helv-bold", color=header_color)
+                page.insert_text((50, y_banner - 20), "INFORMACIÓN DE DIRECTORES", fontsize=12, fontname="hebo", color=header_color)
+
                 if is_annex:
                     page.insert_text((400, y_banner - 20), f"ANEXO PÁG. {p_idx}", fontsize=10, fontname="helv", color=header_color)
             
@@ -118,7 +119,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 if f == "capitalSocial":
                     try: val = f"{float(str(val).replace(',','')):,.2f} USD"
                     except: val = str(val) # Fallback a string si no es número
-                page1.insert_text((x_val, curr_y), str(val), fontsize=10, fontname="helv-bold")
+                page1.insert_text((x_val, curr_y), str(val), fontsize=10, fontname="hebo")
+
 
         # Procesar primeros directores (Máximo 2 por página)
         process_directors_page(page1, directors[:2], 1)
