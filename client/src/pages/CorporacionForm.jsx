@@ -171,6 +171,15 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <div className="expert-group"><label>PRIMER NOMBRE</label><input className="expert-input" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
                             <div className="expert-group"><label>SEGUNDO NOMBRE</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
                             <div className="expert-group"><label>APELLIDO</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
+                            <div className="expert-group"><label>ESTADO CIVIL</label>
+                                <select className="expert-input" value={d.maritalStatus} onChange={e => updateDirector(index, 'maritalStatus', e.target.value)}>
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="Soltero(a)">Soltero(a)</option>
+                                    <option value="Casado(a)">Casado(a)</option>
+                                    <option value="Divorciado(a)">Divorciado(a)</option>
+                                    <option value="Viudo(a)">Viudo(a)</option>
+                                </select>
+                            </div>
                             <div className="expert-group"><label>NACIONALIDAD</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
                             <div className="expert-group"><label>PASAPORTE / ID</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
                             <div className="expert-group"><label>FECHA NACIMIENTO</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
