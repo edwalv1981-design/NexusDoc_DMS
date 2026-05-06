@@ -95,7 +95,10 @@ const SignedDocuments = () => {
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      setTimeout(() => {
+          link.remove();
+          window.URL.revokeObjectURL(url);
+      }, 1000);
     } catch (err) {
       toast.error('Error al descargar');
     }

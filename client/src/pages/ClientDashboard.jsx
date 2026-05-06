@@ -210,7 +210,10 @@ const ClientDashboard = () => {
                 a.download = filename;
                 document.body.appendChild(a);
                 a.click();
-                a.remove();
+                setTimeout(() => {
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                }, 1000);
             } else {
                 const errData = await response.json().catch(() => ({}));
                 showToast(errData.msg || 'Error al generar el PDF. Verifique que la plantilla exista.');
