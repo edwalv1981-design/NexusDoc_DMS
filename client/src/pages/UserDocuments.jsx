@@ -86,8 +86,14 @@ const UserDocuments = () => {
   const handleDownload = async (id, filename) => {
     try {
       const token = localStorage.getItem('token');
-      // Bypass fetch/blob issues by using native browser navigation for downloads
-      window.location.href = `${API_BASE_URL}/api/documents/download/${id}/${encodeURIComponent(filename)}?token=${token}`;
+      // Use hidden <a target=_blank> to trigger native download without page navigation error
+      const link = document.createElement('a');
+      link.href = `${API_BASE_URL}/api/documents/download/${id}/${encodeURIComponent(filename)}?token=${token}`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => link.remove(), 500);
     } catch (err) {
       toast.error('Error al descargar el documento');
     }

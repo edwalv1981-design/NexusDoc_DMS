@@ -199,9 +199,14 @@ const ClientDashboard = () => {
             const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.substring(0, 8);
             const filename = `${prefix}_${safeId}.pdf`;
 
-            // Bypass fetch/blob issues by using native browser navigation for downloads
-            // Appending filename to URL ensures the browser uses it as the fallback name
-            window.location.href = `${API_BASE_URL}/api/forms/generate-pdf/${id}/${filename}?token=${token}`;
+            // Use hidden <a target=_blank> to trigger native download without page navigation error
+            const link = document.createElement('a');
+            link.href = `${API_BASE_URL}/api/forms/generate-pdf/${id}/${filename}?token=${token}`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => link.remove(), 500);
         } catch (e) {
             showToast('Falla de conexión al generar PDF');
         }

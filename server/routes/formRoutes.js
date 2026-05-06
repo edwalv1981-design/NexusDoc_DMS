@@ -191,4 +191,18 @@ router.get('/generate-pdf/:id/:filename', async (req, res) => {
     }
 });
 
+// @route   GET api/forms/generate-pdf/:id (backward compatibility fallback)
+router.get('/generate-pdf/:id', async (req, res) => {
+    const token = req.header('x-auth-token') || req.query.token;
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+        req.user = decoded.user;
+    } catch (err) {
+        return res.status(401).json({ msg: 'Token is not valid' });
+    }
+    // Redirect to the named route
+    res.redirect(`/api/forms/generate-pdf/${req.params.id}/document.pdf?token=${token}`);
+});
+
 module.exports = router;
