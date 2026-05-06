@@ -144,12 +144,14 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             for role, off in roles.items():
                 if role in dignitaries:
                     d = dignitaries[role]
+                    if not d: continue
                     if isinstance(d, str): d = {"fullName": d}
                     y_row = y_dig + off
-                    if d.get("fullName"): insert_text_scaled(page2, fitz.Rect(170, y_row - 8, 320, y_row), d["fullName"])
-                    if d.get("birthDate"): insert_text_scaled(page2, fitz.Rect(330, y_row - 8, 395, y_row), d["birthDate"])
-                    if d.get("passport"): insert_text_scaled(page2, fitz.Rect(400, y_row - 8, 475, y_row), d["passport"])
-                    if d.get("registrationNumber"): insert_text_scaled(page2, fitz.Rect(480, y_row - 8, 550, y_row), d["registrationNumber"])
+                    if isinstance(d, dict) and d.get("fullName"): insert_text_scaled(page2, fitz.Rect(170, y_row - 8, 320, y_row), d["fullName"])
+                    if isinstance(d, dict) and d.get("birthDate"): insert_text_scaled(page2, fitz.Rect(330, y_row - 8, 395, y_row), d["birthDate"])
+                    if isinstance(d, dict) and d.get("passport"): insert_text_scaled(page2, fitz.Rect(400, y_row - 8, 475, y_row), d["passport"])
+                    if isinstance(d, dict) and d.get("registrationNumber"): insert_text_scaled(page2, fitz.Rect(480, y_row - 8, 550, y_row), d["registrationNumber"])
+
 
             y_sh = get_anchor(page2, ["accionistas", "shareholders"], 200, 800)
             if not y_sh: y_sh = 270
@@ -160,13 +162,16 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 
                 y_start = anchor_y + 45
                 for i, s in enumerate(sh_chunk[:3]):
+                    if not s: continue
                     if isinstance(s, str): s = {"name": s}
                     y_pos = y_start + (i * 22)
-                    if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"]), fontsize=8)
-                    if s.get("value"): page.insert_text((130, y_pos), str(s["value"]), fontsize=8)
-                    if s.get("shares"): page.insert_text((210, y_pos), str(s["shares"]), fontsize=8)
-                    if s.get("name"): insert_text_scaled(page, fitz.Rect(270, y_pos - 8, 390, y_pos), s["name"])
-                    if s.get("address"): insert_text_scaled(page, fitz.Rect(400, y_pos - 8, 550, y_pos), s["address"])
+                    if isinstance(s, dict):
+                        if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"]), fontsize=8)
+                        if s.get("value"): page.insert_text((130, y_pos), str(s["value"]), fontsize=8)
+                        if s.get("shares"): page.insert_text((210, y_pos), str(s["shares"]), fontsize=8)
+                        if s.get("name"): insert_text_scaled(page, fitz.Rect(270, y_pos - 8, 390, y_pos), s["name"])
+                        if s.get("address"): insert_text_scaled(page, fitz.Rect(400, y_pos - 8, 550, y_pos), s["address"])
+
 
             fill_sh_block(page2, shareholders[:3], y_sh)
 
@@ -188,9 +193,12 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 doc.insert_pdf(src_doc, from_page=1, to_page=1, start_at=insert_idx)
                 fill_sh_block(doc[insert_idx], shareholders[i:i+3], y_sh, is_annex=True)
 
-        src_doc.close()
+        # Cerrar el documento fuente solo si se abrió (Arquitectura Corporación)
+        if 'src_doc' in locals():
+            src_doc.close()
 
     # === LÓGICA FONDOS / GENÉRICO (RESTAURADA PARA MÁXIMA PRECISIÓN) ===
+
     else:
         page1 = doc[0]
         words = page1.get_text("words")
