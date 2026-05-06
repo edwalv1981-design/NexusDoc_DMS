@@ -336,9 +336,14 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const element = document.getElementById('corp-document-preview');
         const opt = {
             margin: 0,
-            filename: `Corporacion_${formData.corpNameSA || 'Documento'}.pdf`,
+            filename: `PTL_Corporacion_${formData.corpNameSA || 'Documento'}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
+            html2canvas: { 
+                scale: 3, // Resolución de grado legal (300 DPI equivalente)
+                useCORS: true, 
+                logging: false,
+                letterRendering: true
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().set(opt).from(element).save();
