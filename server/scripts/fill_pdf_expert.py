@@ -64,21 +64,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         dignitaries = data.get("dignitaries", {})
 
 
-        def fill_dynamic_table(page, data_dict, labels_map, x_min, x_max, value_x, min_y=0, max_y=1000):
+        # Motor de Alineación de Alta Precisión para Corporación
+        def fill_fixed_col_table(page, data_dict, labels_map, x_min, x_max, value_x, min_y=0, max_y=1000):
             """
-            Motor IA de Alineación Dinámica:
-            - Busca la palabra clave de la etiqueta en la columna
-            - Detecta el borde derecho de TODAS las palabras de esa fila dentro de la columna
-            - Coloca el valor 8px después del borde de la etiqueta (no en posición fija)
+            Versión blindada que usa columnas fijas para asegurar que el texto caiga DENTRO de las celdas.
             """
             words = page.get_text("words")
-
             for field_key, keywords in labels_map.items():
                 val = data_dict.get(field_key)
-                if not val:
-                    continue
-
-                # Paso 1: Encontrar la palabra ancla (keyword de la etiqueta)
+                if not val: continue
+                
+                # Buscar el ancla de la etiqueta
                 anchor = None
                 for w in words:
                     if x_min <= w[0] <= x_max and min_y <= w[3] <= max_y:
@@ -86,36 +82,12 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                         if any(normalize(kw) in wn for kw in keywords):
                             anchor = w
                             break
-
-                if anchor is None:
-                    continue
-
-                # Paso 2: Centro Y de esta fila
-                row_y_center = (anchor[1] + anchor[3]) / 2
-                row_tolerance = 7  # tolerancia en pixeles para palabras en la misma fila
-
-                # Paso 3: Recopilar TODAS las palabras de la etiqueta en esta fila y columna
-                row_label_words = [
-                    w for w in words
-                    if x_min <= w[0] <= x_max
-                    and abs((w[1] + w[3]) / 2 - row_y_center) <= row_tolerance
-                ]
-
-                # Paso 4: Borde derecho máximo de las etiquetas
-                # Filtramos palabras que tengan un X inicial muy a la derecha (que podrían ser ya valores de otra columna)
-                if row_label_words:
-                    label_right_edge = max(w[2] for w in row_label_words if w[0] < x_min + (x_max - x_min)*0.6)
-                else:
-                    label_right_edge = anchor[2]
-
-                # Paso 5: El valor empieza 10px DESPUÉS del borde de la etiqueta (más margen)
-                computed_value_x = label_right_edge + 10
-                value_width = x_max - computed_value_x - 5
-                value_y = anchor[3]  # baseline de la palabra ancla
-
-                if value_width > 10:  # Solo insertar si hay espacio suficiente
-                    rect = fitz.Rect(computed_value_x, value_y - 11, computed_value_x + value_width, value_y + 2)
-                    insert_text_scaled(page, rect, str(val), max_fontsize=8, min_fontsize=6)
+                
+                if anchor:
+                    # El valor se coloca en value_x (posición fija de la celda derecha)
+                    # Usamos textbox para que no se salga de la celda
+                    rect = fitz.Rect(value_x, anchor[1] - 2, x_max - 5, anchor[3] + 2)
+                    insert_text_scaled(page, rect, str(val), max_fontsize=9, min_fontsize=7)
 
         dir_labels = {
             "firstName": ["first", "nombre"],
@@ -132,68 +104,77 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             "country": ["country", "país", "pais"]
         }
 
-        def process_directors_page(page, d_chunk, p_idx, is_annex=False):
-            if is_annex:
-                page.insert_text((50, 40), f"ANEXO PÁG. {p_idx}", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-                # Limpiar la cabecera copiada para que no parezca página repetida
-                y_dir = get_anchor(page, ["directores", "directors"], 100, 600)
-                if not y_dir: y_dir = 280
-                page.draw_rect(fitz.Rect(0, 50, 600, y_dir - 20), color=(1,1,1), fill=(1,1,1))
-                
-                # Actualizar etiquetas de directores
-                page.draw_rect(fitz.Rect(100, y_dir + 10, 250, y_dir + 30), color=(1,1,1), fill=(1,1,1))
-                page.draw_rect(fitz.Rect(400, y_dir + 10, 550, y_dir + 30), color=(1,1,1), fill=(1,1,1))
-                base_dir_num = ((p_idx - 1) * 2) + 1
-                page.insert_text((150, y_dir + 25), f"Director {base_dir_num}", fontsize=10, fontname="hebo")
-                if len(d_chunk) > 1:
-                    page.insert_text((450, y_dir + 25), f"Director {base_dir_num + 1}", fontsize=10, fontname="hebo")
-            
-            y_dir = get_anchor(page, ["directores", "directors"], 100, 600)
-            if not y_dir: y_dir = 280
-
-            for i, d in enumerate(d_chunk):
-                col = i % 2
-                x_min = 0 if col == 0 else 300
-                x_max = 300 if col == 0 else 600
-                value_x = 135 if col == 0 else 425
-                fill_dynamic_table(page, d, dir_labels, x_min, x_max, value_x, min_y=y_dir)
-
-        # PÁGINA 1: Datos de la Compañía (Alineación Dinámica para Nombres)
+        # PÁGINA 1: Datos de la Compañía (Alineación por Casilleros)
         page1 = doc[0]
         y_names = get_anchor(page1, ["names", "incorp", "preference"], 100, 300)
-        if not y_names: y_names = 150
+        if not y_names: y_names = 155
         
-        # Mapeo dinámico para las opciones de nombre
-        name_choices_labels = {
-            "corpNameSA": ["1st", "choice"],
-            "corpNameCorp": ["2nd", "choice"],
-            "corpNameInc": ["3rd", "choice"]
-        }
-        fill_dynamic_table(page1, data, name_choices_labels, 50, 450, 240, min_y=y_names, max_y=y_names+120)
-        
+        # Casilleros de nombres (Entre etiqueta y sufijo)
+        # X=135 es el inicio del casillero, X=235 es el final antes del sufijo (S.A./Corp/Inc)
+        choices_map = {"corpNameSA": 0, "corpNameCorp": 1, "corpNameInc": 2}
+        for key, idx in choices_map.items():
+            if data.get(key):
+                y_pos = y_names + 22 + (idx * 33)
+                rect = fitz.Rect(135, y_pos - 10, 235, y_pos + 5)
+                insert_text_scaled(page1, rect, str(data[key]), max_fontsize=10)
+
         y_cap = get_anchor(page1, ["capital", "authorized"], 200, 500)
         if not y_cap: y_cap = 395
         if data.get("capitalSocial"):
-            try: page1.insert_text((450, y_cap + 18), f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD", fontsize=10, fontname="hebo")
+            try: 
+                val_cap = f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD"
+                page1.insert_text((450, y_cap + 18), val_cap, fontsize=10, fontname="hebo")
             except: pass
 
-        process_directors_page(page1, directors[:2], 1)
+        # Procesar Directores 1 y 2 (Side-by-side)
+        y_dir_header = get_anchor(page1, ["directores", "directors"], 100, 600)
+        if not y_dir_header: y_dir_header = 280
+        
+        for i in range(min(2, len(directors))):
+            d = directors[i]
+            x_min, x_max, v_x = (50, 295, 155) if i == 0 else (300, 580, 445)
+            fill_fixed_col_table(page1, d, dir_labels, x_min, x_max, v_x, min_y=y_dir_header + 40)
 
-        # ANEXOS
+        # Procesar Director 3 (Formato Especial al final de la Pág 1)
+        if len(directors) >= 3:
+            d3 = directors[2]
+            y_d3 = get_anchor(page1, ["director 3"], 500, 850)
+            if not y_d3: y_d3 = 680
+            
+            # Director 3 tiene un layout distinto: 
+            # Parte Izquierda: Datos personales (X_val = 155)
+            # Parte Derecha: Dirección/Ciudad/País (X_val = 445)
+            d3_labels_left = {k: dir_labels[k] for k in ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]}
+            d3_labels_right = {k: dir_labels[k] for k in ["address", "city", "country"]}
+            
+            fill_fixed_col_table(page1, d3, d3_labels_left, 50, 295, 155, min_y=y_d3 + 20)
+            fill_fixed_col_table(page1, d3, d3_labels_right, 300, 580, 445, min_y=y_d3 + 20)
+
+        # ANEXOS (Para Director 4 en adelante)
         annex_count = 0
         src_doc = fitz.open(pdf_path)
-        for i in range(2, len(directors), 2):
+        for i in range(3, len(directors), 2):
             annex_count += 1
             p_idx = annex_count
             doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=p_idx)
-            process_directors_page(doc[p_idx], directors[i:i+2], p_idx + 1, is_annex=True)
+            annex_page = doc[p_idx]
+            
+            # Limpiar y marcar como anexo
+            annex_page.insert_text((50, 40), f"ANEXO DIRECTORES PÁG. {p_idx+1}", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+            annex_page.draw_rect(fitz.Rect(0, 50, 600, y_dir_header - 20), color=(1,1,1), fill=(1,1,1))
+            
+            # Llenar usando el layout estándar de 2 columnas
+            chunk = directors[i:i+2]
+            for j, d in enumerate(chunk):
+                x_min, x_max, v_x = (50, 295, 155) if j == 0 else (300, 580, 445)
+                fill_fixed_col_table(annex_page, d, dir_labels, x_min, x_max, v_x, min_y=y_dir_header + 40)
 
         # PÁGINA FINAL (DIGNATARIOS Y ACCIONISTAS)
         orig_p2_idx = 1 + annex_count
         if len(doc) > orig_p2_idx:
             page2 = doc[orig_p2_idx]
             
-            # Dignatarios
+            # Dignatarios (Alineación Blindada)
             dign_roles = {"presidente": ["president"], "secretario": ["secretary"], "tesorero": ["treasurer"]}
             for role_key, role_kws in dign_roles.items():
                 d = dignitaries.get(role_key)
@@ -201,7 +182,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 if isinstance(d, str): d = {"fullName": d}
                 y_role = get_anchor(page2, role_kws, 50, 400)
                 if y_role:
-                    if d.get("fullName"): page2.insert_text((220, y_role), str(d["fullName"]), fontsize=9)
+                    # Posiciones fijas para Dignatarios en Page 2
+                    if d.get("fullName"): 
+                        rect = fitz.Rect(210, y_role - 10, 480, y_role + 5)
+                        insert_text_scaled(page2, rect, str(d["fullName"]), max_fontsize=9)
                     if d.get("birthDate"): page2.insert_text((500, y_role), str(d["birthDate"]), fontsize=8)
                     if d.get("passport"): page2.insert_text((630, y_role), str(d["passport"]), fontsize=8)
                     if d.get("registrationNumber"): page2.insert_text((750, y_role), str(d["registrationNumber"]), fontsize=8)
