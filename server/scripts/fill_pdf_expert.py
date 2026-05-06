@@ -109,16 +109,18 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         y_start = comp_cfg.get("y_start", 120)
         x_val = comp_cfg.get("x_value", 230)
         
-        # Inyectar nombres de compañía
+        # Inyectar nombres de compañía (Manejo de errores de conversión)
         fields = ["corpNameSA", "corpNameCorp", "corpNameInc", "capitalSocial"]
         for i, f in enumerate(fields):
             val = data.get(f)
             if val:
                 curr_y = y_start + (i * comp_cfg.get("step", 25))
-                if f == "capitalSocial": val = f"{float(val):,.2f} USD"
+                if f == "capitalSocial":
+                    try: val = f"{float(str(val).replace(',','')):,.2f} USD"
+                    except: val = str(val) # Fallback a string si no es número
                 page1.insert_text((x_val, curr_y), str(val), fontsize=10, fontname="helv-bold")
 
-        # Procesar primeros directores (Máximo 2 por página para mejor legibilidad y centrado)
+        # Procesar primeros directores (Máximo 2 por página)
         process_directors_page(page1, directors[:2], 1)
 
         # ANEXOS
@@ -132,17 +134,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
         # PÁGINA 2 (DIGNATARIOS Y ACCIONISTAS)
         orig_p2_idx = 1 + annex_count
-
         if len(doc) > orig_p2_idx:
             page2 = doc[orig_p2_idx]
             y_dig = get_anchor(page2, ["dignatarios", "officers"], 100, 600)
             if not y_dig: y_dig = 118
             
-            # Dignatarios (Presidente, Secretario, Tesorero)
+            # Dignatarios (Robustez de Objetos/Strings)
             roles = {"presidente": 38, "secretario": 58, "tesorero": 78}
             for role, off in roles.items():
                 if role in dignitaries:
                     d = dignitaries[role]
+                    if isinstance(d, str): d = {"fullName": d}
                     y_row = y_dig + off
                     if d.get("fullName"): insert_text_scaled(page2, fitz.Rect(170, y_row - 8, 320, y_row), d["fullName"])
                     if d.get("birthDate"): insert_text_scaled(page2, fitz.Rect(330, y_row - 8, 395, y_row), d["birthDate"])
@@ -155,10 +157,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             def fill_sh_block(page, sh_chunk, anchor_y, is_annex=False):
                 if is_annex:
                     page.insert_text((50, anchor_y - 45), "CONTINUACIÓN ACCIONISTAS - PÁGINA ANEXO", fontsize=11, fontname="helv", color=(0.29, 0.64, 0.77))
-                    page.draw_rect(fitz.Rect(45, anchor_y + 30, 550, anchor_y + 150), color=(1,1,1), fill=(1,1,1))
                 
                 y_start = anchor_y + 45
                 for i, s in enumerate(sh_chunk[:3]):
+                    if isinstance(s, str): s = {"name": s}
                     y_pos = y_start + (i * 22)
                     if s.get("certificate"): page.insert_text((60, y_pos), str(s["certificate"]), fontsize=8)
                     if s.get("value"): page.insert_text((130, y_pos), str(s["value"]), fontsize=8)
@@ -167,6 +169,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                     if s.get("address"): insert_text_scaled(page, fitz.Rect(400, y_pos - 8, 550, y_pos), s["address"])
 
             fill_sh_block(page2, shareholders[:3], y_sh)
+
 
             # Actividades y Firma
             y_act = get_anchor(page2, ["actividades", "activities"], 400, 900)
