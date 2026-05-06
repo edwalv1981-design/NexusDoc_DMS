@@ -137,7 +137,6 @@ router.get('/download/:id', auth, async (req, res) => {
         });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(doc.filename)}`);
         res.send(doc.fileData);
     } catch (err) {
         console.error(err);

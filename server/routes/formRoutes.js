@@ -155,9 +155,11 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
 
             const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.substring(0, 8);
-            res.download(outputPath, `${prefix}_${safeId}.pdf`, (err) => {
-                if (err) console.error('❌ Error enviando archivo al navegador:', err);
-                // Limpiar temporal después de enviar
+
+            // Enviar como stream sin Content-Disposition para que el frontend controle el nombre
+            res.setHeader('Content-Type', 'application/pdf');
+            const fileStream = fs.createReadStream(outputPath);
+            fileStream.on('end', () => {
                 if (fs.existsSync(outputPath)) {
                     try { fs.unlinkSync(outputPath); } catch(e) {}
                 }
@@ -165,6 +167,10 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                     try { fs.unlinkSync(customTemplatePath); } catch(e) {}
                 }
             });
+            fileStream.on('error', (err) => {
+                console.error('❌ Error enviando stream:', err);
+            });
+            fileStream.pipe(res);
         });
 
         pythonProcess.stdin.write(JSON.stringify({ 
