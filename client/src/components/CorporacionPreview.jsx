@@ -4,8 +4,8 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
     if (!data) return null;
 
     const PRIMARY = '#0070c0';
-    const SECONDARY = '#1e293b';
-
+    
+    // Configuración de estilos base
     const styles = {
         page: {
             width: '210mm',
@@ -16,104 +16,109 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
             fontFamily: '"Helvetica", Arial, sans-serif',
             color: '#333',
             boxSizing: 'border-box',
-            position: 'relative'
+            position: 'relative',
+            pageBreakAfter: 'always', // Fuerza el salto de página en el PDF
+            borderBottom: '1px solid #f1f5f9'
         },
         header: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '20px',
-            borderBottom: `2px solid ${PRIMARY}`
-        },
-        logoArea: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-        },
-        titleArea: {
-            textAlign: 'right'
+            marginBottom: '15px',
+            borderBottom: `2px solid ${PRIMARY}`,
+            paddingBottom: '10px'
         },
         sectionHeader: {
             backgroundColor: PRIMARY,
             color: 'white',
-            padding: '8px 12px',
-            fontSize: '14px',
+            padding: '6px 10px',
+            fontSize: '12px',
             fontWeight: 'bold',
-            marginTop: '20px',
-            marginBottom: '10px',
+            marginTop: '15px',
+            marginBottom: '8px',
             textTransform: 'uppercase'
-        },
-        subHeader: {
-            fontSize: '11px',
-            color: '#666',
-            marginBottom: '10px',
-            fontStyle: 'italic'
         },
         table: {
             width: '100%',
             borderCollapse: 'collapse',
-            marginBottom: '15px',
-            fontSize: '10px'
+            marginBottom: '10px',
+            fontSize: '9px'
         },
         cellLabel: {
             border: '1px solid #cbd5e1',
-            padding: '6px',
+            padding: '5px',
             backgroundColor: '#f8fafc',
-            width: '30%',
+            width: '35%',
             fontWeight: 'bold'
         },
         cellValue: {
             border: '1px solid #cbd5e1',
-            padding: '6px',
-            width: '70%'
+            padding: '5px',
+            width: '65%'
         },
-        grid2: {
+        directorGrid: {
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '15px'
-        },
-        directorCard: {
-            border: '1px solid #e2e8f0',
-            borderRadius: '4px',
-            overflow: 'hidden'
+            gap: '10px'
         }
     };
 
-    const renderDirector = (d, index) => (
-        <div key={index} style={styles.directorCard}>
-            <div style={{ backgroundColor: '#f1f5f9', padding: '5px 10px', fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>
+    // Función auxiliar para dividir arreglos en trozos (chunks)
+    const chunkArray = (arr, size) => {
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+        }
+        return chunks;
+    };
+
+    const renderDirectorRow = (label, value) => (
+        <tr style={{ height: '22px' }}>
+            <td style={styles.cellLabel}>{label}</td>
+            <td style={styles.cellValue}>{value || '-'}</td>
+        </tr>
+    );
+
+    const renderDirectorBox = (d, index) => (
+        <div key={index} style={{ border: '1px solid #e2e8f0', borderRadius: '4px', marginBottom: '10px' }}>
+            <div style={{ backgroundColor: '#f1f5f9', padding: '4px 10px', fontSize: '9px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>
                 DIRECTOR #{index + 1}
             </div>
             <table style={styles.table}>
                 <tbody>
-                    <tr><td style={styles.cellLabel}>Nombre</td><td style={styles.cellValue}>{d.firstName} {d.secondName}</td></tr>
-                    <tr><td style={styles.cellLabel}>Apellidos</td><td style={styles.cellValue}>{d.lastName}</td></tr>
-                    <tr><td style={styles.cellLabel}>Nacionalidad</td><td style={styles.cellValue}>{d.nationality}</td></tr>
-                    <tr><td style={styles.cellLabel}>Pasaporte/ID</td><td style={styles.cellValue}>{d.passport}</td></tr>
-                    <tr><td style={styles.cellLabel}>Estado Civil</td><td style={styles.cellValue}>{d.maritalStatus}</td></tr>
-                    <tr><td style={styles.cellLabel}>Ciudad/País</td><td style={styles.cellValue}>{d.city}, {d.country}</td></tr>
+                    {renderDirectorRow('Nombre(s)', `${d.firstName} ${d.secondName}`)}
+                    {renderDirectorRow('Apellidos', d.lastName)}
+                    {renderDirectorRow('Estado Civil', d.maritalStatus)}
+                    {renderDirectorRow('Nacionalidad', d.nationality)}
+                    {renderDirectorRow('Pasaporte/ID', d.passport)}
+                    {renderDirectorRow('Ciudad/País', `${d.city || ''}, ${d.country || ''}`)}
+                    {renderDirectorRow('Dirección', d.address)}
                 </tbody>
             </table>
         </div>
     );
 
+    // Lógica de Paginación
+    const firstPageDirectors = data.directors.slice(0, 3);
+    const extraDirectorsChunks = chunkArray(data.directors.slice(3), 4); // 4 directores por página de anexo
+    
+    const firstPageShareholders = data.shareholders.slice(0, 5);
+    const extraShareholdersChunks = chunkArray(data.shareholders.slice(5), 15); // 15 accionistas por página de anexo
+
     return (
         <div ref={ref} id="corp-document-preview">
+            
+            {/* --- PÁGINA 1: IDENTIDAD Y DIRECTORES PRINCIPALES --- */}
             <div style={styles.page}>
-                {/* HEADER */}
                 <div style={styles.header}>
-                    <div style={styles.logoArea}>
-                        <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '60px' }} />
-                    </div>
-                    <div style={styles.titleArea}>
-                        <h1 style={{ margin: 0, fontSize: '18px', color: PRIMARY }}>Incorporation Form</h1>
-                        <h2 style={{ margin: 0, fontSize: '16px', color: '#666' }}>Formulario de Incorporación</h2>
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '50px' }} />
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 'bold', color: PRIMARY, fontSize: '16px' }}>Incorporation Form</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>Formulario de Incorporación</div>
                     </div>
                 </div>
 
-                {/* SECTION 1: IDENTITY */}
-                <div style={styles.sectionHeader}>Name of the corporation / Nombre de la compañía</div>
-                <div style={styles.subHeader}>List the names you wish to use to incorporate your corporation in order of preference</div>
+                <div style={styles.sectionHeader}>1. COMPANY IDENTITY / IDENTIDAD DE LA COMPAÑÍA</div>
                 <table style={styles.table}>
                     <tbody>
                         <tr><td style={styles.cellLabel}>1st Choice (S.A.)</td><td style={styles.cellValue}>{data.corpNameSA}</td></tr>
@@ -122,47 +127,51 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                     </tbody>
                 </table>
 
-                {/* CAPITAL */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: PRIMARY, color: 'white', padding: '8px 12px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>AUTHORIZED CAPITAL / CAPITAL SOCIAL AUTORIZADO</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{data.capitalSocial} USD</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: PRIMARY, color: 'white', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold' }}>
+                    <span>CAPITAL SOCIAL AUTORIZADO (AUTHORIZED CAPITAL)</span>
+                    <span>$ {data.capitalSocial} USD</span>
                 </div>
 
-                {/* DIRECTORS */}
-                <div style={styles.sectionHeader}>Directors / Directores</div>
-                <div style={styles.grid2}>
-                    {data.directors.slice(0, 2).map((d, i) => renderDirector(d, i))}
+                <div style={styles.sectionHeader}>2. BOARD OF DIRECTORS / JUNTA DIRECTIVA</div>
+                <div style={styles.directorGrid}>
+                    {firstPageDirectors.slice(0, 2).map((d, i) => renderDirectorBox(d, i))}
                 </div>
+                {firstPageDirectors[2] && renderDirectorBox(firstPageDirectors[2], 2)}
 
-                {/* DIRECTOR 3 */}
-                {data.directors.length >= 3 && (
-                    <div style={{ marginTop: '15px' }}>
-                        {renderDirector(data.directors[2], 2)}
-                    </div>
-                )}
-
-                {/* FOOTER PAGE 1 */}
-                <div style={{ position: 'absolute', bottom: '15mm', left: '15mm', right: '15mm', textAlign: 'center', fontSize: '10px', color: '#94a3b8' }}>
-                    Página 1 de {data.directors.length > 3 || data.shareholders.length > 4 ? '2+' : '2'}
+                <div style={{ position: 'absolute', bottom: '10mm', left: '0', right: '0', textAlign: 'center', fontSize: '9px', color: '#94a3b8' }}>
+                    PÁGINA 1
                 </div>
             </div>
 
-            {/* PAGE 2: DIGNITARIES & SHAREHOLDERS */}
-            <div style={{ ...styles.page, marginTop: '20px', borderTop: '1px dashed #ccc' }}>
-                <div style={styles.sectionHeader}>Dignitaries / Dignatarios</div>
+            {/* --- PÁGINAS DE ANEXO: DIRECTORES ADICIONALES (SI EXISTEN) --- */}
+            {extraDirectorsChunks.map((chunk, pIdx) => (
+                <div key={`annex-dir-${pIdx}`} style={styles.page}>
+                    <div style={styles.sectionHeader}>ANEXO: DIRECTORES ADICIONALES (CONTINUACIÓN)</div>
+                    <div style={styles.directorGrid}>
+                        {chunk.map((d, i) => renderDirectorBox(d, 3 + (pIdx * 4) + i))}
+                    </div>
+                    <div style={{ position: 'absolute', bottom: '10mm', left: '0', right: '0', textAlign: 'center', fontSize: '9px', color: '#94a3b8' }}>
+                        ANEXO DIRECTORES - PÁG {pIdx + 1}
+                    </div>
+                </div>
+            ))}
+
+            {/* --- PÁGINA FINAL: DIGNATARIOS Y ACCIONISTAS --- */}
+            <div style={styles.page}>
+                <div style={styles.sectionHeader}>3. DIGNITARIES / DIGNATARIOS</div>
                 <table style={styles.table}>
-                    <thead>
-                        <tr style={{ backgroundColor: '#f1f5f9' }}>
-                            <th style={styles.cellLabel}>Cargo</th>
-                            <th style={styles.cellLabel}>Nombre Completo</th>
-                            <th style={styles.cellLabel}>F. Nacimiento</th>
-                            <th style={styles.cellLabel}>Pasaporte</th>
+                    <thead style={{ backgroundColor: '#f1f5f9' }}>
+                        <tr>
+                            <th style={{ ...styles.cellLabel, width: '20%' }}>CARGO</th>
+                            <th style={styles.cellLabel}>NOMBRE COMPLETO</th>
+                            <th style={{ ...styles.cellLabel, width: '15%' }}>F. NAC.</th>
+                            <th style={{ ...styles.cellLabel, width: '15%' }}>PASAPORTE</th>
                         </tr>
                     </thead>
                     <tbody>
                         {Object.entries(data.dignitaries).map(([role, d]) => (
                             <tr key={role}>
-                                <td style={{ ...styles.cellValue, textTransform: 'capitalize', fontWeight: 'bold' }}>{role}</td>
+                                <td style={{ ...styles.cellValue, fontWeight: 'bold', textTransform: 'uppercase' }}>{role}</td>
                                 <td style={styles.cellValue}>{d.fullName}</td>
                                 <td style={styles.cellValue}>{d.birthDate}</td>
                                 <td style={styles.cellValue}>{d.passport}</td>
@@ -171,19 +180,19 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                     </tbody>
                 </table>
 
-                <div style={styles.sectionHeader}>Shareholders / Accionistas</div>
+                <div style={styles.sectionHeader}>4. SHAREHOLDERS / ACCIONISTAS</div>
                 <table style={styles.table}>
-                    <thead>
-                        <tr style={{ backgroundColor: '#f1f5f9' }}>
-                            <th style={styles.cellLabel}>Cert.</th>
-                            <th style={styles.cellLabel}>Valor</th>
-                            <th style={styles.cellLabel}>Acciones</th>
-                            <th style={styles.cellLabel}>Nombre</th>
-                            <th style={styles.cellLabel}>Dirección</th>
+                    <thead style={{ backgroundColor: '#f1f5f9' }}>
+                        <tr>
+                            <th style={{ ...styles.cellLabel, width: '10%' }}>CERT.</th>
+                            <th style={{ ...styles.cellLabel, width: '12%' }}>VALOR</th>
+                            <th style={{ ...styles.cellLabel, width: '10%' }}>ACC.</th>
+                            <th style={styles.cellLabel}>NOMBRE</th>
+                            <th style={styles.cellLabel}>DIRECCIÓN</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {data.shareholders.map((s, i) => (
+                        {firstPageShareholders.map((s, i) => (
                             <tr key={i}>
                                 <td style={styles.cellValue}>{s.certificate}</td>
                                 <td style={styles.cellValue}>{s.value}</td>
@@ -195,18 +204,59 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                     </tbody>
                 </table>
 
-                <div style={styles.sectionHeader}>Signature / Firma</div>
-                <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={styles.sectionHeader}>5. DECLARATION & SIGNATURE / DECLARACIÓN Y FIRMA</div>
+                <div style={{ fontSize: '10px', lineHeight: '1.5', marginBottom: '20px', color: '#475569' }}>
+                    {data.companyActivities || 'No se especificaron actividades.'}
+                </div>
+
+                <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between' }}>
                     <div style={{ width: '60%', borderTop: '1px solid black', paddingTop: '5px' }}>
-                        <div style={{ fontSize: '10px', fontWeight: 'bold' }}>{data.declarationName || '_________________________________'}</div>
-                        <div style={{ fontSize: '9px', color: '#666' }}>Signature of applicant / Firma del solicitante</div>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{data.declarationName || '_________________________________'}</div>
+                        <div style={{ fontSize: '9px', color: '#64748b' }}>Signature of applicant / Firma del solicitante</div>
                     </div>
                     <div style={{ width: '30%', borderTop: '1px solid black', paddingTop: '5px' }}>
-                        <div style={{ fontSize: '10px' }}>{data.declarationDate}</div>
-                        <div style={{ fontSize: '9px', color: '#666' }}>Date / Fecha</div>
+                        <div style={{ fontSize: '11px' }}>{data.declarationDate}</div>
+                        <div style={{ fontSize: '9px', color: '#64748b' }}>Date / Fecha</div>
                     </div>
                 </div>
+
+                <div style={{ position: 'absolute', bottom: '10mm', left: '0', right: '0', textAlign: 'center', fontSize: '9px', color: '#94a3b8' }}>
+                    PÁGINA FINAL
+                </div>
             </div>
+
+            {/* --- ANEXOS DE ACCIONISTAS (SI EXISTEN MÁS DE 5) --- */}
+            {extraShareholdersChunks.map((chunk, pIdx) => (
+                <div key={`annex-sh-${pIdx}`} style={styles.page}>
+                    <div style={styles.sectionHeader}>ANEXO: ACCIONISTAS ADICIONALES</div>
+                    <table style={styles.table}>
+                        <thead style={{ backgroundColor: '#f1f5f9' }}>
+                            <tr>
+                                <th style={{ ...styles.cellLabel, width: '10%' }}>CERT.</th>
+                                <th style={{ ...styles.cellLabel, width: '12%' }}>VALOR</th>
+                                <th style={{ ...styles.cellLabel, width: '10%' }}>ACC.</th>
+                                <th style={styles.cellLabel}>NOMBRE</th>
+                                <th style={styles.cellLabel}>DIRECCIÓN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {chunk.map((s, i) => (
+                                <tr key={i}>
+                                    <td style={styles.cellValue}>{s.certificate}</td>
+                                    <td style={styles.cellValue}>{s.value}</td>
+                                    <td style={styles.cellValue}>{s.shares}</td>
+                                    <td style={styles.cellValue}>{s.name}</td>
+                                    <td style={styles.cellValue}>{s.address}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div style={{ position: 'absolute', bottom: '10mm', left: '0', right: '0', textAlign: 'center', fontSize: '9px', color: '#94a3b8' }}>
+                        ANEXO ACCIONISTAS - PÁG {pIdx + 1}
+                    </div>
+                </div>
+            ))}
+
         </div>
     );
 });
