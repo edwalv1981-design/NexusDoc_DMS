@@ -172,7 +172,10 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <div className="expert-group"><label>NACIONALIDAD</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
                             <div className="expert-group"><label>PASAPORTE / ID</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
                             <div className="expert-group"><label>FECHA NACIMIENTO</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
+                            <div className="expert-group"><label>TELÉFONO</label><input type="text" className="expert-input" value={d.phone} onChange={e => updateDirector(index, 'phone', e.target.value)} /></div>
                             <div className="expert-group"><label>EMAIL</label><input type="email" className="expert-input" value={d.email} onChange={e => updateDirector(index, 'email', e.target.value)} /></div>
+                            <div className="expert-group"><label>CIUDAD</label><input className="expert-input" value={d.city} onChange={e => updateDirector(index, 'city', e.target.value)} /></div>
+                            <div className="expert-group"><label>PAÍS</label><input className="expert-input" value={d.country} onChange={e => updateDirector(index, 'country', e.target.value)} /></div>
                         </div>
                         <div className="expert-group" style={{ marginTop: '15px' }}><label>DIRECCIÓN RESIDENCIAL</label><input className="expert-input" value={d.address} onChange={e => updateDirector(index, 'address', e.target.value)} /></div>
                     </div>

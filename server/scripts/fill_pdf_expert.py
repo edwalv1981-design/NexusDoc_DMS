@@ -102,23 +102,24 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 ]
 
                 # Paso 4: Borde derecho máximo de las etiquetas
+                # Filtramos palabras que tengan un X inicial muy a la derecha (que podrían ser ya valores de otra columna)
                 if row_label_words:
-                    label_right_edge = max(w[2] for w in row_label_words)
+                    label_right_edge = max(w[2] for w in row_label_words if w[0] < x_min + (x_max - x_min)*0.6)
                 else:
                     label_right_edge = anchor[2]
 
-                # Paso 5: El valor empieza 8px DESPUÉS del borde de la etiqueta
-                computed_value_x = label_right_edge + 8
+                # Paso 5: El valor empieza 10px DESPUÉS del borde de la etiqueta (más margen)
+                computed_value_x = label_right_edge + 10
                 value_width = x_max - computed_value_x - 5
                 value_y = anchor[3]  # baseline de la palabra ancla
 
-                if value_width > 15:  # Solo insertar si hay espacio suficiente
+                if value_width > 10:  # Solo insertar si hay espacio suficiente
                     rect = fitz.Rect(computed_value_x, value_y - 11, computed_value_x + value_width, value_y + 2)
                     insert_text_scaled(page, rect, str(val), max_fontsize=8, min_fontsize=6)
 
         dir_labels = {
             "firstName": ["first", "nombre"],
-            "middleName": ["middle", "segundo"],
+            "secondName": ["middle", "segundo"],
             "lastName": ["surname", "apellidos"],
             "birthDate": ["birth", "nacimiento"],
             "maritalStatus": ["marital", "estado"],
@@ -157,14 +158,18 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 value_x = 135 if col == 0 else 425
                 fill_dynamic_table(page, d, dir_labels, x_min, x_max, value_x, min_y=y_dir)
 
-        # PÁGINA 1: Datos de la Compañía
+        # PÁGINA 1: Datos de la Compañía (Alineación Dinámica para Nombres)
         page1 = doc[0]
         y_names = get_anchor(page1, ["names", "incorp", "preference"], 100, 300)
         if not y_names: y_names = 150
         
-        choices = ["corpNameSA", "corpNameCorp", "corpNameInc"]
-        for i, c in enumerate(choices):
-            if data.get(c): page1.insert_text((240, y_names + 22 + (i * 35)), str(data[c]), fontsize=10, fontname="hebo")
+        # Mapeo dinámico para las opciones de nombre
+        name_choices_labels = {
+            "corpNameSA": ["1st", "choice"],
+            "corpNameCorp": ["2nd", "choice"],
+            "corpNameInc": ["3rd", "choice"]
+        }
+        fill_dynamic_table(page1, data, name_choices_labels, 50, 450, 240, min_y=y_names, max_y=y_names+120)
         
         y_cap = get_anchor(page1, ["capital", "authorized"], 200, 500)
         if not y_cap: y_cap = 395
