@@ -185,16 +185,24 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if k in f_d: 
                 page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
         
-        # Dirección de Custodia (Detección dinámica de coordenadas para precisión total)
+        # █ BLINDAJE TOTAL: Dirección de Custodia (Autocalibración Dinámica) █
         if data.get("custodyAddress"):
-            y_target = 735 # Fallback
-            words = page1.get_text("words")
-            for w in words:
-                # Buscamos el "Address:" que está en la parte inferior (y > 700)
+            # Valores de seguridad (fallbacks) basados en calibración final
+            x_final = 141 
+            y_final = 742 
+            
+            # Escaneo de precisión para anclaje físico
+            for w in page1.get_text("words"):
+                # Localizamos el "Address:" en la parte inferior del documento
                 if "Address:" in w[4] and w[1] > 700:
-                    y_target = (w[1] + w[3]) / 2 + 4 # Bajamos 2 píxeles más (de +2 a +4)
+                    # BLINDAJE X: Calculamos el final de la etiqueta + margen estético calibrado
+                    x_final = w[2] + 25 
+                    # BLINDAJE Y: Centro vertical exacto de la línea de texto
+                    y_final = (w[1] + w[3]) / 2 + 4
                     break
-            page1.insert_text((141, y_target), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
+            
+            # Inserción blindada (No modificar estas coordenadas, son autocalibradas)
+            page1.insert_text((x_final, y_final), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
         if len(doc) > 1:
             if data.get("signerName"): doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
