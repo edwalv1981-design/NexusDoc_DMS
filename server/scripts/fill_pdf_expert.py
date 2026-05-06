@@ -12,7 +12,7 @@ def normalize(text):
     if not text: return ""
     return "".join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn').lower()
 
-def insert_text_scaled(page, rect, text, fontname="helv", max_fontsize=9, min_fontsize=6, color=(0,0,0)):
+def insert_text_scaled(page, rect, text, fontname="Helvetica", max_fontsize=9, min_fontsize=6, color=(0,0,0)):
     """Inserta texto escalando la fuente automáticamente para que quepa en el recuadro."""
     if not text: return
     text = str(text)
@@ -125,7 +125,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 # Escribir en el casillero blanco a la derecha del label "10.000 USD"
                 val_cap = f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD"
                 # El casillero está aproximadamente en X=450
-                page1.insert_text((450, y_cap + 18), val_cap, fontsize=10, fontname="helv")
+                page1.insert_text((450, y_cap + 18), val_cap, fontsize=10, fontname="Helvetica")
             except: pass
 
         # 3. Directores 1 y 2 (Columnas Gemelas)
@@ -155,17 +155,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             annex_page = doc[annex_count]
             # Limpiar contenido original de Pág 1 para convertirla en Anexo limpio
             annex_page.draw_rect(fitz.Rect(0, 0, 600, 1000), color=(1,1,1), fill=(1,1,1))
-            annex_page.insert_text((50, 50), f"ANEXO DIRECTORES (PÁG {annex_count + 1})", fontsize=14, fontname="helv", color=(0.2, 0.4, 0.6))
+            annex_page.insert_text((50, 50), f"ANEXO DIRECTORES (PÁG {annex_count + 1})", fontsize=14, fontname="Helvetica", color=(0.2, 0.4, 0.6))
             
             chunk = directors[i:i+2]
             for j, d in enumerate(chunk):
                 x_off = 50 if j == 0 else 310
                 y_off = 100
-                annex_page.insert_text((x_off, y_off), f"DIRECTOR #{i + j + 1}", fontsize=10, fontname="helv-bold")
+                annex_page.insert_text((x_off, y_off), f"DIRECTOR #{i + j + 1}", fontsize=10, fontname="Helvetica-Bold")
                 for k, (label_key, kws) in enumerate(dir_labels.items()):
                     lab_txt = f"{label_key}:"
-                    annex_page.insert_text((x_off, y_off + 20 + (k*18)), lab_txt, fontsize=8, fontname="helv")
-                    annex_page.insert_text((x_off + 80, y_off + 20 + (k*18)), str(d.get(label_key, "")), fontsize=8, fontname="helv")
+                    annex_page.insert_text((x_off, y_off + 20 + (k*18)), lab_txt, fontsize=8, fontname="Helvetica")
+                    annex_page.insert_text((x_off + 80, y_off + 20 + (k*18)), str(d.get(label_key, "")), fontsize=8, fontname="Helvetica")
 
         # --- PÁGINA FINAL (DIGNATARIOS, ACCIONISTAS, FIRMA) ---
         p_final_idx = 1 + annex_count
@@ -197,7 +197,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             
             def fill_sh_block_clean(p, sh_chunk, start_y, is_annex=False):
                 if is_annex:
-                    p.insert_text((50, 40), "ANEXO ACCIONISTAS", fontsize=12, fontname="helv", color=(0.29, 0.64, 0.77))
+                    p.insert_text((50, 40), "ANEXO ACCIONISTAS", fontsize=12, fontname="Helvetica", color=(0.29, 0.64, 0.77))
                     p.draw_rect(fitz.Rect(0, 50, 600, start_y - 20), color=(1,1,1), fill=(1,1,1))
                 
                 for i, s in enumerate(sh_chunk):
@@ -218,7 +218,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
             y_sig = get_anchor(pageF, ["declaration", "firma"], 600, 1000) or 740
             if data.get("declarationName"): 
-                pageF.insert_text((150, y_sig + 105), str(data["declarationName"]), fontsize=10, fontname="helv-bold")
+                pageF.insert_text((150, y_sig + 105), str(data["declarationName"]), fontsize=10, fontname="Helvetica-Bold")
             if data.get("declarationDate"): 
                 pageF.insert_text((220, y_sig + 138), f"{str(data['declarationDate'])}", fontsize=10)
 
@@ -262,12 +262,12 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 fy = find_y_legacy(entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
                 if fy:
                     x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
-                    page1.insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="helv")
+                    page1.insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="Helvetica")
 
         # Fallback para Dirección Final (Fondos)
         y_final_label = find_y_legacy(["direccion", "address"], min_y=700)
         if y_final_label and data.get("custodyAddress"):
-            page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="helv")
+            page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
         # === BLINDAJE DE LÓGICA: Checkboxes Procedencia de Fondos (Máxima Alineación) ===
         f_d = str(data.get("fundsSource", [])).lower()
@@ -288,11 +288,11 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             }
 
         f_d = str(data.get("fundsSource", [])).lower()
-        if "personal" in f_d: page1.insert_text((checks_cfg["personal_assets"]["x"], checks_cfg["personal_assets"]["y"]), "X", fontsize=checks_cfg["personal_assets"]["font_size"], fontname="helv")
-        if "finan" in f_d: page1.insert_text((checks_cfg["financial_investments"]["x"], checks_cfg["financial_investments"]["y"]), "X", fontsize=checks_cfg["financial_investments"]["font_size"], fontname="helv")
-        if "negocio" in f_d: page1.insert_text((checks_cfg["business"]["x"], checks_cfg["business"]["y"]), "X", fontsize=checks_cfg["business"]["font_size"], fontname="helv")
-        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((checks_cfg["loans"]["x"], checks_cfg["loans"]["y"]), "X", fontsize=checks_cfg["loans"]["font_size"], fontname="helv")
-        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((checks_cfg["inheritance"]["x"], checks_cfg["inheritance"]["y"]), "X", fontsize=checks_cfg["inheritance"]["font_size"], fontname="helv")
+        if "personal" in f_d: page1.insert_text((checks_cfg["personal_assets"]["x"], checks_cfg["personal_assets"]["y"]), "X", fontsize=checks_cfg["personal_assets"]["font_size"], fontname="Helvetica")
+        if "finan" in f_d: page1.insert_text((checks_cfg["financial_investments"]["x"], checks_cfg["financial_investments"]["y"]), "X", fontsize=checks_cfg["financial_investments"]["font_size"], fontname="Helvetica")
+        if "negocio" in f_d: page1.insert_text((checks_cfg["business"]["x"], checks_cfg["business"]["y"]), "X", fontsize=checks_cfg["business"]["font_size"], fontname="Helvetica")
+        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((checks_cfg["loans"]["x"], checks_cfg["loans"]["y"]), "X", fontsize=checks_cfg["loans"]["font_size"], fontname="Helvetica")
+        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((checks_cfg["inheritance"]["x"], checks_cfg["inheritance"]["y"]), "X", fontsize=checks_cfg["inheritance"]["font_size"], fontname="Helvetica")
         # ==============================================================================
 
 
@@ -315,9 +315,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         # Página 2 (Firmas - Fondos)
         if len(doc) > 1:
             if data.get("signerName"):
-                doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="helv")
+                doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
             if data.get("date"):
-                doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="helv")
+                doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="Helvetica")
 
     # Guardado seguro y aplanado (non-editable)
     doc.save(output_path, incremental=False, encryption=0)
