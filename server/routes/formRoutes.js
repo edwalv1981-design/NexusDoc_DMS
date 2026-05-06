@@ -127,8 +127,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             if (error) {
                 console.error(`❌ Error en motor Python: ${error.message}`);
                 console.error(`🔍 Detalle Stderr: ${stderr}`);
-                try { fs.writeFileSync(path.join(__dirname, '../last_pdf_error.txt'), `Node Exec Error:\n${error.message}\n\nStderr:\n${stderr}`); } catch(e) {}
-                return res.status(500).json({ msg: 'Error interno en el motor de PDF' });
+                let displayErr = stderr ? stderr.toString().substring(0, 150) : error.message;
+                return res.status(500).json({ msg: `ERROR MOTOR: ${displayErr}` });
             }
             
             if (!fs.existsSync(outputPath)) {
