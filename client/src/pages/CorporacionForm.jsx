@@ -53,7 +53,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }
 
         const director = formData.directors[directorIndex];
-        const fullName = `${director.firstName} ${director.lastName}`.trim();
+        const nameParts = [director.firstName, director.secondName, director.lastName].filter(p => p && p.trim() !== "");
+        const fullName = nameParts.join(' ');
         
         setFormData(prev => ({
             ...prev,
@@ -63,7 +64,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     fullName, 
                     birthDate: director.birthDate, 
                     passport: director.passport,
-                    registrationNumber: '', // Manual
+                    registrationNumber: prev.dignitaries[role].registrationNumber,
                     directorRef: directorIndex 
                 }
             }
