@@ -84,21 +84,8 @@ const SignedDocuments = () => {
   const handleDownload = async (id, filename) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/signed-docs/download/${id}`, {
-        headers: { 'x-auth-token': token },
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-          link.remove();
-          window.URL.revokeObjectURL(url);
-      }, 1000);
+      // Bypass fetch/blob issues by using native browser navigation for downloads
+      window.location.href = `${API_BASE_URL}/api/signed-docs/download/${id}?token=${token}`;
     } catch (err) {
       toast.error('Error al descargar');
     }

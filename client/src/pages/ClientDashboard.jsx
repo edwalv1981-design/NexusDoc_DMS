@@ -188,36 +188,8 @@ const ClientDashboard = () => {
         const token = localStorage.getItem('token');
         showToast('Generando Fiel Copia...', 'success');
         try {
-            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${id}`, {
-                headers: { 'x-auth-token': token }
-            });
-            if (response.ok) {
-                const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
-                let prefix = 'DOC';
-                if (normType.includes('fondos')) prefix = 'SFAR';
-                else if (normType.includes('corporacion') || normType.includes('corporativos')) prefix = 'PTLC';
-                else if (normType.includes('fundacion')) prefix = 'PTLF';
-                else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
-                else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
-                
-                const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.substring(0, 8);
-                const filename = `${prefix}_${safeId}.pdf`;
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    a.remove();
-                    window.URL.revokeObjectURL(url);
-                }, 1000);
-            } else {
-                const errData = await response.json().catch(() => ({}));
-                showToast(errData.msg || 'Error al generar el PDF. Verifique que la plantilla exista.');
-            }
+            // Bypass fetch/blob issues by using native browser navigation for downloads
+            window.location.href = `${API_BASE_URL}/api/forms/generate-pdf/${id}?token=${token}`;
         } catch (e) {
             showToast('Falla de conexión al generar PDF');
         }

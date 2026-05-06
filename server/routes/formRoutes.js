@@ -1,4 +1,5 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { FormData, User, DocumentTemplate, AuditLog } = require('../models');
 const auth = require('../middleware/auth');
@@ -79,7 +80,16 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // @route   GET api/forms/generate-pdf/:id
-router.get('/generate-pdf/:id', auth, async (req, res) => {
+router.get('/generate-pdf/:id', async (req, res) => {
+    // Custom auth logic to allow token in query param for direct downloads
+    const token = req.header('x-auth-token') || req.query.token;
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+        req.user = decoded.user;
+    } catch (err) {
+        return res.status(401).json({ msg: 'Token is not valid' });
+    }
     try {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
@@ -155,7 +165,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
 
             const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.substring(0, 8);
-            res.sendFile(outputPath, (err) => {
+            res.download(outputPath, `${prefix}_${safeId}.pdf`, (err) => {
                 if (err) console.error('❌ Error enviando archivo al navegador:', err);
                 // Limpiar temporal después de enviar
                 if (fs.existsSync(outputPath)) {
