@@ -3,132 +3,163 @@ import React from 'react';
 const CorporacionPreview = React.forwardRef(({ data }, ref) => {
     if (!data) return null;
 
-    // Constantes de Diseño Master (Extraídas de las imágenes originales)
+    // --- ESPECIFICACIONES TÉCNICAS DE DISEÑO (IDENTIDAD 100%) ---
     const BLUE_PANAMA = '#0070c0';
-    const BLUE_LIGHT = '#e2e8f0';
-    const BORDER_STYLE = `1px solid ${BLUE_PANAMA}`;
-    const TEXT_COLOR = '#000';
+    const BLUE_INSTRUCTION = '#a5d1e1';
+    const BORDER = `1px solid ${BLUE_PANAMA}`;
+    const FONT_FAMILY = '"Helvetica", Arial, sans-serif';
 
     const styles = {
         container: {
             width: '210mm',
             backgroundColor: 'white',
             margin: '0 auto',
-            padding: '10mm 12mm',
-            fontFamily: '"Helvetica", Arial, sans-serif',
-            color: TEXT_COLOR,
+            padding: '12mm 15mm',
+            fontFamily: FONT_FAMILY,
+            color: '#000',
             boxSizing: 'border-box',
-            lineHeight: '1.2'
+            lineHeight: '1.1',
+            position: 'relative'
         },
         headerArea: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '10px'
+            marginBottom: '12px'
         },
-        mainTitle: {
+        titleBox: {
             textAlign: 'right',
-            color: BLUE_PANAMA,
-            margin: 0
+            color: BLUE_PANAMA
         },
         sectionBlue: {
             backgroundColor: BLUE_PANAMA,
             color: 'white',
-            padding: '7px 10px',
+            padding: '8px 10px',
             fontSize: '12px',
             fontWeight: 'bold',
-            marginTop: '15px'
+            marginTop: '15px',
+            border: BORDER
         },
-        instructionRow: {
-            backgroundColor: '#a5d1e1',
-            padding: '5px 10px',
+        instructionBar: {
+            backgroundColor: BLUE_INSTRUCTION,
+            padding: '6px 10px',
             fontSize: '8.5px',
             fontWeight: 'bold',
-            color: '#000'
+            border: BORDER,
+            borderTop: 0
         },
         table: {
             width: '100%',
             borderCollapse: 'collapse',
             marginBottom: '10px'
         },
-        cellLabel: {
-            border: BORDER_STYLE,
-            padding: '4px 8px',
-            fontSize: '9px',
+        tdLabel: {
+            border: BORDER,
+            padding: '5px 8px',
+            fontSize: '9.5px',
             fontWeight: 'bold',
-            backgroundColor: 'white',
             width: '35%'
         },
-        cellValue: {
-            border: BORDER_STYLE,
-            padding: '4px 8px',
-            fontSize: '9.5px',
+        tdValue: {
+            border: BORDER,
+            padding: '5px 8px',
+            fontSize: '10px',
             color: '#000',
-            minHeight: '18px'
+            fontWeight: '500',
+            minHeight: '20px'
         },
         terminationsBox: {
-            border: BORDER_STYLE,
-            padding: '6px',
-            fontSize: '7.5px',
+            border: BORDER,
+            padding: '8px',
+            fontSize: '8px',
             width: '45%',
             marginLeft: '10px',
             backgroundColor: 'white',
-            lineHeight: '1.3'
+            lineHeight: '1.4'
         },
-        capitalGrid: {
-            display: 'grid',
-            gridTemplateColumns: '1.5fr 1fr 1fr',
-            border: BORDER_STYLE,
-            marginTop: '0'
+        capitalSocialContainer: {
+            display: 'flex',
+            marginTop: '15px',
+            height: '35px'
         },
-        capitalCell: {
-            padding: '6px 10px',
-            fontSize: '11px',
-            fontWeight: '900',
-            borderRight: BORDER_STYLE,
+        capitalLabel: {
+            backgroundColor: BLUE_PANAMA,
+            color: 'white',
+            padding: '0 12px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            flex: 1,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            border: BORDER
         },
-        directorGrid: {
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '15px',
-            marginTop: '10px'
+        capitalValueBox: {
+            width: '22%',
+            border: BORDER,
+            borderLeft: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '900',
+            fontSize: '12px'
         },
-        signatureTable: {
-            width: '100%',
-            borderCollapse: 'collapse',
-            marginTop: '20px'
+        legalBox: {
+            border: BORDER,
+            borderTop: 0,
+            padding: '6px 10px',
+            fontSize: '8.5px',
+            lineHeight: '1.4',
+            backgroundColor: 'white'
         },
-        signatureRow: {
-            height: '35px',
-            border: BORDER_STYLE
+        directorBox: {
+            border: BORDER,
+            pageBreakInside: 'avoid'
+        },
+        directorHeader: {
+            textAlign: 'center',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            padding: '4px',
+            borderBottom: BORDER,
+            backgroundColor: 'white'
+        },
+        signatureCellLabel: {
+            border: BORDER,
+            padding: '10px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            width: '30%'
+        },
+        signatureCellValue: {
+            border: BORDER,
+            padding: '10px',
+            fontSize: '12px',
+            fontWeight: 'bold'
         }
     };
 
     const renderRow = (label, value) => (
         <tr>
-            <td style={styles.cellLabel}>{label}</td>
-            <td style={styles.cellValue}>{value || ''}</td>
+            <td style={styles.tdLabel}>{label}</td>
+            <td style={styles.tdValue}>{value || ''}</td>
         </tr>
     );
 
     return (
         <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#f1f5f9', padding: '40px 0' }}>
             
-            {/* PÁGINA 1 */}
+            {/* --- PÁGINA 1 --- */}
             <div style={styles.container}>
                 <div style={styles.headerArea}>
-                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '55px' }} />
-                    <div style={styles.mainTitle}>
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '60px' }} />
+                    <div style={styles.titleBox}>
                         <div style={{ fontSize: '18px', fontWeight: '900' }}>Incorporation Form</div>
                         <div style={{ fontSize: '16px', fontWeight: '900' }}>Formulario de Incorporación</div>
                     </div>
                 </div>
 
                 <div style={styles.sectionBlue}>Name of the corporation / Nombre de la compañía:</div>
-                <div style={styles.instructionRow}>
+                <div style={styles.instructionBar}>
                     List the names you wish to use to incorporate your corporation in order of preference<br/>
                     Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia:
                 </div>
@@ -147,22 +178,21 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                     </div>
                 </div>
 
-                <div style={{ ...styles.sectionBlue, marginBottom: 0 }}>Authorized Capital / Capital Social Autorizado:</div>
-                <div style={styles.capitalGrid}>
-                    <div style={{ ...styles.capitalCell, backgroundColor: 'white', borderRight: 0 }}></div>
-                    <div style={{ ...styles.capitalCell, backgroundColor: 'white', borderLeft: BORDER_STYLE }}>10.000 USD</div>
-                    <div style={{ ...styles.capitalCell, backgroundColor: 'white', borderLeft: BORDER_STYLE }}>{data.capitalSocial} USD</div>
+                <div style={styles.capitalSocialContainer}>
+                    <div style={styles.capitalLabel}>Authorized Capital / Capital Social Autorizado:</div>
+                    <div style={styles.capitalValueBox}>10.000 USD</div>
+                    <div style={{ ...styles.capitalValueBox, color: '#000' }}>{data.capitalSocial} USD</div>
                 </div>
-                <div style={{ fontSize: '8px', padding: '5px', border: BORDER_STYLE, borderTop: 0 }}>
+                <div style={styles.legalBox}>
                     The minimum authorized capital of the company will be US$10,000.00 divided into 100 shares with a par value of US$100.00 each, the shares issued in nominative form.<br/>
                     El capital mínimo autorizado de la sociedad será de US$10,000.00 divididos en 100 acciones con un valor nominal de US$100.00 cada una, las acciones emitidas de forma nominativa.
                 </div>
 
                 <div style={styles.sectionBlue}>Directors / directores:</div>
-                <div style={styles.directorGrid}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
                     {[0, 1].map(i => (
-                        <div key={i} style={{ border: BORDER_STYLE }}>
-                            <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', padding: '3px', borderBottom: BORDER_STYLE }}>Director {i+1}</div>
+                        <div key={i} style={styles.directorBox}>
+                            <div style={styles.directorHeader}>Director {i+1}</div>
                             <table style={{ ...styles.table, marginBottom: 0 }}>
                                 <tbody>
                                     {renderRow('First name / Nombre', data.directors[i]?.firstName)}
@@ -175,16 +205,16 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                                     {renderRow('Phone/Teléfono', data.directors[i]?.phone)}
                                     {renderRow('Email', data.directors[i]?.email)}
                                     {renderRow('Address / Dirección', data.directors[i]?.address)}
-                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.cellValue}>{data.directors[i]?.city}</td></tr>
-                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.cellValue}>{data.directors[i]?.country}</td></tr>
+                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{data.directors[i]?.city}</td></tr>
+                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{data.directors[i]?.country}</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     ))}
                 </div>
 
-                <div style={{ border: BORDER_STYLE, marginTop: '10px' }}>
-                    <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', padding: '3px', borderBottom: BORDER_STYLE }}>Director 3</div>
+                <div style={{ ...styles.directorBox, marginTop: '10px' }}>
+                    <div style={styles.directorHeader}>Director 3</div>
                     <div style={{ display: 'flex' }}>
                         <table style={{ ...styles.table, width: '50%', marginBottom: 0 }}>
                             <tbody>
@@ -199,15 +229,15 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                                 {renderRow('Email', data.directors[2]?.email)}
                             </tbody>
                         </table>
-                        <div style={{ width: '50%', borderLeft: BORDER_STYLE }}>
+                        <div style={{ width: '50%', borderLeft: BORDER }}>
                             <table style={{ ...styles.table, marginBottom: 0 }}>
                                 <tbody>
                                     {renderRow('Address / Dirección', data.directors[2]?.address)}
-                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.cellValue}>{data.directors[2]?.city}</td></tr>
-                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.cellValue}>{data.directors[2]?.country}</td></tr>
+                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{data.directors[2]?.city}</td></tr>
+                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{data.directors[2]?.country}</td></tr>
                                 </tbody>
                             </table>
-                            <div style={{ padding: '8px', fontSize: '8.5px', fontWeight: 'bold' }}>
+                            <div style={{ padding: '10px', fontSize: '8.5px', fontWeight: 'bold', lineHeight: '1.3' }}>
                                 In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
                                 En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.
                             </div>
@@ -216,34 +246,37 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 </div>
             </div>
 
-            {/* PÁGINA 2 */}
-            <div style={{ ...styles.container, marginTop: '20px' }}>
+            {/* --- PÁGINA 2 --- */}
+            <div style={{ ...styles.container, marginTop: '30px', pageBreakBefore: 'always' }}>
                 <div style={styles.headerArea}>
-                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '55px' }} />
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '60px' }} />
                 </div>
 
                 <div style={styles.sectionBlue}>Officers / dignatarios:</div>
                 <table style={styles.table}>
-                    <thead style={{ backgroundColor: 'white', fontSize: '8px' }}>
+                    <thead style={{ fontSize: '8px' }}>
                         <tr>
-                            <th style={{ ...styles.cellLabel, width: '25%' }}></th>
-                            <th style={styles.cellLabel}>Full name / Nombre completo</th>
-                            <th style={styles.cellLabel}>Date of birth / fecha de nacimiento</th>
-                            <th style={styles.cellLabel}>Passport/ Pasaporte</th>
-                            <th style={styles.cellLabel}>Registration number (if company) / Numero de Registro si es empresa</th>
+                            <th style={styles.tdLabel}></th>
+                            <th style={styles.tdLabel}>Full name / Nombre completo</th>
+                            <th style={styles.tdLabel}>Date of birth / fecha de nacimiento</th>
+                            <th style={styles.tdLabel}>Passport/ Pasaporte</th>
+                            <th style={styles.tdLabel}>Registration number (if company) / Numero de Registro si es empresa</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {['PRESIDENT /Presidente', 'SECRETARY / Secretario', 'TREASURER / Tesorero'].map((role, idx) => {
-                            const key = role.split(' ')[0].toLowerCase();
-                            const d = data.dignitaries[key] || {};
+                        {[
+                            { label: 'PRESIDENT /Presidente', key: 'presidente' },
+                            { label: 'SECRETARY / Secretario', key: 'secretario' },
+                            { label: 'TREASURER / Tesorero', key: 'tesorero' }
+                        ].map((role, idx) => {
+                            const d = data.dignitaries[role.key] || {};
                             return (
                                 <tr key={idx}>
-                                    <td style={{ ...styles.cellLabel, fontSize: '9px' }}>{role}</td>
-                                    <td style={styles.cellValue}>{d.fullName}</td>
-                                    <td style={styles.cellValue}>{d.birthDate}</td>
-                                    <td style={styles.cellValue}>{d.passport}</td>
-                                    <td style={styles.cellValue}>{d.registrationNumber}</td>
+                                    <td style={{ ...styles.tdLabel, fontSize: '9px' }}>{role.label}</td>
+                                    <td style={styles.tdValue}>{d.fullName}</td>
+                                    <td style={styles.tdValue}>{d.birthDate}</td>
+                                    <td style={styles.tdValue}>{d.passport}</td>
+                                    <td style={styles.tdValue}>{d.registrationNumber}</td>
                                 </tr>
                             );
                         })}
@@ -254,55 +287,55 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 <table style={styles.table}>
                     <thead style={{ fontSize: '7.5px' }}>
                         <tr>
-                            <th style={styles.cellLabel}>Share Certificate Number / Numero de certificado</th>
-                            <th style={styles.cellLabel}>Share's value / valor por acción</th>
-                            <th style={styles.cellLabel}>Number of Shares / Numero de acciones</th>
-                            <th style={styles.cellLabel}>Shareholder / Accionista</th>
-                            <th style={styles.cellLabel}>Address / dirección</th>
+                            <th style={styles.tdLabel}>Share Certificate Number / Numero de certificado</th>
+                            <th style={styles.tdLabel}>Share's value / valor por acción</th>
+                            <th style={styles.tdLabel}>Number of Shares / Numero de acciones</th>
+                            <th style={styles.tdLabel}>Shareholder / Accionista</th>
+                            <th style={styles.tdLabel}>Address / dirección</th>
                         </tr>
                     </thead>
                     <tbody>
                         {data.shareholders.map((s, i) => (
                             <tr key={i}>
-                                <td style={styles.cellValue}>{s.certificate}</td>
-                                <td style={styles.cellValue}>{s.value}</td>
-                                <td style={styles.cellValue}>{s.shares}</td>
-                                <td style={styles.cellValue}>{s.name}</td>
-                                <td style={styles.cellValue}>{s.address}</td>
+                                <td style={styles.tdValue}>{s.certificate}</td>
+                                <td style={styles.tdValue}>{s.value}</td>
+                                <td style={styles.tdValue}>{s.shares}</td>
+                                <td style={styles.tdValue}>{s.name}</td>
+                                <td style={styles.tdValue}>{s.address}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
 
                 <div style={styles.sectionBlue}>Company Activities / Actividades de la Compañía</div>
-                <div style={{ ...styles.instructionRow, backgroundColor: '#a5d1e1' }}>
+                <div style={{ ...styles.instructionBar, backgroundColor: '#a5d1e1' }}>
                     Please provide an explanation of the corporation's activities, how it will be carried out and in which countries it will be carried out.<br/>
                     Favor proveer una explicación de la actividad de la sociedad, como se realizará y en qué países se llevará a cabo.
                 </div>
-                <div style={{ border: BORDER_STYLE, padding: '10px', minHeight: '60px', fontSize: '9.5px' }}>
+                <div style={{ border: BORDER, padding: '12px', minHeight: '80px', fontSize: '10px' }}>
                     {data.companyActivities}
                 </div>
 
-                <div style={{ marginTop: '20px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Declaration</div>
-                    <div style={{ fontSize: '10px', fontStyle: 'italic', fontWeight: 'bold', marginTop: '5px' }}>
+                <div style={{ marginTop: '25px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Declaration</div>
+                    <div style={{ fontSize: '10px', fontStyle: 'italic', fontWeight: 'bold', lineHeight: '1.4' }}>
                         I hereby affirm that information given on this application is complete and accurate. I understand that any falsification or ommission will carry legal effects and penalties. I authorize the company to investigate the authenticity of above-mentioned information.
                     </div>
                 </div>
 
-                <table style={styles.signatureTable}>
+                <table style={{ ...styles.table, marginTop: '30px' }}>
                     <tbody>
                         <tr>
-                            <td style={{ ...styles.cellLabel, width: '30%' }}>Signature // Firma</td>
-                            <td style={styles.cellValue}></td>
+                            <td style={styles.signatureCellLabel}>Signature // Firma</td>
+                            <td style={styles.signatureCellValue}></td>
                         </tr>
                         <tr>
-                            <td style={styles.cellLabel}>Name // Nombre:</td>
-                            <td style={{ ...styles.cellValue, fontWeight: 'bold' }}>{data.declarationName}</td>
+                            <td style={styles.signatureCellLabel}>Name // Nombre:</td>
+                            <td style={styles.signatureCellValue}>{data.declarationName}</td>
                         </tr>
                         <tr>
-                            <td style={styles.cellLabel}>Date // Fecha:</td>
-                            <td style={styles.cellValue}> / / 2025</td>
+                            <td style={styles.signatureCellLabel}>Date // Fecha:</td>
+                            <td style={{ ...styles.signatureCellValue, fontWeight: 'normal' }}> / / 2025</td>
                         </tr>
                     </tbody>
                 </table>
