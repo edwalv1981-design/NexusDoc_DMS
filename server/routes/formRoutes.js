@@ -79,8 +79,8 @@ router.delete('/:id', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ msg: 'Error' }); }
 });
 
-// @route   GET api/forms/generate-pdf/:id
-router.get('/generate-pdf/:id', async (req, res) => {
+// @route   GET api/forms/generate-pdf/:id/:filename
+router.get('/generate-pdf/:id/:filename', async (req, res) => {
     // Custom auth logic to allow token in query param for direct downloads
     const token = req.header('x-auth-token') || req.query.token;
     if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });

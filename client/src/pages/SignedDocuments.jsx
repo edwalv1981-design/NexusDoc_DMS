@@ -85,7 +85,7 @@ const SignedDocuments = () => {
     try {
       const token = localStorage.getItem('token');
       // Bypass fetch/blob issues by using native browser navigation for downloads
-      window.location.href = `${API_BASE_URL}/api/signed-docs/download/${id}?token=${token}`;
+      window.location.href = `${API_BASE_URL}/api/signed-docs/download/${id}/${encodeURIComponent(filename)}?token=${token}`;
     } catch (err) {
       toast.error('Error al descargar');
     }

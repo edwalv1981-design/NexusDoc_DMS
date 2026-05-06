@@ -121,9 +121,9 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-// @route   GET api/documents/download/:id
+// @route   GET api/documents/download/:id/:filename
 // @desc    Download a document (Strict Security: only owner can download)
-router.get('/download/:id', async (req, res) => {
+router.get('/download/:id/:filename', async (req, res) => {
     const token = req.header('x-auth-token') || req.query.token;
     if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
     try {

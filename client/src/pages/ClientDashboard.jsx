@@ -188,8 +188,20 @@ const ClientDashboard = () => {
         const token = localStorage.getItem('token');
         showToast('Generando Fiel Copia...', 'success');
         try {
+            const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+            let prefix = 'DOC';
+            if (normType.includes('fondos')) prefix = 'SFAR';
+            else if (normType.includes('corporacion') || normType.includes('corporativos')) prefix = 'PTLC';
+            else if (normType.includes('fundacion')) prefix = 'PTLF';
+            else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
+            else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
+            
+            const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.substring(0, 8);
+            const filename = `${prefix}_${safeId}.pdf`;
+
             // Bypass fetch/blob issues by using native browser navigation for downloads
-            window.location.href = `${API_BASE_URL}/api/forms/generate-pdf/${id}?token=${token}`;
+            // Appending filename to URL ensures the browser uses it as the fallback name
+            window.location.href = `${API_BASE_URL}/api/forms/generate-pdf/${id}/${filename}?token=${token}`;
         } catch (e) {
             showToast('Falla de conexión al generar PDF');
         }

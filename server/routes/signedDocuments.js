@@ -162,8 +162,8 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-// @route   GET api/signed-docs/download/:id
-router.get('/download/:id', async (req, res) => {
+// @route   GET api/signed-docs/download/:id/:filename
+router.get('/download/:id/:filename', async (req, res) => {
     const token = req.header('x-auth-token') || req.query.token;
     if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
     try {
