@@ -296,6 +296,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
 if __name__ == "__main__":
     try:
+        # Forzar lectura UTF-8 segura
+        sys.stdin.reconfigure(encoding='utf-8')
         raw_input = sys.stdin.read()
         input_data = json.loads(raw_input)
         
@@ -319,8 +321,9 @@ if __name__ == "__main__":
     except Exception as e:
         import traceback
         err_msg = traceback.format_exc()
-        # Log persistente para diagnóstico nivel experto
-        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../scratch/last_pdf_error.txt")
+        # Log persistente para diagnóstico nivel experto (guardado en server/)
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        log_path = os.path.join(log_dir, "last_pdf_error.txt")
         try:
             with open(log_path, "w", encoding="utf-8") as lf:
                 lf.write(err_msg)

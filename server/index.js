@@ -29,7 +29,7 @@ app.use('/api/forms', require('./routes/formRoutes'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/signed-docs', require('./routes/signedDocuments'));
 app.get('/api/debug-pdf', (req, res) => {
-    const logPath = path.join(__dirname, '../scratch/last_pdf_error.txt');
+    const logPath = path.join(__dirname, 'last_pdf_error.txt');
     if (fs.existsSync(logPath)) {
         res.sendFile(logPath);
     } else {
