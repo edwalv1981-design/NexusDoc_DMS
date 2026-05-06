@@ -57,7 +57,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         return None
 
     # === LÓGICA CORPORACIÓN (ARQUITECTO SENIOR - PRECISIÓN ABSOLUTA) ===
-    if template_name == "corporacion" or "corpNameSA        # === SISTEMA DE ALINEACIÓN IA: Corporación Dynamic Engine (BÚSQUEDA SEMÁNTICA) ===
+    if template_name == "corporacion" or "corpNameSA" in data:
+        # === SISTEMA DE ALINEACIÓN IA: Corporación Dynamic Engine (BÚSQUEDA SEMÁNTICA) ===
         directors = data.get("directors", [])
         shareholders = data.get("shareholders", [])
         dignitaries = data.get("dignitaries", {})
