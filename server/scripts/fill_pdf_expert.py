@@ -63,19 +63,58 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         shareholders = data.get("shareholders", [])
         dignitaries = data.get("dignitaries", {})
 
+
         def fill_dynamic_table(page, data_dict, labels_map, x_min, x_max, value_x, min_y=0, max_y=1000):
+            """
+            Motor IA de Alineación Dinámica:
+            - Busca la palabra clave de la etiqueta en la columna
+            - Detecta el borde derecho de TODAS las palabras de esa fila dentro de la columna
+            - Coloca el valor 8px después del borde de la etiqueta (no en posición fija)
+            """
             words = page.get_text("words")
+
             for field_key, keywords in labels_map.items():
                 val = data_dict.get(field_key)
-                if not val: continue
+                if not val:
+                    continue
+
+                # Paso 1: Encontrar la palabra ancla (keyword de la etiqueta)
+                anchor = None
                 for w in words:
                     if x_min <= w[0] <= x_max and min_y <= w[3] <= max_y:
                         wn = normalize(w[4])
                         if any(normalize(kw) in wn for kw in keywords):
-                            y_val = w[3] # Base de la palabra
-                            rect = fitz.Rect(value_x, y_val - 12, value_x + 130, y_val + 2)
-                            insert_text_scaled(page, rect, str(val), max_fontsize=9)
+                            anchor = w
                             break
+
+                if anchor is None:
+                    continue
+
+                # Paso 2: Centro Y de esta fila
+                row_y_center = (anchor[1] + anchor[3]) / 2
+                row_tolerance = 7  # tolerancia en pixeles para palabras en la misma fila
+
+                # Paso 3: Recopilar TODAS las palabras de la etiqueta en esta fila y columna
+                row_label_words = [
+                    w for w in words
+                    if x_min <= w[0] <= x_max
+                    and abs((w[1] + w[3]) / 2 - row_y_center) <= row_tolerance
+                ]
+
+                # Paso 4: Borde derecho máximo de las etiquetas
+                if row_label_words:
+                    label_right_edge = max(w[2] for w in row_label_words)
+                else:
+                    label_right_edge = anchor[2]
+
+                # Paso 5: El valor empieza 8px DESPUÉS del borde de la etiqueta
+                computed_value_x = label_right_edge + 8
+                value_width = x_max - computed_value_x - 5
+                value_y = anchor[3]  # baseline de la palabra ancla
+
+                if value_width > 15:  # Solo insertar si hay espacio suficiente
+                    rect = fitz.Rect(computed_value_x, value_y - 11, computed_value_x + value_width, value_y + 2)
+                    insert_text_scaled(page, rect, str(val), max_fontsize=8, min_fontsize=6)
 
         dir_labels = {
             "firstName": ["first", "nombre"],
