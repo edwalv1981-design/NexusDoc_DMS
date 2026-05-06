@@ -122,15 +122,17 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         process_directors_page(page1, directors[:2], 1)
 
         # ANEXOS
+        annex_count = 0
         src_doc = fitz.open(pdf_path)
         for i in range(2, len(directors), 2):
-            p_idx = (i // 2) + 1
+            annex_count += 1
+            p_idx = annex_count
             doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=p_idx)
             process_directors_page(doc[p_idx], directors[i:i+2], p_idx + 1, is_annex=True)
 
-
         # PÁGINA 2 (DIGNATARIOS Y ACCIONISTAS)
-        orig_p2_idx = 1 + pages_added
+        orig_p2_idx = 1 + annex_count
+
         if len(doc) > orig_p2_idx:
             page2 = doc[orig_p2_idx]
             y_dig = get_anchor(page2, ["dignatarios", "officers"], 100, 600)
