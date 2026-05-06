@@ -150,10 +150,13 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 </div>
 
                 {/* --- SECCIÓN 2: CAPITAL SOCIAL --- */}
-                <div style={{ ...styles.blueHeader, marginTop: '25px', display: 'grid', gridTemplateColumns: '1fr auto', padding: 0 }}>
+                <div style={{ ...styles.blueHeader, marginTop: '25px', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', padding: 0 }}>
                     <div style={{ padding: '8px 12px' }}>Authorized Capital / Capital Social Autorizado:</div>
-                    <div style={{ backgroundColor: 'white', color: 'black', padding: '8px 40px', fontWeight: '900', fontSize: '15px' }}>
-                        {data.capitalSocial || '10.000'} USD
+                    <div style={{ backgroundColor: 'white', color: 'black', padding: '8px 20px', fontWeight: '900', fontSize: '13px', borderLeft: `1.5px solid ${BLUE_MAIN}`, textAlign: 'center' }}>
+                        10.000 USD
+                    </div>
+                    <div style={{ backgroundColor: 'white', color: 'black', padding: '8px 20px', fontWeight: '900', fontSize: '14px', borderLeft: `1.5px solid ${BLUE_MAIN}`, textAlign: 'center' }}>
+                        {data.capitalSocial ? `${data.capitalSocial} USD` : ''}
                     </div>
                 </div>
                 <div style={styles.legalPara}>
