@@ -189,60 +189,38 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 </div>
 
                 <div style={styles.sectionBlue}>Directors / directores:</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
-                    {[0, 1].map(i => (
-                        <div key={i} style={styles.directorBox}>
-                            <div style={styles.directorHeader}>Director {i+1}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '10px' }}>
+                    {data.directors.map((director, i) => (
+                        <div key={i} style={{ 
+                            ...styles.directorBox, 
+                            width: data.directors.length === 1 || (i === data.directors.length - 1 && i % 2 === 0) ? '100%' : 'calc(50% - 8px)',
+                            pageBreakInside: 'avoid'
+                        }}>
+                            <div style={styles.directorHeader}>Director {i + 1}</div>
                             <table style={{ ...styles.table, marginBottom: 0 }}>
                                 <tbody>
-                                    {renderRow('First name / Nombre', data.directors[i]?.firstName)}
-                                    {renderRow('Middle name / Segundo nombre', data.directors[i]?.secondName)}
-                                    {renderRow('Surname(s) / Apellidos', data.directors[i]?.lastName)}
-                                    {renderRow('Date of birth/ Fecha de nacimiento', data.directors[i]?.birthDate)}
-                                    {renderRow('Marital Status / Estado civil', data.directors[i]?.maritalStatus)}
-                                    {renderRow('Citizenship / Nacionalidad', data.directors[i]?.nationality)}
-                                    {renderRow('Passport/Pasaporte', data.directors[i]?.passport)}
-                                    {renderRow('Phone/Teléfono', data.directors[i]?.phone)}
-                                    {renderRow('Email', data.directors[i]?.email)}
-                                    {renderRow('Address / Dirección', data.directors[i]?.address)}
-                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{data.directors[i]?.city}</td></tr>
-                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{data.directors[i]?.country}</td></tr>
+                                    {renderRow('First name / Nombre', director.firstName)}
+                                    {renderRow('Middle name / Segundo nombre', director.secondName)}
+                                    {renderRow('Surname(s) / Apellidos', director.lastName)}
+                                    {renderRow('Date of birth/ Fecha de nacimiento', director.birthDate)}
+                                    {renderRow('Marital Status / Estado civil', director.maritalStatus)}
+                                    {renderRow('Citizenship / Nacionalidad', director.nationality)}
+                                    {renderRow('Passport/Pasaporte', director.passport)}
+                                    {renderRow('Phone/Teléfono', director.phone)}
+                                    {renderRow('Email', director.email)}
+                                    {renderRow('Address / Dirección', director.address)}
+                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{director.city}</td></tr>
+                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{director.country}</td></tr>
                                 </tbody>
                             </table>
+                            {i === data.directors.length - 1 && (
+                                <div style={{ padding: '10px', fontSize: '8.5px', fontWeight: 'bold', lineHeight: '1.3', borderTop: BORDER }}>
+                                    In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality.<br/>
+                                    En PANAMÁ se requiere un minimo de 3 diferentes directores. Pueden ser individuos o entidades legales de cualquier otra nacionalidad.
+                                </div>
+                            )}
                         </div>
                     ))}
-                </div>
-
-                <div style={{ ...styles.directorBox, marginTop: '10px' }}>
-                    <div style={styles.directorHeader}>Director 3</div>
-                    <div style={{ display: 'flex' }}>
-                        <table style={{ ...styles.table, width: '50%', marginBottom: 0 }}>
-                            <tbody>
-                                {renderRow('First name / Nombre', data.directors[2]?.firstName)}
-                                {renderRow('Middle name / Segundo nombre', data.directors[2]?.secondName)}
-                                {renderRow('Surname(s) / Apellidos', data.directors[2]?.lastName)}
-                                {renderRow('Date of birth/ Fecha de nacimiento', data.directors[2]?.birthDate)}
-                                {renderRow('Marital Status / Estado civil', data.directors[2]?.maritalStatus)}
-                                {renderRow('Citizenship / Nacionalidad', data.directors[2]?.nationality)}
-                                {renderRow('Passport/Pasaporte', data.directors[2]?.passport)}
-                                {renderRow('Phone/Teléfono', data.directors[2]?.phone)}
-                                {renderRow('Email', data.directors[2]?.email)}
-                            </tbody>
-                        </table>
-                        <div style={{ width: '50%', borderLeft: BORDER }}>
-                            <table style={{ ...styles.table, marginBottom: 0 }}>
-                                <tbody>
-                                    {renderRow('Address / Dirección', data.directors[2]?.address)}
-                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{data.directors[2]?.city}</td></tr>
-                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{data.directors[2]?.country}</td></tr>
-                                </tbody>
-                            </table>
-                            <div style={{ padding: '10px', fontSize: '8.5px', fontWeight: 'bold', lineHeight: '1.3' }}>
-                                In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
-                                En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
