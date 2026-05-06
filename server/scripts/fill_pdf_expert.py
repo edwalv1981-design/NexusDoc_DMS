@@ -17,7 +17,6 @@ def insert_text_scaled(page, rect, text, fontname="Helvetica", max_fontsize=9, m
     if not text: return
     text = str(text)
     fontsize = max_fontsize
-    # Estimar ancho (aprox 0.5 * fontsize por carácter en Helvetica)
     try:
         while fontsize > min_fontsize:
             text_width = fitz.get_text_length(text, fontname=fontname, fontsize=fontsize)
@@ -33,293 +32,194 @@ def insert_text_scaled(page, rect, text, fontname="Helvetica", max_fontsize=9, m
 def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    # 1. DETERMINAR PLANTILLA BASE
     if custom_template_path and os.path.exists(custom_template_path):
         pdf_path = custom_template_path
     else:
-        # Fallback a la maestra si no hay específica
         pdf_path = os.path.join(base_dir, "templates", "referencia_maestra.pdf")
     
     if not os.path.exists(pdf_path):
         raise Exception(f"No se encontró el archivo base PDF en: {pdf_path}")
 
     doc = fitz.open(pdf_path)
-    
-    # --- MOTOR DE ANCLAJE SEMÁNTICO EXPERTO ---
-    def get_anchor(page, keywords, min_y=0, max_y=1000):
-        p_words = page.get_text("words")
-        for w in p_words:
-            if min_y <= w[1] <= max_y:
-                word_norm = normalize(w[4])
-                for kw in keywords:
-                    if normalize(kw) in word_norm:
-                        return w[3] # Retorna el límite inferior del banner
-        return None
 
-    # === LÓGICA CORPORACIÓN (ARQUITECTO SENIOR - PRECISIÓN ABSOLUTA) ===
+    # === LÓGICA CORPORACIÓN (MOTOR DE PRECISIÓN ABSOLUTA V4) ===
     if template_name == "corporacion" or "corpNameSA" in data:
         directors = data.get("directors", [])
         shareholders = data.get("shareholders", [])
         dignitaries = data.get("dignitaries", {})
 
-        # === MOTOR DE CELDAS INTELIGENTES (ALINEACIÓN PIXEL-PERFECT) ===
-        def fill_smart_grid(page, data_dict, labels_map, x_min, x_max, val_x_offset, min_y=0, max_y=1000):
-            """
-            Localiza la etiqueta y escribe el valor en la celda de la derecha, 
-            centrando verticalmente el texto en la fila.
-            """
-            words = page.get_text("words")
-            for field_key, keywords in labels_map.items():
-                val = data_dict.get(field_key)
-                if not val: continue
-                
-                # 1. Buscar ancla de la etiqueta
-                anchor = None
-                for w in words:
-                    if x_min <= w[0] <= x_max and min_y <= w[1] <= max_y:
-                        wn = normalize(w[4])
-                        if any(normalize(kw) in wn for kw in keywords):
-                            anchor = w
-                            break
-                
-                if anchor:
-                    # 2. Definir Rectángulo de la Celda (Donde va el valor)
-                    # El valor empieza en val_x_offset y termina en el borde de la columna
-                    row_height = anchor[3] - anchor[1]
-                    # Centrado vertical: y1 - 2 suele ser la línea base perfecta
-                    rect = fitz.Rect(val_x_offset, anchor[1] - 1, x_max - 5, anchor[3] + 1)
-                    insert_text_scaled(page, rect, str(val), max_fontsize=8, min_fontsize=6)
-
-        dir_labels = {
-            "firstName": ["first", "nombre"],
-            "secondName": ["middle", "segundo"],
-            "lastName": ["surname", "apellidos"],
-            "birthDate": ["birth", "nacimiento"],
-            "maritalStatus": ["marital", "estado"],
-            "nationality": ["citizenship", "nacionalidad"],
-            "passport": ["passport", "pasaporte"],
-            "phone": ["phone", "teléfono", "telefono"],
-            "email": ["email", "correo"],
-            "address": ["address", "dirección", "direccion"],
-            "city": ["city", "ciudad"],
-            "country": ["country", "país", "pais"]
-        }
-
-        # --- PÁGINA 1: ESTRUCTURA PRINCIPAL ---
-        page1 = doc[0]
-        
-        # 1. Nombres (Choices) - Alineación Estricta
-        y_names = get_anchor(page1, ["names", "incorp", "preference"], 100, 300) or 155
-        choices_cfg = {"corpNameSA": 0, "corpNameCorp": 1, "corpNameInc": 2}
-        for key, idx in choices_cfg.items():
-            if data.get(key):
-                y_row = y_names + 23 + (idx * 33.5)
-                # Box exacto entre etiqueta y S.A./Corp/Inc
-                rect = fitz.Rect(132, y_row - 10, 230, y_row + 5)
-                insert_text_scaled(page1, rect, str(data[key]), max_fontsize=10)
-
-        # 2. Capital Social (Blindaje de Posición)
-        y_cap = get_anchor(page1, ["capital", "authorized"], 200, 500) or 395
-        if data.get("capitalSocial"):
-            try:
-                # Escribir en el casillero blanco a la derecha del label "10.000 USD"
-                val_cap = f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD"
-                # El casillero está aproximadamente en X=450
-                page1.insert_text((450, y_cap + 18), val_cap, fontsize=10, fontname="Helvetica")
-            except: pass
-
-        # 3. Directores 1 y 2 (Columnas Gemelas)
-        y_dir = get_anchor(page1, ["directores", "directors"], 100, 600) or 280
-        for i in range(min(2, len(directors))):
-            d = directors[i]
-            x_min, x_max, val_x = (50, 298, 155) if i == 0 else (300, 590, 445)
-            fill_smart_grid(page1, d, dir_labels, x_min, x_max, val_x, min_y=y_dir + 30)
-
-        # 4. Director 3 (Fondo de Pág 1 - Split Layout)
-        if len(directors) >= 3:
-            d3 = directors[2]
-            y_d3 = get_anchor(page1, ["director 3"], 600, 850) or 685
-            # Lado Izquierdo (Datos Personales)
-            labels_p1 = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]
-            fill_smart_grid(page1, d3, {k:dir_labels[k] for k in labels_p1}, 50, 298, 155, min_y=y_d3 + 10)
-            # Lado Derecho (Ubicación)
-            labels_p2 = ["address", "city", "country"]
-            fill_smart_grid(page1, d3, {k:dir_labels[k] for k in labels_p2}, 300, 590, 445, min_y=y_d3 + 10)
-
-        # --- ANEXOS (DIRECTORES 4+) ---
-        src_doc = fitz.open(pdf_path)
-        annex_count = 0
-        for i in range(3, len(directors), 2):
-            annex_count += 1
-            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=annex_count)
-            annex_page = doc[annex_count]
-            # Limpiar contenido original de Pág 1 para convertirla en Anexo limpio
-            annex_page.draw_rect(fitz.Rect(0, 0, 600, 1000), color=(1,1,1), fill=(1,1,1))
-            annex_page.insert_text((50, 50), f"ANEXO DIRECTORES (PÁG {annex_count + 1})", fontsize=14, fontname="Helvetica", color=(0.2, 0.4, 0.6))
-            
-            chunk = directors[i:i+2]
-            for j, d in enumerate(chunk):
-                x_off = 50 if j == 0 else 310
-                y_off = 100
-                annex_page.insert_text((x_off, y_off), f"DIRECTOR #{i + j + 1}", fontsize=10, fontname="Helvetica-Bold")
-                for k, (label_key, kws) in enumerate(dir_labels.items()):
-                    lab_txt = f"{label_key}:"
-                    annex_page.insert_text((x_off, y_off + 20 + (k*18)), lab_txt, fontsize=8, fontname="Helvetica")
-                    annex_page.insert_text((x_off + 80, y_off + 20 + (k*18)), str(d.get(label_key, "")), fontsize=8, fontname="Helvetica")
-
-        # --- PÁGINA FINAL (DIGNATARIOS, ACCIONISTAS, FIRMA) ---
-        p_final_idx = 1 + annex_count
-        if len(doc) > p_final_idx:
-            pageF = doc[p_final_idx]
-            
-            # 1. Dignatarios (Con Fecha y Pasaporte)
-            dign_map = {"presidente": ["president"], "secretario": ["secretary"], "tesorero": ["treasurer"]}
-            for role_key, kws in dign_map.items():
-                d = dignitaries.get(role_key)
-                if not d: continue
-                y_row = get_anchor(pageF, kws, 50, 400)
-                if y_row:
-                    if d.get("fullName"): pageF.insert_text((215, y_row), str(d["fullName"]), fontsize=9)
-                    if d.get("birthDate"): pageF.insert_text((495, y_row), str(d["birthDate"]), fontsize=8)
-                    if d.get("passport"): pageF.insert_text((620, y_row), str(d["passport"]), fontsize=8)
-                    if d.get("registrationNumber"): pageF.insert_text((740, y_row), str(d["registrationNumber"]), fontsize=8)
-
-            # 2. Accionistas (Alineación Mejorada)
-            y_sh = get_anchor(pageF, ["accionistas", "shareholders"], 200, 600) or 270
-            def fill_sh_list(p, sh_chunk, start_y):
-                for i, s in enumerate(sh_chunk):
-                    if not s: continue
-                    curr_y = start_y + 40 + (i * 24)
-                    if s.get("certificate"): p.insert_text((45, curr_y), str(s["certificate"]), fontsize=8)
-                    if s.get("value"): p.insert_text((95, curr_y), str(s["value"]), fontsize=8)
-            # 2. Accionistas (Alineación Mejorada)
-            y_sh = get_anchor(pageF, ["accionistas", "shareholders"], 200, 600) or 270
-            
-            def fill_sh_block_clean(p, sh_chunk, start_y, is_annex=False):
-                if is_annex:
-                    p.insert_text((50, 40), "ANEXO ACCIONISTAS", fontsize=12, fontname="Helvetica", color=(0.29, 0.64, 0.77))
-                    p.draw_rect(fitz.Rect(0, 50, 600, start_y - 20), color=(1,1,1), fill=(1,1,1))
-                
-                for i, s in enumerate(sh_chunk):
-                    if not s: continue
-                    curr_y = start_y + 40 + (i * 24)
-                    if s.get("certificate"): p.insert_text((45, curr_y), str(s["certificate"]), fontsize=8)
-                    if s.get("value"): p.insert_text((95, curr_y), str(s["value"]), fontsize=8)
-                    if s.get("shares"): p.insert_text((165, curr_y), str(s["shares"]), fontsize=8)
-                    if s.get("name"): p.insert_text((215, curr_y), str(s["name"]), fontsize=9)
-                    if s.get("address"): p.insert_text((415, curr_y), str(s["address"]), fontsize=7)
-
-            fill_sh_block_clean(pageF, shareholders[:4], y_sh)
-
-            # 3. Actividades y Declaración (Blindaje)
-            y_act = get_anchor(pageF, ["actividades", "activities"], 400, 800)
-            if y_act and data.get("companyActivities"):
-                pageF.insert_textbox(fitz.Rect(55, y_act + 40, 550, y_act + 120), data["companyActivities"], fontsize=8)
-
-            y_sig = get_anchor(pageF, ["declaration", "firma"], 600, 1000) or 740
-            if data.get("declarationName"): 
-                pageF.insert_text((150, y_sig + 105), str(data["declarationName"]), fontsize=10, fontname="Helvetica-Bold")
-            if data.get("declarationDate"): 
-                pageF.insert_text((220, y_sig + 138), f"{str(data['declarationDate'])}", fontsize=10)
-
-            # 4. ANEXOS ACCIONISTAS (4+)
-            for i in range(4, len(shareholders), 4):
-                sh_annex_idx = 1 + annex_count + ((i-4)//4 + 1)
-                sh_page_src = 1 if len(src_doc) > 1 else 0
-                doc.insert_pdf(src_doc, from_page=sh_page_src, to_page=sh_page_src, start_at=sh_annex_idx)
-                fill_sh_block_clean(doc[sh_annex_idx], shareholders[i:i+4], y_sh, is_annex=True)
-
-        # Cerrar el documento fuente
-        if 'src_doc' in locals():
-            src_doc.close()
-
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # ██████  ZONA PROTEGIDA — NO MODIFICAR ██████████████████████████████████████
-    # ██  FORMULARIO: Fondos Registros Contables / Declaración (SFAR)           ██
-    # ██  ESTADO: PRODUCCIÓN CERTIFICADA — ALINEACIÓN VALIDADA POR USUARIO      ██
-    # ██  FECHA BLINDAJE: 2026-05-06                                             ██
-    # ██  CUALQUIER CAMBIO EN ESTE BLOQUE REQUIERE APROBACIÓN EXPLÍCITA         ██
-    # ══════════════════════════════════════════════════════════════════════════════
-    else:
-        page1 = doc[0]
-        words = page1.get_text("words")
-        config = master_config.get(template_name, master_config["referencia_maestra"])
-        
-        def find_y_legacy(keywords, min_y=0, max_y=1000):
-            for w in words:
-                word_norm = normalize(w[4])
-                for kw in keywords:
-                    if normalize(kw) in word_norm:
-                        y_center = (w[1] + w[3]) / 2 + 3
-                        if min_y <= y_center <= max_y:
-                            return y_center
+        def find_label_rect(page, text_list, min_y=0, max_y=1000, x_range=(0, 600)):
+            for txt in text_list:
+                instances = page.search_for(txt)
+                for inst in instances:
+                    if min_y <= inst.y1 <= max_y and x_range[0] <= inst.x0 <= x_range[1]:
+                        return inst
             return None
 
+        page1 = doc[0]
+        
+        # 1. Nombres de Compañía (Choices) - Calibración X=140
+        choice_labels = ["1st choice", "2nd choice", "3rd choice"]
+        choice_keys = ["corpNameSA", "corpNameCorp", "corpNameInc"]
+        for i, key in enumerate(choice_keys):
+            val = data.get(key)
+            if not val: continue
+            label_inst = find_label_rect(page1, [choice_labels[i]], 100, 350)
+            if label_inst:
+                rect = fitz.Rect(140, label_inst.y0 - 2, 430, label_inst.y1 + 2)
+                insert_text_scaled(page1, rect, str(val), max_fontsize=10)
+
+        # 2. Capital Social - Calibración X=585
+        y_cap_label = find_label_rect(page1, ["Authorized Capital", "Capital Social"], 300, 500)
+        if y_cap_label and data.get("capitalSocial"):
+            try:
+                val_cap = f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD"
+                # Escribir en el recuadro blanco al final de la línea
+                page1.insert_text((580, y_cap_label.y1 + 1), val_cap, fontsize=10, fontname="Helvetica-Bold")
+            except: pass
+
+        # 3. Directores - Calibración de Grid
+        dir_labels_map = {
+            "firstName": ["First name", "Nombre"],
+            "secondName": ["Middle name", "Segundo nombre"],
+            "lastName": ["Surname", "Apellidos"],
+            "birthDate": ["Date of birth", "Fecha de nacimiento"],
+            "maritalStatus": ["Marital Status", "Estado civil"],
+            "nationality": ["Citizenship", "Nacionalidad"],
+            "passport": ["Passport", "Pasaporte"],
+            "phone": ["Phone", "Teléfono"],
+            "email": ["Email", "Correo"],
+            "address": ["Address", "Dirección"],
+            "city": ["City", "Ciudad"],
+            "country": ["Country", "País"]
+        }
+
+        def fill_director_expert(p, d_data, x_min, x_max, val_x, search_y_start):
+            curr_y = search_y_start
+            for key, labels in dir_labels_map.items():
+                val = d_data.get(key)
+                # Búsqueda ultra-localizada
+                inst = find_label_rect(p, labels, curr_y - 5, curr_y + 35, (x_min, x_max))
+                if inst:
+                    if val:
+                        # Offset vertical de +2 para bajar el texto al centro de la celda
+                        rect = fitz.Rect(val_x, inst.y0 + 2, x_max - 5, inst.y1 + 4)
+                        insert_text_scaled(p, rect, str(val), max_fontsize=8)
+                    curr_y = inst.y1
+                else:
+                    curr_y += 19 # Salto de línea estimado
+
+        y_dir_label = find_label_rect(page1, ["Director 1"], 200, 600)
+        y_dir_base = y_dir_label.y1 if y_dir_label else 300
+        
+        if len(directors) >= 1: fill_director_expert(page1, directors[0], 50, 298, 180, y_dir_base)
+        if len(directors) >= 2: fill_director_expert(page1, directors[1], 300, 595, 460, y_dir_base)
+
+        # Director 3 (Bottom Page 1)
+        if len(directors) >= 3:
+            d3 = directors[2]
+            y_d3_label = find_label_rect(page1, ["Director 3"], 600, 950)
+            if y_d3_label:
+                y_d3 = y_d3_label.y1
+                # Lado Izquierdo
+                curr_y = y_d3
+                for k in ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]:
+                    inst = find_label_rect(page1, dir_labels_map[k], curr_y - 2, curr_y + 30, (50, 298))
+                    if inst:
+                        if d3.get(k):
+                            rect = fitz.Rect(180, inst.y0 + 2, 298, inst.y1 + 4)
+                            insert_text_scaled(page1, rect, str(d3[k]), max_fontsize=8)
+                        curr_y = inst.y1
+                # Lado Derecho
+                curr_y = y_d3
+                for k in ["address", "city", "country"]:
+                    inst = find_label_rect(page1, dir_labels_map[k], curr_y - 2, curr_y + 40, (300, 595))
+                    if inst:
+                        if d3.get(k):
+                            rect = fitz.Rect(460, inst.y0 + 2, 595, inst.y1 + 4)
+                            insert_text_scaled(page1, rect, str(d3[k]), max_fontsize=8)
+                        curr_y = inst.y1
+
+        # --- ANEXOS Y PÁGINA FINAL ---
+        src_doc = fitz.open(pdf_path)
+        # Anexos para Directores 4+
+        for i in range(3, len(directors)):
+            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=i-2)
+            p = doc[i-2]
+            p.draw_rect(fitz.Rect(0,0,600,1000), color=(1,1,1), fill=(1,1,1))
+            p.insert_text((50, 50), f"ANEXO DIRECTORES - DIRECTOR #{i+1}", fontsize=12, fontname="Helvetica-Bold")
+            cy = 100
+            for k, labs in dir_labels_map.items():
+                p.insert_text((60, cy), f"{labs[0]}:", fontsize=9, fontname="Helvetica-Bold")
+                p.insert_text((200, cy), str(directors[i].get(k, "")), fontsize=9, fontname="Helvetica")
+                cy += 20
+
+        # Página Final (Dignatarios, Accionistas, Firma)
+        pageF = doc[len(doc)-1]
+        
+        # Dignatarios
+        for role, label in {"presidente": "President", "secretario": "Secretary", "tesorero": "Treasurer"}.items():
+            d = dignitaries.get(role, {})
+            inst = find_label_rect(pageF, [label], 50, 450)
+            if inst:
+                if d.get("fullName"): pageF.insert_text((215, inst.y1 + 2), str(d["fullName"]), fontsize=9)
+                if d.get("birthDate"): pageF.insert_text((495, inst.y1 + 2), str(d["birthDate"]), fontsize=8)
+                if d.get("passport"): pageF.insert_text((620, inst.y1 + 2), str(d["passport"]), fontsize=8)
+
+        # Accionistas
+        y_sh_label = find_label_rect(pageF, ["Shareholders", "Accionistas"], 200, 600)
+        y_sh = y_sh_label.y1 if y_sh_label else 280
+        for i, s in enumerate(shareholders[:4]):
+            cy = y_sh + 45 + (i * 24)
+            if s.get("certificate"): pageF.insert_text((45, cy), str(s["certificate"]), fontsize=8)
+            if s.get("value"): pageF.insert_text((95, cy), str(s["value"]), fontsize=8)
+            if s.get("shares"): pageF.insert_text((165, cy), str(s["shares"]), fontsize=8)
+            if s.get("name"): pageF.insert_text((215, cy), str(s["name"]), fontsize=9)
+            if s.get("address"): pageF.insert_text((415, cy), str(s["address"]), fontsize=7)
+
+        # Firma
+        sig_label = find_label_rect(pageF, ["Signature of applicant", "Firma"], 600, 1000)
+        if sig_label:
+            if data.get("declarationName"): pageF.insert_text((150, sig_label.y1 + 105), str(data["declarationName"]), fontsize=10, fontname="Helvetica-Bold")
+            if data.get("declarationDate"): pageF.insert_text((220, sig_label.y1 + 138), str(data["declarationDate"]), fontsize=10)
+
+        if 'src_doc' in locals(): src_doc.close()
+
+    # --- ZONA PROTEGIDA: SFAR ---
+    else:
+        page1 = doc[0]
+        def find_y_legacy(words, keywords, min_y=0, max_y=1000):
+            for w in words:
+                wn = normalize(w[4])
+                if any(normalize(kw) in wn for kw in keywords):
+                    yc = (w[1] + w[3]) / 2 + 3
+                    if min_y <= yc <= max_y: return yc
+            return None
+
+        words = page1.get_text("words")
+        config = master_config.get(template_name, master_config["referencia_maestra"])
         for entry in config.get("anchors", []):
-            key = entry["data_key"]
-            if key in data and data[key]:
-                fy = find_y_legacy(entry["keywords"], min_y=entry["min_y"], max_y=entry["max_y"])
+            if entry["data_key"] in data and data[entry["data_key"]]:
+                fy = find_y_legacy(words, entry["keywords"], entry["min_y"], entry["max_y"])
                 if fy:
-                    x_val = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
-                    page1.insert_text((x_val, fy), str(data[key]), fontsize=10, fontname="Helvetica")
+                    xv = config.get(entry["x_key"], 300) if isinstance(entry["x_key"], str) else entry["x_key"]
+                    page1.insert_text((xv, fy), str(data[entry["data_key"]]), fontsize=10, fontname="Helvetica")
 
-        # Fallback para Dirección Final (Fondos)
-        y_final_label = find_y_legacy(["direccion", "address"], min_y=700)
-        if y_final_label and data.get("custodyAddress"):
-            page1.insert_text((142, y_final_label), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
+        if data.get("custodyAddress"):
+            yfl = find_y_legacy(words, ["direccion", "address"], 700)
+            if yfl: page1.insert_text((142, yfl), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
-        # === BLINDAJE DE LÓGICA: Checkboxes Procedencia de Fondos (Máxima Alineación) ===
+        # Checkboxes SFAR
         f_d = str(data.get("fundsSource", [])).lower()
-        # === SISTEMA DE ALINEACIÓN IA: Registro de Coordenadas Blindado ===
-        registry_path = os.path.join(base_dir, "templates", "coordinate_registry.json")
-        try:
-            with open(registry_path, 'r', encoding='utf-8') as rf:
-                ai_registry = json.load(rf)
-                checks_cfg = ai_registry.get("fondos_sfar", {}).get("checkboxes", {})
-        except:
-            # Fallback de seguridad si el JSON falla
-            checks_cfg = {
-                "personal_assets": {"x": 74.5, "y": 376.5, "font_size": 7},
-                "financial_investments": {"x": 74.5, "y": 388.0, "font_size": 7},
-                "business": {"x": 74.5, "y": 399.5, "font_size": 7},
-                "loans": {"x": 74.5, "y": 411.0, "font_size": 7},
-                "inheritance": {"x": 74.5, "y": 422.5, "font_size": 7}
-            }
+        checks = {"personal_assets": (74.5, 376.5), "financial_investments": (74.5, 388.0), "business": (74.5, 399.5), "loans": (74.5, 411.0), "inheritance": (74.5, 422.5)}
+        for key, pos in checks.items():
+            if key in f_d or (key == "personal_assets" and "personal" in f_d):
+                page1.insert_text(pos, "X", fontsize=7, fontname="Helvetica")
 
-        f_d = str(data.get("fundsSource", [])).lower()
-        if "personal" in f_d: page1.insert_text((checks_cfg["personal_assets"]["x"], checks_cfg["personal_assets"]["y"]), "X", fontsize=checks_cfg["personal_assets"]["font_size"], fontname="Helvetica")
-        if "finan" in f_d: page1.insert_text((checks_cfg["financial_investments"]["x"], checks_cfg["financial_investments"]["y"]), "X", fontsize=checks_cfg["financial_investments"]["font_size"], fontname="Helvetica")
-        if "negocio" in f_d: page1.insert_text((checks_cfg["business"]["x"], checks_cfg["business"]["y"]), "X", fontsize=checks_cfg["business"]["font_size"], fontname="Helvetica")
-        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((checks_cfg["loans"]["x"], checks_cfg["loans"]["y"]), "X", fontsize=checks_cfg["loans"]["font_size"], fontname="Helvetica")
-        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((checks_cfg["inheritance"]["x"], checks_cfg["inheritance"]["y"]), "X", fontsize=checks_cfg["inheritance"]["font_size"], fontname="Helvetica")
-        # ==============================================================================
-
-
-
-
-
-
-
-        # ==============================================================================
-
-
-
-
-
-
-
-
-
-
-        # Página 2 (Firmas - Fondos)
         if len(doc) > 1:
-            if data.get("signerName"):
-                doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
-            if data.get("date"):
-                doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="Helvetica")
+            if data.get("signerName"): doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
+            if data.get("date"): doc[1].insert_text((139, 378), str(data["date"]), fontsize=11, fontname="Helvetica")
 
-    # Guardado seguro y aplanado (non-editable)
     doc.save(output_path, incremental=False, encryption=0)
     doc.close()
 
@@ -327,34 +227,21 @@ if __name__ == "__main__":
     try:
         raw_input = sys.stdin.read()
         input_data = json.loads(raw_input)
-        
-        # Cargar configuración de templates
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         config_path = os.path.join(base_dir, "templates", "templates_config.json")
         master_conf = {}
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 master_conf = json.load(f)
-            
-        fill_pdf_universal_engine(
-            input_data.get("data", {}), 
-            input_data.get("output_path", "filled_temp.pdf"), 
-            input_data.get("template_name", "referencia_maestra"), 
-            master_conf,
-            input_data.get("custom_template_path")
-        )
-        # Imprimir solo la ruta del archivo generado para que Node la reciba
+        fill_pdf_universal_engine(input_data.get("data", {}), input_data.get("output_path", "filled_temp.pdf"), input_data.get("template_name", "referencia_maestra"), master_conf, input_data.get("custom_template_path"))
         print(input_data.get("output_path", "filled_temp.pdf"))
     except Exception as e:
         import traceback
         err_msg = traceback.format_exc()
-        # Log persistente para diagnóstico nivel experto (guardado en server/)
         log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-        log_path = os.path.join(log_dir, "last_pdf_error.txt")
         try:
-            with open(log_path, "w", encoding="utf-8") as lf:
+            with open(os.path.join(log_dir, "last_pdf_error.txt"), "w", encoding="utf-8") as lf:
                 lf.write(err_msg)
         except: pass
         print(f"ERROR_PY: {str(e)}", file=sys.stderr)
         sys.exit(1)
-
