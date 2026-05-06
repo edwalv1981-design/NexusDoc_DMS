@@ -190,12 +190,15 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             # ANEXOS ACCIONISTAS
             for i in range(3, len(shareholders), 3):
                 insert_idx = orig_p2_idx + (i//3)
-                doc.insert_pdf(src_doc, from_page=1, to_page=1, start_at=insert_idx)
+                # Validar existencia de página 2 en la fuente para anexos de accionistas
+                sh_page_src = 1 if len(src_doc) > 1 else 0
+                doc.insert_pdf(src_doc, from_page=sh_page_src, to_page=sh_page_src, start_at=insert_idx)
                 fill_sh_block(doc[insert_idx], shareholders[i:i+3], y_sh, is_annex=True)
 
         # Cerrar el documento fuente solo si se abrió (Arquitectura Corporación)
         if 'src_doc' in locals():
             src_doc.close()
+
 
     # === LÓGICA FONDOS / GENÉRICO (RESTAURADA PARA MÁXIMA PRECISIÓN) ===
 
