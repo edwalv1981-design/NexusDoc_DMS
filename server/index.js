@@ -26,7 +26,16 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/forms', require('./routes/formRoutes'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/signed-docs', require('./routes/signedDocuments'));
+app.get('/api/debug-pdf', (req, res) => {
+    const logPath = path.join(__dirname, '../scratch/last_pdf_error.txt');
+    if (fs.existsSync(logPath)) {
+        res.sendFile(logPath);
+    } else {
+        res.status(404).send('No logs available yet.');
+    }
+});
 app.use('/templates', express.static(path.join(__dirname, '../templates')));
+
 
 // 3. SERVIR FRONTEND
 const distPath = path.join(__dirname, '../client/dist');

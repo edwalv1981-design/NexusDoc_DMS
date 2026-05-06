@@ -305,5 +305,13 @@ if __name__ == "__main__":
         print(input_data.get("output_path", "filled_temp.pdf"))
     except Exception as e:
         import traceback
-        print(f"ERROR_PY: {str(e)} | Details: {traceback.format_exc()}", file=sys.stderr)
+        err_msg = traceback.format_exc()
+        # Log persistente para diagnóstico nivel experto
+        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../scratch/last_pdf_error.txt")
+        try:
+            with open(log_path, "w", encoding="utf-8") as lf:
+                lf.write(err_msg)
+        except: pass
+        print(f"ERROR_PY: {str(e)}", file=sys.stderr)
         sys.exit(1)
+
