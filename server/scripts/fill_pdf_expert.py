@@ -172,11 +172,23 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                             page1.insert_text((xv, yc), str(data[entry["data_key"]]), fontsize=10, fontname="Helvetica")
                             break
         
-        # Checkboxes SFAR
-        f_d = str(data.get("fundsSource", [])).lower()
-        checks = {"personal_assets": (74.5, 376.5), "financial_investments": (74.5, 388.0), "business": (74.5, 399.5), "loans": (74.5, 411.0), "inheritance": (74.5, 422.5)}
+        # Checkboxes SFAR (Mapeo robusto por palabras clave en español)
+        f_d = normalize(str(data.get("fundsSource", [])))
+        checks = {
+            "bienes": (74.5, 376.3), 
+            "inversiones": (74.5, 387.8), 
+            "negocios": (74.5, 399.3), 
+            "prestamos": (74.5, 410.8), 
+            "herencia": (74.5, 422.3)
+        }
         for k, pos in checks.items():
-            if k in f_d or (k == "personal_assets" and "personal" in f_d): page1.insert_text(pos, "X", fontsize=7, fontname="Helvetica")
+            if k in f_d: 
+                page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
+        
+        # Dirección de Custodia (Búsqueda manual de coordenadas para evitar colisión con el Address de arriba)
+        if data.get("custodyAddress"):
+            # En el formulario SFAR, el segundo "Address:" está aproximadamente en y=750
+            page1.insert_text((144, 755), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
         if len(doc) > 1:
             if data.get("signerName"): doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
