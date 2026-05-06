@@ -3,10 +3,10 @@ import React from 'react';
 const CorporacionPreview = React.forwardRef(({ data }, ref) => {
     if (!data) return null;
 
-    // --- ESPECIFICACIONES TÉCNICAS DE DISEÑO (IDENTIDAD 100%) ---
-    const BLUE_PANAMA = '#0070c0';
-    const BLUE_INSTRUCTION = '#a5d1e1';
-    const BORDER = `1px solid ${BLUE_PANAMA}`;
+    // --- ESPECIFICACIONES TÉCNICAS DE DISEÑO (CALIBRACIÓN 100% ORIGINAL) ---
+    const TEAL_PANAMA = '#46a1ba'; // Color exacto del formato original
+    const BLUE_LIGHT = '#e7f3f6';  // Azul muy pálido para fondos secundarios
+    const BORDER = `1.5px solid ${TEAL_PANAMA}`; // Grosor exacto de líneas
     const FONT_FAMILY = '"Helvetica", Arial, sans-serif';
 
     const styles = {
@@ -14,36 +14,37 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
             width: '210mm',
             backgroundColor: 'white',
             margin: '0 auto',
-            padding: '12mm 15mm',
+            padding: '10mm 12mm',
             fontFamily: FONT_FAMILY,
             color: '#000',
             boxSizing: 'border-box',
-            lineHeight: '1.1',
+            lineHeight: '1.2',
             position: 'relative'
         },
         headerArea: {
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '12px'
+            alignItems: 'flex-end',
+            marginBottom: '15px'
         },
         titleBox: {
             textAlign: 'right',
-            color: BLUE_PANAMA
+            color: '#1d4e89', // Color de los títulos en el original
+            lineHeight: '1'
         },
         sectionBlue: {
-            backgroundColor: BLUE_PANAMA,
+            backgroundColor: TEAL_PANAMA,
             color: 'white',
-            padding: '8px 10px',
-            fontSize: '12px',
+            padding: '6px 10px',
+            fontSize: '13px',
             fontWeight: 'bold',
-            marginTop: '15px',
+            marginTop: '12px',
             border: BORDER
         },
         instructionBar: {
-            backgroundColor: BLUE_INSTRUCTION,
-            padding: '6px 10px',
-            fontSize: '8.5px',
+            backgroundColor: '#e7f3f6',
+            padding: '5px 10px',
+            fontSize: '9px',
             fontWeight: 'bold',
             border: BORDER,
             borderTop: 0
@@ -51,42 +52,43 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
         table: {
             width: '100%',
             borderCollapse: 'collapse',
-            marginBottom: '10px'
+            marginBottom: '0'
         },
         tdLabel: {
             border: BORDER,
-            padding: '5px 8px',
+            padding: '3px 8px',
             fontSize: '9.5px',
             fontWeight: 'bold',
-            width: '35%'
+            width: '40%',
+            backgroundColor: 'white'
         },
         tdValue: {
             border: BORDER,
-            padding: '5px 8px',
-            fontSize: '10px',
+            padding: '3px 8px',
+            fontSize: '10.5px',
             color: '#000',
             fontWeight: '500',
-            minHeight: '20px'
+            minHeight: '18px'
         },
         terminationsBox: {
             border: BORDER,
-            padding: '8px',
+            padding: '6px',
             fontSize: '8px',
             width: '45%',
             marginLeft: '10px',
             backgroundColor: 'white',
-            lineHeight: '1.4'
+            lineHeight: '1.3'
         },
         capitalSocialContainer: {
             display: 'flex',
-            marginTop: '15px',
-            height: '35px'
+            marginTop: '12px',
+            height: '32px'
         },
         capitalLabel: {
-            backgroundColor: BLUE_PANAMA,
+            backgroundColor: TEAL_PANAMA,
             color: 'white',
             padding: '0 12px',
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: 'bold',
             flex: 1,
             display: 'flex',
@@ -94,22 +96,23 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
             border: BORDER
         },
         capitalValueBox: {
-            width: '22%',
+            width: '25%',
             border: BORDER,
             borderLeft: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: '900',
-            fontSize: '12px'
+            fontSize: '13px'
         },
         legalBox: {
             border: BORDER,
             borderTop: 0,
-            padding: '6px 10px',
-            fontSize: '8.5px',
-            lineHeight: '1.4',
-            backgroundColor: 'white'
+            padding: '5px 10px',
+            fontSize: '8px',
+            lineHeight: '1.2',
+            backgroundColor: 'white',
+            fontWeight: 'bold'
         },
         directorBox: {
             border: BORDER,
@@ -117,23 +120,24 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
         },
         directorHeader: {
             textAlign: 'center',
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: 'bold',
-            padding: '4px',
+            padding: '3px',
             borderBottom: BORDER,
             backgroundColor: 'white'
         },
         signatureCellLabel: {
             border: BORDER,
-            padding: '10px',
-            fontSize: '11px',
+            padding: '8px 12px',
+            fontSize: '13px',
             fontWeight: 'bold',
-            width: '30%'
+            width: '25%',
+            color: '#1d4e89'
         },
         signatureCellValue: {
             border: BORDER,
-            padding: '10px',
-            fontSize: '12px',
+            padding: '8px 12px',
+            fontSize: '14px',
             fontWeight: 'bold'
         }
     };
@@ -146,15 +150,15 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
     );
 
     return (
-        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#f1f5f9', padding: '40px 0' }}>
+        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#f8fafc', padding: '40px 0' }}>
             
             {/* --- PÁGINA 1 --- */}
             <div style={styles.container}>
                 <div style={styles.headerArea}>
-                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '60px' }} />
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '70px' }} />
                     <div style={styles.titleBox}>
-                        <div style={{ fontSize: '18px', fontWeight: '900' }}>Incorporation Form</div>
-                        <div style={{ fontSize: '16px', fontWeight: '900' }}>Formulario de Incorporación</div>
+                        <div style={{ fontSize: '20px', fontWeight: '800' }}>Incorporation Form</div>
+                        <div style={{ fontSize: '18px', fontWeight: '800' }}>Formulario de Incorporación</div>
                     </div>
                 </div>
 
@@ -164,8 +168,8 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                     Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia:
                 </div>
 
-                <div style={{ display: 'flex', marginTop: '0' }}>
-                    <table style={{ ...styles.table, width: '55%', marginBottom: 0 }}>
+                <div style={{ display: 'flex' }}>
+                    <table style={{ ...styles.table, width: '55%' }}>
                         <tbody>
                             {renderRow('1st choice', data.corpNameSA)}
                             {renderRow('2nd choice', data.corpNameCorp)}
@@ -181,7 +185,7 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 <div style={styles.capitalSocialContainer}>
                     <div style={styles.capitalLabel}>Authorized Capital / Capital Social Autorizado:</div>
                     <div style={styles.capitalValueBox}>10.000 USD</div>
-                    <div style={{ ...styles.capitalValueBox, color: '#000' }}>{data.capitalSocial} USD</div>
+                    <div style={{ ...styles.capitalValueBox, color: '#000', backgroundColor: 'white' }}>{data.capitalSocial} USD</div>
                 </div>
                 <div style={styles.legalBox}>
                     The minimum authorized capital of the company will be US$10,000.00 divided into 100 shares with a par value of US$100.00 each, the shares issued in nominative form.<br/>
@@ -190,44 +194,76 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
 
                 <div style={styles.sectionBlue}>Directors / directores:</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '10px' }}>
-                    {data.directors.map((director, i) => (
-                        <div key={i} style={{ 
-                            ...styles.directorBox, 
-                            width: data.directors.length === 1 || (i === data.directors.length - 1 && i % 2 === 0) ? '100%' : 'calc(50% - 8px)',
-                            pageBreakInside: 'avoid'
-                        }}>
-                            <div style={styles.directorHeader}>Director {i + 1}</div>
-                            <table style={{ ...styles.table, marginBottom: 0 }}>
-                                <tbody>
-                                    {renderRow('First name / Nombre', director.firstName)}
-                                    {renderRow('Middle name / Segundo nombre', director.secondName)}
-                                    {renderRow('Surname(s) / Apellidos', director.lastName)}
-                                    {renderRow('Date of birth/ Fecha de nacimiento', director.birthDate)}
-                                    {renderRow('Marital Status / Estado civil', director.maritalStatus)}
-                                    {renderRow('Citizenship / Nacionalidad', director.nationality)}
-                                    {renderRow('Passport/Pasaporte', director.passport)}
-                                    {renderRow('Phone/Teléfono', director.phone)}
-                                    {renderRow('Email', director.email)}
-                                    {renderRow('Address / Dirección', director.address)}
-                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{director.city}</td></tr>
-                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{director.country}</td></tr>
-                                </tbody>
-                            </table>
-                            {i === data.directors.length - 1 && (
-                                <div style={{ padding: '10px', fontSize: '8.5px', fontWeight: 'bold', lineHeight: '1.3', borderTop: BORDER }}>
-                                    In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality.<br/>
-                                    En PANAMÁ se requiere un minimo de 3 diferentes directores. Pueden ser individuos o entidades legales de cualquier otra nacionalidad.
+                    {data.directors.map((director, i) => {
+                        const isFullWidth = data.directors.length === 1 || (i === 2) || (i > 2 && i % 2 === 0);
+                        
+                        if (isFullWidth) {
+                            return (
+                                <div key={i} style={{ ...styles.directorBox, width: '100%', pageBreakInside: 'avoid' }}>
+                                    <div style={styles.directorHeader}>Director {i + 1}</div>
+                                    <div style={{ display: 'flex' }}>
+                                        <table style={{ ...styles.table, width: '50%' }}>
+                                            <tbody>
+                                                {renderRow('First name / Nombre', director.firstName)}
+                                                {renderRow('Middle name / Segundo nombre', director.secondName)}
+                                                {renderRow('Surname(s) / Apellidos', director.lastName)}
+                                                {renderRow('Date of birth/ Fecha de nacimiento', director.birthDate)}
+                                                {renderRow('Marital Status / Estado civil', director.maritalStatus)}
+                                                {renderRow('Citizenship / Nacionalidad', director.nationality)}
+                                                {renderRow('Passport/Pasaporte', director.passport)}
+                                                {renderRow('Phone/Teléfono', director.phone)}
+                                                {renderRow('Email', director.email)}
+                                            </tbody>
+                                        </table>
+                                        <div style={{ width: '50%', borderLeft: BORDER }}>
+                                            <table style={styles.table}>
+                                                <tbody>
+                                                    {renderRow('Address / Dirección', director.address)}
+                                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.tdValue}>{director.city}</td></tr>
+                                                    <tr><td style={{ ...styles.tdLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.tdValue}>{director.country}</td></tr>
+                                                </tbody>
+                                            </table>
+                                            {i === 2 && (
+                                                <div style={{ padding: '8px', fontSize: '8px', fontWeight: 'bold', lineHeight: '1.2' }}>
+                                                    In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality.<br/><br/>
+                                                    En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                            );
+                        }
+
+                        return (
+                            <div key={i} style={{ ...styles.directorBox, width: 'calc(50% - 8px)', pageBreakInside: 'avoid' }}>
+                                <div style={styles.directorHeader}>Director {i + 1}</div>
+                                <table style={styles.table}>
+                                    <tbody>
+                                        {renderRow('First name / Nombre', director.firstName)}
+                                        {renderRow('Middle name / Segundo nombre', director.secondName)}
+                                        {renderRow('Surname(s) / Apellidos', director.lastName)}
+                                        {renderRow('Date of birth/ Fecha de nacimiento', director.birthDate)}
+                                        {renderRow('Marital Status / Estado civil', director.maritalStatus)}
+                                        {renderRow('Citizenship / Nacionalidad', director.nationality)}
+                                        {renderRow('Passport/Pasaporte', director.passport)}
+                                        {renderRow('Phone/Teléfono', director.phone)}
+                                        {renderRow('Email', director.email)}
+                                        {renderRow('Address / Dirección', director.address)}
+                                        <tr><td style={{ ...styles.tdLabel, textAlign: 'right', width: '45%' }}>City / ciudad</td><td style={styles.tdValue}>{director.city}</td></tr>
+                                        <tr><td style={{ ...styles.tdLabel, textAlign: 'right', width: '45%' }}>Country / Pais</td><td style={styles.tdValue}>{director.country}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* --- PÁGINA 2 --- */}
             <div style={{ ...styles.container, marginTop: '30px', pageBreakBefore: 'always' }}>
                 <div style={styles.headerArea}>
-                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '60px' }} />
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '70px' }} />
                 </div>
 
                 <div style={styles.sectionBlue}>Officers / dignatarios:</div>
@@ -286,16 +322,16 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 </table>
 
                 <div style={styles.sectionBlue}>Company Activities / Actividades de la Compañía</div>
-                <div style={{ ...styles.instructionBar, backgroundColor: '#a5d1e1' }}>
+                <div style={{ ...styles.instructionBar }}>
                     Please provide an explanation of the corporation's activities, how it will be carried out and in which countries it will be carried out.<br/>
                     Favor proveer una explicación de la actividad de la sociedad, como se realizará y en qué países se llevará a cabo.
                 </div>
-                <div style={{ border: BORDER, padding: '12px', minHeight: '80px', fontSize: '10px' }}>
+                <div style={{ border: BORDER, padding: '12px', minHeight: '60px', fontSize: '10.5px', borderTop: 0 }}>
                     {data.companyActivities}
                 </div>
 
                 <div style={{ marginTop: '25px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Declaration</div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Declaration</div>
                     <div style={{ fontSize: '10px', fontStyle: 'italic', fontWeight: 'bold', lineHeight: '1.4' }}>
                         I hereby affirm that information given on this application is complete and accurate. I understand that any falsification or ommission will carry legal effects and penalties. I authorize the company to investigate the authenticity of above-mentioned information.
                     </div>
@@ -313,7 +349,7 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                         </tr>
                         <tr>
                             <td style={styles.signatureCellLabel}>Date // Fecha:</td>
-                            <td style={{ ...styles.signatureCellValue, fontWeight: 'normal' }}> / / 2025</td>
+                            <td style={{ ...styles.signatureCellValue, fontWeight: 'bold', fontSize: '13px' }}> / / 2025</td>
                         </tr>
                     </tbody>
                 </table>
