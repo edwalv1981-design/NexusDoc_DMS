@@ -3,299 +3,309 @@ import React from 'react';
 const CorporacionPreview = React.forwardRef(({ data }, ref) => {
     if (!data) return null;
 
-    // Colores y Constantes de Diseño Master
-    const BLUE_MAIN = '#0070c0'; // Azul Corporativo Panama Tax
-    const LIGHT_GREY = '#f1f5f9';
-    const BORDER_COLOR = '#cbd5e1';
+    // Constantes de Diseño Master (Extraídas de las imágenes originales)
+    const BLUE_PANAMA = '#0070c0';
+    const BLUE_LIGHT = '#e2e8f0';
+    const BORDER_STYLE = `1px solid ${BLUE_PANAMA}`;
+    const TEXT_COLOR = '#000';
 
     const styles = {
         container: {
             width: '210mm',
             backgroundColor: 'white',
             margin: '0 auto',
-            padding: '12mm 15mm',
+            padding: '10mm 12mm',
             fontFamily: '"Helvetica", Arial, sans-serif',
-            color: '#1e293b',
+            color: TEXT_COLOR,
             boxSizing: 'border-box',
-            lineHeight: '1.2',
-            fontSize: '10px'
+            lineHeight: '1.2'
         },
-        header: {
+        headerArea: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '15px',
-            borderBottom: `2.5px solid ${BLUE_MAIN}`,
-            paddingBottom: '10px'
+            marginBottom: '10px'
         },
-        blueHeader: {
-            backgroundColor: BLUE_MAIN,
+        mainTitle: {
+            textAlign: 'right',
+            color: BLUE_PANAMA,
+            margin: 0
+        },
+        sectionBlue: {
+            backgroundColor: BLUE_PANAMA,
             color: 'white',
-            padding: '8px 12px',
-            fontSize: '13px',
-            fontWeight: '900',
-            marginTop: '20px',
-            textTransform: 'uppercase',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
+            padding: '7px 10px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            marginTop: '15px'
+        },
+        instructionRow: {
+            backgroundColor: '#a5d1e1',
+            padding: '5px 10px',
+            fontSize: '8.5px',
+            fontWeight: 'bold',
+            color: '#000'
         },
         table: {
             width: '100%',
             borderCollapse: 'collapse',
-            marginBottom: '12px'
+            marginBottom: '10px'
         },
-        labelCell: {
-            border: `1px solid ${BORDER_COLOR}`,
-            padding: '5px 8px',
-            backgroundColor: '#f8fafc',
-            width: '35%',
-            fontWeight: 'bold',
-            fontSize: '9.5px',
-            color: '#475569'
-        },
-        valueCell: {
-            border: `1px solid ${BORDER_COLOR}`,
-            padding: '5px 8px',
-            fontSize: '10px',
-            color: '#000',
-            fontWeight: '500'
-        },
-        instructionText: {
-            fontSize: '9.5px',
-            color: '#64748b',
-            fontStyle: 'italic',
-            marginBottom: '8px',
-            marginTop: '5px'
-        },
-        infoBox: {
-            backgroundColor: '#e2e8f0',
-            padding: '8px',
-            fontSize: '8px',
-            color: '#334155',
-            lineHeight: '1.3',
-            border: `1px solid ${BORDER_COLOR}`,
-            width: '40%',
-            marginLeft: '15px'
-        },
-        legalPara: {
-            fontSize: '8.5px',
-            color: '#475569',
-            lineHeight: '1.4',
-            padding: '8px 0',
-            borderBottom: `1px solid ${BORDER_COLOR}`
-        },
-        directorBox: {
-            border: `1.5px solid ${BORDER_COLOR}`,
-            marginBottom: '10px',
-            pageBreakInside: 'avoid'
-        },
-        directorTitle: {
-            textAlign: 'center',
-            fontWeight: 'bold',
-            padding: '4px',
-            fontSize: '11px',
-            borderBottom: `1px solid ${BORDER_COLOR}`,
-            backgroundColor: 'white'
-        },
-        noticeBox: {
+        cellLabel: {
+            border: BORDER_STYLE,
+            padding: '4px 8px',
             fontSize: '9px',
-            color: '#334155',
-            lineHeight: '1.4',
-            padding: '10px',
-            backgroundColor: '#f8fafc',
-            border: `1px dashed ${BLUE_MAIN}`
+            fontWeight: 'bold',
+            backgroundColor: 'white',
+            width: '35%'
+        },
+        cellValue: {
+            border: BORDER_STYLE,
+            padding: '4px 8px',
+            fontSize: '9.5px',
+            color: '#000',
+            minHeight: '18px'
+        },
+        terminationsBox: {
+            border: BORDER_STYLE,
+            padding: '6px',
+            fontSize: '7.5px',
+            width: '45%',
+            marginLeft: '10px',
+            backgroundColor: 'white',
+            lineHeight: '1.3'
+        },
+        capitalGrid: {
+            display: 'grid',
+            gridTemplateColumns: '1.5fr 1fr 1fr',
+            border: BORDER_STYLE,
+            marginTop: '0'
+        },
+        capitalCell: {
+            padding: '6px 10px',
+            fontSize: '11px',
+            fontWeight: '900',
+            borderRight: BORDER_STYLE,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        directorGrid: {
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '15px',
+            marginTop: '10px'
+        },
+        signatureTable: {
+            width: '100%',
+            borderCollapse: 'collapse',
+            marginTop: '20px'
+        },
+        signatureRow: {
+            height: '35px',
+            border: BORDER_STYLE
         }
     };
 
     const renderRow = (label, value) => (
         <tr>
-            <td style={styles.labelCell}>{label}</td>
-            <td style={styles.valueCell}>{value || ''}</td>
+            <td style={styles.cellLabel}>{label}</td>
+            <td style={styles.cellValue}>{value || ''}</td>
         </tr>
     );
 
     return (
-        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#f1f5f9', padding: '50px 0' }}>
+        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#f1f5f9', padding: '40px 0' }}>
+            
+            {/* PÁGINA 1 */}
             <div style={styles.container}>
-                
-                {/* --- HEADER --- */}
-                <div style={styles.header}>
-                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '60px' }} />
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '20px', fontWeight: '900', color: BLUE_MAIN }}>Incorporation Form</div>
-                        <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#64748b' }}>Formulario de Incorporación</div>
+                <div style={styles.headerArea}>
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '55px' }} />
+                    <div style={styles.mainTitle}>
+                        <div style={{ fontSize: '18px', fontWeight: '900' }}>Incorporation Form</div>
+                        <div style={{ fontSize: '16px', fontWeight: '900' }}>Formulario de Incorporación</div>
                     </div>
                 </div>
 
-                {/* --- SECCIÓN 1: NOMBRE --- */}
-                <div style={styles.blueHeader}>Name of the corporation / Nombre de la compañía:</div>
-                <div style={styles.instructionText}>
+                <div style={styles.sectionBlue}>Name of the corporation / Nombre de la compañía:</div>
+                <div style={styles.instructionRow}>
                     List the names you wish to use to incorporate your corporation in order of preference<br/>
                     Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia:
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <table style={{ ...styles.table, width: '60%', marginBottom: 0 }}>
+                <div style={{ display: 'flex', marginTop: '0' }}>
+                    <table style={{ ...styles.table, width: '55%', marginBottom: 0 }}>
                         <tbody>
-                            {renderRow('1st choice / Primera opción', data.corpNameSA)}
-                            {renderRow('2nd choice / Segunda opción', data.corpNameCorp)}
-                            {renderRow('3rd choice / Tercera opción', data.corpNameInc)}
+                            {renderRow('1st choice', data.corpNameSA)}
+                            {renderRow('2nd choice', data.corpNameCorp)}
+                            {renderRow('3rd choice', data.corpNameInc)}
                         </tbody>
                     </table>
-                    <div style={styles.infoBox}>
+                    <div style={styles.terminationsBox}>
                         The name of the Company must be determined by one of the following terminations: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.<br/><br/>
-                        El nombre de la Compañía debe terminar con una de las siguientes terminaciones: Corp., Inc., o S.A., A/S, N.V., B.V., AG.
+                        El nombre de la Compañía debe terminar con una de las siguientes terminaciones: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., o S.A., A/S, N.V., B.V., AG.
                     </div>
                 </div>
 
-                {/* --- SECCIÓN 2: CAPITAL SOCIAL --- */}
-                <div style={{ ...styles.blueHeader, marginTop: '25px', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', padding: 0 }}>
-                    <div style={{ padding: '8px 12px' }}>Authorized Capital / Capital Social Autorizado:</div>
-                    <div style={{ backgroundColor: 'white', color: 'black', padding: '8px 20px', fontWeight: '900', fontSize: '13px', borderLeft: `1.5px solid ${BLUE_MAIN}`, textAlign: 'center' }}>
-                        10.000 USD
-                    </div>
-                    <div style={{ backgroundColor: 'white', color: 'black', padding: '8px 20px', fontWeight: '900', fontSize: '14px', borderLeft: `1.5px solid ${BLUE_MAIN}`, textAlign: 'center' }}>
-                        {data.capitalSocial ? `${data.capitalSocial} USD` : ''}
-                    </div>
+                <div style={{ ...styles.sectionBlue, marginBottom: 0 }}>Authorized Capital / Capital Social Autorizado:</div>
+                <div style={styles.capitalGrid}>
+                    <div style={{ ...styles.capitalCell, backgroundColor: 'white', borderRight: 0 }}></div>
+                    <div style={{ ...styles.capitalCell, backgroundColor: 'white', borderLeft: BORDER_STYLE }}>10.000 USD</div>
+                    <div style={{ ...styles.capitalCell, backgroundColor: 'white', borderLeft: BORDER_STYLE }}>{data.capitalSocial} USD</div>
                 </div>
-                <div style={styles.legalPara}>
+                <div style={{ fontSize: '8px', padding: '5px', border: BORDER_STYLE, borderTop: 0 }}>
                     The minimum authorized capital of the company will be US$10,000.00 divided into 100 shares with a par value of US$100.00 each, the shares issued in nominative form.<br/>
                     El capital mínimo autorizado de la sociedad será de US$10,000.00 divididos en 100 acciones con un valor nominal de US$100.00 cada una, las acciones emitidas de forma nominativa.
                 </div>
 
-                {/* --- SECCIÓN 3: DIRECTORES (GRID 1 y 2) --- */}
-                <div style={styles.blueHeader}>Directors / directores:</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '10px' }}>
-                    {[0, 1].map(idx => {
-                        const d = data.directors[idx] || {};
-                        return (
-                            <div key={idx} style={styles.directorBox}>
-                                <div style={styles.directorTitle}>Director {idx + 1}</div>
-                                <table style={{ ...styles.table, marginBottom: 0 }}>
-                                    <tbody>
-                                        {renderRow('First name / Nombre', d.firstName)}
-                                        {renderRow('Middle name / Segundo nombre', d.secondName)}
-                                        {renderRow('Surname(s) / Apellidos', d.lastName)}
-                                        {renderRow('Date of birth / Fecha de nacimiento', d.birthDate)}
-                                        {renderRow('Marital Status / Estado civil', d.maritalStatus)}
-                                        {renderRow('Citizenship / Nacionalidad', d.nationality)}
-                                        {renderRow('Passport/Pasaporte', d.passport)}
-                                        {renderRow('Phone/Teléfono', d.phone)}
-                                        {renderRow('Email', d.email)}
-                                        {renderRow('Address / Dirección', d.address)}
-                                        {renderRow('City / ciudad', d.city)}
-                                        {renderRow('Country / País', d.country)}
-                                    </tbody>
-                                </table>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* --- DIRECTOR 3 (ESPECIAL) --- */}
-                {data.directors[2] && (
-                    <div style={{ ...styles.directorBox, marginTop: '10px' }}>
-                        <div style={styles.directorTitle}>Director 3</div>
-                        <div style={{ display: 'flex' }}>
-                            <table style={{ ...styles.table, width: '50%', marginBottom: 0 }}>
+                <div style={styles.sectionBlue}>Directors / directores:</div>
+                <div style={styles.directorGrid}>
+                    {[0, 1].map(i => (
+                        <div key={i} style={{ border: BORDER_STYLE }}>
+                            <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', padding: '3px', borderBottom: BORDER_STYLE }}>Director {i+1}</div>
+                            <table style={{ ...styles.table, marginBottom: 0 }}>
                                 <tbody>
-                                    {renderRow('First name / Nombre', data.directors[2].firstName)}
-                                    {renderRow('Middle name / Segundo nombre', data.directors[2].secondName)}
-                                    {renderRow('Surname(s) / Apellidos', data.directors[2].lastName)}
-                                    {renderRow('Date of birth / Fecha de nacimiento', data.directors[2].birthDate)}
-                                    {renderRow('Marital Status / Estado civil', data.directors[2].maritalStatus)}
-                                    {renderRow('Citizenship / Nacionalidad', data.directors[2].nationality)}
-                                    {renderRow('Passport/Pasaporte', data.directors[2].passport)}
-                                    {renderRow('Phone/Teléfono', data.directors[2].phone)}
-                                    {renderRow('Email', data.directors[2].email)}
+                                    {renderRow('First name / Nombre', data.directors[i]?.firstName)}
+                                    {renderRow('Middle name / Segundo nombre', data.directors[i]?.secondName)}
+                                    {renderRow('Surname(s) / Apellidos', data.directors[i]?.lastName)}
+                                    {renderRow('Date of birth/ Fecha de nacimiento', data.directors[i]?.birthDate)}
+                                    {renderRow('Marital Status / Estado civil', data.directors[i]?.maritalStatus)}
+                                    {renderRow('Citizenship / Nacionalidad', data.directors[i]?.nationality)}
+                                    {renderRow('Passport/Pasaporte', data.directors[i]?.passport)}
+                                    {renderRow('Phone/Teléfono', data.directors[i]?.phone)}
+                                    {renderRow('Email', data.directors[i]?.email)}
+                                    {renderRow('Address / Dirección', data.directors[i]?.address)}
+                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.cellValue}>{data.directors[i]?.city}</td></tr>
+                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.cellValue}>{data.directors[i]?.country}</td></tr>
                                 </tbody>
                             </table>
-                            <div style={{ width: '50%', borderLeft: `1px solid ${BORDER_COLOR}` }}>
-                                <table style={{ ...styles.table, marginBottom: 0 }}>
-                                    <tbody>
-                                        {renderRow('Address / Dirección', data.directors[2].address)}
-                                        {renderRow('City / ciudad', data.directors[2].city)}
-                                        {renderRow('Country / País', data.directors[2].country)}
-                                    </tbody>
-                                </table>
-                                <div style={styles.noticeBox}>
-                                    In PANAMA a <b>minimum of 3 different Directors</b> are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
-                                    En PANAMÁ se requiere un <b>mínimo de 3 diferentes directores</b>. Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir más directores solicite otra página.
-                                </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ border: BORDER_STYLE, marginTop: '10px' }}>
+                    <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 'bold', padding: '3px', borderBottom: BORDER_STYLE }}>Director 3</div>
+                    <div style={{ display: 'flex' }}>
+                        <table style={{ ...styles.table, width: '50%', marginBottom: 0 }}>
+                            <tbody>
+                                {renderRow('First name / Nombre', data.directors[2]?.firstName)}
+                                {renderRow('Middle name / Segundo nombre', data.directors[2]?.secondName)}
+                                {renderRow('Surname(s) / Apellidos', data.directors[2]?.lastName)}
+                                {renderRow('Date of birth/ Fecha de nacimiento', data.directors[2]?.birthDate)}
+                                {renderRow('Marital Status / Estado civil', data.directors[2]?.maritalStatus)}
+                                {renderRow('Citizenship / Nacionalidad', data.directors[2]?.nationality)}
+                                {renderRow('Passport/Pasaporte', data.directors[2]?.passport)}
+                                {renderRow('Phone/Teléfono', data.directors[2]?.phone)}
+                                {renderRow('Email', data.directors[2]?.email)}
+                            </tbody>
+                        </table>
+                        <div style={{ width: '50%', borderLeft: BORDER_STYLE }}>
+                            <table style={{ ...styles.table, marginBottom: 0 }}>
+                                <tbody>
+                                    {renderRow('Address / Dirección', data.directors[2]?.address)}
+                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>City / ciudad</td><td style={styles.cellValue}>{data.directors[2]?.city}</td></tr>
+                                    <tr><td style={{ ...styles.cellLabel, textAlign: 'right' }}>Country / Pais</td><td style={styles.cellValue}>{data.directors[2]?.country}</td></tr>
+                                </tbody>
+                            </table>
+                            <div style={{ padding: '8px', fontSize: '8.5px', fontWeight: 'bold' }}>
+                                In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
+                                En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
+            </div>
 
-                {/* --- PÁGINA 2: DIGNATARIOS Y ACCIONISTAS --- */}
-                <div style={{ pageBreakBefore: 'always', marginTop: '30px' }}>
-                    <div style={styles.blueHeader}>Dignitaries / Dignatarios</div>
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={styles.labelCell}>Role / Cargo</th>
-                                <th style={styles.labelCell}>Full Name / Nombre Completo</th>
-                                <th style={styles.labelCell}>Birth Date / F. Nac.</th>
-                                <th style={styles.labelCell}>Passport / Pasaporte</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(data.dignitaries).map(([role, d]) => (
-                                <tr key={role}>
-                                    <td style={{ ...styles.valueCell, fontWeight: 'bold', textTransform: 'uppercase' }}>{role}</td>
-                                    <td style={styles.valueCell}>{d.fullName}</td>
-                                    <td style={styles.valueCell}>{d.birthDate}</td>
-                                    <td style={styles.valueCell}>{d.passport}</td>
+            {/* PÁGINA 2 */}
+            <div style={{ ...styles.container, marginTop: '20px' }}>
+                <div style={styles.headerArea}>
+                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '55px' }} />
+                </div>
+
+                <div style={styles.sectionBlue}>Officers / dignatarios:</div>
+                <table style={styles.table}>
+                    <thead style={{ backgroundColor: 'white', fontSize: '8px' }}>
+                        <tr>
+                            <th style={{ ...styles.cellLabel, width: '25%' }}></th>
+                            <th style={styles.cellLabel}>Full name / Nombre completo</th>
+                            <th style={styles.cellLabel}>Date of birth / fecha de nacimiento</th>
+                            <th style={styles.cellLabel}>Passport/ Pasaporte</th>
+                            <th style={styles.cellLabel}>Registration number (if company) / Numero de Registro si es empresa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {['PRESIDENT /Presidente', 'SECRETARY / Secretario', 'TREASURER / Tesorero'].map((role, idx) => {
+                            const key = role.split(' ')[0].toLowerCase();
+                            const d = data.dignitaries[key] || {};
+                            return (
+                                <tr key={idx}>
+                                    <td style={{ ...styles.cellLabel, fontSize: '9px' }}>{role}</td>
+                                    <td style={styles.cellValue}>{d.fullName}</td>
+                                    <td style={styles.cellValue}>{d.birthDate}</td>
+                                    <td style={styles.cellValue}>{d.passport}</td>
+                                    <td style={styles.cellValue}>{d.registrationNumber}</td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            );
+                        })}
+                    </tbody>
+                </table>
 
-                    <div style={styles.blueHeader}>Shareholders / Accionistas</div>
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={{ ...styles.labelCell, width: '10%' }}>Cert.</th>
-                                <th style={{ ...styles.labelCell, width: '12%' }}>Value/Valor</th>
-                                <th style={{ ...styles.labelCell, width: '10%' }}>Shares</th>
-                                <th style={styles.labelCell}>Full Name / Nombre</th>
-                                <th style={styles.labelCell}>Address / Dirección</th>
+                <div style={styles.sectionBlue}>Shareholders / Accionistas:</div>
+                <table style={styles.table}>
+                    <thead style={{ fontSize: '7.5px' }}>
+                        <tr>
+                            <th style={styles.cellLabel}>Share Certificate Number / Numero de certificado</th>
+                            <th style={styles.cellLabel}>Share's value / valor por acción</th>
+                            <th style={styles.cellLabel}>Number of Shares / Numero de acciones</th>
+                            <th style={styles.cellLabel}>Shareholder / Accionista</th>
+                            <th style={styles.cellLabel}>Address / dirección</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.shareholders.map((s, i) => (
+                            <tr key={i}>
+                                <td style={styles.cellValue}>{s.certificate}</td>
+                                <td style={styles.cellValue}>{s.value}</td>
+                                <td style={styles.cellValue}>{s.shares}</td>
+                                <td style={styles.cellValue}>{s.name}</td>
+                                <td style={styles.cellValue}>{s.address}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {data.shareholders.map((s, i) => (
-                                <tr key={i}>
-                                    <td style={styles.valueCell}>{s.certificate}</td>
-                                    <td style={styles.valueCell}>{s.value}</td>
-                                    <td style={styles.valueCell}>{s.shares}</td>
-                                    <td style={styles.valueCell}>{s.name}</td>
-                                    <td style={styles.valueCell}>{s.address}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                        ))}
+                    </tbody>
+                </table>
 
-                    <div style={styles.blueHeader}>Declaration / Declaración Jurada</div>
-                    <div style={{ ...styles.legalPara, padding: '15px', border: `1px solid ${BORDER_COLOR}`, minHeight: '60px' }}>
-                        {data.companyActivities || 'No especificado.'}
-                    </div>
+                <div style={styles.sectionBlue}>Company Activities / Actividades de la Compañía</div>
+                <div style={{ ...styles.instructionRow, backgroundColor: '#a5d1e1' }}>
+                    Please provide an explanation of the corporation's activities, how it will be carried out and in which countries it will be carried out.<br/>
+                    Favor proveer una explicación de la actividad de la sociedad, como se realizará y en qué países se llevará a cabo.
+                </div>
+                <div style={{ border: BORDER_STYLE, padding: '10px', minHeight: '60px', fontSize: '9.5px' }}>
+                    {data.companyActivities}
+                </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '60px' }}>
-                        <div style={{ width: '60%', borderTop: '2px solid black', paddingTop: '5px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{data.declarationName || '_________________________________'}</div>
-                            <div style={{ fontSize: '10px', color: '#64748b' }}>Signature of applicant / Firma del solicitante</div>
-                        </div>
-                        <div style={{ width: '30%', borderTop: '2px solid black', paddingTop: '5px' }}>
-                            <div style={{ fontSize: '12px' }}>{data.declarationDate}</div>
-                            <div style={{ fontSize: '10px', color: '#64748b' }}>Date / Fecha</div>
-                        </div>
+                <div style={{ marginTop: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Declaration</div>
+                    <div style={{ fontSize: '10px', fontStyle: 'italic', fontWeight: 'bold', marginTop: '5px' }}>
+                        I hereby affirm that information given on this application is complete and accurate. I understand that any falsification or ommission will carry legal effects and penalties. I authorize the company to investigate the authenticity of above-mentioned information.
                     </div>
                 </div>
 
-                <div style={{ marginTop: '50px', textAlign: 'center', fontSize: '8px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
-                    Document generated by NexusDoc DMS for Panama Tax Lawyers. All rights reserved.
-                </div>
+                <table style={styles.signatureTable}>
+                    <tbody>
+                        <tr>
+                            <td style={{ ...styles.cellLabel, width: '30%' }}>Signature // Firma</td>
+                            <td style={styles.cellValue}></td>
+                        </tr>
+                        <tr>
+                            <td style={styles.cellLabel}>Name // Nombre:</td>
+                            <td style={{ ...styles.cellValue, fontWeight: 'bold' }}>{data.declarationName}</td>
+                        </tr>
+                        <tr>
+                            <td style={styles.cellLabel}>Date // Fecha:</td>
+                            <td style={styles.cellValue}> / / 2025</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     );
