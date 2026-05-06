@@ -296,8 +296,6 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
 if __name__ == "__main__":
     try:
-        # Forzar lectura UTF-8 segura
-        sys.stdin.reconfigure(encoding='utf-8')
         raw_input = sys.stdin.read()
         input_data = json.loads(raw_input)
         
