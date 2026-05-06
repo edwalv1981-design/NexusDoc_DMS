@@ -1,5 +1,4 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
@@ -121,17 +120,9 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-// @route   GET api/documents/download/:id/:filename
+// @route   GET api/documents/download/:id
 // @desc    Download a document (Strict Security: only owner can download)
-router.get('/download/:id/:filename', async (req, res) => {
-    const token = req.header('x-auth-token') || req.query.token;
-    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
-        req.user = decoded.user;
-    } catch (err) {
-        return res.status(401).json({ msg: 'Token is not valid' });
-    }
+router.get('/download/:id', auth, async (req, res) => {
     try {
         const doc = await UserDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
         

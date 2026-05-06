@@ -1,5 +1,4 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { FormData, User, DocumentTemplate, AuditLog } = require('../models');
 const auth = require('../middleware/auth');
@@ -79,17 +78,8 @@ router.delete('/:id', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ msg: 'Error' }); }
 });
 
-// @route   GET api/forms/generate-pdf/:id/:filename
-router.get('/generate-pdf/:id/:filename', async (req, res) => {
-    // Custom auth logic to allow token in query param for direct downloads
-    const token = req.header('x-auth-token') || req.query.token;
-    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
-        req.user = decoded.user;
-    } catch (err) {
-        return res.status(401).json({ msg: 'Token is not valid' });
-    }
+// @route   GET api/forms/generate-pdf/:id
+router.get('/generate-pdf/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
@@ -189,20 +179,6 @@ router.get('/generate-pdf/:id/:filename', async (req, res) => {
         console.error(e);
         res.status(500).json({ msg: 'Error de servidor' });
     }
-});
-
-// @route   GET api/forms/generate-pdf/:id (backward compatibility fallback)
-router.get('/generate-pdf/:id', async (req, res) => {
-    const token = req.header('x-auth-token') || req.query.token;
-    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
-        req.user = decoded.user;
-    } catch (err) {
-        return res.status(401).json({ msg: 'Token is not valid' });
-    }
-    // Redirect to the named route
-    res.redirect(`/api/forms/generate-pdf/${req.params.id}/document.pdf?token=${token}`);
 });
 
 module.exports = router;

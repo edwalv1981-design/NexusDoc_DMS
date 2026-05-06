@@ -1,5 +1,4 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
@@ -162,16 +161,8 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-// @route   GET api/signed-docs/download/:id/:filename
-router.get('/download/:id/:filename', async (req, res) => {
-    const token = req.header('x-auth-token') || req.query.token;
-    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
-        req.user = decoded.user;
-    } catch (err) {
-        return res.status(401).json({ msg: 'Token is not valid' });
-    }
+// @route   GET api/signed-docs/download/:id
+router.get('/download/:id', auth, async (req, res) => {
     try {
         const doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!doc) return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });

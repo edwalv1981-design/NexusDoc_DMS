@@ -86,14 +86,21 @@ const UserDocuments = () => {
   const handleDownload = async (id, filename) => {
     try {
       const token = localStorage.getItem('token');
-      // Use hidden <a target=_blank> to trigger native download without page navigation error
-      const link = document.createElement('a');
-      link.href = `${API_BASE_URL}/api/documents/download/${id}/${encodeURIComponent(filename)}?token=${token}`;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => link.remove(), 500);
+      const res = await axios.get(`${API_BASE_URL}/api/documents/download/${id}`, {
+        headers: { 'x-auth-token': token },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
     } catch (err) {
       toast.error('Error al descargar el documento');
     }
