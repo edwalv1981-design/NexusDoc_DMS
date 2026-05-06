@@ -58,36 +58,37 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
     # === LÓGICA CORPORACIÓN (ARQUITECTO SENIOR - PRECISIÓN ABSOLUTA) ===
     if template_name == "corporacion" or "corpNameSA" in data:
-        # === SISTEMA DE ALINEACIÓN IA: Corporación Dynamic Engine (BÚSQUEDA SEMÁNTICA) ===
         directors = data.get("directors", [])
         shareholders = data.get("shareholders", [])
         dignitaries = data.get("dignitaries", {})
 
-
-        # Motor de Alineación de Alta Precisión para Corporación
-        def fill_fixed_col_table(page, data_dict, labels_map, x_min, x_max, value_x, min_y=0, max_y=1000):
+        # === MOTOR DE CELDAS INTELIGENTES (ALINEACIÓN PIXEL-PERFECT) ===
+        def fill_smart_grid(page, data_dict, labels_map, x_min, x_max, val_x_offset, min_y=0, max_y=1000):
             """
-            Versión blindada que usa columnas fijas para asegurar que el texto caiga DENTRO de las celdas.
+            Localiza la etiqueta y escribe el valor en la celda de la derecha, 
+            centrando verticalmente el texto en la fila.
             """
             words = page.get_text("words")
             for field_key, keywords in labels_map.items():
                 val = data_dict.get(field_key)
                 if not val: continue
                 
-                # Buscar el ancla de la etiqueta
+                # 1. Buscar ancla de la etiqueta
                 anchor = None
                 for w in words:
-                    if x_min <= w[0] <= x_max and min_y <= w[3] <= max_y:
+                    if x_min <= w[0] <= x_max and min_y <= w[1] <= max_y:
                         wn = normalize(w[4])
                         if any(normalize(kw) in wn for kw in keywords):
                             anchor = w
                             break
                 
                 if anchor:
-                    # El valor se coloca en value_x (posición fija de la celda derecha)
-                    # Usamos textbox para que no se salga de la celda
-                    rect = fitz.Rect(value_x, anchor[1] - 2, x_max - 5, anchor[3] + 2)
-                    insert_text_scaled(page, rect, str(val), max_fontsize=9, min_fontsize=7)
+                    # 2. Definir Rectángulo de la Celda (Donde va el valor)
+                    # El valor empieza en val_x_offset y termina en el borde de la columna
+                    row_height = anchor[3] - anchor[1]
+                    # Centrado vertical: y1 - 2 suele ser la línea base perfecta
+                    rect = fitz.Rect(val_x_offset, anchor[1] - 1, x_max - 5, anchor[3] + 1)
+                    insert_text_scaled(page, rect, str(val), max_fontsize=8, min_fontsize=6)
 
         dir_labels = {
             "firstName": ["first", "nombre"],
@@ -104,136 +105,131 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             "country": ["country", "país", "pais"]
         }
 
-        # PÁGINA 1: Datos de la Compañía (Alineación por Casilleros)
+        # --- PÁGINA 1: ESTRUCTURA PRINCIPAL ---
         page1 = doc[0]
-        y_names = get_anchor(page1, ["names", "incorp", "preference"], 100, 300)
-        if not y_names: y_names = 155
         
-        # Casilleros de nombres (Entre etiqueta y sufijo)
-        # X=135 es el inicio del casillero, X=235 es el final antes del sufijo (S.A./Corp/Inc)
-        choices_map = {"corpNameSA": 0, "corpNameCorp": 1, "corpNameInc": 2}
-        for key, idx in choices_map.items():
+        # 1. Nombres (Choices) - Alineación Estricta
+        y_names = get_anchor(page1, ["names", "incorp", "preference"], 100, 300) or 155
+        choices_cfg = {"corpNameSA": 0, "corpNameCorp": 1, "corpNameInc": 2}
+        for key, idx in choices_cfg.items():
             if data.get(key):
-                y_pos = y_names + 22 + (idx * 33)
-                rect = fitz.Rect(135, y_pos - 10, 235, y_pos + 5)
+                y_row = y_names + 23 + (idx * 33.5)
+                # Box exacto entre etiqueta y S.A./Corp/Inc
+                rect = fitz.Rect(132, y_row - 10, 230, y_row + 5)
                 insert_text_scaled(page1, rect, str(data[key]), max_fontsize=10)
 
-        y_cap = get_anchor(page1, ["capital", "authorized"], 200, 500)
-        if not y_cap: y_cap = 395
+        # 2. Capital Social (Blindaje de Posición)
+        y_cap = get_anchor(page1, ["capital", "authorized"], 200, 500) or 395
         if data.get("capitalSocial"):
-            try: 
+            try:
+                # Escribir en el casillero blanco a la derecha del label "10.000 USD"
                 val_cap = f"{float(str(data['capitalSocial']).replace(',','')):,.2f} USD"
+                # El casillero está aproximadamente en X=450
                 page1.insert_text((450, y_cap + 18), val_cap, fontsize=10, fontname="hebo")
             except: pass
 
-        # Procesar Directores 1 y 2 (Side-by-side)
-        y_dir_header = get_anchor(page1, ["directores", "directors"], 100, 600)
-        if not y_dir_header: y_dir_header = 280
-        
+        # 3. Directores 1 y 2 (Columnas Gemelas)
+        y_dir = get_anchor(page1, ["directores", "directors"], 100, 600) or 280
         for i in range(min(2, len(directors))):
             d = directors[i]
-            x_min, x_max, v_x = (50, 295, 155) if i == 0 else (300, 580, 445)
-            fill_fixed_col_table(page1, d, dir_labels, x_min, x_max, v_x, min_y=y_dir_header + 40)
+            x_min, x_max, val_x = (50, 298, 155) if i == 0 else (300, 590, 445)
+            fill_smart_grid(page1, d, dir_labels, x_min, x_max, val_x, min_y=y_dir + 30)
 
-        # Procesar Director 3 (Formato Especial al final de la Pág 1)
+        # 4. Director 3 (Fondo de Pág 1 - Split Layout)
         if len(directors) >= 3:
             d3 = directors[2]
-            y_d3 = get_anchor(page1, ["director 3"], 500, 850)
-            if not y_d3: y_d3 = 680
-            
-            # Director 3 tiene un layout distinto: 
-            # Parte Izquierda: Datos personales (X_val = 155)
-            # Parte Derecha: Dirección/Ciudad/País (X_val = 445)
-            d3_labels_left = {k: dir_labels[k] for k in ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]}
-            d3_labels_right = {k: dir_labels[k] for k in ["address", "city", "country"]}
-            
-            fill_fixed_col_table(page1, d3, d3_labels_left, 50, 295, 155, min_y=y_d3 + 20)
-            fill_fixed_col_table(page1, d3, d3_labels_right, 300, 580, 445, min_y=y_d3 + 20)
+            y_d3 = get_anchor(page1, ["director 3"], 600, 850) or 685
+            # Lado Izquierdo (Datos Personales)
+            labels_p1 = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email"]
+            fill_smart_grid(page1, d3, {k:dir_labels[k] for k in labels_p1}, 50, 298, 155, min_y=y_d3 + 10)
+            # Lado Derecho (Ubicación)
+            labels_p2 = ["address", "city", "country"]
+            fill_smart_grid(page1, d3, {k:dir_labels[k] for k in labels_p2}, 300, 590, 445, min_y=y_d3 + 10)
 
-        # ANEXOS (Para Director 4 en adelante)
-        annex_count = 0
+        # --- ANEXOS (DIRECTORES 4+) ---
         src_doc = fitz.open(pdf_path)
+        annex_count = 0
         for i in range(3, len(directors), 2):
             annex_count += 1
-            p_idx = annex_count
-            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=p_idx)
-            annex_page = doc[p_idx]
+            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=annex_count)
+            annex_page = doc[annex_count]
+            # Limpiar contenido original de Pág 1 para convertirla en Anexo limpio
+            annex_page.draw_rect(fitz.Rect(0, 0, 600, 1000), color=(1,1,1), fill=(1,1,1))
+            annex_page.insert_text((50, 50), f"ANEXO DIRECTORES (PÁG {annex_count + 1})", fontsize=14, fontname="hebo", color=(0.2, 0.4, 0.6))
             
-            # Limpiar y marcar como anexo
-            annex_page.insert_text((50, 40), f"ANEXO DIRECTORES PÁG. {p_idx+1}", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-            annex_page.draw_rect(fitz.Rect(0, 50, 600, y_dir_header - 20), color=(1,1,1), fill=(1,1,1))
-            
-            # Llenar usando el layout estándar de 2 columnas
             chunk = directors[i:i+2]
             for j, d in enumerate(chunk):
-                x_min, x_max, v_x = (50, 295, 155) if j == 0 else (300, 580, 445)
-                fill_fixed_col_table(annex_page, d, dir_labels, x_min, x_max, v_x, min_y=y_dir_header + 40)
+                x_off = 50 if j == 0 else 310
+                y_off = 100
+                annex_page.insert_text((x_off, y_off), f"DIRECTOR #{i + j + 1}", fontsize=10, fontname="hebo-bold")
+                for k, (label_key, kws) in enumerate(dir_labels.items()):
+                    lab_txt = f"{label_key}:"
+                    annex_page.insert_text((x_off, y_off + 20 + (k*18)), lab_txt, fontsize=8, fontname="hebo")
+                    annex_page.insert_text((x_off + 80, y_off + 20 + (k*18)), str(d.get(label_key, "")), fontsize=8, fontname="helv")
 
-        # PÁGINA FINAL (DIGNATARIOS Y ACCIONISTAS)
-        orig_p2_idx = 1 + annex_count
-        if len(doc) > orig_p2_idx:
-            page2 = doc[orig_p2_idx]
+        # --- PÁGINA FINAL (DIGNATARIOS, ACCIONISTAS, FIRMA) ---
+        p_final_idx = 1 + annex_count
+        if len(doc) > p_final_idx:
+            pageF = doc[p_final_idx]
             
-            # Dignatarios (Alineación Blindada)
-            dign_roles = {"presidente": ["president"], "secretario": ["secretary"], "tesorero": ["treasurer"]}
-            for role_key, role_kws in dign_roles.items():
+            # 1. Dignatarios (Con Fecha y Pasaporte)
+            dign_map = {"presidente": ["president"], "secretario": ["secretary"], "tesorero": ["treasurer"]}
+            for role_key, kws in dign_map.items():
                 d = dignitaries.get(role_key)
                 if not d: continue
-                if isinstance(d, str): d = {"fullName": d}
-                y_role = get_anchor(page2, role_kws, 50, 400)
-                if y_role:
-                    # Posiciones fijas para Dignatarios en Page 2
-                    if d.get("fullName"): 
-                        rect = fitz.Rect(210, y_role - 10, 480, y_role + 5)
-                        insert_text_scaled(page2, rect, str(d["fullName"]), max_fontsize=9)
-                    if d.get("birthDate"): page2.insert_text((500, y_role), str(d["birthDate"]), fontsize=8)
-                    if d.get("passport"): page2.insert_text((630, y_role), str(d["passport"]), fontsize=8)
-                    if d.get("registrationNumber"): page2.insert_text((750, y_role), str(d["registrationNumber"]), fontsize=8)
+                y_row = get_anchor(pageF, kws, 50, 400)
+                if y_row:
+                    if d.get("fullName"): pageF.insert_text((215, y_row), str(d["fullName"]), fontsize=9)
+                    if d.get("birthDate"): pageF.insert_text((495, y_row), str(d["birthDate"]), fontsize=8)
+                    if d.get("passport"): pageF.insert_text((620, y_row), str(d["passport"]), fontsize=8)
+                    if d.get("registrationNumber"): pageF.insert_text((740, y_row), str(d["registrationNumber"]), fontsize=8)
 
-            # Accionistas
-            y_sh = get_anchor(page2, ["accionistas", "shareholders"], 200, 600)
-            if not y_sh: y_sh = 270
-
-            def fill_sh_block(page, sh_chunk, anchor_y, is_annex=False):
-                if is_annex:
-                    page.insert_text((50, 40), "ANEXO ACCIONISTAS", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
-                    page.draw_rect(fitz.Rect(0, 50, 600, anchor_y - 20), color=(1,1,1), fill=(1,1,1))
-                
-                y_start = anchor_y + 40
-                for i, s in enumerate(sh_chunk[:3]):
+            # 2. Accionistas (Alineación Mejorada)
+            y_sh = get_anchor(pageF, ["accionistas", "shareholders"], 200, 600) or 270
+            def fill_sh_list(p, sh_chunk, start_y):
+                for i, s in enumerate(sh_chunk):
                     if not s: continue
-                    if isinstance(s, str): s = {"name": s}
-                    y_pos = y_start + (i * 25)
-                    if isinstance(s, dict):
-                        if s.get("certificate"): page.insert_text((45, y_pos), str(s["certificate"]), fontsize=8)
-                        if s.get("value"): page.insert_text((95, y_pos), str(s["value"]), fontsize=8)
-                        if s.get("shares"): page.insert_text((165, y_pos), str(s["shares"]), fontsize=8)
-                        if s.get("name"): page.insert_text((220, y_pos), str(s["name"]), fontsize=9)
-                        if s.get("address"): page.insert_text((420, y_pos), str(s["address"]), fontsize=8)
+                    curr_y = start_y + 40 + (i * 24)
+                    if s.get("certificate"): p.insert_text((45, curr_y), str(s["certificate"]), fontsize=8)
+                    if s.get("value"): p.insert_text((95, curr_y), str(s["value"]), fontsize=8)
+            # 2. Accionistas (Alineación Mejorada)
+            y_sh = get_anchor(pageF, ["accionistas", "shareholders"], 200, 600) or 270
+            
+            def fill_sh_block_clean(p, sh_chunk, start_y, is_annex=False):
+                if is_annex:
+                    p.insert_text((50, 40), "ANEXO ACCIONISTAS", fontsize=12, fontname="hebo", color=(0.29, 0.64, 0.77))
+                    p.draw_rect(fitz.Rect(0, 50, 600, start_y - 20), color=(1,1,1), fill=(1,1,1))
+                
+                for i, s in enumerate(sh_chunk):
+                    if not s: continue
+                    curr_y = start_y + 40 + (i * 24)
+                    if s.get("certificate"): p.insert_text((45, curr_y), str(s["certificate"]), fontsize=8)
+                    if s.get("value"): p.insert_text((95, curr_y), str(s["value"]), fontsize=8)
+                    if s.get("shares"): p.insert_text((165, curr_y), str(s["shares"]), fontsize=8)
+                    if s.get("name"): p.insert_text((215, curr_y), str(s["name"]), fontsize=9)
+                    if s.get("address"): p.insert_text((415, curr_y), str(s["address"]), fontsize=7)
 
-            fill_sh_block(page2, shareholders[:3], y_sh)
+            fill_sh_block_clean(pageF, shareholders[:4], y_sh)
 
-            # Actividades y Firma
-            y_act = get_anchor(page2, ["actividades", "activities"], 400, 800)
+            # 3. Actividades y Declaración (Blindaje)
+            y_act = get_anchor(pageF, ["actividades", "activities"], 400, 800)
             if y_act and data.get("companyActivities"):
-                page2.insert_textbox(fitz.Rect(55, y_act + 40, 550, y_act + 120), data["companyActivities"], fontsize=8)
+                pageF.insert_textbox(fitz.Rect(55, y_act + 40, 550, y_act + 120), data["companyActivities"], fontsize=8)
 
-            y_sig = get_anchor(page2, ["declaration", "signature", "firma"], 600, 1000)
-            if not y_sig: y_sig = 740
-            if data.get("declarationName"): page2.insert_text((150, y_sig + 105), str(data["declarationName"]), fontsize=9)
-            if data.get("declarationDate"): page2.insert_text((220, y_sig + 138), f"{str(data['declarationDate'])} /2025", fontsize=9)
+            y_sig = get_anchor(pageF, ["declaration", "firma"], 600, 1000) or 740
+            if data.get("declarationName"): 
+                pageF.insert_text((150, y_sig + 105), str(data["declarationName"]), fontsize=10, fontname="hebo-bold")
+            if data.get("declarationDate"): 
+                pageF.insert_text((220, y_sig + 138), f"{str(data['declarationDate'])}", fontsize=10)
 
-
-
-            # ANEXOS ACCIONISTAS
-            for i in range(3, len(shareholders), 3):
-                insert_idx = orig_p2_idx + (i//3)
-                # Validar existencia de página 2 en la fuente para anexos de accionistas
+            # 4. ANEXOS ACCIONISTAS (4+)
+            for i in range(4, len(shareholders), 4):
+                sh_annex_idx = 1 + annex_count + ((i-4)//4 + 1)
                 sh_page_src = 1 if len(src_doc) > 1 else 0
-                doc.insert_pdf(src_doc, from_page=sh_page_src, to_page=sh_page_src, start_at=insert_idx)
-                fill_sh_block(doc[insert_idx], shareholders[i:i+3], y_sh, is_annex=True)
+                doc.insert_pdf(src_doc, from_page=sh_page_src, to_page=sh_page_src, start_at=sh_annex_idx)
+                fill_sh_block_clean(doc[sh_annex_idx], shareholders[i:i+4], y_sh, is_annex=True)
 
-        # Cerrar el documento fuente solo si se abrió (Arquitectura Corporación)
+        # Cerrar el documento fuente
         if 'src_doc' in locals():
             src_doc.close()
 

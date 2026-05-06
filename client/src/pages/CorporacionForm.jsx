@@ -168,6 +168,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
                             <div className="expert-group"><label>PRIMER NOMBRE</label><input className="expert-input" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
+                            <div className="expert-group"><label>SEGUNDO NOMBRE</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
                             <div className="expert-group"><label>APELLIDO</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
                             <div className="expert-group"><label>NACIONALIDAD</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
                             <div className="expert-group"><label>PASAPORTE / ID</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
@@ -220,6 +221,28 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                     dignitaries: {
                                         ...formData.dignitaries,
                                         [role]: { ...formData.dignitaries[role], registrationNumber: e.target.value }
+                                    }
+                                })} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                            <div className="expert-group">
+                                <label>FECHA DE NACIMIENTO</label>
+                                <input type="date" className="expert-input" value={formData.dignitaries[role].birthDate} onChange={e => setFormData({
+                                    ...formData,
+                                    dignitaries: {
+                                        ...formData.dignitaries,
+                                        [role]: { ...formData.dignitaries[role], birthDate: e.target.value }
+                                    }
+                                })} />
+                            </div>
+                            <div className="expert-group">
+                                <label>PASAPORTE / ID</label>
+                                <input className="expert-input" value={formData.dignitaries[role].passport} onChange={e => setFormData({
+                                    ...formData,
+                                    dignitaries: {
+                                        ...formData.dignitaries,
+                                        [role]: { ...formData.dignitaries[role], passport: e.target.value }
                                     }
                                 })} />
                             </div>
