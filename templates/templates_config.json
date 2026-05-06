@@ -15,7 +15,8 @@
       {"keywords": ["domicilio"], "x_key": "x_address_top", "data_key": "address", "min_y": 250, "max_y": 450},
       {"keywords": ["nombre", "name"], "x_key": "x_bot", "data_key": "custodyName", "min_y": 500, "max_y": 650},
       {"keywords": ["telefono", "telephone"], "x_key": "x_bot", "data_key": "custodyPhone", "min_y": 550, "max_y": 680},
-      {"keywords": ["electronico", "email"], "x_key": "x_bot", "data_key": "custodyEmail", "min_y": 600, "max_y": 720}
+      {"keywords": ["electronico", "email"], "x_key": "x_bot", "data_key": "custodyEmail", "min_y": 600, "max_y": 720},
+      {"keywords": ["address"], "x_key": "x_bot", "data_key": "custodyAddress", "min_y": 700, "max_y": 850}
     ]
   },
   "corporacion": {
