@@ -56,8 +56,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                         return w[3] # Retorna el límite inferior del banner
         return None
 
-    # === LÓGICA CORPORACIÓN (ARQUITECTO SE        # === SISTEMA DE ALINEACIÓN IA: Corporación Dynamic Engine (PRECISIÓN ABSOLUTA) ===
+    # === LÓGICA CORPORACIÓN (ARQUITECTO SENIOR - PRECISIÓN ABSOLUTA) ===
+    if template_name == "corporacion" or "corpNameSA" in data:
         registry_path = os.path.join(base_dir, "templates", "coordinate_registry.json")
+
         try:
             with open(registry_path, 'r', encoding='utf-8') as rf:
                 reg = json.load(rf).get("corporacion_2025", {})
