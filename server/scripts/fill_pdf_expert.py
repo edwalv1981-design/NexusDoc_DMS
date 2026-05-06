@@ -185,9 +185,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if k in f_d: 
                 page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
         
-        # Dirección de Custodia (Ajustada a la izquierda según feedback: x=115)
+        # Dirección de Custodia (Ajuste final: x=115, y=742 para centrar en el cuadro)
         if data.get("custodyAddress"):
-            page1.insert_text((115, 755), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
+            page1.insert_text((115, 742), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
 
         if len(doc) > 1:
             if data.get("signerName"): doc[1].insert_text((153, 352), str(data["signerName"]), fontsize=11, fontname="Helvetica")
