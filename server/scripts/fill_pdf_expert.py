@@ -58,82 +58,76 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
     # === LÓGICA CORPORACIÓN (ARQUITECTO SENIOR) ===
     if template_name == "corporacion" or "corpNameSA" in data:
+        # === SISTEMA DE ALINEACIÓN IA: Corporación Dynamic Engine ===
+        registry_path = os.path.join(base_dir, "templates", "coordinate_registry.json")
+        try:
+            with open(registry_path, 'r', encoding='utf-8') as rf:
+                reg = json.load(rf).get("corporacion_2025", {})
+        except: reg = {}
+
         directors = data.get("directors", [])
         shareholders = data.get("shareholders", [])
         dignitaries = data.get("dignitaries", {})
 
         def fill_director_block(page, d, anchor_y, col_idx):
-            # Col 0 = Izquierda (X:145), Col 1 = Derecha (X:430)
-            x0 = 145 if col_idx == 0 else 430
-            w = 140 # Ancho máximo de la celda
+            cfg = reg.get("directors_section", {})
+            x_base = cfg.get("col_0_x", 55) if col_idx == 0 else cfg.get("col_1_x", 305)
+            w = cfg.get("width", 240)
+            offsets = cfg.get("field_offsets", {})
             
-            # Offsets verticales fijos (Arquitectura 2025)
-            field_offsets = {
-                "firstName": 14, "secondName": 31, "lastName": 48,
-                "birthDate": 65, "maritalStatus": 82, "nationality": 99,
-                "passport": 116, "phone": 133, "email": 150,
-                "address": 167, "city": 201, "country": 218
-            }
-            for field, off in field_offsets.items():
+            for field, off in offsets.items():
                 val = d.get(field)
                 if val:
-                    rect = fitz.Rect(x0, anchor_y + off - 8, x0 + w, anchor_y + off)
-                    insert_text_scaled(page, rect, val)
+                    # Ajuste de centrado en la celda dinámica
+                    rect = fitz.Rect(x_base + 5, anchor_y + off - 6, x_base + w - 5, anchor_y + off + 4)
+                    insert_text_scaled(page, rect, str(val), max_fontsize=9)
 
         def process_directors_page(page, d_chunk, p_idx, is_annex=False):
-            y_banner = get_anchor(page, ["directores", "directors"], 100, 600)
-            if not y_banner: y_banner = 270 
+            y_banner = reg.get("directors_section", {}).get("y_banner", 250)
+            
+            # Dibujar encabezado de sección si es anexo o si no existe en el PDF
+            header_color = (0.29, 0.64, 0.77)
+            if is_annex or not get_anchor(page, ["directors", "directores"]):
+                page.insert_text((50, y_banner - 20), "INFORMACIÓN DE DIRECTORES", fontsize=12, fontname="helv-bold", color=header_color)
+                if is_annex:
+                    page.insert_text((400, y_banner - 20), f"ANEXO PÁG. {p_idx}", fontsize=10, fontname="helv", color=header_color)
+            
+            # Dibujar cajas de directores (Alineación IA)
+            y_top = y_banner + 10
+            for i, d in enumerate(d_chunk):
+                col = i % 2
+                row = i // 2
+                curr_y = y_top + (row * 240) # Espacio por bloque
+                x_box = 50 if col == 0 else 300
+                # Dibujar recuadro de diseño profesional
+                page.draw_rect(fitz.Rect(x_box, curr_y, x_box + 245, curr_y + 230), color=header_color, width=0.5)
+                fill_director_block(page, d, curr_y, col)
 
-            if is_annex:
-                # Marcador de Continuación
-                page.insert_text((50, y_banner - 45), f"CONTINUACIÓN DIRECTORES - PÁGINA ANEXO {p_idx}", fontsize=11, fontname="helv", color=(0.29, 0.64, 0.77))
-                # Limpieza selectiva de celdas originales para preservar el diseño (Logo, bordes)
-                page.draw_rect(fitz.Rect(45, y_banner + 10, 550, y_banner + 550), color=(1,1,1), fill=(1,1,1))
-                # Redibujar bordes de bloques dinámicos
-                page.draw_rect(fitz.Rect(50, y_banner + 30, 295, y_banner + 280), color=(0.29, 0.64, 0.77), width=0.5)
-                page.draw_rect(fitz.Rect(300, y_banner + 30, 545, y_banner + 280), color=(0.29, 0.64, 0.77), width=0.5)
-
-            y_top = y_banner + 25
-            y_bot = y_banner + 285
-
-            if len(d_chunk) > 0:
-                page.insert_text((130, y_top + 5), f"Director {(p_idx-1)*3 + 1}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
-                fill_director_block(page, d_chunk[0], y_top + 10, 0)
-            if len(d_chunk) > 1:
-                page.insert_text((420, y_top + 5), f"Director {(p_idx-1)*3 + 2}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
-                fill_director_block(page, d_chunk[1], y_top + 10, 1)
-            if len(d_chunk) > 2:
-                page.insert_text((270, y_bot + 5), f"Director {(p_idx-1)*3 + 3}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
-                fill_director_block(page, d_chunk[2], y_bot + 10, 0)
-                # Datos extendidos para Director 3 (Dirección)
-                d3 = d_chunk[2]
-                if d3.get("address"): insert_text_scaled(page, fitz.Rect(430, y_bot + 12, 545, y_bot + 30), d3["address"])
-                if d3.get("city"): insert_text_scaled(page, fitz.Rect(430, y_bot + 45, 545, y_bot + 63), d3["city"])
-                if d3.get("country"): insert_text_scaled(page, fitz.Rect(430, y_bot + 62, 545, y_bot + 80), d3["country"])
-
-        # PÁGINA 1
+        # PÁGINA 1: Datos de la Compañía
         page1 = doc[0]
-        y_choice = get_anchor(page1, ["choice", "incorp", "form"], 100, 400)
-        if y_choice:
-            if data.get("corpNameSA"): insert_text_scaled(page1, fitz.Rect(230, y_choice - 12, 550, y_choice), data["corpNameSA"], max_fontsize=10)
-            if data.get("corpNameCorp"): insert_text_scaled(page1, fitz.Rect(230, y_choice + 18, 550, y_choice + 30), data["corpNameCorp"], max_fontsize=10)
-            if data.get("corpNameInc"): insert_text_scaled(page1, fitz.Rect(230, y_choice + 48, 550, y_choice + 60), data["corpNameInc"], max_fontsize=10)
+        comp_cfg = reg.get("company_section", {})
+        y_start = comp_cfg.get("y_start", 120)
+        x_val = comp_cfg.get("x_value", 230)
         
-        y_cap = get_anchor(page1, ["capital", "authorized"], 150, 500)
-        if y_cap and data.get("capitalSocial"):
-            try:
-                page1.insert_text((280, y_cap - 2), f"{float(data['capitalSocial']):,.2f} USD", fontsize=9, fontname="helv", color=(0,0,0))
-            except: pass
+        # Inyectar nombres de compañía
+        fields = ["corpNameSA", "corpNameCorp", "corpNameInc", "capitalSocial"]
+        for i, f in enumerate(fields):
+            val = data.get(f)
+            if val:
+                curr_y = y_start + (i * comp_cfg.get("step", 25))
+                if f == "capitalSocial": val = f"{float(val):,.2f} USD"
+                page1.insert_text((x_val, curr_y), str(val), fontsize=10, fontname="helv-bold")
 
-        process_directors_page(page1, directors[:3], 1)
+        # Procesar primeros directores (Máximo 2 por página para mejor legibilidad y centrado)
+        process_directors_page(page1, directors[:2], 1)
 
-        # ANEXOS DIRECTORES
-        pages_added = 0
-        src_doc = fitz.open(pdf_path) # Abrir de nuevo para clonar páginas
-        for i in range(3, len(directors), 3):
-            pages_added += 1
-            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=pages_added)
-            process_directors_page(doc[pages_added], directors[i:i+3], pages_added + 1, is_annex=True)
+        # ANEXOS
+        src_doc = fitz.open(pdf_path)
+        for i in range(2, len(directors), 2):
+            p_idx = (i // 2) + 1
+            doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=p_idx)
+            process_directors_page(doc[p_idx], directors[i:i+2], p_idx + 1, is_annex=True)
+
 
         # PÁGINA 2 (DIGNATARIOS Y ACCIONISTAS)
         orig_p2_idx = 1 + pages_added

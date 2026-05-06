@@ -24,6 +24,25 @@
   },
   "corporacion_2025": {
     "template": "corporacion.pdf",
-    "sections": ["company_selection", "directors_annex", "shareholders_annex"]
+    "header": { "logo_x": 450, "logo_y": 30, "title_y": 70 },
+    "company_section": {
+        "x_label": 50, "x_value": 230, "y_start": 120, "step": 25,
+        "fields": {
+            "corpNameSA": "Nombre (S.A.):",
+            "corpNameCorp": "Nombre (Corp.):",
+            "corpNameInc": "Nombre (Inc.):",
+            "capitalSocial": "Capital Social:"
+        }
+    },
+    "directors_section": {
+        "y_banner": 250,
+        "col_0_x": 55, "col_1_x": 305, "width": 240,
+        "field_offsets": {
+            "firstName": 14, "secondName": 31, "lastName": 48,
+            "passport": 65, "nationality": 82, "email": 99,
+            "address": 116
+        }
+    }
   }
 }
+
