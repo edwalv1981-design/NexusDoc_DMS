@@ -332,6 +332,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </div>
             </div>
         </div>
+    );
+
     const handleDownloadPDF = () => {
         const element = document.getElementById('corp-document-preview');
         const opt = {
