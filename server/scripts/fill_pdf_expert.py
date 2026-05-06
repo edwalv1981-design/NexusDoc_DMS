@@ -249,8 +249,13 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             src_doc.close()
 
 
-    # === LÓGICA FONDOS / GENÉRICO (RESTAURADA PARA MÁXIMA PRECISIÓN) ===
-
+    # ══════════════════════════════════════════════════════════════════════════════
+    # ██████  ZONA PROTEGIDA — NO MODIFICAR ██████████████████████████████████████
+    # ██  FORMULARIO: Fondos Registros Contables / Declaración (SFAR)           ██
+    # ██  ESTADO: PRODUCCIÓN CERTIFICADA — ALINEACIÓN VALIDADA POR USUARIO      ██
+    # ██  FECHA BLINDAJE: 2026-05-06                                             ██
+    # ██  CUALQUIER CAMBIO EN ESTE BLOQUE REQUIERE APROBACIÓN EXPLÍCITA         ██
+    # ══════════════════════════════════════════════════════════════════════════════
     else:
         page1 = doc[0]
         words = page1.get_text("words")
