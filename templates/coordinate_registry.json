@@ -1,0 +1,29 @@
+{
+  "fondos_sfar": {
+    "template": "referencia_maestra.pdf",
+    "anchors": {
+      "company_info": { "keywords": ["name", "company"], "x": 145, "y_offset": 0 },
+      "source_of_funds": { "keywords": ["source", "funds", "status"], "x": 72, "y_offset": 65 }
+    },
+    "checkboxes": {
+      "personal_assets": { "x": 74.5, "y": 376.5, "font_size": 7 },
+      "financial_investments": { "x": 74.5, "y": 388.0, "font_size": 7 },
+      "business": { "x": 74.5, "y": 399.5, "font_size": 7 },
+      "loans": { "x": 74.5, "y": 411.0, "font_size": 7 },
+      "inheritance": { "x": 74.5, "y": 422.5, "font_size": 7 }
+    },
+    "fields": {
+      "companyName": { "x": 300, "keywords": ["name", "company"], "y_offset": 5 },
+      "activities": { "x": 300, "keywords": ["activities"], "y_offset": 5 },
+      "country": { "x": 300, "keywords": ["country"], "y_offset": 5 },
+      "beneficiaryName": { "x": 300, "keywords": ["beneficial", "owner"], "y_offset": 5 },
+      "birthDate": { "x": 300, "keywords": ["date", "birth"], "y_offset": 5 },
+      "birthPlace": { "x": 300, "keywords": ["place", "birth"], "y_offset": 5 },
+      "address": { "x": 300, "keywords": ["address", "domicilio"], "y_offset": 5 }
+    }
+  },
+  "corporacion_2025": {
+    "template": "corporacion.pdf",
+    "sections": ["company_selection", "directors_annex", "shareholders_annex"]
+  }
+}

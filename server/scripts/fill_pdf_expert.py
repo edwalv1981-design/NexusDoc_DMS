@@ -222,16 +222,30 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 
         # === BLINDAJE DE LÓGICA: Checkboxes Procedencia de Fondos (Máxima Alineación) ===
         f_d = str(data.get("fundsSource", [])).lower()
-        # === ALINEACIÓN MATEMÁTICA FINAL: Basada en Coordenadas de Vectores Reales ===
+        # === SISTEMA DE ALINEACIÓN IA: Registro de Coordenadas Blindado ===
+        registry_path = os.path.join(base_dir, "templates", "coordinate_registry.json")
+        try:
+            with open(registry_path, 'r', encoding='utf-8') as rf:
+                ai_registry = json.load(rf)
+                checks_cfg = ai_registry.get("fondos_sfar", {}).get("checkboxes", {})
+        except:
+            # Fallback de seguridad si el JSON falla
+            checks_cfg = {
+                "personal_assets": {"x": 74.5, "y": 376.5, "font_size": 7},
+                "financial_investments": {"x": 74.5, "y": 388.0, "font_size": 7},
+                "business": {"x": 74.5, "y": 399.5, "font_size": 7},
+                "loans": {"x": 74.5, "y": 411.0, "font_size": 7},
+                "inheritance": {"x": 74.5, "y": 422.5, "font_size": 7}
+            }
+
         f_d = str(data.get("fundsSource", [])).lower()
-        # Centro de cuadrados detectado en X=77.0, Y={373.5, 385.0, 396.5...}
-        # Ajuste Baseline para fuente 7pt: X_start=74.5, Y_start=376.5
-        if "personal" in f_d: page1.insert_text((74.5, 376.5), "X", fontsize=7, fontname="helv")
-        if "finan" in f_d: page1.insert_text((74.5, 388.0), "X", fontsize=7, fontname="helv")
-        if "negocio" in f_d: page1.insert_text((74.5, 399.5), "X", fontsize=7, fontname="helv")
-        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((74.5, 411.0), "X", fontsize=7, fontname="helv")
-        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((74.5, 422.5), "X", fontsize=7, fontname="helv")
+        if "personal" in f_d: page1.insert_text((checks_cfg["personal_assets"]["x"], checks_cfg["personal_assets"]["y"]), "X", fontsize=checks_cfg["personal_assets"]["font_size"], fontname="helv")
+        if "finan" in f_d: page1.insert_text((checks_cfg["financial_investments"]["x"], checks_cfg["financial_investments"]["y"]), "X", fontsize=checks_cfg["financial_investments"]["font_size"], fontname="helv")
+        if "negocio" in f_d: page1.insert_text((checks_cfg["business"]["x"], checks_cfg["business"]["y"]), "X", fontsize=checks_cfg["business"]["font_size"], fontname="helv")
+        if "prestamo" in f_d or "loan" in f_d: page1.insert_text((checks_cfg["loans"]["x"], checks_cfg["loans"]["y"]), "X", fontsize=checks_cfg["loans"]["font_size"], fontname="helv")
+        if "herencia" in f_d or "inheritance" in f_d: page1.insert_text((checks_cfg["inheritance"]["x"], checks_cfg["inheritance"]["y"]), "X", fontsize=checks_cfg["inheritance"]["font_size"], fontname="helv")
         # ==============================================================================
+
 
 
 
