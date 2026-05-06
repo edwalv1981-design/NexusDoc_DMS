@@ -26,23 +26,28 @@
     "template": "corporacion.pdf",
     "header": { "logo_x": 450, "logo_y": 30, "title_y": 70 },
     "company_section": {
-        "x_label": 50, "x_value": 230, "y_start": 120, "step": 25,
+        "x_label": 50, "x_value": 230, "y_start": 160, "step": 36,
         "fields": {
-            "corpNameSA": "Nombre (S.A.):",
-            "corpNameCorp": "Nombre (Corp.):",
-            "corpNameInc": "Nombre (Inc.):",
-            "capitalSocial": "Capital Social:"
+            "corpNameSA": { "y_off": 0, "x": 240 },
+            "corpNameCorp": { "y_off": 36, "x": 240 },
+            "corpNameInc": { "y_off": 72, "x": 240 },
+            "capitalSocial": { "y_off": 125, "x": 450 }
         }
     },
     "directors_section": {
-        "y_banner": 250,
-        "col_0_x": 55, "col_1_x": 305, "width": 240,
+        "y_banner": 485,
+        "col_0_x": 135, "col_1_x": 425, "width": 150,
         "field_offsets": {
             "firstName": 14, "secondName": 31, "lastName": 48,
-            "passport": 65, "nationality": 82, "email": 99,
-            "address": 116
+            "passport": 116, "nationality": 99, "email": 150,
+            "address": 167
         }
+    },
+    "dignatarios_section": {
+        "x_name": 185, "x_birth": 335, "x_pass": 405, "x_reg": 485,
+        "y_start_off": 40, "step": 20
     }
   }
 }
+
 
