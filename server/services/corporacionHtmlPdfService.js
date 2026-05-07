@@ -72,23 +72,10 @@ class CorporacionHtmlPdfService {
     let browser = null;
     try {
       const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
-      const logoPathCandidates = [
-        process.env.CORPORACION_LOGO_PATH,
-        path.join(rootDir, 'templates', 'logo_real.png'),
-        path.join(rootDir, 'templates', 'logo.png'),
-        path.join(rootDir, 'templates', 'logo.jpg'),
-        path.join(rootDir, 'templates', 'logo.jpeg'),
-        path.join(rootDir, 'templates', 'logo.svg'),
-        path.join(rootDir, 'templates', 'corporacion_logo.png'),
-        path.join(rootDir, 'server', 'assets', 'logo_real.png'),
-        path.join(rootDir, 'client', 'src', 'assets', 'logo_real.png'),
-      ].filter(Boolean);
       let logoDataUri = '';
-      for (const p of logoPathCandidates) {
-        if (fs.existsSync(p)) {
-          logoDataUri = toDataUri(p);
-          if (logoDataUri) break;
-        }
+      const logoPath = path.join(rootDir, 'templates', 'logo_empresa.png');
+      if (fs.existsSync(logoPath)) {
+        logoDataUri = toDataUri(logoPath);
       }
 
       const directors = Array.isArray(data.directors) ? data.directors : [];
