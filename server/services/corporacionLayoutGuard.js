@@ -127,12 +127,19 @@ function estimateMinPages(plan, data = {}) {
   return { estimatePages: pages, units: Math.round(units * 10) / 10 };
 }
 
+/** Constantes de maquetación PDF (una sola fuente de verdad) */
+const LAYOUT = Object.freeze({
+  H_INSET: '14mm',
+  HEADER_LOGO_H: 40,
+});
+
 module.exports = {
+  LAYOUT,
   analyzeFormData,
   getAdaptiveCss,
   bodyClassForPlan,
   refineAfterRender,
   estimateMinPages,
   /** Referencia para pruebas */
-  _constants: { A4_HEIGHT_PX, RUNNING_HEADER_PX },
+  _constants: { A4_HEIGHT_PX, RUNNING_HEADER_PX, LAYOUT },
 };

@@ -85,6 +85,8 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
+      const { H_INSET, HEADER_LOGO_H } = corporacionLayoutGuard.LAYOUT;
+
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
       const bodyGuardClass = corporacionLayoutGuard.bodyClassForPlan(plan);
