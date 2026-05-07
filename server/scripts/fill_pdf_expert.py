@@ -28,13 +28,44 @@ def insert_text_scaled(page, rect, text, fontname="Helvetica", max_fontsize=9, m
     page.insert_text((rect.x0, rect.y1 - 3), text, fontsize=fontsize, fontname=fontname, color=color)
 
 
+def _soft_break_long_runs(text, max_run=26):
+    """
+    Inserta espacios en secuencias largas sin espacios (emails, ids, números),
+    para que insert_textbox pueda hacer wrap y no “se salga” del casillero.
+    """
+    if not text:
+        return ""
+    s = str(text)
+    out = []
+    run = []
+    for ch in s:
+        if ch.isspace():
+            if run:
+                token = "".join(run)
+                if len(token) > max_run:
+                    out.append(" ".join(token[i : i + max_run] for i in range(0, len(token), max_run)))
+                else:
+                    out.append(token)
+                run = []
+            out.append(ch)
+            continue
+        run.append(ch)
+    if run:
+        token = "".join(run)
+        if len(token) > max_run:
+            out.append(" ".join(token[i : i + max_run] for i in range(0, len(token), max_run)))
+        else:
+            out.append(token)
+    return "".join(out)
+
+
 def insert_textbox_clipped(page, rect, text, fontsize=7.5, fontname="Helvetica"):
     """Escribe dentro de rect con ajuste; evita texto encima del siguiente campo."""
     if not text:
         return
     if rect is None or rect.width < 30 or rect.height < 8:
         return
-    txt = str(text).strip()
+    txt = _soft_break_long_runs(str(text).strip(), max_run=28)
     if not txt:
         return
     try:
