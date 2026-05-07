@@ -6,6 +6,8 @@
  * PDF / logo (evitar errores recurrentes):
  * - Logo solo vía `headerTemplate` de Puppeteer (`getCorporacionPuppeteerPdfChromeOptions`), no `position:fixed` en el HTML.
  * - `getPdfBodyTopMarginPx` = altura cabecera + buffer; debe coincidir con el cálculo de altura útil en `refineAfterRender`.
+ * - Márgenes laterales `H_INSET`: holgura para impresora (zona no imprimible); van en page.pdf({ margin }).
+ * - `preferCSSPageSize: false` + `@page { margin: 0 }` para que los márgenes del API no los pise el CSS.
  * - Asset `templates/logo_empresa.png`: preferir PNG con transparencia; si el fondo es blanco “quemado”, seguirá tapando el teal.
  */
 
@@ -283,8 +285,9 @@ function estimateMinPages(plan, data = {}) {
 
 /** Constantes de maquetación PDF (una sola fuente de verdad) */
 const LAYOUT = Object.freeze({
-  H_INSET: '14mm',
-  BOTTOM_INSET: '10mm',
+  /** Gutter izquierdo/derecho (impresión); subir si la impresora come mucho borde. */
+  H_INSET: '18mm',
+  BOTTOM_INSET: '12mm',
   HEADER_LOGO_H: 40,
   /** Espacio interno sobre la imagen dentro de la franja fija. */
   RUNNING_HEADER_PADDING_TOP: 16,

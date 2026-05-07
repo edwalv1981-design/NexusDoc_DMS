@@ -177,7 +177,10 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            /* Márgenes del papel: los aplica Puppeteer (page.pdf margin); mismo en cada hoja. Logo vía headerTemplate. */
+            /*
+             * Márgenes laterales/superior/inferior: solo vía page.pdf({ margin }) (getPuppeteerPdfMargins).
+             * @page margin 0 + preferCSSPageSize false evita que CSS anule los márgenes del API al imprimir.
+             */
             @page { size: A4; margin: 0; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
@@ -234,7 +237,7 @@ class CorporacionHtmlPdfService {
       });
       const page = await browser.newPage();
       await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
       await corporacionLayoutGuard.refineAfterRender(page);
       const chromePdf = corporacionLayoutGuard.getCorporacionPuppeteerPdfChromeOptions(
         corporacionLayoutGuard.LAYOUT,
@@ -243,7 +246,7 @@ class CorporacionHtmlPdfService {
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: true,
+        preferCSSPageSize: false,
         ...chromePdf
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
