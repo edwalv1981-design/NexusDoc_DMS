@@ -48,9 +48,9 @@ describe('corporacionLayoutGuard', () => {
     assert.ok(typeof o.footerTemplate === 'string');
   });
 
-  it('analyzeFormData: muchos directores/accionistas → very_high y split de cola', () => {
+  it('analyzeFormData: muchos directores/accionistas (techo smoke 25) → very_high y split de cola', () => {
     const directors = Array.from({ length: 15 }, (_, i) => ({ i }));
-    const shareholders = Array.from({ length: 28 }, (_, i) => ({ i }));
+    const shareholders = Array.from({ length: 25 }, (_, i) => ({ i }));
     const plan = g.analyzeFormData({
       directors,
       shareholders,
@@ -59,7 +59,7 @@ describe('corporacionLayoutGuard', () => {
     assert.equal(plan.density, 'very_high');
     assert.equal(plan.tailKeepTogether, false);
     assert.equal(plan.directors, 15);
-    assert.equal(plan.shareholders, 28);
+    assert.equal(plan.shareholders, 25);
   });
 
   it('analyzeFormData: volumen medio → high pero tailKeepTogether true', () => {

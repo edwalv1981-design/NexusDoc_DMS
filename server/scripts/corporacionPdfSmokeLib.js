@@ -7,6 +7,13 @@ const pdfParse = require('pdf-parse');
 const corporacionLayoutGuard = require('../services/corporacionLayoutGuard');
 const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
 
+/** Techo de accionistas en smoke pesado (alinear con reglas de negocio / formulario). */
+const HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS = 25;
+/** Techo de directores en smoke pesado (tabla ancha; suficiente para very_high con accionistas al máximo). */
+const HEAVY_PDF_STRESS_CEILING_DIRECTORS = 15;
+/** Líneas de texto de actividad (cada línea ~48 chars → >5000 chars para `very_high`). */
+const HEAVY_PDF_STRESS_ACTIVITIES_LINES_DEFAULT = 140;
+
 function rowDirector(i) {
   return {
     firstName: 'Nom',
@@ -50,6 +57,88 @@ function baseFormFields() {
   };
 }
 
+/**
+ * Valida y normaliza conteos del smoke pesado (techo 25 accionistas).
+ * Si se pide más del techo → Error (hay que subir la constante a propósito).
+ *
+ * @param {object} [opts]
+ * @param {number} [opts.shareholders] por defecto techo
+ * @param {number} [opts.directors] por defecto techo directores
+ * @param {number} [opts.activitiesLines] repeticiones de línea de actividad
+ * @returns {{
+ *   shareholderCount: number,
+ *   directorCount: number,
+ *   activitiesLines: number,
+ *   activitiesCharLength: number,
+ *   minExpectedPages: number,
+ *   minBytes: number,
+ *   payload: object,
+ * }}
+ */
+function buildHeavyPdfStressSpec(opts = {}) {
+  let sh = opts.shareholders != null ? Number(opts.shareholders) : HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS;
+  let dir = opts.directors != null ? Number(opts.directors) : HEAVY_PDF_STRESS_CEILING_DIRECTORS;
+  let lines = opts.activitiesLines != null ? Number(opts.activitiesLines) : HEAVY_PDF_STRESS_ACTIVITIES_LINES_DEFAULT;
+
+  if (!Number.isFinite(sh) || !Number.isInteger(sh) || sh < 1) {
+    throw new Error(`heavy PDF stress: shareholders inválido (${opts.shareholders})`);
+  }
+  if (!Number.isFinite(dir) || !Number.isInteger(dir) || dir < 3) {
+    throw new Error(`heavy PDF stress: directors inválido (${opts.directors}); mínimo 3`);
+  }
+  if (!Number.isFinite(lines) || !Number.isInteger(lines) || lines < 80) {
+    throw new Error(`heavy PDF stress: activitiesLines inválido (${opts.activitiesLines}); mínimo 80`);
+  }
+
+  if (sh > HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS) {
+    throw new Error(
+      `heavy PDF stress: accionistas=${sh} supera el techo ${HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS}. ` +
+        'Sube HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS solo si el negocio lo permite.'
+    );
+  }
+  if (dir > HEAVY_PDF_STRESS_CEILING_DIRECTORS) {
+    throw new Error(
+      `heavy PDF stress: directores=${dir} supera el techo ${HEAVY_PDF_STRESS_CEILING_DIRECTORS}. ` +
+        'Ajusta HEAVY_PDF_STRESS_CEILING_DIRECTORS si necesitas más filas en el smoke.'
+    );
+  }
+
+  const activityLine = 'Actividad corporativa detallada para stress de PDF.\n';
+  const companyActivities = activityLine.repeat(lines);
+  const activitiesCharLength = companyActivities.length;
+
+  const payload = {
+    ...baseFormFields(),
+    directors: Array.from({ length: dir }, (_, i) => rowDirector(i + 1)),
+    shareholders: Array.from({ length: sh }, (_, i) => rowSh(i + 1)),
+    companyActivities,
+  };
+
+  /** Mínimo de páginas: conservador según filas (empírico con márgenes @page actuales). */
+  const minExpectedPages = Math.max(
+    3,
+    sh > 20 || dir > 12 ? 4 : 3,
+    Math.ceil(sh / 12) + Math.ceil(dir / 10) - 1
+  );
+
+  /** Tamaño mínimo del PDF en bytes (crece con tablas). */
+  const minBytes = 55_000 + sh * 2_800 + dir * 2_200 + Math.floor(lines / 20) * 1_000;
+
+  return {
+    shareholderCount: sh,
+    directorCount: dir,
+    activitiesLines: lines,
+    activitiesCharLength,
+    minExpectedPages,
+    minBytes,
+    payload,
+    ceilings: {
+      shareholders: HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS,
+      directors: HEAVY_PDF_STRESS_CEILING_DIRECTORS,
+    },
+  };
+}
+
 /** Payload similar a formularios medianos (CI rápido). */
 function defaultSmokePayload() {
   return {
@@ -61,16 +150,11 @@ function defaultSmokePayload() {
 }
 
 /**
- * Muchos directores/accionistas + actividad larga: activa compact + split-tail
- * (mismos umbrales que `analyzeFormData`).
+ * Smoke pesado al **techo** configurado (25 accionistas por defecto).
+ * Opcional: `heavySmokePayload({ shareholders: 20, directors: 12 })` dentro del techo.
  */
-function heavySmokePayload() {
-  return {
-    ...baseFormFields(),
-    directors: Array.from({ length: 15 }, (_, i) => rowDirector(i + 1)),
-    shareholders: Array.from({ length: 28 }, (_, i) => rowSh(i + 1)),
-    companyActivities: 'Actividad corporativa detallada para stress de PDF.\n'.repeat(140),
-  };
+function heavySmokePayload(opts = {}) {
+  return buildHeavyPdfStressSpec(opts).payload;
 }
 
 async function normalizePdfBuffer(buf) {
@@ -108,8 +192,12 @@ async function runCorporacionPdfSmoke(data, label) {
 }
 
 module.exports = {
+  HEAVY_PDF_STRESS_CEILING_SHAREHOLDERS,
+  HEAVY_PDF_STRESS_CEILING_DIRECTORS,
+  HEAVY_PDF_STRESS_ACTIVITIES_LINES_DEFAULT,
   rowDirector,
   rowSh,
+  buildHeavyPdfStressSpec,
   defaultSmokePayload,
   heavySmokePayload,
   runCorporacionPdfSmoke,
