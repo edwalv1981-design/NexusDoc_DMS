@@ -2,11 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
     Building, Users, UserCheck, Briefcase, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
-    AlertCircle, CheckCircle2, ShieldCheck, Download, Eye, FileText, Search
+    AlertCircle, CheckCircle2, ShieldCheck, Download, Eye, FileText
 } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
-import CorporacionPreview from '../components/CorporacionPreview';
-
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -335,30 +332,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     );
 
 
-    const renderStep6 = () => (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Search size={22} color={PRIMARY} /> PREVISUALIZACIÓN FINAL
-                </h2>
-            </div>
-            
-            <div style={{ 
-                background: '#f1f5f9', 
-                padding: '30px', 
-                borderRadius: '16px', 
-                border: '1px solid #e2e8f0',
-                maxHeight: '600px',
-                overflowY: 'auto',
-                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)'
-            }}>
-                <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center', marginBottom: '-100px' }}>
-                    <CorporacionPreview data={formData} />
-                </div>
-            </div>
-        </div>
-    );
-
     const nextStep = () => {
         if (step === 1 && parseInt(formData.capitalSocial) < 10000) return;
         setStep(prev => prev + 1);
@@ -380,7 +353,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
             {/* PROGRESS TRACKER */}
             <div style={{ display: 'flex', gap: 10, marginBottom: '40px' }}>
-                {[1, 2, 3, 4, 5, 6].map(s => (
+                {[1, 2, 3, 4, 5].map(s => (
                     <div key={s} style={{ flex: 1, position: 'relative' }}>
                         <div style={{ height: '5px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '10px', transition: 'all 0.3s' }} />
                         <div style={{ position: 'absolute', top: '-25px', left: '0', fontSize: '10px', fontWeight: 800, color: step >= s ? PRIMARY : '#94a3b8' }}>
@@ -397,7 +370,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 {step === 3 && renderStep3()}
                 {step === 4 && renderStep4()}
                 {step === 5 && renderStep5()}
-                {step === 6 && renderStep6()}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #f1f5f9' }}>
                     <button 
@@ -410,7 +382,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <ChevronLeft size={18} /> ANTERIOR
                     </button>
                     
-                    {step < 6 ? (
+                    {step < 5 ? (
                         <button type="button" onClick={nextStep} className="expert-btn-primary">
                             SIGUIENTE PASO <ChevronRight size={18} />
                         </button>
@@ -419,11 +391,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <CheckCircle2 size={18} /> {saving ? 'FINALIZAR Y PROCESAR' : 'GUARDAR Y FINALIZAR'}
                         </button>
                     )}
-                </div>
-
-                {/* HIDDEN PREVIEW FOR PDF GENERATION */}
-                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-                    <CorporacionPreview data={formData} />
                 </div>
             </div>
 

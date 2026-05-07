@@ -40,8 +40,17 @@
         "row_height": 17.8,
         "value_x_pad": 105,
         "first_line_dy": 15,
+        "legacy_row2_y": 238,
+        "legacy_row4_y": 478,
         "wide_row_width": 400,
         "narrow_row_width": 240,
+        "field_row_multiplier": {
+          "phone": 1.1,
+          "email": 1.22,
+          "address": 2.1,
+          "city": 1.05,
+          "country": 1.05
+        },
         "field_offsets": {
             "firstName": 14, "secondName": 31, "lastName": 48,
             "passport": 116, "nationality": 99, "email": 150,
@@ -51,7 +60,11 @@
     "dignatarios_section": {
         "x_name": 215, "x_birth": 395, "x_pass": 518, "x_reg": 635,
         "y_start_off": 40,
-        "step": 21.5
+        "header_depth": 48,
+        "step": 21.5,
+        "scan_y_min_pad": 54,
+        "cell_w_name": 152,
+        "cell_w_rest": 94
     },
     "shareholders_section": {
         "row_height": 18.5,
@@ -64,7 +77,19 @@
         },
         "first_data_row_dy": 38,
         "max_rows_first_page": 14,
-        "max_rows_annex_page": 18
+        "max_rows_annex_page": 18,
+        "activities_anchor_min_below_officers": 118,
+        "activities_box_height": 102,
+        "address_row_frac": 1.9,
+        "header_band": 50
+    },
+    "declaration_section": {
+      "name_dy": 2,
+      "date_w": 200,
+      "fallback_name_x": 52,
+      "fallback_name_y": 734,
+      "fallback_date_x": 188,
+      "fallback_date_y": 764
     }
   }
 }
