@@ -1,13 +1,8 @@
 const { sequelize } = require('./config/db');
 const { User } = require('./models');
+const { UNIQUE_CODE_PREFIX_BY_FORM_TYPE } = require('./config/stablePdfForms');
 
-const prefixes = { 
-    'Fondos Registros contables': 'SFAR', 
-    'Corporación': 'PTLC', 
-    'Fundaciones': 'PTLF', 
-    'Cumplimiento Individual': 'KYCI', 
-    'Cumplimiento Entidades': 'KYCE' 
-};
+const prefixes = { ...UNIQUE_CODE_PREFIX_BY_FORM_TYPE };
 
 async function fixUniqueCodes() {
     try {

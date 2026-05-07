@@ -8,16 +8,10 @@ const auth = require('../middleware/auth');
 const { Op } = require('sequelize');
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const generateUniqueCode = async (formType) => {
-    const prefixes = {
-        'Fondos Registros contables': 'SFAR',
-        'Corporación': 'PTLC',
-        'Fundaciones': 'PTLF',
-        'Cumplimiento Individual': 'KYCI',
-        'Cumplimiento Entidades': 'KYCE'
-    };
+const stablePdfForms = require('../config/stablePdfForms');
 
-    const prefix = prefixes[formType] || 'NDOC';
+const generateUniqueCode = async (formType) => {
+    const prefix = stablePdfForms.UNIQUE_CODE_PREFIX_BY_FORM_TYPE[formType] || 'NDOC';
     const date = new Date();
     const dateStr = date.getFullYear() + 
                   String(date.getMonth() + 1).padStart(2, '0') + 

@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { FormData, User, DocumentTemplate, AuditLog } = require('../models');
 const auth = require('../middleware/auth');
-const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
+const stablePdfForms = require('../config/stablePdfForms');
 
 // @route   POST api/forms/save
 router.post('/save', auth, async (req, res) => {
@@ -107,18 +107,10 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
-        // Strict Mapping: FormType (DB) -> TemplateName (Admin Dashboard)
-        const templateMap = {
-            'Fondos Registros contables': 'fondos',
-            'Corporación': 'corporacion',
-            'Fundaciones': 'fundaciones',
-            'Cumplimiento Individual': 'cumplimiento_individual',
-            'Cumplimiento Entidades': 'cumplimiento_entidades'
-        };
-        const templateName = templateMap[form.formType] || form.formType || "fondos"; 
+        const templateName = stablePdfForms.getPdfTemplateNameForForm(form.formType);
 
-        // Corporación SIEMPRE en formato propio HTML (sin fallback al motor legacy).
-        if (templateName === 'corporacion') {
+        // Corporación: solo motor HTML (ver `config/stablePdfForms.js`).
+        if (stablePdfForms.isCorporacionPdfForm(form.formType)) {
             try {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {});
 
@@ -187,14 +179,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 description: `Usuario descargó PDF del trámite tipo: ${form.formType} (ID: ${form.id})`
             }).catch(err => console.error('Error registrando en bitácora:', err));
 
-            const normType = form.formType.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-            let prefix = 'DOC';
-            if (normType.includes('fondos')) prefix = 'SFAR';
-            else if (normType.includes('corporacion') || normType.includes('corporativos')) prefix = 'PTLC';
-            else if (normType.includes('fundacion')) prefix = 'PTLF';
-            else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
-            else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
-
+            const prefix = stablePdfForms.getPdfDownloadFilenamePrefix(form.formType);
             const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.toString().substring(0, 8);
             const fileName = `${prefix}_${safeId}.pdf`;
             res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
