@@ -33,31 +33,56 @@ function getContentStartPx(layout) {
 }
 
 /**
- * Controlador único del logo fijo en PDF (Chromium + Puppeteer + @page).
- *
- * Chromium ancla `position: fixed` al **área de contenido** (después de los márgenes de @page),
- * no al borde físico del papel. Por eso:
- * - `margin-top` de @page = franja del logo (misma en cada hoja).
- * - `left` del header fijo debe ser **0** (alineado con tablas); **no** repetir H_INSET aquí.
- * - `top` negativo = subir el bloque exactamente esa franja, para que quede en el margen superior.
- *
- * @param {object} [layout] Mismo shape que `LAYOUT` (por defecto `LAYOUT`).
- * @returns {{
- *   contentStartPx: number,
- *   headerBandPx: number,
- *   fixedTopPx: number,
- *   fixedLeftCss: string,
- *   pageTopMarginMm: string,
- * }}
+ * Márgenes del `page.pdf()` de Puppeteer (área del cuerpo). Misma geometría en **cada** hoja.
  */
-function getRunningHeaderPdfPlan(layout = LAYOUT) {
-  const contentStartPx = getContentStartPx(layout);
+function getPuppeteerPdfMargins(layout = LAYOUT) {
   return {
-    contentStartPx,
-    headerBandPx: getHeaderBandPx(layout),
-    fixedTopPx: -contentStartPx,
-    fixedLeftCss: '0',
-    pageTopMarginMm: pxToMmString(contentStartPx),
+    top: pxToMmString(getContentStartPx(layout)),
+    left: layout.H_INSET,
+    right: layout.H_INSET,
+    bottom: layout.BOTTOM_INSET,
+  };
+}
+
+function escAttrHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+/**
+ * Logo en **todas** las páginas sin `position:fixed` en el HTML (Chromium lo trata mal en PDF).
+ * Usa `displayHeaderFooter` + `headerTemplate`: es el mecanismo nativo de impresión de Chrome.
+ *
+ * @param {object} layout
+ * @param {string} logoDataUri data URI o cadena vacía
+ */
+function buildPuppeteerHeaderFooterTemplates(layout, logoDataUri) {
+  const inset = layout.H_INSET;
+  const padTop = layout.RUNNING_HEADER_PADDING_TOP;
+  const h = layout.HEADER_LOGO_H;
+  const img = logoDataUri
+    ? `<img src="${escAttrHtml(logoDataUri)}" alt="" style="height:${h}px;width:auto;max-width:200px;display:block;object-fit:contain;" />`
+    : `<span style="font-size:9px;font-weight:bold;color:#94a3b8;line-height:${h}px;">PANAMA TAX LAWYERS</span>`;
+  const headerTemplate = `<div style="font-size:12px;width:100%;box-sizing:border-box;margin:0;padding:${padTop}px ${inset} 0 ${inset};text-align:left;font-family:Arial,Helvetica,sans-serif;line-height:0;">${img}</div>`;
+  const footerTemplate =
+    '<div style="height:1px;margin:0;padding:0;font-size:1px;">&nbsp;</div>';
+  return {
+    displayHeaderFooter: true,
+    headerTemplate,
+    footerTemplate,
+  };
+}
+
+/**
+ * Opciones listas para `page.pdf({ ... })`: márgenes + cabecera repetible (logo).
+ * El HTML del formulario ya **no** debe incluir `<header class="running-header">`.
+ */
+function getCorporacionPuppeteerPdfChromeOptions(layout = LAYOUT, logoDataUri = '') {
+  return {
+    margin: getPuppeteerPdfMargins(layout),
+    ...buildPuppeteerHeaderFooterTemplates(layout, logoDataUri),
   };
 }
 
@@ -227,7 +252,9 @@ module.exports = {
   LAYOUT,
   getHeaderBandPx,
   getContentStartPx,
-  getRunningHeaderPdfPlan,
+  getPuppeteerPdfMargins,
+  buildPuppeteerHeaderFooterTemplates,
+  getCorporacionPuppeteerPdfChromeOptions,
   pxToMmString,
   insetMmToPx,
   analyzeFormData,

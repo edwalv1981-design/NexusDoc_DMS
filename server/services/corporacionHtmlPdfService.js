@@ -85,29 +85,11 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
-      const LAYOUT = corporacionLayoutGuard.LAYOUT;
-      const {
-        H_INSET,
-        BOTTOM_INSET,
-        HEADER_LOGO_H,
-        RUNNING_HEADER_PADDING_TOP,
-        RUNNING_HEADER_PADDING_BOTTOM,
-      } = LAYOUT;
-      const logoPdf = corporacionLayoutGuard.getRunningHeaderPdfPlan(LAYOUT);
-      const { headerBandPx, fixedTopPx, fixedLeftCss, pageTopMarginMm } = logoPdf;
-
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
       const bodyGuardClass = corporacionLayoutGuard.bodyClassForPlan(plan);
 
       const content = `
-        <header class="running-header" aria-hidden="true">
-          ${
-            logoDataUri
-              ? `<img class="running-header__logo" src="${logoDataUri}" alt="" />`
-              : `<span class="running-header__fallback">PANAMA TAX LAWYERS</span>`
-          }
-        </header>
         <main class="doc-body">
         <section class="card">
           <div class="first-page-title">
@@ -194,46 +176,10 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            /* Márgenes en @page: se repiten en cada hoja y no chocan con preferCSSPageSize. */
-            @page {
-              size: A4;
-              margin: ${pageTopMarginMm} ${H_INSET} ${BOTTOM_INSET} ${H_INSET};
-            }
+            /* Márgenes del papel: los aplica Puppeteer (page.pdf margin); mismo en cada hoja. Logo vía headerTemplate. */
+            @page { size: A4; margin: 0; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
-            /* Posición del logo: getRunningHeaderPdfPlan(LAYOUT) en corporacionLayoutGuard.js */
-            .running-header {
-              position: fixed;
-              top: ${fixedTopPx}px;
-              left: ${fixedLeftCss};
-              right: auto;
-              width: max-content;
-              max-width: 220px;
-              height: ${headerBandPx}px;
-              padding-top: ${RUNNING_HEADER_PADDING_TOP}px;
-              padding-bottom: ${RUNNING_HEADER_PADDING_BOTTOM}px;
-              box-sizing: border-box;
-              background: none;
-              box-shadow: none;
-              z-index: 0;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .running-header__logo {
-              height: ${HEADER_LOGO_H}px;
-              width: auto;
-              max-width: 200px;
-              object-fit: contain;
-              object-position: left top;
-              display: block;
-            }
-            .running-header__fallback {
-              font-weight: 700;
-              color: #94a3b8;
-              font-size: 9px;
-              line-height: ${HEADER_LOGO_H}px;
-            }
-            /* Sin padding-top: el margen superior del PDF reserva la franja del logo en TODAS las hojas. */
             .doc-body {
               padding: 0;
               margin: 0;
@@ -289,11 +235,15 @@ class CorporacionHtmlPdfService {
       await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
       await page.setContent(html, { waitUntil: 'networkidle0' });
       await corporacionLayoutGuard.refineAfterRender(page);
+      const chromePdf = corporacionLayoutGuard.getCorporacionPuppeteerPdfChromeOptions(
+        corporacionLayoutGuard.LAYOUT,
+        logoDataUri
+      );
       return await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' }
+        ...chromePdf
       });
     } finally {
       if (browser) await browser.close();
