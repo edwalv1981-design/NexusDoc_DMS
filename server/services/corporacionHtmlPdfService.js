@@ -205,17 +205,24 @@ class CorporacionHtmlPdfService {
             }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
+            /*
+             * Encabezada solo envuelve el logo (ancho intrínseco). Nada de fondo blanco:
+             * un strip full-width + position:fixed + z-index tapaba las franjas teal en impresión.
+             */
             .running-header {
               position: fixed;
               top: 0;
               left: ${H_INSET};
-              right: ${H_INSET};
+              right: auto;
+              width: max-content;
+              max-width: 220px;
               height: ${headerBandPx}px;
               padding-top: ${RUNNING_HEADER_PADDING_TOP}px;
               padding-bottom: ${RUNNING_HEADER_PADDING_BOTTOM}px;
               box-sizing: border-box;
-              background: #fff;
-              z-index: 10000;
+              background: none;
+              box-shadow: none;
+              z-index: 1;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
