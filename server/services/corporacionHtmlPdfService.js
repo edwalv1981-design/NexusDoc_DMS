@@ -85,11 +85,6 @@ class CorporacionHtmlPdfService {
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
       const content = `
-        <section class="title-block">
-          <h1>Incorporation Form / Formulario de Incorporación</h1>
-          <p>Formulario corporativo dinámico y autocompletable</p>
-        </section>
-
         <section class="card">
           <h2>Name of the Corporation / Nombre de la Compañía</h2>
           <div class="hint">List the names you wish to use to incorporate your corporation in order of preference. / Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia.</div>
@@ -170,9 +165,6 @@ class CorporacionHtmlPdfService {
           <style>
             @page { size: A4; margin: 14mm; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; margin: 0; }
-            .title-block { text-align: center; margin: 0 0 10px 0; }
-            .title-block h1 { font-size: 16px; margin: 0; color: #0369a1; font-weight: 800; }
-            .title-block p { margin: 2px 0 0 0; color: #475569; font-size: 9px; }
             .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; break-inside: avoid; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
             .hint { padding: 6px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.35; }
@@ -201,12 +193,23 @@ class CorporacionHtmlPdfService {
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' });
       const headerTemplate = `
-        <div style="width:100%; text-align:center; font-size:8px; padding-top:6px;">
-          ${
-            logoDataUri
-              ? `<img src="${logoDataUri}" style="height:42px; object-fit:contain;" />`
-              : `<span style="font-weight:700; color:#94a3b8;">PANAMA TAX LAWYERS</span>`
-          }
+        <div style="width:100%; font-family:Arial, Helvetica, sans-serif; padding:6px 12px 0 12px; box-sizing:border-box;">
+          <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+            <tr>
+              <td style="width:33%; text-align:left; vertical-align:middle;">
+                ${
+                  logoDataUri
+                    ? `<img src="${logoDataUri}" style="height:40px; object-fit:contain;" />`
+                    : `<span style="font-weight:700; color:#94a3b8; font-size:9px;">PANAMA TAX LAWYERS</span>`
+                }
+              </td>
+              <td style="width:34%; text-align:center; vertical-align:middle;">
+                <div style="font-size:22px; line-height:1.05; font-weight:800; color:#0369a1;">Incorporation Form</div>
+                <div style="font-size:19px; line-height:1.05; font-weight:800; color:#0369a1;">Formulario de Incorporación</div>
+              </td>
+              <td style="width:33%;">&nbsp;</td>
+            </tr>
+          </table>
         </div>
       `;
       return await page.pdf({
@@ -216,7 +219,7 @@ class CorporacionHtmlPdfService {
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate: '<div></div>',
-        margin: { top: '58px', right: '16px', bottom: '16px', left: '16px' }
+        margin: { top: '92px', right: '16px', bottom: '16px', left: '16px' }
       });
     } finally {
       if (browser) await browser.close();
