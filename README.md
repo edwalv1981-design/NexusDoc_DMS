@@ -39,6 +39,16 @@ La app actualmente resuelve API de forma dinámica en `client/src/config.js`:
 - `CORS_ORIGINS=https://nexusdocdms-production.up.railway.app,http://localhost:5173`
 - `DB_SYNC_ALTER=false` (subir a `true` solo de forma temporal si necesitas sincronizar esquema)
 
+## Migraciones (sequelize-cli)
+
+El proyecto usa migraciones para cambios de esquema sin depender de `sequelize.sync`.
+
+- Ejecutar migraciones manualmente: `npm run db:migrate`
+- Ver estado de migraciones: `cd server && npm run db:migrate:status`
+- Revertir la ultima migracion: `cd server && npm run db:migrate:undo`
+
+En despliegue, `npm run start` ejecuta primero `db:migrate` y luego levanta el servidor. Esto permite mantener `DB_SYNC_ALTER=false` de forma permanente.
+
 ## Seguridad básica
 
 - Nunca subas `.env` al repositorio.

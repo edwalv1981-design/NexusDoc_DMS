@@ -74,8 +74,12 @@ app.listen(PORT, '0.0.0.0', async () => {
     try {
         await connectDB();
         const allowSchemaAlter = process.env.DB_SYNC_ALTER === 'true';
-        await sequelize.sync({ alter: allowSchemaAlter });
-        console.log('✅ Base de datos sincronizada.');
+        if (allowSchemaAlter) {
+            await sequelize.sync({ alter: true });
+            console.log('⚠️ DB_SYNC_ALTER=true: sincronización con alter aplicada.');
+        } else {
+            console.log('✅ Modo migraciones activo: sequelize.sync deshabilitado (DB_SYNC_ALTER=false).');
+        }
 
         // Bootstrap de administrador opcional controlado por variables de entorno.
         const { User } = require('./models');

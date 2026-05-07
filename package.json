@@ -4,6 +4,7 @@
   "scripts": {
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "build": "cd client && npm run build",
-    "start": "cd server && node index.js"
+    "db:migrate": "cd server && npm run db:migrate",
+    "start": "cd server && npm run db:migrate && npm run start"
   }
 }
