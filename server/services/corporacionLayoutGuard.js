@@ -102,6 +102,36 @@ function getCorporacionPuppeteerPdfChromeOptions(layout = LAYOUT, logoDataUri = 
 }
 
 /**
+ * Falla rápido en CI o al arrancar checks si alguien rompe la geometría PDF/logo.
+ * @param {object} [layout]
+ */
+function assertCorporacionPdfLayoutInvariants(layout = LAYOUT) {
+  const band = getHeaderBandPx(layout);
+  const start = getContentStartPx(layout);
+  const bodyTop = getPdfBodyTopMarginPx(layout);
+  if (!(band > 0 && layout.HEADER_LOGO_H > 0)) {
+    throw new Error('corporacionLayoutGuard: HEADER_LOGO_H / band inválidos');
+  }
+  if (!(bodyTop >= start)) {
+    throw new Error('corporacionLayoutGuard: getPdfBodyTopMarginPx debe ser >= getContentStartPx');
+  }
+  if (!(layout.DOC_BODY_GAP_BELOW_HEADER >= 0 && layout.PDF_TOP_MARGIN_BUFFER_PX >= 0)) {
+    throw new Error('corporacionLayoutGuard: gaps/buffer no pueden ser negativos');
+  }
+  const opts = getCorporacionPuppeteerPdfChromeOptions(layout, 'data:image/png;base64,AA==');
+  const m = opts.margin;
+  if (!m || typeof m.top !== 'string' || !m.top.endsWith('mm')) {
+    throw new Error('corporacionLayoutGuard: margin.top debe ser string en mm');
+  }
+  if (!opts.displayHeaderFooter || typeof opts.headerTemplate !== 'string') {
+    throw new Error('corporacionLayoutGuard: falta headerTemplate / displayHeaderFooter');
+  }
+  if (!/src="data:image\/png;base64,/.test(opts.headerTemplate)) {
+    throw new Error('corporacionLayoutGuard: headerTemplate debe incluir img con data URI');
+  }
+}
+
+/**
  * @param {object} data - Mismo payload que CorporacionForm guarda
  */
 function analyzeFormData(data = {}) {
@@ -276,6 +306,7 @@ module.exports = {
   getPuppeteerPdfMargins,
   buildPuppeteerHeaderFooterTemplates,
   getCorporacionPuppeteerPdfChromeOptions,
+  assertCorporacionPdfLayoutInvariants,
   pxToMmString,
   insetMmToPx,
   analyzeFormData,

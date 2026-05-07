@@ -5,6 +5,8 @@
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "build": "cd client && npm run build",
     "db:migrate": "cd server && npm run db:migrate",
-    "start": "cd server && npm run db:migrate && npm run start"
+    "start": "cd server && npm run db:migrate && npm run start",
+    "test:server": "cd server && npm test",
+    "test:server:smoke-pdf": "cd server && npm run test:smoke-corporacion-pdf"
   }
 }

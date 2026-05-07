@@ -70,6 +70,7 @@ function buildShareholdersRows(shareholders) {
 
 class CorporacionHtmlPdfService {
   async generatePdf(data = {}) {
+    corporacionLayoutGuard.assertCorporacionPdfLayoutInvariants();
     let browser = null;
     try {
       const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
@@ -239,12 +240,13 @@ class CorporacionHtmlPdfService {
         corporacionLayoutGuard.LAYOUT,
         logoDataUri
       );
-      return await page.pdf({
+      const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
         ...chromePdf
       });
+      return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {
       if (browser) await browser.close();
     }
