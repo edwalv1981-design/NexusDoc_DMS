@@ -33,6 +33,35 @@ function getContentStartPx(layout) {
 }
 
 /**
+ * Controlador único del logo fijo en PDF (Chromium + Puppeteer + @page).
+ *
+ * Chromium ancla `position: fixed` al **área de contenido** (después de los márgenes de @page),
+ * no al borde físico del papel. Por eso:
+ * - `margin-top` de @page = franja del logo (misma en cada hoja).
+ * - `left` del header fijo debe ser **0** (alineado con tablas); **no** repetir H_INSET aquí.
+ * - `top` negativo = subir el bloque exactamente esa franja, para que quede en el margen superior.
+ *
+ * @param {object} [layout] Mismo shape que `LAYOUT` (por defecto `LAYOUT`).
+ * @returns {{
+ *   contentStartPx: number,
+ *   headerBandPx: number,
+ *   fixedTopPx: number,
+ *   fixedLeftCss: string,
+ *   pageTopMarginMm: string,
+ * }}
+ */
+function getRunningHeaderPdfPlan(layout = LAYOUT) {
+  const contentStartPx = getContentStartPx(layout);
+  return {
+    contentStartPx,
+    headerBandPx: getHeaderBandPx(layout),
+    fixedTopPx: -contentStartPx,
+    fixedLeftCss: '0',
+    pageTopMarginMm: pxToMmString(contentStartPx),
+  };
+}
+
+/**
  * @param {object} data - Mismo payload que CorporacionForm guarda
  */
 function analyzeFormData(data = {}) {
@@ -198,6 +227,7 @@ module.exports = {
   LAYOUT,
   getHeaderBandPx,
   getContentStartPx,
+  getRunningHeaderPdfPlan,
   pxToMmString,
   insetMmToPx,
   analyzeFormData,

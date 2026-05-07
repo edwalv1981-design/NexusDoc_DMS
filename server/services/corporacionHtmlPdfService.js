@@ -93,11 +93,8 @@ class CorporacionHtmlPdfService {
         RUNNING_HEADER_PADDING_TOP,
         RUNNING_HEADER_PADDING_BOTTOM,
       } = LAYOUT;
-      const headerBandPx =
-        RUNNING_HEADER_PADDING_TOP + HEADER_LOGO_H + RUNNING_HEADER_PADDING_BOTTOM;
-      const contentStartPx = corporacionLayoutGuard.getContentStartPx(LAYOUT);
-      /** Márgenes de impresión solo en @page (con preferCSSPageSize no mezclar con margin de page.pdf). */
-      const pageTopMargin = corporacionLayoutGuard.pxToMmString(contentStartPx);
+      const logoPdf = corporacionLayoutGuard.getRunningHeaderPdfPlan(LAYOUT);
+      const { headerBandPx, fixedTopPx, fixedLeftCss, pageTopMarginMm } = logoPdf;
 
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
@@ -200,19 +197,15 @@ class CorporacionHtmlPdfService {
             /* Márgenes en @page: se repiten en cada hoja y no chocan con preferCSSPageSize. */
             @page {
               size: A4;
-              margin: ${pageTopMargin} ${H_INSET} ${BOTTOM_INSET} ${H_INSET};
+              margin: ${pageTopMarginMm} ${H_INSET} ${BOTTOM_INSET} ${H_INSET};
             }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
-            /*
-             * Chromium PDF: position:fixed suele usar el origen del área de contenido (tras @page).
-             * - left:0 alinea con el borde izquierdo del cuerpo (mismo que tablas); left:14mm duplicaba el margen.
-             * - top negativo = misma altura que el margen superior de @page (franja del logo en todas las hojas).
-             */
+            /* Posición del logo: getRunningHeaderPdfPlan(LAYOUT) en corporacionLayoutGuard.js */
             .running-header {
               position: fixed;
-              top: ${-contentStartPx}px;
-              left: 0;
+              top: ${fixedTopPx}px;
+              left: ${fixedLeftCss};
               right: auto;
               width: max-content;
               max-width: 220px;
