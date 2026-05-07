@@ -6,6 +6,7 @@ import unicodedata
 import os
 import statistics
 import re
+import math
 
 # Configuración de codificación para Windows
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8')
@@ -177,6 +178,407 @@ def load_corporacion_coords(root_dir):
             return data.get("corporacion_2025") or {}
     except Exception:
         return {}
+
+
+def _as_rect(page, spec):
+    """Convierte [x0,y0,x1,y1] o dict con esas claves en fitz.Rect acotado a la página."""
+    if not spec:
+        return None
+    if isinstance(spec, (list, tuple)) and len(spec) >= 4:
+        r = fitz.Rect(float(spec[0]), float(spec[1]), float(spec[2]), float(spec[3]))
+    elif isinstance(spec, dict):
+        r = fitz.Rect(
+            float(spec["x0"]),
+            float(spec["y0"]),
+            float(spec["x1"]),
+            float(spec["y1"]),
+        )
+    else:
+        return None
+    pr = page.rect
+    return fitz.Rect(max(pr.x0, r.x0), max(pr.y0, r.y0), min(pr.x1, r.x1), min(pr.y1, r.y1))
+
+
+def _whiteout_rects(page, rects):
+    """Tapa zonas de plantilla duplicada en páginas de continuación (evita texto ‘fantasma’)."""
+    for r in rects or []:
+        try:
+            rr = fitz.Rect(r)
+            if rr.width < 8 or rr.height < 8:
+                continue
+            page.draw_rect(rr, color=(1, 1, 1), fill=(1, 1, 1), width=0)
+        except Exception:
+            continue
+
+
+def _zone_rect_between_anchors(page, top_keywords, bottom_keywords, x0, x1, pad_top, pad_bottom):
+    """Rectángulo vertical entre un título superior y un ancla inferior (oficiales, actividades, etc.)."""
+    top_r = find_anchor_rect(page, top_keywords, min_y=0)
+    if not top_r:
+        return None
+    y0 = float(top_r.y1) + float(pad_top)
+    y1 = page.rect.height - 40
+    for ph in bottom_keywords or []:
+        for r in page.search_for(ph):
+            if r.y0 > y0 + 30:
+                y1 = min(y1, float(r.y0) - float(pad_bottom))
+    if y1 <= y0 + 40:
+        return None
+    return fitz.Rect(max(page.rect.x0 + 20, x0), y0, min(page.rect.x1 - 20, x1), y1)
+
+
+def measure_director_stack_height(fields, ROW_H, ROW_MULT, extra_top=0, extra_bottom=0):
+    h = float(extra_top) + float(extra_bottom)
+    for fk in fields:
+        mult = float(ROW_MULT.get(fk, 1.0)) if isinstance(ROW_MULT, dict) else 1.0
+        h += max(12.0, float(ROW_H) * mult)
+    return h
+
+
+def render_director_stacked_block(
+    page,
+    d,
+    fields,
+    ROW_H,
+    ROW_MULT,
+    X_PAD,
+    row_width,
+    x_left,
+    y_start,
+    print_heading=False,
+    heading_label=None,
+    heading_fontsize=8.5,
+):
+    """
+    Apila los mismos campos que el bloque anclado a 'Director N', pero en coordenadas absolutas.
+    Devuelve la Y final (borde inferior del bloque usado).
+    """
+    if not isinstance(d, dict):
+        return y_start
+    y_cur = float(y_start)
+    if print_heading and heading_label is not None:
+        try:
+            page.insert_text(
+                (x_left + 1, y_cur + 9),
+                str(heading_label),
+                fontsize=heading_fontsize,
+                fontname="Helvetica-Bold",
+            )
+        except Exception:
+            pass
+        y_cur += float(heading_fontsize) + 6
+    x_val = x_left + float(X_PAD)
+    w = min(float(row_width), page.rect.width - x_val - 18)
+    for fk in fields:
+        val = d.get(fk)
+        mult = float(ROW_MULT.get(fk, 1.0)) if isinstance(ROW_MULT, dict) else 1.0
+        row_h = max(12.0, float(ROW_H) * mult)
+        if val:
+            rect = fitz.Rect(x_val, y_cur, x_val + w, y_cur + row_h - 1.2)
+            fs = 7.2 if fk in ("address", "email") else 7.8
+            insert_textbox_clipped(page, rect, val, fontsize=fs)
+        y_cur += row_h
+    return y_cur
+
+
+def fill_directors_tail_height_paginated(
+    doc,
+    directors_tail,
+    global_start_index,
+    pdf_path,
+    dir_section,
+    fields,
+    ROW_H,
+    ROW_MULT,
+    X_PAD,
+    flow_cfg,
+):
+    """
+    Directores a partir del índice global_start_index (1-based en plantilla: 5, 6, …).
+    Pagina por altura del bloque de campos dentro de continuation_rect / página anexa.
+    """
+    if not directors_tail:
+        return
+    src_pdf = fitz.open(pdf_path)
+    try:
+        annex_ix = int(flow_cfg.get("continuation_annex_page_ix", flow_cfg.get("annex_page_ix", 0)))
+        annex_ix = min(max(annex_ix, 0), len(src_pdf) - 1)
+        gap = float(flow_cfg.get("block_gap") or 8)
+        head_extra = float(flow_cfg.get("continuation_heading_dy") or 14) if flow_cfg.get("print_director_heading", True) else 0
+        foot_extra = float(flow_cfg.get("block_bottom_pad") or 2)
+
+        rect_spec = flow_cfg.get("continuation_rect") or flow_cfg.get("page_rect") or [45, 152, 555, 748]
+        mask = flow_cfg.get("continuation_whiteout_rects") or []
+
+        wide_w = float(dir_section.get("wide_row_width") or 420)
+
+        per_block_h_static = measure_director_stack_height(
+            fields, ROW_H, ROW_MULT, extra_top=head_extra, extra_bottom=foot_extra
+        )
+
+        pending = list(directors_tail)
+        gidx = int(global_start_index)
+        tmpl = flow_cfg.get("heading_template") or "Director {n}"
+
+        while pending:
+            doc.insert_pdf(src_pdf, from_page=annex_ix, to_page=annex_ix, start_at=len(doc))
+            page = doc[-1]
+
+            rr = _as_rect(page, rect_spec)
+            if rr is None or rr.height < min(per_block_h_static, 80):
+                rr = fitz.Rect(45, 152, float(page.rect.width) - 40, float(page.rect.height) - 36)
+
+            _whiteout_rects(page, mask)
+
+            y_cur = rr.y0
+            placed_any = False
+
+            while pending:
+                need = per_block_h_static + (gap if placed_any else 0)
+                if y_cur + need > rr.y1 - foot_extra:
+                    break
+                if placed_any:
+                    y_cur += gap
+                d = pending.pop(0)
+                label = tmpl.replace("{n}", str(gidx))
+                y_cur = render_director_stacked_block(
+                    page,
+                    d,
+                    fields,
+                    ROW_H,
+                    ROW_MULT,
+                    X_PAD,
+                    wide_w,
+                    x_left=rr.x0,
+                    y_start=y_cur,
+                    print_heading=bool(flow_cfg.get("print_director_heading", True)),
+                    heading_label=label,
+                )
+                y_cur += foot_extra
+                gidx += 1
+                placed_any = True
+
+            if pending and not placed_any:
+                d = pending.pop(0)
+                label = tmpl.replace("{n}", str(gidx))
+                render_director_stacked_block(
+                    page,
+                    d,
+                    fields,
+                    ROW_H,
+                    ROW_MULT,
+                    X_PAD,
+                    wide_w,
+                    x_left=rr.x0,
+                    y_start=rr.y0,
+                    print_heading=bool(flow_cfg.get("print_director_heading", True)),
+                    heading_label=label,
+                )
+                gidx += 1
+    finally:
+        src_pdf.close()
+
+
+def shareholder_dynamic_row_height(s, sh_row_h, xs_addr, page_w, addr_fontsize=6.6, cap_h=86.0, min_h_extra=2.5):
+    base = float(sh_row_h)
+    addr = (s or {}).get("address")
+    rw = float(page_w) - float(xs_addr) - 34
+    if addr and rw > 35:
+        t = str(addr).strip().replace("\n", " ")
+        cpl = max(24.0, rw / max(3.8, addr_fontsize * 0.48))
+        lines = max(1.0, math.ceil(len(t) / cpl))
+        need = lines * addr_fontsize * 1.12 + min_h_extra
+        return min(float(cap_h), max(base, need))
+    return base
+
+
+def render_shareholder_data_row(page, s, row_top, row_height, xs_map, defaults, addr_fontsize=6.6):
+    """Una fila de accionista; row_height permite filas más altas cuando el domicilio es largo."""
+    xs_cert, xs_val, xs_shares, xs_name, xs_addr = xs_map
+    sh_row_h = defaults["base_h"]
+
+    baseline = row_top + 2
+    if not isinstance(s, dict):
+        return
+    if s.get("certificate"):
+        insert_textbox_clipped(
+            page,
+            fitz.Rect(xs_cert - 8, row_top, xs_cert + 44, baseline + row_height - 2),
+            str(s["certificate"]),
+            fontsize=7,
+        )
+    if s.get("value"):
+        insert_textbox_clipped(
+            page,
+            fitz.Rect(xs_val - 6, row_top, xs_val + 48, baseline + row_height - 2),
+            str(s["value"]),
+            fontsize=7,
+        )
+    if s.get("shares"):
+        insert_textbox_clipped(
+            page,
+            fitz.Rect(xs_shares - 5, row_top, xs_shares + 54, baseline + row_height - 2),
+            str(s["shares"]),
+            fontsize=7,
+        )
+    if s.get("name"):
+        insert_textbox_clipped(
+            page,
+            fitz.Rect(xs_name - 6, row_top, min(xs_addr - 14, xs_name + 180), baseline + row_height - 2),
+            str(s["name"]),
+            fontsize=7.6,
+        )
+    if s.get("address"):
+        insert_textbox_clipped(
+            page,
+            fitz.Rect(xs_addr - 8, row_top, page.rect.width - 32, row_top + max(row_height, sh_row_h + 2)),
+            str(s["address"]),
+            fontsize=addr_fontsize,
+        )
+
+
+def fill_shareholders_height_paginated(
+    doc,
+    shareholders,
+    pdf_path,
+    officers_idx,
+    page_f,
+    y_sh_anchor,
+    sh_section,
+    xs_tuple,
+):
+    """
+    Tabla de accionistas paginando por altura útil entre anclas verticalmente,
+    manteniendo columnas congeladas. Filas pueden ser más altas si el domicilio es largo.
+    xs_tuple = (xs_cert, xs_val, xs_shares, xs_name, xs_addr).
+    """
+    if not shareholders:
+        return
+
+    sh_row_h = float(sh_section.get("row_height") or 18.5)
+    addr_font = float(sh_section.get("address_fontsize") or 6.6)
+    row_gap = float(sh_section.get("flow_row_gap") or 1)
+    pad_top = float(sh_section.get("first_data_row_dy") or 38)
+    pad_bottom = float(sh_section.get("bottom_clip_margin") or 28)
+
+    tops = ["Shareholders", "Accionistas", "Shareholder"]
+    bottoms = (
+        sh_section.get("bottom_stop_phrases")
+        or ["Company Activities", "ACTIVITIES", "Please provide", "Name // Nombre", "Name / Nombre"]
+    )
+
+    wf = {"base_h": sh_row_h}
+
+    flow = sh_section.get("flow_layout") or {}
+    respect_caps = bool(flow.get("respect_legacy_row_caps", False))
+    mx_first = int(sh_section.get("max_rows_first_page") or 10_000)
+    mx_annex = int(sh_section.get("max_rows_annex_page") or 10_000)
+    if not respect_caps:
+        mx_first = mx_annex = 10_000
+
+    rx = flow.get("region_abs")
+    if rx:
+        region = _as_rect(page_f, rx)
+    else:
+        x_margin_l = float(flow.get("x_margin_left") or 36)
+        x_margin_r = float(flow.get("x_margin_right") or 36)
+        region = _zone_rect_between_anchors(
+            page_f,
+            tops,
+            bottoms,
+            x0=float(page_f.rect.x0) + x_margin_l,
+            x1=float(page_f.rect.x1) - x_margin_r,
+            pad_top=pad_top,
+            pad_bottom=pad_bottom + 40,
+        )
+    cap_addr = float(flow.get("address_cell_max_height") or sh_section.get("address_cell_cap") or 86)
+
+    _cert, _val, _sh, _nm, ys_addr = xs_tuple
+
+    def table_bottom(pg, reg):
+        if reg is not None and reg.height > 50:
+            return reg.y1
+        y2 = float(pg.rect.height) - pad_bottom - 52
+        for ph in bottoms:
+            for r in pg.search_for(ph):
+                cy = float(r.y0)
+                if cy > float(y_sh_anchor) + pad_top * 0.5:
+                    y2 = min(y2, cy - 12)
+        return y2
+
+    def row_h_for(pg, row):
+        return shareholder_dynamic_row_height(
+            row, sh_row_h, ys_addr, pg.rect.width - 28, addr_fontsize=addr_font, cap_h=cap_addr
+        ) + row_gap
+
+    y_start_p = float(y_sh_anchor) + pad_top if region is None else float(region.y0)
+    bottom1 = table_bottom(page_f, region)
+    pend = list(shareholders)
+    y_cur = y_start_p
+    drew_first = 0
+
+    while pend and drew_first < mx_first:
+        srow = pend[0]
+        rh = row_h_for(page_f, srow)
+        if y_cur + rh > bottom1:
+            break
+        render_shareholder_data_row(page_f, srow, y_cur, rh - row_gap, xs_tuple, wf, addr_fontsize=addr_font)
+        y_cur += rh
+        pend.pop(0)
+        drew_first += 1
+
+    if not pend:
+        return
+
+    src_pdf = fitz.open(pdf_path)
+    try:
+        raw_ix = flow.get("annex_page_ix")
+        if raw_ix is None:
+            annex_page_ix = min(max(int(officers_idx), 1), len(src_pdf) - 1)
+        else:
+            annex_page_ix = min(max(int(raw_ix), 0), len(src_pdf) - 1)
+
+        while pend:
+            doc.insert_pdf(src_pdf, from_page=annex_page_ix, to_page=annex_page_ix, start_at=len(doc))
+            page_a = doc[-1]
+
+            pad2 = pad_top if flow.get("annex_keep_first_dy", True) else float(flow.get("annex_first_dy") or pad_top)
+            if flow.get("annex_region_abs"):
+                reg_a = _as_rect(page_a, flow["annex_region_abs"])
+            else:
+                marg_l = float(flow.get("annex_x_margin_left") or flow.get("x_margin_left") or 36)
+                marg_r = float(flow.get("annex_x_margin_right") or flow.get("x_margin_right") or 36)
+                reg_a = _zone_rect_between_anchors(
+                    page_a,
+                    tops,
+                    bottoms,
+                    x0=float(page_a.rect.x0) + marg_l,
+                    x1=float(page_a.rect.x1) - marg_r,
+                    pad_top=pad2,
+                    pad_bottom=pad_bottom + 26,
+                )
+
+            ys2 = float(find_anchor_y(page_a, tops) or y_sh_anchor)
+            yc = float(reg_a.y0) if reg_a else (ys2 + pad2)
+            bottom_a = table_bottom(page_a, reg_a)
+            drew_annex = 0
+
+            while pend and drew_annex < mx_annex:
+                srow = pend[0]
+                rh = row_h_for(page_a, srow)
+                if yc + rh > bottom_a:
+                    break
+                render_shareholder_data_row(page_a, srow, yc, rh - row_gap, xs_tuple, wf, addr_fontsize=addr_font)
+                yc += rh
+                pend.pop(0)
+                drew_annex += 1
+
+            if drew_annex == 0 and pend:
+                srow = pend.pop(0)
+                rh = row_h_for(page_a, srow)
+                render_shareholder_data_row(page_a, srow, yc, rh - row_gap, xs_tuple, wf, addr_fontsize=addr_font)
+    finally:
+        src_pdf.close()
 
 
 def find_page_with_keywords(doc, keywords):
@@ -438,23 +840,46 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
         if not fill_director_label_block(page1, directors[idx], idx + 1, min_y_floor=max(0, dir_section_min_y)):
             legacy_fill_director_slot(page1, idx, directors[idx], y_dir_fallback_base)
 
+    dir_cont = dir_section.get("continuation_flow") or {}
     if len(directors) > 4:
-        src_pdf = fitz.open(pdf_path)
-        cs = 4
-        while cs < len(directors):
-            insert_at = len(doc) - 1
-            doc.insert_pdf(src_pdf, from_page=0, to_page=0, start_at=insert_at)
-            annex = doc[insert_at]
-            y_annex = find_anchor_y(annex, ["Director 1", "Directors /", "Directors", "Directores"]) or y_dir_fallback_base
-            annex_floor = max(0, (find_anchor_y(annex, ["Directors", "Directores:", "Directores"]) or y_annex) - 30)
-            for j in range(4):
-                di = cs + j
-                if di >= len(directors):
-                    break
-                if not fill_director_label_block(annex, directors[di], j + 1, min_y_floor=annex_floor):
-                    legacy_fill_director_slot(annex, j, directors[di], y_annex)
-            cs += 4
-        src_pdf.close()
+        if bool(dir_cont.get("height_pagination", True)):
+            fill_directors_tail_height_paginated(
+                doc,
+                directors[4:],
+                5,
+                pdf_path,
+                dir_section,
+                fields,
+                ROW_H,
+                ROW_MULT,
+                X_PAD,
+                dir_cont,
+            )
+        else:
+            src_pdf = fitz.open(pdf_path)
+            try:
+                cs = 4
+                while cs < len(directors):
+                    insert_at = len(doc)
+                    doc.insert_pdf(src_pdf, from_page=0, to_page=0, start_at=insert_at)
+                    annex = doc[-1]
+                    y_annex = (
+                        find_anchor_y(annex, ["Director 1", "Directors /", "Directors", "Directores"])
+                        or y_dir_fallback_base
+                    )
+                    annex_floor = max(
+                        0,
+                        (find_anchor_y(annex, ["Directors", "Directores:", "Directores"]) or y_annex) - 30,
+                    )
+                    for j in range(4):
+                        di = cs + j
+                        if di >= len(directors):
+                            break
+                        if not fill_director_label_block(annex, directors[di], j + 1, min_y_floor=annex_floor):
+                            legacy_fill_director_slot(annex, j, directors[di], y_annex)
+                    cs += 4
+            finally:
+                src_pdf.close()
 
     officers_idx = find_page_with_keywords(doc, ["Officers", "dignatarios", "DIGNATARIOS"])
     page_f = doc[officers_idx]
@@ -515,7 +940,6 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
         if d_row.get("registrationNumber"):
             insert_textbox_clipped(page_f, cell_rect(x_reg, baseline + 5, cw_rest + 12, 12), str(d_row["registrationNumber"]), fontsize=7.2)
 
-    sh_row_h = float(sh_section.get("row_height") or 18.5)
     fb = sh_section.get("column_x_fallback") or {}
 
     xs_cert = fb.get("certificate", 48)
@@ -545,66 +969,16 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
     if haddr:
         xs_addr = haddr
 
-    first_dy = float(sh_section.get("first_data_row_dy") or 38)
-    max_rows = int(sh_section.get("max_rows_first_page") or 14)
-    base_y = y_sh_anchor + first_dy
-
-    page_block = shareholders[:max_rows]
-    overflow_sh = shareholders[max_rows:]
-
-    addr_h = float(sh_section.get("address_row_frac") or 1.85) * sh_row_h
-
-    for ri, s in enumerate(page_block):
-        row_top = base_y + ri * sh_row_h
-        baseline = row_top + 2
-        if s.get("certificate"):
-            insert_textbox_clipped(page_f, fitz.Rect(xs_cert - 8, row_top, xs_cert + 44, baseline + sh_row_h - 2), str(s["certificate"]), fontsize=7)
-        if s.get("value"):
-            insert_textbox_clipped(page_f, fitz.Rect(xs_val - 6, row_top, xs_val + 48, baseline + sh_row_h - 2), str(s["value"]), fontsize=7)
-        if s.get("shares"):
-            insert_textbox_clipped(page_f, fitz.Rect(xs_shares - 5, row_top, xs_shares + 54, baseline + sh_row_h - 2), str(s["shares"]), fontsize=7)
-        if s.get("name"):
-            insert_textbox_clipped(page_f, fitz.Rect(xs_name - 6, row_top, min(xs_addr - 14, xs_name + 180), baseline + sh_row_h - 2), str(s["name"]), fontsize=7.6)
-        if s.get("address"):
-            insert_textbox_clipped(
-                page_f,
-                fitz.Rect(xs_addr - 8, row_top, page_f.rect.width - 32, row_top + max(addr_h, sh_row_h + 2)),
-                str(s["address"]),
-                fontsize=6.6,
-            )
-
-    if overflow_sh:
-        src_pdf2 = fitz.open(pdf_path)
-        annex_page_ix = min(max(officers_idx, 1), len(src_pdf2) - 1)
-        max_annex_rows = int(sh_section.get("max_rows_annex_page") or 18)
-        remaining = list(overflow_sh)
-        while remaining:
-            ins = len(doc) - 1
-            doc.insert_pdf(src_pdf2, from_page=annex_page_ix, to_page=annex_page_ix, start_at=ins)
-            annex_sh = doc[ins]
-            y2 = find_anchor_y(annex_sh, ["Shareholders", "Accionistas"]) or 298
-            b2 = y2 + first_dy
-            chunk = remaining[:max_annex_rows]
-            remaining = remaining[max_annex_rows:]
-            for j, s in enumerate(chunk):
-                row_top = b2 + j * sh_row_h
-                baseline = row_top + 2
-                if s.get("certificate"):
-                    insert_textbox_clipped(annex_sh, fitz.Rect(xs_cert - 8, row_top, xs_cert + 44, baseline + sh_row_h - 2), str(s["certificate"]), fontsize=7)
-                if s.get("value"):
-                    insert_textbox_clipped(annex_sh, fitz.Rect(xs_val - 6, row_top, xs_val + 48, baseline + sh_row_h - 2), str(s["value"]), fontsize=7)
-                if s.get("shares"):
-                    insert_textbox_clipped(annex_sh, fitz.Rect(xs_shares - 5, row_top, xs_shares + 54, baseline + sh_row_h - 2), str(s["shares"]), fontsize=7)
-                if s.get("name"):
-                    insert_textbox_clipped(annex_sh, fitz.Rect(xs_name - 6, row_top, min(xs_addr - 14, xs_name + 180), baseline + sh_row_h - 2), str(s["name"]), fontsize=7.6)
-                if s.get("address"):
-                    insert_textbox_clipped(
-                        annex_sh,
-                        fitz.Rect(xs_addr - 8, row_top, annex_sh.rect.width - 32, row_top + max(addr_h, sh_row_h + 2)),
-                        str(s["address"]),
-                        fontsize=6.6,
-                    )
-        src_pdf2.close()
+    fill_shareholders_height_paginated(
+        doc,
+        shareholders,
+        pdf_path,
+        officers_idx,
+        page_f,
+        y_sh_anchor,
+        sh_section,
+        (xs_cert, xs_val, xs_shares, xs_name, xs_addr),
+    )
 
     act = data.get("companyActivities")
     if act:

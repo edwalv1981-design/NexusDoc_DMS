@@ -64,6 +64,16 @@
         "legacy_row4_y": 478,
         "wide_row_width": 400,
         "narrow_row_width": 240,
+        "continuation_flow": {
+            "height_pagination": true,
+            "continuation_annex_page_ix": 0,
+            "continuation_rect": [45, 152, 555, 748],
+            "print_director_heading": true,
+            "heading_template": "Director {n}",
+            "block_gap": 10,
+            "continuation_heading_dy": 14,
+            "continuation_whiteout_rects": []
+        },
         "field_row_multiplier": {
           "phone": 1.1,
           "email": 1.22,
@@ -98,6 +108,14 @@
         "first_data_row_dy": 38,
         "max_rows_first_page": 14,
         "max_rows_annex_page": 18,
+        "flow_layout": {
+            "respect_legacy_row_caps": false,
+            "x_margin_left": 36,
+            "x_margin_right": 36,
+            "flow_row_gap": 1,
+            "address_cell_max_height": 86
+        },
+        "bottom_clip_margin": 28,
         "activities_anchor_min_below_officers": 118,
         "activities_box_height": 102,
         "address_row_frac": 1.9,
