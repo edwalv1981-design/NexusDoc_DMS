@@ -21,10 +21,19 @@ function fmtDate(v) {
   return s;
 }
 
-function chunk(arr, size) {
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+function toDataUri(filePath) {
+  const ext = String(path.extname(filePath) || '').toLowerCase();
+  const mimeMap = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+  };
+  const mime = mimeMap[ext];
+  if (!mime) return '';
+  const b64 = fs.readFileSync(filePath).toString('base64');
+  return `data:${mime};base64,${b64}`;
 }
 
 function buildDirectorsRows(directors) {
@@ -67,6 +76,9 @@ class CorporacionHtmlPdfService {
         process.env.CORPORACION_LOGO_PATH,
         path.join(rootDir, 'templates', 'logo_real.png'),
         path.join(rootDir, 'templates', 'logo.png'),
+        path.join(rootDir, 'templates', 'logo.jpg'),
+        path.join(rootDir, 'templates', 'logo.jpeg'),
+        path.join(rootDir, 'templates', 'logo.svg'),
         path.join(rootDir, 'templates', 'corporacion_logo.png'),
         path.join(rootDir, 'server', 'assets', 'logo_real.png'),
         path.join(rootDir, 'client', 'src', 'assets', 'logo_real.png'),
@@ -74,9 +86,8 @@ class CorporacionHtmlPdfService {
       let logoDataUri = '';
       for (const p of logoPathCandidates) {
         if (fs.existsSync(p)) {
-          const b64 = fs.readFileSync(p).toString('base64');
-          logoDataUri = `data:image/png;base64,${b64}`;
-          break;
+          logoDataUri = toDataUri(p);
+          if (logoDataUri) break;
         }
       }
 
@@ -86,87 +97,79 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
-      const dirChunks = chunk(directors, 18);
-      const shChunks = chunk(shareholders, 22);
-
-      const pages = [];
-      pages.push(`
-        <section class="page">
-          <header>
-            ${logoDataUri ? `<img class="logo" src="${logoDataUri}" alt="Logo" />` : `<div class="logo-fallback">PANAMA TAX</div>`}
+      const content = `
+        <header class="doc-header">
+          ${logoDataUri ? `<img class="logo" src="${logoDataUri}" alt="Logo" />` : `<div class="logo-fallback">PANAMA TAX LAWYERS</div>`}
+          <div>
             <h1>Incorporation Form / Formulario de Incorporacion</h1>
-            <p>Corporacion - Formato dinamico autorellenable</p>
-          </header>
-          <div class="card">
-            <h2>Nombres de la compania</h2>
-            <div class="grid3">
-              <div><label>1ra opcion (S.A.)</label><div class="value">${esc(data.corpNameSA)}</div></div>
-              <div><label>2da opcion (Corp.)</label><div class="value">${esc(data.corpNameCorp)}</div></div>
-              <div><label>3ra opcion (Inc.)</label><div class="value">${esc(data.corpNameInc)}</div></div>
-            </div>
+            <p>Formulario corporativo dinamico y autocompletable</p>
           </div>
-          <div class="card">
-            <h2>Capital social autorizado</h2>
-            <div class="capital"><span>Minimo:</span> <b>10,000 USD</b> <span>Autorizado:</span> <b>${esc(capitalFmt)} USD</b></div>
-          </div>
-          <div class="card">
-            <h2>Dignatarios</h2>
-            <table>
-              <thead><tr><th>Cargo</th><th>Nombre completo</th><th>Nacimiento</th><th>Pasaporte</th><th>Registro</th></tr></thead>
-              <tbody>
-                <tr><td>Presidente</td><td>${esc(dign.presidente?.fullName)}</td><td>${esc(fmtDate(dign.presidente?.birthDate))}</td><td>${esc(dign.presidente?.passport)}</td><td>${esc(dign.presidente?.registrationNumber)}</td></tr>
-                <tr><td>Secretario</td><td>${esc(dign.secretario?.fullName)}</td><td>${esc(fmtDate(dign.secretario?.birthDate))}</td><td>${esc(dign.secretario?.passport)}</td><td>${esc(dign.secretario?.registrationNumber)}</td></tr>
-                <tr><td>Tesorero</td><td>${esc(dign.tesorero?.fullName)}</td><td>${esc(fmtDate(dign.tesorero?.birthDate))}</td><td>${esc(dign.tesorero?.passport)}</td><td>${esc(dign.tesorero?.registrationNumber)}</td></tr>
-              </tbody>
-            </table>
+        </header>
+
+        <section class="card">
+          <h2>Name of the corporation / Nombre de la compania</h2>
+          <div class="hint">List the names you wish to use to incorporate your corporation in order of preference. / Listar los nombres que desea utilizar para incorporar su compania en orden de preferencia.</div>
+          <div class="grid3">
+            <div><label>1st choice (S.A.)</label><div class="value">${esc(data.corpNameSA)}</div></div>
+            <div><label>2nd choice (Corp.)</label><div class="value">${esc(data.corpNameCorp)}</div></div>
+            <div><label>3rd choice (Inc.)</label><div class="value">${esc(data.corpNameInc)}</div></div>
           </div>
         </section>
-      `);
 
-      if (dirChunks.length === 0) dirChunks.push([]);
-      dirChunks.forEach((block, idx) => {
-        pages.push(`
-          <section class="page">
-            <div class="card">
-              <h2>Directores ${idx > 0 ? `(continuacion ${idx + 1})` : ''}</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th><th>Nombre</th><th>Nacimiento</th><th>Estado civil</th><th>Nacionalidad</th><th>Pasaporte</th><th>Telefono</th><th>Email</th><th>Direccion</th><th>Ciudad</th><th>Pais</th>
-                  </tr>
-                </thead>
-                <tbody>${buildDirectorsRows(block)}</tbody>
-              </table>
-            </div>
-          </section>
-        `);
-      });
+        <section class="card">
+          <h2>Authorized Capital / Capital Social Autorizado</h2>
+          <div class="hint">The minimum authorized capital of the company is US$10,000.00. / El capital minimo autorizado de la sociedad es US$10,000.00.</div>
+          <div class="capital"><span>Minimum:</span> <b>10,000 USD</b> <span>Authorized:</span> <b>${esc(capitalFmt)} USD</b></div>
+        </section>
 
-      if (shChunks.length === 0) shChunks.push([]);
-      shChunks.forEach((block, idx) => {
-        pages.push(`
-          <section class="page">
-            <div class="card">
-              <h2>Accionistas ${idx > 0 ? `(continuacion ${idx + 1})` : ''}</h2>
-              <table>
-                <thead><tr><th>#</th><th>Certificado</th><th>Valor</th><th>Acciones</th><th>Nombre</th><th>Direccion</th></tr></thead>
-                <tbody>${buildShareholdersRows(block)}</tbody>
-              </table>
-            </div>
-            <div class="card">
-              <h2>Actividades de la compania</h2>
-              <div class="longtext">${esc(data.companyActivities)}</div>
-            </div>
-            <div class="card">
-              <h2>Declaracion</h2>
-              <div class="grid2">
-                <div><label>Nombre</label><div class="value">${esc(data.declarationName)}</div></div>
-                <div><label>Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
-              </div>
-            </div>
-          </section>
-        `);
-      });
+        <section class="card">
+          <h2>Officers / Dignatarios</h2>
+          <table>
+            <thead><tr><th>Cargo</th><th>Full name / Nombre completo</th><th>Date of birth / Fecha de nacimiento</th><th>Passport / Pasaporte</th><th>Registration number / Registro</th></tr></thead>
+            <tbody>
+              <tr><td>President / Presidente</td><td>${esc(dign.presidente?.fullName)}</td><td>${esc(fmtDate(dign.presidente?.birthDate))}</td><td>${esc(dign.presidente?.passport)}</td><td>${esc(dign.presidente?.registrationNumber)}</td></tr>
+              <tr><td>Secretary / Secretario</td><td>${esc(dign.secretario?.fullName)}</td><td>${esc(fmtDate(dign.secretario?.birthDate))}</td><td>${esc(dign.secretario?.passport)}</td><td>${esc(dign.secretario?.registrationNumber)}</td></tr>
+              <tr><td>Treasurer / Tesorero</td><td>${esc(dign.tesorero?.fullName)}</td><td>${esc(fmtDate(dign.tesorero?.birthDate))}</td><td>${esc(dign.tesorero?.passport)}</td><td>${esc(dign.tesorero?.registrationNumber)}</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Directors / Directores</h2>
+          <div class="hint">In Panama a minimum of 3 directors are required. / En Panama se requieren minimo 3 directores.</div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Full name / Nombre</th><th>Date of birth</th><th>Marital status</th><th>Nationality</th><th>Passport</th><th>Phone</th><th>Email</th><th>Address</th><th>City</th><th>Country</th>
+              </tr>
+            </thead>
+            <tbody>${buildDirectorsRows(directors)}</tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Shareholders / Accionistas</h2>
+          <table>
+            <thead><tr><th>#</th><th>Share certificate number</th><th>Share value</th><th>Number of shares</th><th>Shareholder</th><th>Address</th></tr></thead>
+            <tbody>${buildShareholdersRows(shareholders)}</tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Company Activities / Actividades de la compania</h2>
+          <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicacion de la actividad de la sociedad.</div>
+          <div class="longtext">${esc(data.companyActivities)}</div>
+        </section>
+
+        <section class="card">
+          <h2>Declaration / Declaracion</h2>
+          <div class="hint">I hereby affirm that information given on this application is complete and accurate. / Declaro bajo juramento que la informacion es verdadera y correcta.</div>
+          <div class="grid2">
+            <div><label>Name / Nombre</label><div class="value">${esc(data.declarationName)}</div></div>
+            <div><label>Date / Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+          </div>
+        </section>
+      `;
 
       const html = `
         <!doctype html>
@@ -176,14 +179,14 @@ class CorporacionHtmlPdfService {
           <style>
             @page { size: A4; margin: 14mm; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; margin: 0; }
-            .page { page-break-after: always; }
-            .page:last-child { page-break-after: auto; }
-            header h1 { font-size: 18px; margin: 0; color: #0369a1; }
-            header p { margin: 4px 0 10px 0; color: #475569; }
-            .logo { height: 54px; object-fit: contain; margin-bottom: 6px; }
+            .doc-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+            .doc-header h1 { font-size: 22px; margin: 0; color: #0369a1; }
+            .doc-header p { margin: 4px 0 0 0; color: #475569; }
+            .logo { width: 150px; height: 58px; object-fit: contain; object-position: left center; }
             .logo-fallback { font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
-            .card { border: 1px solid #7dd3fc; margin: 8px 0; }
+            .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
+            .hint { padding: 6px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.35; }
             .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
             .grid3 { grid-template-columns: 1fr 1fr 1fr; }
             .grid2 { grid-template-columns: 1fr 1fr; }
@@ -191,12 +194,13 @@ class CorporacionHtmlPdfService {
             .value { min-height: 18px; border: 1px solid #bae6fd; padding: 4px; background: #f8fdff; word-break: break-word; }
             .capital { padding: 10px; font-size: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            thead { display: table-header-group; }
             th, td { border: 1px solid #7dd3fc; padding: 3px 4px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 9px; }
             .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
           </style>
         </head>
-        <body>${pages.join('\n')}</body>
+        <body>${content}</body>
         </html>
       `;
 
