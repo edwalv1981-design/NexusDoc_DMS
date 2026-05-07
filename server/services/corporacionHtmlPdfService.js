@@ -84,7 +84,18 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
+      const H_INSET = '14mm';
+      const HEADER_LOGO_H = 40;
+
       const content = `
+        <header class="running-header" aria-hidden="true">
+          ${
+            logoDataUri
+              ? `<img class="running-header__logo" src="${logoDataUri}" alt="" />`
+              : `<span class="running-header__fallback">PANAMA TAX LAWYERS</span>`
+          }
+        </header>
+        <main class="doc-body">
         <section class="card">
           <div class="first-page-title">
             <h1>Incorporation Form</h1>
@@ -159,6 +170,7 @@ class CorporacionHtmlPdfService {
             <div><label>Date / Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
           </div>
         </section>
+        </main>
       `;
 
       const html = `
@@ -167,8 +179,41 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: 14mm; }
-            body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; margin: 0; }
+            /* Un solo sistema de márgenes: evita solape header PDF vs @page (Puppeteer + Chromium). */
+            @page { size: A4; margin: 0; }
+            html, body { margin: 0; padding: 0; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
+            .running-header {
+              position: fixed;
+              top: 0;
+              left: ${H_INSET};
+              right: ${H_INSET};
+              height: ${HEADER_LOGO_H + 18}px;
+              padding-top: 8px;
+              box-sizing: border-box;
+              background: #fff;
+              z-index: 10000;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .running-header__logo {
+              height: ${HEADER_LOGO_H}px;
+              width: auto;
+              max-width: 200px;
+              object-fit: contain;
+              object-position: left top;
+              display: block;
+            }
+            .running-header__fallback {
+              font-weight: 700;
+              color: #94a3b8;
+              font-size: 9px;
+              line-height: ${HEADER_LOGO_H}px;
+            }
+            .doc-body {
+              padding: ${HEADER_LOGO_H + 8 + 18 + 10}px ${H_INSET} 14mm ${H_INSET};
+              box-sizing: border-box;
+            }
             .first-page-title { text-align: center; margin: 2px 0 10px 0; }
             .first-page-title h1 { margin: 0; color: #0369a1; font-size: 22px; line-height: 1.05; font-weight: 800; }
             .first-page-title h2 { margin: 1px 0 0 0; color: #0369a1; font-size: 19px; line-height: 1.05; font-weight: 800; }
@@ -199,25 +244,11 @@ class CorporacionHtmlPdfService {
       });
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' });
-      const headerTemplate = `
-        <div style="width:100%; font-family:Arial, Helvetica, sans-serif; box-sizing:border-box; padding:6px 16px 0 16px;">
-          <div style="text-align:left; height:44px; display:flex; align-items:flex-start;">
-            ${
-              logoDataUri
-                ? `<img src="${logoDataUri}" style="height:40px; object-fit:contain; object-position:left top; display:block;" />`
-                : `<span style="font-weight:700; color:#94a3b8; font-size:9px;">PANAMA TAX LAWYERS</span>`
-            }
-          </div>
-        </div>
-      `;
       return await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        displayHeaderFooter: true,
-        headerTemplate,
-        footerTemplate: '<div></div>',
-        margin: { top: '96px', right: '16px', bottom: '16px', left: '16px' }
+        margin: { top: '0', right: '0', bottom: '0', left: '0' }
       });
     } finally {
       if (browser) await browser.close();
