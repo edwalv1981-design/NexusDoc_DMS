@@ -47,4 +47,28 @@ describe('corporacionLayoutGuard', () => {
     assert.ok(o.headerTemplate.includes('PANAMA TAX'));
     assert.ok(typeof o.footerTemplate === 'string');
   });
+
+  it('analyzeFormData: muchos directores/accionistas → very_high y split de cola', () => {
+    const directors = Array.from({ length: 15 }, (_, i) => ({ i }));
+    const shareholders = Array.from({ length: 28 }, (_, i) => ({ i }));
+    const plan = g.analyzeFormData({
+      directors,
+      shareholders,
+      companyActivities: 'x'.repeat(5200),
+    });
+    assert.equal(plan.density, 'very_high');
+    assert.equal(plan.tailKeepTogether, false);
+    assert.equal(plan.directors, 15);
+    assert.equal(plan.shareholders, 28);
+  });
+
+  it('analyzeFormData: volumen medio → high pero tailKeepTogether true', () => {
+    const plan = g.analyzeFormData({
+      directors: Array.from({ length: 7 }, (_, i) => ({ i })),
+      shareholders: Array.from({ length: 10 }, (_, i) => ({ i })),
+      companyActivities: 'corta',
+    });
+    assert.equal(plan.density, 'high');
+    assert.equal(plan.tailKeepTogether, true);
+  });
 });

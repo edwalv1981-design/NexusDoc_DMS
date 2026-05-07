@@ -39,3 +39,6 @@ jobs:
 
       - name: Smoke — PDF Corporación HTML + Puppeteer
         run: npm run test:smoke-corporacion-pdf
+
+      - name: Smoke pesado — muchos directores / accionistas
+        run: npm run test:smoke-corporacion-pdf-heavy
