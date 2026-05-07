@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
 
 // @route   POST api/forms/save
 router.post('/save', auth, async (req, res) => {
@@ -115,6 +116,24 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             'Cumplimiento Entidades': 'cumplimiento_entidades'
         };
         const templateName = templateMap[form.formType] || form.formType || "fondos"; 
+
+        // Ruta profesional para Corporación: PDF desde HTML dinámico (sin coordenadas por casillero)
+        if (templateName === 'corporacion') {
+            const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {});
+
+            AuditLog.create({
+                userId: req.user.id,
+                action: 'DOCUMENT_DOWNLOAD',
+                description: `Usuario descargó PDF HTML de trámite tipo: ${form.formType} (ID: ${form.id})`
+            }).catch(err => console.error('Error registrando en bitácora:', err));
+
+            const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.toString().substring(0, 8);
+            const fileName = `PTLC_${safeId}.pdf`;
+            res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+            res.setHeader('Content-Type', 'application/pdf');
+            return res.send(pdfBuffer);
+        }
+
         let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
         
         // AUTO-HEALING: Si no existe en DB, intentamos cargar desde el disco maestro
