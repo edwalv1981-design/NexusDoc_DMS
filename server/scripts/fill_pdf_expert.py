@@ -5,6 +5,7 @@ import io
 import unicodedata
 import os
 import statistics
+import re
 
 # Configuración de codificación para Windows
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8')
@@ -187,6 +188,107 @@ def find_page_with_keywords(doc, keywords):
     return len(doc) - 1
 
 
+def format_cap_usd_plain(num_str):
+    raw = str(num_str or "").strip()
+    digits = re.sub(r"[^\d]", "", raw)
+    if not digits:
+        return raw, None
+    try:
+        n = int(digits)
+    except ValueError:
+        return raw, None
+    return f"{n:,}".replace(",", "."), n
+
+
+def fill_corp_name_by_choice_labels(page, value, labels, cfg):
+    """Alinea el nombre con la misma línea que el texto '1st/2nd/3rd choice'."""
+    if not value:
+        return False
+    gap = float(cfg.get("label_to_value_gap") or 14)
+    base_align = float(cfg.get("baseline_align_dy") or 1.8)
+    fs = float(cfg.get("company_name_fontsize") or 9)
+    fontname = cfg.get("company_name_font") or "Helvetica"
+    amin = float(cfg.get("choice_search_min_y") or 110)
+
+    lab_rect = None
+    for lab in labels:
+        r = find_anchor_rect(page, [lab], min_y=amin)
+        if r:
+            lab_rect = r
+            break
+    if not lab_rect:
+        return False
+    x_val = lab_rect.x1 + gap
+    x_min = float(cfg.get("value_x_min") or 0)
+    if x_min > 0:
+        x_val = max(x_val, x_min)
+    baseline = (lab_rect.y0 + lab_rect.y1) / 2 + base_align
+    max_w = float(cfg.get("company_name_max_width") or 320)
+    rect = fitz.Rect(x_val, baseline - fs, x_val + max_w, baseline + 3)
+    insert_text_scaled(page, rect, str(value).strip(), fontname=fontname, max_fontsize=fs, min_fontsize=fs - 1.5)
+    return True
+
+
+def fill_capital_authorized_field(page, cap_raw, cfg):
+    """
+    Casilla de capital autorizado (ej. 25.000) junto al mínimo 10.000.
+    Evita x fijo al borde derecho; ancla en la fila del bloque de capital.
+    """
+    fmt, _ = format_cap_usd_plain(cap_raw)
+    if not fmt:
+        return
+    text = f"{fmt} USD"
+    head_re = find_anchor_rect(
+        page,
+        ["Authorized Capital /", "Authorized Capital", "Capital Social Autorizado", "Capital Social"],
+        min_y=50,
+    )
+    if not head_re:
+        y = float(cfg.get("capital_fallback_y") or 322)
+        x = float(cfg.get("capital_user_x_fallback") or 430)
+        page.insert_text((x, y), text, fontsize=9, fontname="Helvetica")
+        return
+
+    y_lo = head_re.y1 + float(cfg.get("capital_row_below_header") or 10)
+    y_hi = head_re.y1 + float(cfg.get("capital_row_below_header_max") or 52)
+    x_max = float(cfg.get("capital_line_x_max") or (page.rect.width - 36))
+
+    ref_x1 = None
+    ref_y = None
+    for w in page.get_text("words"):
+        cy = (w[1] + w[3]) / 2
+        if not (y_lo <= cy <= y_hi):
+            continue
+        wt = (w[4] or "").strip()
+        if not wt:
+            continue
+        wt_clean = wt.replace(" ", "")
+        if re.match(r"^10[.,]?000\b", wt_clean) or wt_clean in ("10.000", "10,000", "10.000USD"):
+            ref_x1 = max(ref_x1 or 0, w[2])
+            ref_y = cy + 3.5
+            continue
+        digits_only = re.sub(r"[^\d]", "", wt)
+        if digits_only == "10000":
+            ref_x1 = max(ref_x1 or 0, w[2])
+            ref_y = cy + 3.5
+        if wt.upper() == "USD" and ref_y is None:
+            ref_y = cy + 3.5
+
+    pad = float(cfg.get("capital_after_minimum_gap") or 18)
+    x_user = float(cfg.get("capital_user_x") or 0)
+    if ref_x1 is not None:
+        x_user = min(ref_x1 + pad, x_max - 85)
+    elif x_user <= 0:
+        x_user = float(cfg.get("capital_user_x_fallback") or 430)
+
+    y_write = ref_y if ref_y is not None else (y_lo + (y_hi - y_lo) / 2 + 4)
+    tw = fitz.get_text_length(text, fontname="Helvetica", fontsize=9)
+    if x_user + tw > x_max:
+        x_user = max(40, x_max - tw - 6)
+
+    page.insert_text((x_user, y_write), text, fontsize=9, fontname="Helvetica")
+
+
 def fill_corporacion_engine(doc, data, pdf_path, root_dir):
     directors = list(data.get("directors") or [])
     shareholders = list(data.get("shareholders") or [])
@@ -209,17 +311,70 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
     page1 = doc[0]
     dir_section_min_y = (find_anchor_y(page1, ["Directors /", "Directors", "Directores:", "Directores"]) or 320) - 20
 
-    y_anchor = find_anchor_y(page1, ["1st choice", "1st Choice", "primera opcion", "primera opción"]) or 173
-    for i, key in enumerate(["corpNameSA", "corpNameCorp", "corpNameInc"]):
-        val = data.get(key)
-        if val:
-            y_pos = y_anchor + (i * 27.5)
-            rect = fitz.Rect(135, y_pos - 12, 410, y_pos + 2)
-            insert_text_scaled(page1, rect, str(val), fontname="Helvetica-Bold", max_fontsize=10)
+    co = corp_cfg.get("company_section") or {}
 
-    y_cap = find_anchor_y(page1, ["Authorized Capital", "Capital Social"]) or 310
-    cap_val = data.get("capitalSocial", "10,000.00")
-    page1.insert_text((585, y_cap + 2), f"{cap_val} USD", fontsize=10, fontname="Helvetica-Bold")
+    choice_bindings = [
+        (
+            "corpNameSA",
+            [
+                "1st choice",
+                "1st Choice",
+                "First choice",
+                "1st  choice",
+                "Primera opción",
+                "Primera opcion",
+            ],
+        ),
+        (
+            "corpNameCorp",
+            [
+                "2nd choice",
+                "2nd Choice",
+                "Second choice",
+                "2nd  choice",
+                "Segunda opción",
+                "Segunda opcion",
+            ],
+        ),
+        (
+            "corpNameInc",
+            [
+                "3rd choice",
+                "3rd Choice",
+                "Third choice",
+                "3rd  choice",
+                "Tercera opción",
+                "Tercera opcion",
+            ],
+        ),
+    ]
+    y_fallback = find_anchor_y(page1, ["1st choice", "1st Choice"]) or 173
+    step_fb = float(co.get("name_row_step_fallback") or 27.2)
+    x_fb = float(co.get("value_x_fallback") or 220)
+    dy_bl = float(co.get("fallback_baseline_dy") or -7.5)
+
+    for i, (key, lbls) in enumerate(choice_bindings):
+        val = data.get(key)
+        if not val:
+            continue
+        if not fill_corp_name_by_choice_labels(page1, val, lbls, co):
+            baseline = y_fallback + (i * step_fb) + dy_bl
+            rect = fitz.Rect(
+                x_fb,
+                baseline - 10,
+                x_fb + float(co.get("company_name_max_width") or 320),
+                baseline + 4,
+            )
+            insert_text_scaled(
+                page1,
+                rect,
+                str(val).strip(),
+                fontname=co.get("company_name_font") or "Helvetica",
+                max_fontsize=float(co.get("company_name_fontsize") or 9),
+                min_fontsize=float(co.get("company_name_fontsize_min") or 7.5),
+            )
+
+    fill_capital_authorized_field(page1, data.get("capitalSocial"), co)
 
     def fill_director_label_block(page, d, label_num, min_y_floor=0):
         """Ancla por título Director N y apila filas con altura variable (textbox) para evitar solapes."""
