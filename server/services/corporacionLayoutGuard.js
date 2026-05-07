@@ -5,8 +5,44 @@
  */
 
 const A4_HEIGHT_PX = 1123; // ~297mm @ 96dpi
-const RUNNING_HEADER_PX = 100; // logo + reserva impresión
 const DEFAULT_BOTTOM_PX = 48;
+
+function pxToMmString(px, decimals = 2) {
+  const mm = (px * 25.4) / 96;
+  return `${mm.toFixed(decimals)}mm`;
+}
+
+function insetMmToPx(mmStr) {
+  const n = parseFloat(String(mmStr).replace(/mm\s*$/i, ''));
+  if (Number.isNaN(n)) return DEFAULT_BOTTOM_PX;
+  return (n * 96) / 25.4;
+}
+
+/** Altura total (px) de la franja fija del logo (padding + imagen + reserva inferior). */
+function getHeaderBandPx(layout) {
+  return (
+    layout.RUNNING_HEADER_PADDING_TOP +
+    layout.HEADER_LOGO_H +
+    layout.RUNNING_HEADER_PADDING_BOTTOM
+  );
+}
+
+/** Desde el borde superior del papel hasta donde debe empezar el flujo del documento (igual en todas las páginas). */
+function getContentStartPx(layout) {
+  return getHeaderBandPx(layout) + layout.DOC_BODY_GAP_BELOW_HEADER;
+}
+
+/**
+ * Márgenes PDF (Puppeteer): el superior reserva la franja del logo; así el texto no “sube” en páginas 2+.
+ */
+function getPdfMargins(layout) {
+  return {
+    top: pxToMmString(getContentStartPx(layout)),
+    left: layout.H_INSET,
+    right: layout.H_INSET,
+    bottom: layout.BOTTOM_INSET,
+  };
+}
 
 /**
  * @param {object} data - Mismo payload que CorporacionForm guarda
@@ -60,6 +96,21 @@ function getAdaptiveCss(plan) {
         page-break-inside: auto;
         break-inside: auto;
       }
+      /* Que no se pierdan título + ayuda de actividades en otra página sin el cuerpo. */
+      body.layout-guard--split-tail .tail-block > .card.card--activities h2 {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      body.layout-guard--split-tail .tail-block > .card.card--activities .hint {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      body.layout-guard--split-tail .tail-block > .card.card--activities .longtext {
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
       body.layout-guard--split-tail .tail-block > .card:last-child {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
@@ -84,8 +135,10 @@ function bodyClassForPlan(plan) {
  * @param {import('puppeteer').Page} page
  */
 async function refineAfterRender(page) {
+  const contentTopPx = getContentStartPx(LAYOUT);
+  const bottomPx = insetMmToPx(LAYOUT.BOTTOM_INSET);
   /** Altura útil por página A4 (px @96dpi), sin depender de innerHeight del headless. */
-  const usablePerPage = A4_HEIGHT_PX - RUNNING_HEADER_PX - DEFAULT_BOTTOM_PX;
+  const usablePerPage = A4_HEIGHT_PX - contentTopPx - Math.max(bottomPx, DEFAULT_BOTTOM_PX);
 
   await page.evaluate((usable) => {
     const tail = document.querySelector('.tail-block');
@@ -101,6 +154,20 @@ async function refineAfterRender(page) {
       s.id = 'layout-guard-runtime';
       s.textContent = `
         .tail-block {
+          page-break-inside: auto !important;
+          break-inside: auto !important;
+        }
+        .tail-block > .card.card--activities h2 {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        .tail-block > .card.card--activities .hint {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        .tail-block > .card.card--activities .longtext {
+          page-break-before: avoid !important;
+          break-before: avoid !important;
           page-break-inside: auto !important;
           break-inside: auto !important;
         }
@@ -130,16 +197,27 @@ function estimateMinPages(plan, data = {}) {
 /** Constantes de maquetación PDF (una sola fuente de verdad) */
 const LAYOUT = Object.freeze({
   H_INSET: '14mm',
+  BOTTOM_INSET: '10mm',
   HEADER_LOGO_H: 40,
+  /** Logo ~3px más abajo respecto al borde superior (misma franja en cada página). */
+  RUNNING_HEADER_PADDING_TOP: 16,
+  RUNNING_HEADER_PADDING_BOTTOM: 18,
+  /** Hueco entre la franja del logo y el inicio del contenido (como antes: 4px). */
+  DOC_BODY_GAP_BELOW_HEADER: 4,
 });
 
 module.exports = {
   LAYOUT,
+  getHeaderBandPx,
+  getContentStartPx,
+  getPdfMargins,
+  pxToMmString,
+  insetMmToPx,
   analyzeFormData,
   getAdaptiveCss,
   bodyClassForPlan,
   refineAfterRender,
   estimateMinPages,
   /** Referencia para pruebas */
-  _constants: { A4_HEIGHT_PX, RUNNING_HEADER_PX, LAYOUT },
+  _constants: { A4_HEIGHT_PX, LAYOUT, getContentStartPx },
 };

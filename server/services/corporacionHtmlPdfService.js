@@ -85,7 +85,16 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
-      const { H_INSET, HEADER_LOGO_H } = corporacionLayoutGuard.LAYOUT;
+      const LAYOUT = corporacionLayoutGuard.LAYOUT;
+      const {
+        H_INSET,
+        HEADER_LOGO_H,
+        RUNNING_HEADER_PADDING_TOP,
+        RUNNING_HEADER_PADDING_BOTTOM,
+      } = LAYOUT;
+      const headerBandPx =
+        RUNNING_HEADER_PADDING_TOP + HEADER_LOGO_H + RUNNING_HEADER_PADDING_BOTTOM;
+      const pdfMargins = corporacionLayoutGuard.getPdfMargins(LAYOUT);
 
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
@@ -161,7 +170,7 @@ class CorporacionHtmlPdfService {
         </section>
 
         <section class="tail-block">
-          <section class="card">
+          <section class="card card--activities">
             <h2>Company Activities / Actividades de la Compañía</h2>
             <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicación de la actividad de la sociedad.</div>
             <div class="longtext">${esc(data.companyActivities)}</div>
@@ -194,8 +203,9 @@ class CorporacionHtmlPdfService {
               top: 0;
               left: ${H_INSET};
               right: ${H_INSET};
-              height: ${HEADER_LOGO_H + 18}px;
-              padding-top: 13px;
+              height: ${headerBandPx}px;
+              padding-top: ${RUNNING_HEADER_PADDING_TOP}px;
+              padding-bottom: ${RUNNING_HEADER_PADDING_BOTTOM}px;
               box-sizing: border-box;
               background: #fff;
               z-index: 10000;
@@ -216,8 +226,10 @@ class CorporacionHtmlPdfService {
               font-size: 9px;
               line-height: ${HEADER_LOGO_H}px;
             }
+            /* Sin padding-top: el margen superior del PDF reserva la franja del logo en TODAS las hojas. */
             .doc-body {
-              padding: ${HEADER_LOGO_H + 13 + 18 + 4}px ${H_INSET} 10mm ${H_INSET};
+              padding: 0;
+              margin: 0;
               box-sizing: border-box;
             }
             .first-page-title { text-align: center; margin: 0 0 6px 0; }
@@ -234,6 +246,21 @@ class CorporacionHtmlPdfService {
             .capital-table td { text-align: center; font-weight: 700; font-size: 11px; padding: 8px; }
             .tail-block { page-break-inside: avoid; break-inside: avoid; }
             .tail-block .card { margin: 8px 0; }
+            /* Evitar que el título/ayuda de actividades queden en una página y el cuerpo en otra. */
+            .card.card--activities h2 {
+              page-break-after: avoid;
+              break-after: avoid;
+            }
+            .card.card--activities .hint {
+              page-break-after: avoid;
+              break-after: avoid;
+            }
+            .card.card--activities .longtext {
+              page-break-before: avoid;
+              break-before: avoid;
+              page-break-inside: auto;
+              break-inside: auto;
+            }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             thead { display: table-header-group; }
             th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
@@ -259,7 +286,7 @@ class CorporacionHtmlPdfService {
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' }
+        margin: pdfMargins
       });
     } finally {
       if (browser) await browser.close();
