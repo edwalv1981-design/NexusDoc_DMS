@@ -34,9 +34,31 @@ def find_anchor_y(page, keywords, min_y=0):
     return None
 
 def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    pdf_path = custom_template_path if (custom_template_path and os.path.exists(custom_template_path)) else os.path.join(base_dir, "templates", "referencia_maestra.pdf")
-    if not os.path.exists(pdf_path): raise Exception(f"No PDF at {pdf_path}")
+    # RESOLUCIÓN DE RUTAS ROBUSTA (Blindaje contra entornos)
+    current_dir = os.path.dirname(os.path.abspath(__file__)) # server/scripts
+    server_dir = os.path.dirname(current_dir) # server
+    root_dir = os.path.dirname(server_dir) # raíz
+    
+    # Prioridad de plantilla
+    pdf_path = None
+    if custom_template_path and os.path.exists(custom_template_path):
+        pdf_path = custom_template_path
+    else:
+        # Intentar buscar en templates/ de la raíz
+        path_options = [
+            os.path.join(root_dir, "templates", "corporacion.pdf") if "corp" in template_name.lower() else None,
+            os.path.join(root_dir, "templates", "referencia_maestra.pdf")
+        ]
+        for p in path_options:
+            if p and os.path.exists(p):
+                pdf_path = p
+                break
+    
+    if not pdf_path or not os.path.exists(pdf_path):
+        # Último recurso: intentar en la carpeta del script (por si acaso)
+        fallback = os.path.join(current_dir, "referencia_maestra.pdf")
+        if os.path.exists(fallback): pdf_path = fallback
+        else: raise Exception(f"No se encontró plantilla PDF. Buscado en: {root_dir}/templates/")
     
     doc = fitz.open(pdf_path)
 
@@ -172,16 +194,29 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
 if __name__ == "__main__":
     try:
         raw_input = sys.stdin.read()
+        if not raw_input:
+            print("ERROR_PY: No input data received", file=sys.stderr)
+            sys.exit(1)
+
         input_data = json.loads(raw_input)
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        config_path = os.path.join(base_dir, "templates", "templates_config.json")
+        data = input_data.get("data", {})
+        output_path = input_data.get("output_path", "filled_temp.pdf")
+        template_name = input_data.get("template_name", "referencia_maestra")
+        custom_path = input_data.get("custom_template_path")
+
+        # Cargar config de templates (Resolución de ruta blindada)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(current_dir))
+        config_path = os.path.join(root_dir, "templates", "templates_config.json")
+        
         master_conf = {}
         if os.path.exists(config_path):
-            with open(config_path, 'r', encoding='utf-8') as f: master_conf = json.load(f)
-        fill_pdf_universal_engine(input_data.get("data", {}), input_data.get("output_path", "filled_temp.pdf"), input_data.get("template_name", "referencia_maestra"), master_conf, input_data.get("custom_template_path"))
-        print(input_data.get("output_path", "filled_temp.pdf"))
+            with open(config_path, 'r', encoding='utf-8') as f:
+                master_conf = json.load(f)
+
+        fill_pdf_universal_engine(data, output_path, template_name, master_conf, custom_path)
+        print(output_path)
     except Exception as e:
         import traceback
-        err_msg = traceback.format_exc()
-        print(f"ERROR_PY: {str(e)}", file=sys.stderr)
+        print(f"ERROR_PY: {str(e)}\n{traceback.format_exc()}", file=sys.stderr)
         sys.exit(1)

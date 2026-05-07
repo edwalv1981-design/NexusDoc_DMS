@@ -143,23 +143,19 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
         const scriptPath = path.join(__dirname, '../scripts/fill_pdf_expert.py');
 
-        console.log(`📡 Iniciando motor PDF (${pythonCommand})...`);
+        const { spawn } = require('child_process');
+        const pythonProcess = spawn(pythonCommand, [scriptPath]);
 
-        const pythonProcess = exec(`${pythonCommand} "${scriptPath}"`, async (error, stdout, stderr) => {
-            if (error) {
-                console.error(`❌ Error en motor Python: ${error.message}`);
-                console.error(`🔍 Detalle Stderr: ${stderr}`);
-                let displayErr = stderr ? stderr.toString().substring(0, 150) : error.message;
-                return res.status(500).json({ msg: `ERROR MOTOR: ${displayErr}` });
-            }
-            
-            if (!fs.existsSync(outputPath)) {
-                console.error('❌ El script de Python terminó pero no generó el archivo.');
-                return res.status(500).json({ msg: 'El motor no generó el documento final' });
-            }
+        let stderrData = '';
+        pythonProcess.stderr.on('data', (data) => { stderrData += data.toString(); });
 
-            console.log('✅ PDF generado con éxito, iniciando descarga.');
-            
+        pythonProcess.on('close', async (code) => {
+            if (code !== 0) {
+                console.error(`❌ Error motor Python: ${stderrData}`);
+                return res.status(500).json({ msg: `ERROR MOTOR: ${stderrData.substring(0, 150)}` });
+            }
+            if (!fs.existsSync(outputPath)) return res.status(500).json({ msg: 'No se generó el PDF' });
+
             // LOG ACCTION IN BITACORA
             AuditLog.create({
                 userId: req.user.id,
@@ -167,7 +163,6 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 description: `Usuario descargó PDF del trámite tipo: ${form.formType} (ID: ${form.id})`
             }).catch(err => console.error('Error registrando en bitácora:', err));
 
-            // Prefix Mapping based on Form Type
             const normType = form.formType.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
             let prefix = 'DOC';
             if (normType.includes('fondos')) prefix = 'SFAR';
@@ -177,23 +172,14 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
 
             const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.toString().substring(0, 8);
-
-            // BLINDAJE DE DESCARGA: Forzar descarga con nombre de archivo profesional
             const fileName = `${prefix}_${safeId}.pdf`;
             res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
             res.setHeader('Content-Type', 'application/pdf');
             
             const fileStream = fs.createReadStream(outputPath);
             fileStream.on('end', () => {
-                if (fs.existsSync(outputPath)) {
-                    try { fs.unlinkSync(outputPath); } catch(e) {}
-                }
-                if (customTemplatePath && fs.existsSync(customTemplatePath)) {
-                    try { fs.unlinkSync(customTemplatePath); } catch(e) {}
-                }
-            });
-            fileStream.on('error', (err) => {
-                console.error('❌ Error enviando stream:', err);
+                if (fs.existsSync(outputPath)) try { fs.unlinkSync(outputPath); } catch(e) {}
+                if (customTemplatePath && fs.existsSync(customTemplatePath)) try { fs.unlinkSync(customTemplatePath); } catch(e) {}
             });
             fileStream.pipe(res);
         });
