@@ -119,9 +119,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if s.get("address"): pageF.insert_text((415, cy), str(s["address"]), fontsize=7)
 
         y_decl = find_anchor_y(pageF, "Name // Nombre") or 850
-        if data.get("declarationName"): pageF.insert_text((150, y_decl), str(data["declarationName"]), fontsize=11, fontname="Helvetica-Bold")
+        if data.get("declarationName"): pageF.insert_text((150, y_decl - 2), str(data["declarationName"]), fontsize=11, fontname="Helvetica-Bold")
         y_date = find_anchor_y(pageF, "Date // Fecha") or 885
-        if data.get("declarationDate"): pageF.insert_text((220, y_date), str(data["declarationDate"]), fontsize=11)
+        if data.get("declarationDate"): pageF.insert_text((220, y_date - 2), str(data["declarationDate"]), fontsize=11)
 
     # ══════════════════════════════════════════════════════════════════════════════
     # ██████  MOTOR FONDOS (SFAR) - RECTIFICACIÓN DINÁMICA █████████████████████████
@@ -159,15 +159,15 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             # Usamos búsqueda dinámica para el nombre y la fecha en SFAR
             y_name_sfar = find_anchor_y(page2, "Name // Nombre")
             if y_name_sfar and data.get("signerName"):
-                page2.insert_text((150, y_name_sfar), str(data["signerName"]), fontsize=11, fontname="Helvetica")
+                page2.insert_text((150, y_name_sfar - 2), str(data["signerName"]), fontsize=11, fontname="Helvetica")
             elif data.get("signerName"): # Fallback
-                page2.insert_text((153, 735), str(data["signerName"]), fontsize=11, fontname="Helvetica")
+                page2.insert_text((153, 733), str(data["signerName"]), fontsize=11, fontname="Helvetica")
 
             y_date_sfar = find_anchor_y(page2, "Date // Fecha")
             if y_date_sfar and data.get("date"):
-                page2.insert_text((150, y_date_sfar), str(data["date"]), fontsize=11, fontname="Helvetica")
+                page2.insert_text((150, y_date_sfar - 2), str(data["date"]), fontsize=11, fontname="Helvetica")
             elif data.get("date"): # Fallback
-                page2.insert_text((139, 765), str(data["date"]), fontsize=11, fontname="Helvetica")
+                page2.insert_text((139, 763), str(data["date"]), fontsize=11, fontname="Helvetica")
 
     doc.save(output_path, incremental=False, encryption=0)
     doc.close()
