@@ -164,26 +164,22 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: 28mm 14mm 14mm 14mm; }
+            @page { size: A4; margin: 14mm; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; margin: 0; }
             .page-header {
-              position: fixed;
-              top: -22mm;
-              left: 0;
-              right: 0;
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: center;
               text-align: center;
               background: #fff;
-              padding-top: 2mm;
+              margin-bottom: 10px;
             }
             .header-titles h1 { font-size: 16px; margin: 0; color: #0369a1; font-weight: 800; }
             .header-titles p { margin: 2px 0 0 0; color: #475569; font-size: 9px; }
             .logo { width: 160px; max-height: 52px; object-fit: contain; object-position: center; margin-bottom: 2px; }
             .logo-fallback { font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
-            .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: auto; }
+            .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; break-inside: avoid; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
             .hint { padding: 6px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.35; }
             .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
@@ -197,6 +193,7 @@ class CorporacionHtmlPdfService {
             th, td { border: 1px solid #7dd3fc; padding: 3px 4px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 9px; }
             .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+            .card:last-child { page-break-inside: avoid; }
           </style>
         </head>
         <body>${content}</body>
