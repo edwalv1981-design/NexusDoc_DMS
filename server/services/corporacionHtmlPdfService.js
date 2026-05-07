@@ -1,4 +1,6 @@
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
 function esc(v) {
   return String(v ?? '')
@@ -60,6 +62,23 @@ class CorporacionHtmlPdfService {
   async generatePdf(data = {}) {
     let browser = null;
     try {
+      const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
+      const logoPathCandidates = [
+        process.env.CORPORACION_LOGO_PATH,
+        path.join(rootDir, 'templates', 'logo_real.png'),
+        path.join(rootDir, 'templates', 'corporacion_logo.png'),
+        path.join(rootDir, 'server', 'assets', 'logo_real.png'),
+        path.join(rootDir, 'client', 'src', 'assets', 'logo_real.png'),
+      ].filter(Boolean);
+      let logoDataUri = '';
+      for (const p of logoPathCandidates) {
+        if (fs.existsSync(p)) {
+          const b64 = fs.readFileSync(p).toString('base64');
+          logoDataUri = `data:image/png;base64,${b64}`;
+          break;
+        }
+      }
+
       const directors = Array.isArray(data.directors) ? data.directors : [];
       const shareholders = Array.isArray(data.shareholders) ? data.shareholders : [];
       const dign = data.dignitaries || {};
@@ -73,6 +92,7 @@ class CorporacionHtmlPdfService {
       pages.push(`
         <section class="page">
           <header>
+            ${logoDataUri ? `<img class="logo" src="${logoDataUri}" alt="Logo" />` : `<div class="logo-fallback">PANAMA TAX</div>`}
             <h1>Incorporation Form / Formulario de Incorporacion</h1>
             <p>Corporacion - Formato dinamico autorellenable</p>
           </header>
@@ -159,6 +179,8 @@ class CorporacionHtmlPdfService {
             .page:last-child { page-break-after: auto; }
             header h1 { font-size: 18px; margin: 0; color: #0369a1; }
             header p { margin: 4px 0 10px 0; color: #475569; }
+            .logo { height: 54px; object-fit: contain; margin-bottom: 6px; }
+            .logo-fallback { font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
             .card { border: 1px solid #7dd3fc; margin: 8px 0; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
             .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
