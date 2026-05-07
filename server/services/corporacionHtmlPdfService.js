@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const corporacionLayoutGuard = require('./corporacionLayoutGuard');
 const fs = require('fs');
 const path = require('path');
 
@@ -84,8 +85,9 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
-      const H_INSET = '14mm';
-      const HEADER_LOGO_H = 40;
+      const plan = corporacionLayoutGuard.analyzeFormData(data);
+      const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
+      const bodyGuardClass = corporacionLayoutGuard.bodyClassForPlan(plan);
 
       const content = `
         <header class="running-header" aria-hidden="true">
@@ -236,9 +238,10 @@ class CorporacionHtmlPdfService {
             th { background: #ecfeff; font-size: 9px; }
             .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
             .card:last-child { page-break-inside: avoid; }
+            ${layoutCss}
           </style>
         </head>
-        <body>${content}</body>
+        <body class="${bodyGuardClass}">${content}</body>
         </html>
       `;
 
@@ -247,7 +250,9 @@ class CorporacionHtmlPdfService {
         args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
       const page = await browser.newPage();
+      await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
       await page.setContent(html, { waitUntil: 'networkidle0' });
+      await corporacionLayoutGuard.refineAfterRender(page);
       return await page.pdf({
         format: 'A4',
         printBackground: true,
