@@ -156,19 +156,21 @@ class CorporacionHtmlPdfService {
           </table>
         </section>
 
-        <section class="card">
-          <h2>Company Activities / Actividades de la Compañía</h2>
-          <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicación de la actividad de la sociedad.</div>
-          <div class="longtext">${esc(data.companyActivities)}</div>
-        </section>
+        <section class="tail-block">
+          <section class="card">
+            <h2>Company Activities / Actividades de la Compañía</h2>
+            <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicación de la actividad de la sociedad.</div>
+            <div class="longtext">${esc(data.companyActivities)}</div>
+          </section>
 
-        <section class="card">
-          <h2>Declaration / Declaración</h2>
-          <div class="hint">I hereby affirm that information given on this application is complete and accurate. / Declaro bajo juramento que la información es verdadera y correcta.</div>
-          <div class="grid2">
-            <div><label>Name / Nombre</label><div class="value">${esc(data.declarationName)}</div></div>
-            <div><label>Date / Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
-          </div>
+          <section class="card">
+            <h2>Declaration / Declaración</h2>
+            <div class="hint">I hereby affirm that information given on this application is complete and accurate. / Declaro bajo juramento que la información es verdadera y correcta.</div>
+            <div class="grid2">
+              <div><label>Name / Nombre</label><div class="value">${esc(data.declarationName)}</div></div>
+              <div><label>Date / Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+            </div>
+          </section>
         </section>
         </main>
       `;
@@ -189,7 +191,7 @@ class CorporacionHtmlPdfService {
               left: ${H_INSET};
               right: ${H_INSET};
               height: ${HEADER_LOGO_H + 18}px;
-              padding-top: 8px;
+              padding-top: 13px;
               box-sizing: border-box;
               background: #fff;
               z-index: 10000;
@@ -211,24 +213,26 @@ class CorporacionHtmlPdfService {
               line-height: ${HEADER_LOGO_H}px;
             }
             .doc-body {
-              padding: ${HEADER_LOGO_H + 8 + 18 + 10}px ${H_INSET} 14mm ${H_INSET};
+              padding: ${HEADER_LOGO_H + 13 + 18 + 4}px ${H_INSET} 10mm ${H_INSET};
               box-sizing: border-box;
             }
-            .first-page-title { text-align: center; margin: 2px 0 10px 0; }
-            .first-page-title h1 { margin: 0; color: #0369a1; font-size: 22px; line-height: 1.05; font-weight: 800; }
-            .first-page-title h2 { margin: 1px 0 0 0; color: #0369a1; font-size: 19px; line-height: 1.05; font-weight: 800; }
-            .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; break-inside: avoid; }
+            .first-page-title { text-align: center; margin: 0 0 6px 0; }
+            .first-page-title h1 { margin: 0; color: #0369a1; font-size: 20px; line-height: 1.02; font-weight: 800; }
+            .first-page-title h2 { margin: 0; color: #0369a1; font-size: 16px; line-height: 1.02; font-weight: 800; }
+            .card { border: 1px solid #7dd3fc; margin: 8px 0; page-break-inside: auto; break-inside: auto; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
-            .hint { padding: 6px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.35; }
+            .hint { padding: 4px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.25; }
             .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
             .grid3 { grid-template-columns: 1fr 1fr 1fr; }
             .grid2 { grid-template-columns: 1fr 1fr; }
             label { display: block; font-weight: 700; color: #334155; margin-bottom: 2px; }
             .value { min-height: 18px; border: 1px solid #bae6fd; padding: 4px; background: #f8fdff; word-break: break-word; }
             .capital-table td { text-align: center; font-weight: 700; font-size: 11px; padding: 8px; }
+            .tail-block { page-break-inside: avoid; break-inside: avoid; }
+            .tail-block .card { margin: 8px 0; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             thead { display: table-header-group; }
-            th, td { border: 1px solid #7dd3fc; padding: 3px 4px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+            th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 9px; }
             .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
             .card:last-child { page-break-inside: avoid; }
