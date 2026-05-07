@@ -334,27 +334,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const handleDownloadPDF = () => {
-        const element = document.getElementById('corp-document-preview');
-        if (!element) return;
-
-        const opt = {
-            margin: 0,
-            filename: `PTL_2025_CORPORATE_FORM_${formData.corpNameSA || 'DOC'}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 3, 
-                useCORS: true,
-                letterRendering: true,
-                width: 794, 
-                windowWidth: 794
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        html2pdf().set(opt).from(element).save();
-    };
 
     const renderStep6 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -362,9 +341,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Search size={22} color={PRIMARY} /> PREVISUALIZACIÓN FINAL
                 </h2>
-                <button onClick={handleDownloadPDF} className="expert-btn-finish" style={{ background: PRIMARY }}>
-                    <Download size={18} /> DESCARGAR FORMULARIO LLENO
-                </button>
             </div>
             
             <div style={{ 

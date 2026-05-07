@@ -64,45 +64,41 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         ROW_H = 19.45
         fields = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address", "city", "country"]
         
-        def fill_director_block(page, d_idx, x_start, y_base, is_split=False):
+        def fill_director_block(page, d_idx, x_start, y_base, width=400):
             if d_idx >= len(directors): return
             d = directors[d_idx]
-            try:
-                if not is_split:
-                    for idx, f in enumerate(fields):
-                        val = d.get(f)
-                        if val:
-                            rect = fitz.Rect(x_start, y_base + (idx * ROW_H) - 12, x_start + 125, y_base + (idx * ROW_H) + 2)
-                            insert_text_scaled(page, rect, str(val))
-                else:
-                    for idx, f in enumerate(fields[:9]):
-                        val = d.get(f)
-                        if val:
-                            rect = fitz.Rect(185, y_base + (idx * ROW_H) - 12, 300, y_base + (idx * ROW_H) + 2)
-                            insert_text_scaled(page, rect, str(val))
-                    for idx, f in enumerate(fields[9:]):
-                        val = d.get(f)
-                        if val:
-                            y_off = 0 if idx == 0 else (27.5 if idx == 1 else 46.5)
-                            rect = fitz.Rect(465, y_base + y_off - 12, 590, y_base + y_off + 10)
-                            insert_text_scaled(page, rect, str(val))
-            except: pass
+            for idx, f in enumerate(fields):
+                val = d.get(f)
+                if val:
+                    # Ajuste fino de rect para cada campo
+                    rect = fitz.Rect(x_start + 85, y_base + (idx * ROW_H) - 12, x_start + width, y_base + (idx * ROW_H) + 2)
+                    insert_text_scaled(page, rect, str(val), fontname="Helvetica", max_fontsize=8)
 
         y_dir_start = find_anchor_y(page1, ["Director 1", "DIRECTOR 1"]) or 445
-        fill_director_block(page1, 0, 185, y_dir_start)
-        fill_director_block(page1, 1, 465, y_dir_start)
-        y_dir3 = find_anchor_y(page1, ["Director 3", "DIRECTOR 3"]) or 775
-        fill_director_block(page1, 2, 0, y_dir3, is_split=True)
+        
+        # DISPOSICIÓN 1 - 2/3 - 4 (EL BLINDAJE)
+        # Director 1: Solo arriba (X centrado)
+        fill_director_block(page1, 0, 135, y_dir_start, width=450)
+        
+        # Director 2 y 3: Juntos en el medio
+        y_middle = y_dir_start + 235
+        fill_director_block(page1, 1, 45, y_middle, width=280)
+        fill_director_block(page1, 2, 315, y_middle, width=280)
+        
+        # Director 4: Solo abajo
+        y_bottom = y_middle + 235
+        fill_director_block(page1, 3, 135, y_bottom, width=450)
 
-        if len(directors) > 3:
+        # Si hay más de 4, usamos anexos profesionales
+        if len(directors) > 4:
             src_doc = fitz.open(pdf_path)
-            for i in range(3, len(directors), 2):
+            for i in range(4, len(directors), 2):
                 doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=len(doc)-1)
                 new_p = doc[len(doc)-2]
                 new_p.draw_rect(fitz.Rect(0, 0, 612, 430), color=(1,1,1), fill=(1,1,1))
                 new_p.insert_text((50, 50), "ANEXO DE DIRECTORES (CONTINUACIÓN)", fontsize=14, fontname="Helvetica-Bold", color=(0.1, 0.4, 0.5))
-                fill_director_block(new_p, i, 185, y_dir_start)
-                if i+1 < len(directors): fill_director_block(new_p, i+1, 465, y_dir_start)
+                fill_director_block(new_p, i, 45, y_dir_start + 50, width=280)
+                if i+1 < len(directors): fill_director_block(new_p, i+1, 315, y_dir_start + 50, width=280)
             if 'src_doc' in locals(): src_doc.close()
 
         pageF = doc[len(doc)-1]
