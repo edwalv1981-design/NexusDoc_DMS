@@ -176,10 +176,13 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
             else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
 
-            const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.substring(0, 8);
+            const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.toString().substring(0, 8);
 
-            // Enviar como stream sin Content-Disposition para que el frontend controle el nombre
+            // BLINDAJE DE DESCARGA: Forzar descarga con nombre de archivo profesional
+            const fileName = `${prefix}_${safeId}.pdf`;
+            res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
             res.setHeader('Content-Type', 'application/pdf');
+            
             const fileStream = fs.createReadStream(outputPath);
             fileStream.on('end', () => {
                 if (fs.existsSync(outputPath)) {

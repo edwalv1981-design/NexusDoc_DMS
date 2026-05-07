@@ -24,10 +24,13 @@ def insert_text_scaled(page, rect, text, fontname="Helvetica", max_fontsize=9, m
     except: fontsize = min_fontsize
     page.insert_text((rect.x0, rect.y1 - 3), text, fontsize=fontsize, fontname=fontname, color=color)
 
-def find_anchor_y(page, text, min_y=0):
-    insts = page.search_for(text)
-    for inst in insts:
-        if inst.y1 > min_y: return inst.y1
+def find_anchor_y(page, keywords, min_y=0):
+    """Búsqueda de anclas blindada: prueba múltiples variantes de texto."""
+    if isinstance(keywords, str): keywords = [keywords]
+    for kw in keywords:
+        insts = page.search_for(kw)
+        for inst in insts:
+            if inst.y1 > min_y: return inst.y1
     return None
 
 def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
@@ -38,7 +41,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
     doc = fitz.open(pdf_path)
 
     # ══════════════════════════════════════════════════════════════════════════════
-    # ██████  MOTOR CORPORACIÓN (RÉPLICA 100%) █████████████████████████████████████
+    # ██████  MOTOR CORPORACIÓN (BLINDADO) █████████████████████████████████████████
     # ══════════════════════════════════════════════════════════════════════════════
     if template_name == "corporacion" or "corpNameSA" in data:
         directors = data.get("directors", [])
@@ -46,7 +49,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         dignitaries = data.get("dignitaries", {})
 
         page1 = doc[0]
-        y_anchor = find_anchor_y(page1, "1st choice") or 173
+        y_anchor = find_anchor_y(page1, ["1st choice", "1st Choice", "primera opcion"]) or 173
         for i, key in enumerate(["corpNameSA", "corpNameCorp", "corpNameInc"]):
             val = data.get(key)
             if val:
@@ -54,7 +57,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                 rect = fitz.Rect(135, y_pos - 12, 410, y_pos + 2)
                 insert_text_scaled(page1, rect, str(val), fontname="Helvetica-Bold", max_fontsize=10)
 
-        y_cap = find_anchor_y(page1, "Authorized Capital") or 310
+        y_cap = find_anchor_y(page1, ["Authorized Capital", "Capital Social"]) or 310
         cap_val = data.get("capitalSocial", "10,000.00")
         page1.insert_text((585, y_cap + 2), f"{cap_val} USD", fontsize=10, fontname="Helvetica-Bold")
 
@@ -64,29 +67,31 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         def fill_director_block(page, d_idx, x_start, y_base, is_split=False):
             if d_idx >= len(directors): return
             d = directors[d_idx]
-            if not is_split:
-                for idx, f in enumerate(fields):
-                    val = d.get(f)
-                    if val:
-                        rect = fitz.Rect(x_start, y_base + (idx * ROW_H) - 12, x_start + 125, y_base + (idx * ROW_H) + 2)
-                        insert_text_scaled(page, rect, str(val))
-            else:
-                for idx, f in enumerate(fields[:9]):
-                    val = d.get(f)
-                    if val:
-                        rect = fitz.Rect(185, y_base + (idx * ROW_H) - 12, 300, y_base + (idx * ROW_H) + 2)
-                        insert_text_scaled(page, rect, str(val))
-                for idx, f in enumerate(fields[9:]):
-                    val = d.get(f)
-                    if val:
-                        y_off = 0 if idx == 0 else (27.5 if idx == 1 else 46.5)
-                        rect = fitz.Rect(465, y_base + y_off - 12, 590, y_base + y_off + 10)
-                        insert_text_scaled(page, rect, str(val))
+            try:
+                if not is_split:
+                    for idx, f in enumerate(fields):
+                        val = d.get(f)
+                        if val:
+                            rect = fitz.Rect(x_start, y_base + (idx * ROW_H) - 12, x_start + 125, y_base + (idx * ROW_H) + 2)
+                            insert_text_scaled(page, rect, str(val))
+                else:
+                    for idx, f in enumerate(fields[:9]):
+                        val = d.get(f)
+                        if val:
+                            rect = fitz.Rect(185, y_base + (idx * ROW_H) - 12, 300, y_base + (idx * ROW_H) + 2)
+                            insert_text_scaled(page, rect, str(val))
+                    for idx, f in enumerate(fields[9:]):
+                        val = d.get(f)
+                        if val:
+                            y_off = 0 if idx == 0 else (27.5 if idx == 1 else 46.5)
+                            rect = fitz.Rect(465, y_base + y_off - 12, 590, y_base + y_off + 10)
+                            insert_text_scaled(page, rect, str(val))
+            except: pass
 
-        y_dir_start = find_anchor_y(page1, "Director 1") or 445
+        y_dir_start = find_anchor_y(page1, ["Director 1", "DIRECTOR 1"]) or 445
         fill_director_block(page1, 0, 185, y_dir_start)
         fill_director_block(page1, 1, 465, y_dir_start)
-        y_dir3 = find_anchor_y(page1, "Director 3") or 775
+        y_dir3 = find_anchor_y(page1, ["Director 3", "DIRECTOR 3"]) or 775
         fill_director_block(page1, 2, 0, y_dir3, is_split=True)
 
         if len(directors) > 3:
@@ -101,7 +106,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if 'src_doc' in locals(): src_doc.close()
 
         pageF = doc[len(doc)-1]
-        y_off = find_anchor_y(pageF, "President") or 118
+        y_off = find_anchor_y(pageF, ["President", "PRESIDENT"]) or 118
         for i, role in enumerate(["presidente", "secretario", "tesorero"]):
             d = dignitaries.get(role, {})
             y_curr = y_off + (i * 24.5)
@@ -109,7 +114,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if d.get("birthDate"): pageF.insert_text((495, y_curr), str(d["birthDate"]), fontsize=8)
             if d.get("passport"): pageF.insert_text((620, y_curr), str(d["passport"]), fontsize=8)
 
-        y_sh = find_anchor_y(pageF, "Shareholders") or 298
+        y_sh = find_anchor_y(pageF, ["Shareholders", "Accionistas"]) or 298
         for i, s in enumerate(shareholders[:4]):
             cy = y_sh + 35 + (i * 24.1)
             if s.get("certificate"): pageF.insert_text((45, cy), str(s["certificate"]), fontsize=8)
@@ -118,13 +123,13 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
             if s.get("name"): pageF.insert_text((215, cy), str(s["name"]), fontsize=9)
             if s.get("address"): pageF.insert_text((415, cy), str(s["address"]), fontsize=7)
 
-        y_decl = find_anchor_y(pageF, "Name // Nombre") or 850
+        y_decl = find_anchor_y(pageF, ["Name // Nombre", "Name / Nombre", "Name"]) or 850
         if data.get("declarationName"): pageF.insert_text((150, y_decl - 3), str(data["declarationName"]), fontsize=11, fontname="Helvetica-Bold")
-        y_date = find_anchor_y(pageF, "Date // Fecha") or 885
-        if data.get("declarationDate"): pageF.insert_text((220, y_date - 3), str(data["declarationDate"]), fontsize=11)
+        y_date_anchor = find_anchor_y(pageF, ["Date // Fecha", "Date / Fecha", "Date"]) or 885
+        if data.get("declarationDate"): pageF.insert_text((220, y_date_anchor - 3), str(data["declarationDate"]), fontsize=11)
 
     # ══════════════════════════════════════════════════════════════════════════════
-    # ██████  MOTOR FONDOS (SFAR) - RECTIFICACIÓN DINÁMICA █████████████████████████
+    # ██████  MOTOR FONDOS (SFAR) - BLINDADO ███████████████████████████████████████
     # ══════════════════════════════════════════════════════════════════════════════
     else:
         page1 = doc[0]
@@ -140,33 +145,29 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
                             page1.insert_text((xv, yc), str(data[entry["data_key"]]), fontsize=10, fontname="Helvetica")
                             break
         
-        # Checkboxes SFAR
         f_d = normalize(str(data.get("fundsSource", [])))
         checks = {"bienes": (74.5, 376.3), "inversiones": (74.5, 387.8), "negocios": (74.5, 399.3), "prestamos": (74.5, 410.8), "herencia": (74.5, 422.3)}
         for k, pos in checks.items():
             if k in f_d: page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
         
-        # Dirección de Custodia (Radar Dinámico)
         if data.get("custodyAddress"):
             for w in page1.get_text("words"):
                 if "Address:" in w[4] and w[1] > 700:
                     page1.insert_text((w[2] + 25, (w[1] + w[3]) / 2 + 4), str(data["custodyAddress"]), fontsize=10, fontname="Helvetica")
                     break
 
-        # FIRMA SFAR - RECTIFICACIÓN RADAR (PÁGINA 2)
         if len(doc) > 1:
             page2 = doc[1]
-            # Usamos búsqueda dinámica para el nombre y la fecha en SFAR
-            y_name_sfar = find_anchor_y(page2, "Name // Nombre")
+            y_name_sfar = find_anchor_y(page2, ["Name // Nombre", "Name / Nombre", "Name"])
             if y_name_sfar and data.get("signerName"):
                 page2.insert_text((150, y_name_sfar - 3), str(data["signerName"]), fontsize=11, fontname="Helvetica")
-            elif data.get("signerName"): # Fallback
+            elif data.get("signerName"):
                 page2.insert_text((153, 732), str(data["signerName"]), fontsize=11, fontname="Helvetica")
 
-            y_date_sfar = find_anchor_y(page2, "Date // Fecha")
+            y_date_sfar = find_anchor_y(page2, ["Date // Fecha", "Date / Fecha", "Date"])
             if y_date_sfar and data.get("date"):
                 page2.insert_text((150, y_date_sfar - 3), str(data["date"]), fontsize=11, fontname="Helvetica")
-            elif data.get("date"): # Fallback
+            elif data.get("date"):
                 page2.insert_text((139, 762), str(data["date"]), fontsize=11, fontname="Helvetica")
 
     doc.save(output_path, incremental=False, encryption=0)
