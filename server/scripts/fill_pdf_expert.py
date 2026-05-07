@@ -4,6 +4,7 @@ import json
 import io
 import unicodedata
 import os
+import statistics
 
 # Configuración de codificación para Windows
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8')
@@ -32,6 +33,323 @@ def find_anchor_y(page, keywords, min_y=0):
         for inst in insts:
             if inst.y1 > min_y: return inst.y1
     return None
+
+
+def find_anchor_rect(page, keywords, min_y=0):
+    if isinstance(keywords, str):
+        keywords = [keywords]
+    best = None
+    for kw in keywords:
+        insts = page.search_for(kw)
+        for inst in insts:
+            if inst.y1 > min_y:
+                if best is None or inst.y1 < best.y1:
+                    best = inst
+    return best
+
+
+def median_x_for_synonyms(page, synonyms, y_min, y_max):
+    """Mediana de X para palabras del encabezado que coinciden con cualquiera de los sinónimos."""
+    xs = []
+    syns = [s.lower() for s in synonyms]
+    for w in page.get_text("words"):
+        cy = (w[1] + w[3]) / 2
+        if not (y_min <= cy <= y_max):
+            continue
+        wt = w[4].lower()
+        if any(sub in wt for sub in syns):
+            xs.append((w[0] + w[2]) / 2)
+    return statistics.median(xs) if xs else None
+
+
+def find_row_center_y_near(page, title_options, ymin, ymax):
+    for w in page.get_text("words"):
+        cy = (w[1] + w[3]) / 2
+        if not (ymin <= cy <= ymax):
+            continue
+        wt = (w[4] or "").strip()
+        wu = wt.upper()
+        for opt in title_options:
+            ou = opt.upper()
+            if ou in wu or wu.startswith(ou):
+                return cy + 2
+    return None
+
+
+def corporacion_officer_title_map():
+    return {
+        "presidente": ["PRESIDENT", "Presidente"],
+        "secretario": ["SECRETARY", "Secretaria", "Secretario"],
+        "tesorero": ["TREASURER", "Treasurer", "Tesorero", "Tesorer"],
+    }
+
+
+def load_corporacion_coords(root_dir):
+    path = os.path.join(root_dir, "templates", "coordinate_registry.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("corporacion_2025") or {}
+    except Exception:
+        return {}
+
+
+def find_page_with_keywords(doc, keywords):
+    lowered = [k.lower() for k in keywords]
+    for i in range(len(doc)):
+        blob = doc[i].get_text().lower()
+        if any(k in blob for k in lowered):
+            return i
+    return len(doc) - 1
+
+
+def fill_corporacion_engine(doc, data, pdf_path, root_dir):
+    directors = list(data.get("directors") or [])
+    shareholders = list(data.get("shareholders") or [])
+    dignitaries = dict(data.get("dignitaries") or {})
+    corp_cfg = load_corporacion_coords(root_dir)
+    dir_section = corp_cfg.get("directors_section") or {}
+    dig_section = corp_cfg.get("dignatarios_section") or {}
+    sh_section = corp_cfg.get("shareholders_section") or {}
+
+    fields = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address", "city", "country"]
+    ROW_H = float(dir_section.get("row_height") or 17.8)
+    X_PAD = float(dir_section.get("value_x_pad") or 105)
+    FIRST_DY = float(dir_section.get("first_line_dy") or 15)
+
+    page1 = doc[0]
+
+    y_anchor = find_anchor_y(page1, ["1st choice", "1st Choice", "primera opcion", "primera opción"]) or 173
+    for i, key in enumerate(["corpNameSA", "corpNameCorp", "corpNameInc"]):
+        val = data.get(key)
+        if val:
+            y_pos = y_anchor + (i * 27.5)
+            rect = fitz.Rect(135, y_pos - 12, 410, y_pos + 2)
+            insert_text_scaled(page1, rect, str(val), fontname="Helvetica-Bold", max_fontsize=10)
+
+    y_cap = find_anchor_y(page1, ["Authorized Capital", "Capital Social"]) or 310
+    cap_val = data.get("capitalSocial", "10,000.00")
+    page1.insert_text((585, y_cap + 2), f"{cap_val} USD", fontsize=10, fontname="Helvetica-Bold")
+
+    def fill_director_label_block(page, d, label_num):
+        """Rellena un bloque buscando el título literal Director {label_num} en la página."""
+        if not isinstance(d, dict):
+            return False
+        variants = [f"Director {label_num}", f"DIRECTOR {label_num}"]
+        anchor = None
+        for v in variants:
+            r = find_anchor_rect(page, [v])
+            if r:
+                anchor = r
+                break
+        if not anchor:
+            return False
+        if label_num == 1:
+            w = float(dir_section.get("wide_row_width") or 400)
+        else:
+            w = float(dir_section.get("narrow_row_width") or 248)
+        w = min(w, page.rect.width - anchor.x0 - X_PAD - 22)
+        y0 = anchor.y1 + FIRST_DY
+        for idx, fk in enumerate(fields):
+            val = d.get(fk)
+            if not val:
+                continue
+            yt = y0 + (idx * ROW_H)
+            rect = fitz.Rect(anchor.x0 + X_PAD, yt - 9, anchor.x0 + X_PAD + w, yt + 7)
+            insert_text_scaled(page, rect, str(val), fontname="Helvetica", max_fontsize=8, min_fontsize=5.5)
+
+        return True
+
+    y_dir_fallback_base = find_anchor_y(page1, ["Directors /", "Directors", "Director 1"]) or 430
+
+    def legacy_fill_director_slot(page, slot_index, d, y_base_block):
+        """Layout fijo 1 / (2|3) / 4 si el PDF no trae texto 'Director N' localizable."""
+        if not isinstance(d, dict):
+            return
+        layouts = [
+            (135, y_base_block, 83, 448),
+            (42, y_base_block + 228, 83, 272),
+            (312, y_base_block + 228, 83, 272),
+            (135, y_base_block + 458, 83, 448),
+        ]
+        if slot_index >= len(layouts):
+            return
+        x0, y0, xpad, width = layouts[slot_index]
+        for idx, fk in enumerate(fields):
+            val = d.get(fk)
+            if not val:
+                continue
+            yt = y0 + idx * ROW_H
+            rect = fitz.Rect(x0 + xpad, yt - 10, x0 + width, yt + 6)
+            insert_text_scaled(page, rect, str(val), fontname="Helvetica", max_fontsize=8, min_fontsize=5.5)
+
+    for idx in range(min(4, len(directors))):
+        if not fill_director_label_block(page1, directors[idx], idx + 1):
+            legacy_fill_director_slot(page1, idx, directors[idx], y_dir_fallback_base)
+
+    if len(directors) > 4:
+        src_pdf = fitz.open(pdf_path)
+        cs = 4
+        while cs < len(directors):
+            insert_at = len(doc) - 1
+            doc.insert_pdf(src_pdf, from_page=0, to_page=0, start_at=insert_at)
+            annex = doc[insert_at]
+            y_annex = find_anchor_y(annex, ["Director 1", "Directors /", "Directors"]) or y_dir_fallback_base
+            for j in range(4):
+                di = cs + j
+                if di >= len(directors):
+                    break
+                if not fill_director_label_block(annex, directors[di], j + 1):
+                    legacy_fill_director_slot(annex, j, directors[di], y_annex)
+            cs += 4
+        src_pdf.close()
+
+    officers_idx = find_page_with_keywords(doc, ["Officers", "dignatarios", "DIGNATARIOS"])
+    page_f = doc[officers_idx]
+    ay = find_anchor_y(page_f, ["Officers /", "Officers", "dignatarios"]) or 90
+    head_y0 = ay + float(dig_section.get("y_start_off") or 38)
+    head_y1 = head_y0 + 55
+
+    col_name = median_x_for_synonyms(page_f, ["full name", "nombre", "fullname"], head_y0, head_y1)
+    col_birth = median_x_for_synonyms(page_f, ["date of birth", "birth", "nacimiento", "fecha de nacimiento"], head_y0, head_y1)
+    col_pass = median_x_for_synonyms(page_f, ["passport", "pasaport", "pasaporte"], head_y0, head_y1)
+    col_reg = median_x_for_synonyms(page_f, ["registration number", "registration", "registro"], head_y0, head_y1)
+
+    x_name = col_name or float(dig_section.get("x_name") or 215)
+    x_birth = col_birth or float(dig_section.get("x_birth") or 395)
+    x_pass = col_pass or float(dig_section.get("x_pass") or 518)
+    x_reg = col_reg or float(dig_section.get("x_reg") or 635)
+
+    step = float(dig_section.get("step") or 21.5)
+    title_map = corporacion_officer_title_map()
+    y_scan_lo = ay + float(dig_section.get("scan_y_min_pad") or 55)
+    y_scan_hi = ay + float(dig_section.get("scan_y_max_pad") or 220)
+
+    fallback_y = None
+    for i, role in enumerate(["presidente", "secretario", "tesorero"]):
+        d_row = dignitaries.get(role) or {}
+        if not any(d_row.get(k) for k in ("fullName", "birthDate", "passport", "registrationNumber")):
+            continue
+
+        yt = find_row_center_y_near(page_f, title_map.get(role, []), y_scan_lo, y_scan_hi)
+        if yt is None:
+            if fallback_y is None:
+                row0 = find_anchor_y(page_f, ["President"]) or (ay + 70)
+                fallback_y = row0
+            yt = fallback_y + (i * step)
+
+        baseline = yt + 2
+        if d_row.get("fullName"):
+            page_f.insert_text((x_name, baseline), str(d_row["fullName"]), fontsize=8)
+        if d_row.get("birthDate"):
+            page_f.insert_text((x_birth, baseline), str(d_row["birthDate"]), fontsize=8)
+        if d_row.get("passport"):
+            page_f.insert_text((x_pass, baseline), str(d_row["passport"]), fontsize=8)
+        if d_row.get("registrationNumber"):
+            page_f.insert_text((x_reg, baseline), str(d_row["registrationNumber"]), fontsize=8)
+
+    sh_row_h = float(sh_section.get("row_height") or 18.5)
+    fb = sh_section.get("column_x_fallback") or {}
+
+    xs_cert = fb.get("certificate", 48)
+    xs_val = fb.get("value", 102)
+    xs_shares = fb.get("shares", 168)
+    xs_name = fb.get("name", 232)
+    xs_addr = fb.get("address", 400)
+
+    y_sh_anchor = find_anchor_y(page_f, ["Shareholders", "Accionistas"]) or 298
+    hdr_y0 = y_sh_anchor + 8
+    hdr_y1 = y_sh_anchor + float(sh_section.get("header_band") or 52)
+
+    hcert = median_x_for_synonyms(page_f, ["certificate", "cert.", "titulo", "share certificate"], hdr_y0, hdr_y1)
+    hval = median_x_for_synonyms(page_f, ["value", "valor", "par value"], hdr_y0, hdr_y1)
+    hsh = median_x_for_synonyms(page_f, ["shares", "acciones", "number"], hdr_y0, hdr_y1)
+    hnam = median_x_for_synonyms(page_f, ["shareholder", "accionista"], hdr_y0, hdr_y1)
+    haddr = median_x_for_synonyms(page_f, ["address", "domicilio", "dirección", "direccion"], hdr_y0, hdr_y1)
+
+    if hcert:
+        xs_cert = hcert
+    if hval:
+        xs_val = hval
+    if hsh:
+        xs_shares = hsh
+    if hnam:
+        xs_name = hnam
+    if haddr:
+        xs_addr = haddr
+
+    first_dy = float(sh_section.get("first_data_row_dy") or 38)
+    max_rows = int(sh_section.get("max_rows_first_page") or 14)
+    base_y = y_sh_anchor + first_dy
+
+    page_block = shareholders[:max_rows]
+    overflow_sh = shareholders[max_rows:]
+
+    for ri, s in enumerate(page_block):
+        baseline = base_y + ri * sh_row_h + 2
+        if s.get("certificate"):
+            page_f.insert_text((xs_cert, baseline), str(s["certificate"]), fontsize=7)
+        if s.get("value"):
+            page_f.insert_text((xs_val, baseline), str(s["value"]), fontsize=7)
+        if s.get("shares"):
+            page_f.insert_text((xs_shares, baseline), str(s["shares"]), fontsize=7)
+        if s.get("name"):
+            page_f.insert_text((xs_name, baseline), str(s["name"]), fontsize=8)
+        if s.get("address"):
+            page_f.insert_text((xs_addr, baseline), str(s["address"]), fontsize=6.5)
+
+    if overflow_sh:
+        src_pdf2 = fitz.open(pdf_path)
+        annex_page_ix = min(max(officers_idx, 1), len(src_pdf2) - 1)
+        max_annex_rows = int(sh_section.get("max_rows_annex_page") or 18)
+        remaining = list(overflow_sh)
+        while remaining:
+            ins = len(doc) - 1
+            doc.insert_pdf(src_pdf2, from_page=annex_page_ix, to_page=annex_page_ix, start_at=ins)
+            annex_sh = doc[ins]
+            y2 = find_anchor_y(annex_sh, ["Shareholders", "Accionistas"]) or 298
+            b2 = y2 + first_dy
+            chunk = remaining[:max_annex_rows]
+            remaining = remaining[max_annex_rows:]
+            for j, s in enumerate(chunk):
+                baseline = b2 + j * sh_row_h + 2
+                if s.get("certificate"):
+                    annex_sh.insert_text((xs_cert, baseline), str(s["certificate"]), fontsize=7)
+                if s.get("value"):
+                    annex_sh.insert_text((xs_val, baseline), str(s["value"]), fontsize=7)
+                if s.get("shares"):
+                    annex_sh.insert_text((xs_shares, baseline), str(s["shares"]), fontsize=7)
+                if s.get("name"):
+                    annex_sh.insert_text((xs_name, baseline), str(s["name"]), fontsize=8)
+                if s.get("address"):
+                    annex_sh.insert_text((xs_addr, baseline), str(s["address"]), fontsize=6.5)
+        src_pdf2.close()
+
+    act = data.get("companyActivities")
+    if act:
+        hits = page_f.search_for("Company Activities")
+        if not hits:
+            hits = page_f.search_for("Actividades de la Compañía")
+        if not hits:
+            hits = page_f.search_for("Actividades")
+        if hits:
+            r0 = hits[0]
+            box = fitz.Rect(r0.x0 - 5, r0.y1 + 5, page_f.rect.width - 36, r0.y1 + 118)
+            try:
+                page_f.insert_textbox(box, str(act), fontsize=8, align=fitz.TEXT_ALIGN_LEFT, color=(0, 0, 0))
+            except Exception:
+                insert_text_scaled(page_f, fitz.Rect(box.x0, box.y0, box.x1, box.y0 + 12), str(act), max_fontsize=8)
+
+    y_decl = find_anchor_y(page_f, ["Name // Nombre", "Name / Nombre"]) or (
+        find_anchor_y(page_f, ["Name"]) or 785
+    )
+    if data.get("declarationName"):
+        page_f.insert_text((150, max(y_decl, 740) + 2), str(data["declarationName"]), fontsize=11, fontname="Helvetica-Bold")
+    y_date_anchor = find_anchor_y(page_f, ["Date // Fecha", "Date / Fecha"]) or (find_anchor_y(page_f, ["Date"]) or 815)
+    if data.get("declarationDate"):
+        page_f.insert_text((230, max(y_date_anchor, 775) + 2), str(data["declarationDate"]), fontsize=11)
 
 def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
     # RESOLUCIÓN DE RUTAS ROBUSTA (Blindaje contra entornos)
@@ -63,88 +381,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
     doc = fitz.open(pdf_path)
 
     # ══════════════════════════════════════════════════════════════════════════════
-    # ██████  MOTOR CORPORACIÓN (BLINDADO) █████████████████████████████████████████
+    # ██████  MOTOR CORPORACIÓN (anclas + columnas dinámicas) ██████████████████████
     # ══════════════════════════════════════════════════════════════════════════════
     if template_name == "corporacion" or "corpNameSA" in data:
-        directors = data.get("directors", [])
-        shareholders = data.get("shareholders", [])
-        dignitaries = data.get("dignitaries", {})
-
-        page1 = doc[0]
-        y_anchor = find_anchor_y(page1, ["1st choice", "1st Choice", "primera opcion"]) or 173
-        for i, key in enumerate(["corpNameSA", "corpNameCorp", "corpNameInc"]):
-            val = data.get(key)
-            if val:
-                y_pos = y_anchor + (i * 27.5)
-                rect = fitz.Rect(135, y_pos - 12, 410, y_pos + 2)
-                insert_text_scaled(page1, rect, str(val), fontname="Helvetica-Bold", max_fontsize=10)
-
-        y_cap = find_anchor_y(page1, ["Authorized Capital", "Capital Social"]) or 310
-        cap_val = data.get("capitalSocial", "10,000.00")
-        page1.insert_text((585, y_cap + 2), f"{cap_val} USD", fontsize=10, fontname="Helvetica-Bold")
-
-        ROW_H = 19.45
-        fields = ["firstName", "secondName", "lastName", "birthDate", "maritalStatus", "nationality", "passport", "phone", "email", "address", "city", "country"]
-        
-        def fill_director_block(page, d_idx, x_start, y_base, width=400):
-            if d_idx >= len(directors): return
-            d = directors[d_idx]
-            for idx, f in enumerate(fields):
-                val = d.get(f)
-                if val:
-                    # Ajuste fino de rect para cada campo
-                    rect = fitz.Rect(x_start + 85, y_base + (idx * ROW_H) - 12, x_start + width, y_base + (idx * ROW_H) + 2)
-                    insert_text_scaled(page, rect, str(val), fontname="Helvetica", max_fontsize=8)
-
-        y_dir_start = find_anchor_y(page1, ["Director 1", "DIRECTOR 1"]) or 445
-        
-        # DISPOSICIÓN 1 - 2/3 - 4 (EL BLINDAJE)
-        # Director 1: Solo arriba (X centrado)
-        fill_director_block(page1, 0, 135, y_dir_start, width=450)
-        
-        # Director 2 y 3: Juntos en el medio
-        y_middle = y_dir_start + 235
-        fill_director_block(page1, 1, 45, y_middle, width=280)
-        fill_director_block(page1, 2, 315, y_middle, width=280)
-        
-        # Director 4: Solo abajo
-        y_bottom = y_middle + 235
-        fill_director_block(page1, 3, 135, y_bottom, width=450)
-
-        # Si hay más de 4, usamos anexos profesionales
-        if len(directors) > 4:
-            src_doc = fitz.open(pdf_path)
-            for i in range(4, len(directors), 2):
-                doc.insert_pdf(src_doc, from_page=0, to_page=0, start_at=len(doc)-1)
-                new_p = doc[len(doc)-2]
-                new_p.draw_rect(fitz.Rect(0, 0, 612, 430), color=(1,1,1), fill=(1,1,1))
-                new_p.insert_text((50, 50), "ANEXO DE DIRECTORES (CONTINUACIÓN)", fontsize=14, fontname="Helvetica-Bold", color=(0.1, 0.4, 0.5))
-                fill_director_block(new_p, i, 45, y_dir_start + 50, width=280)
-                if i+1 < len(directors): fill_director_block(new_p, i+1, 315, y_dir_start + 50, width=280)
-            if 'src_doc' in locals(): src_doc.close()
-
-        pageF = doc[len(doc)-1]
-        y_off = find_anchor_y(pageF, ["President", "PRESIDENT"]) or 118
-        for i, role in enumerate(["presidente", "secretario", "tesorero"]):
-            d = dignitaries.get(role, {})
-            y_curr = y_off + (i * 24.5)
-            if d.get("fullName"): pageF.insert_text((215, y_curr), str(d["fullName"]), fontsize=9)
-            if d.get("birthDate"): pageF.insert_text((495, y_curr), str(d["birthDate"]), fontsize=8)
-            if d.get("passport"): pageF.insert_text((620, y_curr), str(d["passport"]), fontsize=8)
-
-        y_sh = find_anchor_y(pageF, ["Shareholders", "Accionistas"]) or 298
-        for i, s in enumerate(shareholders[:4]):
-            cy = y_sh + 35 + (i * 24.1)
-            if s.get("certificate"): pageF.insert_text((45, cy), str(s["certificate"]), fontsize=8)
-            if s.get("value"): pageF.insert_text((95, cy), str(s["value"]), fontsize=8)
-            if s.get("shares"): pageF.insert_text((165, cy), str(s["shares"]), fontsize=8)
-            if s.get("name"): pageF.insert_text((215, cy), str(s["name"]), fontsize=9)
-            if s.get("address"): pageF.insert_text((415, cy), str(s["address"]), fontsize=7)
-
-        y_decl = find_anchor_y(pageF, ["Name // Nombre", "Name / Nombre", "Name"]) or 850
-        if data.get("declarationName"): pageF.insert_text((150, y_decl - 3), str(data["declarationName"]), fontsize=11, fontname="Helvetica-Bold")
-        y_date_anchor = find_anchor_y(pageF, ["Date // Fecha", "Date / Fecha", "Date"]) or 885
-        if data.get("declarationDate"): pageF.insert_text((220, y_date_anchor - 3), str(data["declarationDate"]), fontsize=11)
+        fill_corporacion_engine(doc, data, pdf_path, root_dir)
 
     # ══════════════════════════════════════════════════════════════════════════════
     # ██████  MOTOR FONDOS (SFAR) - BLINDADO ███████████████████████████████████████

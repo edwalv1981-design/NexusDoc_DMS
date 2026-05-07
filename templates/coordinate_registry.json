@@ -37,6 +37,11 @@
     "directors_section": {
         "y_banner": 485,
         "col_0_x": 135, "col_1_x": 425, "width": 150,
+        "row_height": 17.8,
+        "value_x_pad": 105,
+        "first_line_dy": 15,
+        "wide_row_width": 400,
+        "narrow_row_width": 240,
         "field_offsets": {
             "firstName": 14, "secondName": 31, "lastName": 48,
             "passport": 116, "nationality": 99, "email": 150,
@@ -44,8 +49,22 @@
         }
     },
     "dignatarios_section": {
-        "x_name": 185, "x_birth": 335, "x_pass": 405, "x_reg": 485,
-        "y_start_off": 40, "step": 20
+        "x_name": 215, "x_birth": 395, "x_pass": 518, "x_reg": 635,
+        "y_start_off": 40,
+        "step": 21.5
+    },
+    "shareholders_section": {
+        "row_height": 18.5,
+        "column_x_fallback": {
+            "certificate": 48,
+            "value": 102,
+            "shares": 168,
+            "name": 232,
+            "address": 400
+        },
+        "first_data_row_dy": 38,
+        "max_rows_first_page": 14,
+        "max_rows_annex_page": 18
     }
   }
 }
