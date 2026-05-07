@@ -8,12 +8,29 @@ const { connectDB, sequelize } = require('./config/db');
 
 const app = express();
 const PORT = 5000;
+const JWT_SECRET = process.env.JWT_SECRET;
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 // RUTA DE SALUD
 app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET no está definido. El servidor no puede iniciar de forma segura.');
+}
+
 // 1. MIDDLEWARES
-app.use(cors({ origin: '*', credentials: true }));
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow non-browser clients and same-origin requests.
+        if (!origin) return callback(null, true);
+        if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(new Error('Origen no permitido por CORS'));
+    },
+    credentials: true
+}));
 app.use(express.json());
 
 // Log de peticiones entrantes
@@ -56,30 +73,38 @@ app.listen(PORT, '0.0.0.0', async () => {
     
     try {
         await connectDB();
-        await sequelize.sync({ alter: true });
+        const allowSchemaAlter = process.env.DB_SYNC_ALTER === 'true';
+        await sequelize.sync({ alter: allowSchemaAlter });
         console.log('✅ Base de datos sincronizada.');
 
-        // SINCRO DE ADMINISTRADOR (Sin borrar nada más)
+        // Bootstrap de administrador opcional controlado por variables de entorno.
         const { User } = require('./models');
-        const adminEmail = 'rokutvedw@gmail.com';
-        let admin = await User.findOne({ where: { email: adminEmail } });
-        
-        if (!admin) {
-            console.log('🌱 Creando administrador inicial...');
-            await User.create({
-                name: 'Administrador Maestro',
-                email: adminEmail,
-                password: 'Master07*',
-                role: 'admin',
-                status: 'authorized',
-                idNumber: '9999999999',
-                uniqueCode: 'MASTER-ADMIN-001'
-            });
+        const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+        const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+        const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
+
+        if (adminEmail && adminPassword) {
+            let admin = await User.findOne({ where: { email: adminEmail } });
+
+            if (!admin) {
+                console.log('🌱 Creando administrador inicial desde entorno...');
+                await User.create({
+                    name: adminName,
+                    email: adminEmail,
+                    password: adminPassword,
+                    role: 'admin',
+                    status: 'authorized',
+                    idNumber: 'ADMIN-BOOTSTRAP',
+                    uniqueCode: 'MASTER-ADMIN-001'
+                });
+            } else {
+                console.log('🔄 Sincronizando rol/estado de administrador...');
+                admin.status = 'authorized';
+                admin.role = 'admin';
+                await admin.save();
+            }
         } else {
-            console.log('🔄 Sincronizando administrador...');
-            admin.status = 'authorized';
-            admin.role = 'admin';
-            await admin.save();
+            console.log('ℹ️ Bootstrap de admin omitido (faltan BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).');
         }
         console.log('💎 SISTEMA OPERATIVO Y PERSISTENTE.');
 

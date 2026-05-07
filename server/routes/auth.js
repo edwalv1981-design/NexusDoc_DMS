@@ -6,6 +6,7 @@ const { sendSecurityCode, sendTemporaryPassword } = require('../services/emailSe
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
 const { Op } = require('sequelize');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const generateUniqueCode = async (formType) => {
     const prefixes = {
@@ -277,12 +278,9 @@ router.post('/login', async (req, res) => {
 
         const payload = { user: { id: user.id, role: user.role } };
 
-        // Blindaje: Usar secreto de Railway o uno de emergencia
-        const secret = process.env.JWT_SECRET || 'nexusdoc_emergency_secret_key_2024';
-
         jwt.sign(
             payload,
-            secret,
+            JWT_SECRET,
             { expiresIn: '8h' },
             async (err, token) => {
                 if (err) {

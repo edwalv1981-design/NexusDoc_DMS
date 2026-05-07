@@ -1,7 +1,17 @@
-const RESEND_API_KEY = 're_YHtXRagh_4xmpqgGCUvFUzXre6NqqtYnA';
-const SENDER_EMAIL = 'verificacion@soporte.lol';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'no-reply@nexusdoc.local';
+
+const hasEmailConfig = () => {
+    if (!RESEND_API_KEY) {
+        console.error('❌ RESEND_API_KEY no configurada. No se puede enviar correo.');
+        return false;
+    }
+    return true;
+};
 
 const sendSecurityCode = async (toEmail, code) => {
+    if (!hasEmailConfig()) return false;
+
     console.log(`--------------------------------------------------`);
     console.log(`🔑 CÓDIGO DE EMERGENCIA: ${code}`);
     console.log(`📡 Enviando vía RESEND a: ${toEmail}...`);
@@ -45,8 +55,10 @@ const sendSecurityCode = async (toEmail, code) => {
 };
 
 const sendTemporaryPassword = async (toEmail, tempPassword) => {
+    if (!hasEmailConfig()) return false;
+
     try {
-        await fetch('https://api.resend.com/emails', {
+        const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -68,9 +80,17 @@ const sendTemporaryPassword = async (toEmail, tempPassword) => {
                 `
             })
         });
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Error en API de Resend:', errorData);
+            return false;
+        }
+
         console.log('✅ Clave temporal enviada con éxito.');
+        return true;
     } catch (error) {
         console.error('❌ Error enviando clave temporal:', error.message);
+        return false;
     }
 };
 
