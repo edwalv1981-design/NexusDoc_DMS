@@ -185,7 +185,7 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
     };
 
     return (
-        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#f1f5f9', padding: '40px 0' }}>
+        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#ffffff', padding: '0', margin: '0' }}>
             
             {/* PÁGINA 1 */}
             <div style={styles.page}>
