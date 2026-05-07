@@ -1,406 +1,199 @@
 import React from 'react';
+import logo from '../assets/logo_real.png';
 
-const CorporacionPreview = React.forwardRef(({ data }, ref) => {
+const CorporacionPreview = ({ data }) => {
     if (!data) return null;
 
-    // --- CÓDIGOS DE COLOR EXTRAÍDOS POR CROMATOGRAFÍA DEL ORIGINAL ---
-    const PTL_TEAL = '#46a1ba';    // Turquesa de los encabezados
-    const PTL_BLUE = '#1d4e89';    // Azul de los títulos
-    const PTL_LIGHT = '#e7f3f6';   // Fondo de instrucciones
-    const BORDER = `1px solid ${PTL_TEAL}`;
+    const PRIMARY_BLUE = '#4098ad'; // El azul de las cabeceras según captura
+    const LIGHT_BLUE = '#f1f5f9';
+    const BORDER_COLOR = '#4098ad';
 
-    const styles = {
-        page: {
-            width: '210mm',
-            minHeight: '297mm',
-            backgroundColor: 'white',
-            margin: '0 auto',
-            padding: '10mm 12mm',
-            fontFamily: 'Arial, Helvetica, sans-serif',
-            boxSizing: 'border-box',
-            color: '#000',
-            position: 'relative'
-        },
-        header: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            marginBottom: '15px'
-        },
-        titleArea: {
-            textAlign: 'right',
-            color: PTL_BLUE,
-            lineHeight: '1.1'
-        },
-        sectionHeader: {
-            backgroundColor: PTL_TEAL,
-            color: 'white',
-            padding: '5px 12px',
-            fontSize: '13px',
-            fontWeight: 'bold',
-            marginTop: '12px',
-            border: BORDER
-        },
-        instructionBar: {
-            backgroundColor: PTL_LIGHT,
-            padding: '5px 12px',
-            fontSize: '9px',
-            fontWeight: 'bold',
-            border: BORDER,
-            borderTop: 0,
-            lineHeight: '1.2'
-        },
-        nameTableContainer: {
-            display: 'flex',
-            alignItems: 'stretch',
-            border: BORDER,
-            borderTop: 0
-        },
-        nameTable: {
-            width: '58%',
-            borderCollapse: 'collapse'
-        },
-        nameTdLabel: {
-            border: `1px solid ${PTL_TEAL}`,
-            padding: '4px 10px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            width: '35%',
-            textAlign: 'center'
-        },
-        nameTdValue: {
-            border: `1px solid ${PTL_TEAL}`,
-            padding: '4px 10px',
-            fontSize: '11px',
-            fontWeight: '500'
-        },
-        terminationsBox: {
-            width: '42%',
-            padding: '8px',
-            fontSize: '8px',
-            fontWeight: 'bold',
-            borderLeft: BORDER,
-            lineHeight: '1.3'
-        },
-        capitalSocialGrid: {
-            display: 'flex',
-            height: '35px',
-            border: BORDER,
-            borderTop: 0
-        },
-        capitalLabel: {
-            backgroundColor: PTL_TEAL,
-            color: 'white',
-            width: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 12px',
-            fontSize: '13px',
-            fontWeight: 'bold'
-        },
-        capitalFixed: {
-            width: '25%',
-            borderLeft: BORDER,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '13px',
-            fontWeight: 'bold'
-        },
-        capitalValue: {
-            width: '25%',
-            borderLeft: BORDER,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '13px',
-            fontWeight: 'bold'
-        },
-        legalFooter: {
-            border: BORDER,
-            borderTop: 0,
-            padding: '5px 12px',
-            fontSize: '8px',
-            fontWeight: 'bold',
-            lineHeight: '1.2'
-        },
-        directorTable: {
-            width: '100%',
-            borderCollapse: 'collapse',
-            marginTop: '12px',
-            border: BORDER
-        },
-        directorHeader: {
-            textAlign: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            padding: '3px',
-            borderBottom: BORDER
-        },
-        directorRow: {
-            borderBottom: `1px solid ${PTL_TEAL}`
-        },
-        directorLabel: {
-            padding: '3px 10px',
-            fontSize: '9.5px',
-            fontWeight: 'bold',
-            width: '40%',
-            borderRight: `1px solid ${PTL_TEAL}`
-        },
-        directorValue: {
-            padding: '3px 10px',
-            fontSize: '10.5px'
-        },
-        directorSplitCell: {
-            width: '50%',
+    const directors = data.directors || [];
+    const shareholders = data.shareholders || [];
+    const dignitaries = data.dignitaries || {};
+
+    const renderDirectorTable = (d, title, isHalf = false) => (
+        <div style={{ 
+            width: isHalf ? '49%' : '100%', 
+            marginBottom: '15px',
+            display: 'inline-block',
             verticalAlign: 'top'
-        },
-        signatureArea: {
-            marginTop: '30px'
-        },
-        signatureRow: {
-            display: 'flex',
-            border: BORDER,
-            borderTop: 0,
-            height: '35px'
-        },
-        signatureLabel: {
-            width: '25%',
-            borderRight: BORDER,
-            padding: '0 12px',
-            display: 'flex',
-            alignItems: 'center',
-            fontSize: '13px',
-            fontWeight: 'bold',
-            color: PTL_BLUE
-        },
-        signatureValue: {
-            flex: 1,
-            padding: '0 12px',
-            display: 'flex',
-            alignItems: 'center',
-            fontSize: '14px',
-            fontWeight: 'bold'
-        }
-    };
+        }}>
+            <div style={{ background: 'white', border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                <div style={{ textAlign: 'center', padding: '4px', fontWeight: '800', fontSize: '12px', borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                    {title}
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                    <tbody>
+                        {[
+                            ['First name / Nombre', d.firstName],
+                            ['Middle name / Segundo nombre', d.secondName],
+                            ['Surname(s) / Apellidos', d.lastName],
+                            ['Date of birth / Fecha de nacimiento', d.birthDate],
+                            ['Marital Status / Estado civil', d.maritalStatus],
+                            ['Citizenship / Nacionalidad', d.nationality],
+                            ['Passport/Pasaporte', d.passport],
+                            ['Phone / Teléfono', d.phone],
+                            ['Email', d.email],
+                            ['Address / Dirección', d.address],
+                            ['City / ciudad', d.city],
+                            ['Country / País', d.country],
+                        ].map(([label, val], idx) => (
+                            <tr key={idx} style={{ borderBottom: idx === 11 ? 'none' : `1px solid ${BORDER_COLOR}` }}>
+                                <td style={{ width: '40%', padding: '4px', borderRight: `1px solid ${BORDER_COLOR}`, background: 'white', fontWeight: '600' }}>{label}</td>
+                                <td style={{ width: '60%', padding: '4px' }}>{val || ''}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
 
     return (
-        <div ref={ref} id="corp-document-preview" style={{ backgroundColor: '#ffffff', padding: '0', margin: '0' }}>
-            
-            {/* PÁGINA 1 */}
-            <div style={styles.page}>
-                <div style={styles.header}>
-                    <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '75px' }} />
-                    <div style={styles.titleArea}>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>Incorporation Form</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>Formulario de Incorporación</div>
-                    </div>
-                </div>
-
-                <div style={styles.sectionHeader}>Name of the corporation / Nombre de la compañía:</div>
-                <div style={styles.instructionBar}>
-                    List the names you wish to use to incorporate your corporation in order of preference<br/>
-                    Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia:
-                </div>
-                
-                <div style={styles.nameTableContainer}>
-                    <table style={styles.nameTable}>
-                        <tbody>
-                            <tr>
-                                <td style={styles.nameTdLabel}>1<sup>st</sup> choice</td>
-                                <td style={styles.nameTdValue}>{data.corpNameSA}</td>
-                            </tr>
-                            <tr>
-                                <td style={styles.nameTdLabel}>2<sup>nd</sup> choice</td>
-                                <td style={styles.nameTdValue}>{data.corpNameCorp}</td>
-                            </tr>
-                            <tr>
-                                <td style={styles.nameTdLabel}>3<sup>rd</sup> choice</td>
-                                <td style={styles.nameTdValue}>{data.corpNameInc}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div style={styles.terminationsBox}>
-                        The name of the Company must be determined by one of the following terminations: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.<br/><br/>
-                        El nombre de la Compañía debe terminar con una de las siguientes terminaciones: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., o S.A., A/S, N.V., B.V., AG.
-                    </div>
-                </div>
-
-                <div style={styles.capitalSocialGrid}>
-                    <div style={styles.capitalLabel}>Authorized Capital / Capital Social Autorizado:</div>
-                    <div style={styles.capitalFixed}>10.000 USD</div>
-                    <div style={styles.capitalValue}>{data.capitalSocial} USD</div>
-                </div>
-                <div style={styles.legalFooter}>
-                    The minimum authorized capital of the company will be US$10,000.00 divided into 100 shares with a par value of US$100.00 each, the shares issued in nominative form.<br/>
-                    El capital mínimo autorizado de la sociedad será de US$10,000.00 divididos en 100 acciones con un valor nominal de US$100.00 cada una, las acciones emitidas de forma nominativa.
-                </div>
-
-                <div style={styles.sectionHeader}>Directors / directores:</div>
-                
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '12px' }}>
-                    {data.directors.map((director, i) => {
-                        // LÓGICA DE RÉPLICA ORIGINAL (CALIBRADA):
-                        // 1. Los directores se agrupan en pares (1&2, 3&4, 5&6...)
-                        // 2. Solo si un director queda "huérfano" al final (ej: el 3 de 3, o el 5 de 5)
-                        //    se le otorga el ancho completo con Layout Split.
-                        
-                        const isLast = i === data.directors.length - 1;
-                        const isOrphan = isLast && (i % 2 === 0); // i=0 es Dir 1, i=2 es Dir 3 (huérfano si es el último)
-
-                        if (isOrphan) {
-                            return (
-                                <div key={i} style={{ ...styles.directorBox, width: '100%' }}>
-                                    <div style={styles.directorHeader}>Director {i + 1}</div>
-                                    <div style={{ display: 'flex' }}>
-                                        <table style={{ width: '50%', borderCollapse: 'collapse', borderRight: BORDER }}>
-                                            <tbody>
-                                                {['First name / Nombre', 'Middle name / Segundo nombre', 'Surname(s) / Apellidos', 'Date of birth/ Fecha de nacimiento', 'Marital Status / Estado civil', 'Citizenship / Nacionalidad', 'Passport/Pasaporte', 'Phone/Teléfono', 'Email'].map((field, idx) => {
-                                                    const keys = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email'];
-                                                    return (
-                                                        <tr key={idx} style={{ borderBottom: idx === 8 ? '0' : `1px solid ${PTL_TEAL}` }}>
-                                                            <td style={styles.directorLabel}>{field}</td>
-                                                            <td style={styles.directorValue}>{director[keys[idx]] || ''}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                        <div style={{ width: '50%' }}>
-                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                                <tbody>
-                                                    {['Address / Dirección', 'City / ciudad', 'Country / Pais'].map((field, idx) => {
-                                                        const keys = ['address', 'city', 'country'];
-                                                        return (
-                                                            <tr key={idx} style={{ borderBottom: `1px solid ${PTL_TEAL}` }}>
-                                                                <td style={{ ...styles.directorLabel, width: '40%' }}>{field}</td>
-                                                                <td style={styles.directorValue}>{director[keys[idx]] || ''}</td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                            {i === 2 && (
-                                                <div style={{ padding: '8px', fontSize: '7.5px', fontWeight: 'bold', lineHeight: '1.2' }}>
-                                                    In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
-                                                    En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        }
-
-                        return (
-                            <div key={i} style={{ ...styles.directorBox, width: 'calc(50% - 7.5px)' }}>
-                                <div style={styles.directorHeader}>Director {i + 1}</div>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <tbody>
-                                        {['First name / Nombre', 'Middle name / Segundo nombre', 'Surname(s) / Apellidos', 'Date of birth/ Fecha de nacimiento', 'Marital Status / Estado civil', 'Citizenship / Nacionalidad', 'Passport/Pasaporte', 'Phone/Teléfono', 'Email', 'Address / Dirección', 'City / ciudad', 'Country / Pais'].map((field, idx) => {
-                                            const keys = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email', 'address', 'city', 'country'];
-                                            return (
-                                                <tr key={idx} style={{ borderBottom: idx === 11 ? '0' : `1px solid ${PTL_TEAL}` }}>
-                                                    <td style={{ ...styles.directorLabel, width: '45%' }}>{field}</td>
-                                                    <td style={styles.directorValue}>{director[keys[idx]] || ''}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        );
-                    })}
+        <div id="corporacion-preview-content" style={{
+            width: '794px', // ANCHO A4 FIJO PARA EVITAR DISTORSIÓN
+            background: 'white',
+            margin: '0 auto',
+            padding: '40px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#333',
+            boxSizing: 'border-box',
+            position: 'relative',
+            minHeight: '1123px' // ALTO A4
+        }}>
+            {/* ENCABEZADO FIEL AL ORIGINAL */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
+                <img src={logo} alt="Logo" style={{ width: '140px', objectFit: 'contain' }} />
+                <div style={{ textAlign: 'right' }}>
+                    <h1 style={{ margin: 0, fontSize: '24px', color: '#335e8d', fontWeight: '700' }}>Incorporation Form</h1>
+                    <h2 style={{ margin: 0, fontSize: '20px', color: '#335e8d', fontWeight: '700' }}>Formulario de Incorporación</h2>
                 </div>
             </div>
 
-            {/* PÁGINA 2 */}
-            <div style={{ ...styles.page, marginTop: '30px', pageBreakBefore: 'always' }}>
-                <img src="/logo_panama_tax.png" alt="Logo" style={{ height: '75px', marginBottom: '15px' }} />
-                
-                <div style={styles.sectionHeader}>Officers / dignatarios:</div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: BORDER, fontSize: '8px' }}>
-                    <thead>
-                        <tr style={{ backgroundColor: '#fff' }}>
-                            <th style={styles.nameTdLabel}></th>
-                            <th style={styles.nameTdLabel}>Full name / Nombre completo</th>
-                            <th style={styles.nameTdLabel}>Date of birth / fecha de nacimiento</th>
-                            <th style={styles.nameTdLabel}>Passport/ Pasaporte</th>
-                            <th style={styles.nameTdLabel}>Registration number (if company) / Numero de Registro si es empresa</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {['presidente', 'secretario', 'tesorero'].map((role, idx) => (
-                            <tr key={idx} style={{ borderTop: `1px solid ${PTL_TEAL}` }}>
-                                <td style={{ ...styles.nameTdLabel, fontSize: '9px', textAlign: 'left' }}>{role.toUpperCase()} / {role === 'presidente' ? 'Presidente' : role === 'secretario' ? 'Secretario' : 'Tesorero'}</td>
-                                <td style={styles.nameTdValue}>{data.dignitaries[role]?.fullName}</td>
-                                <td style={styles.nameTdValue}>{data.dignitaries[role]?.birthDate}</td>
-                                <td style={styles.nameTdValue}>{data.dignitaries[role]?.passport}</td>
-                                <td style={styles.nameTdValue}>{data.dignitaries[role]?.registrationNumber}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {/* SECCIÓN NOMBRE DE COMPAÑÍA */}
+            <div style={{ background: PRIMARY_BLUE, color: 'white', padding: '10px 15px', fontWeight: '700', fontSize: '14px', marginBottom: '1px' }}>
+                Name of the corporation / Nombre de la compañía:
+            </div>
+            <div style={{ background: LIGHT_BLUE, padding: '8px 15px', fontSize: '9px', fontWeight: '700', borderBottom: `2px solid ${PRIMARY_BLUE}` }}>
+                List the names you wish to use to incorporate your corporation in order of preference / 
+                Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia
+            </div>
 
-                <div style={styles.sectionHeader}>Shareholders / Accionistas:</div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: BORDER, fontSize: '8px' }}>
-                    <thead>
-                        <tr>
-                            <th style={styles.nameTdLabel}>Share Certificate Number</th>
-                            <th style={styles.nameTdLabel}>Share's value / valor por acción</th>
-                            <th style={styles.nameTdLabel}>Number of Shares</th>
-                            <th style={styles.nameTdLabel}>Shareholder / Accionista</th>
-                            <th style={styles.nameTdLabel}>Address / dirección</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.shareholders.map((s, i) => (
-                            <tr key={i} style={{ borderTop: `1px solid ${PTL_TEAL}` }}>
-                                <td style={styles.nameTdValue}>{s.certificate}</td>
-                                <td style={styles.nameTdValue}>{s.value}</td>
-                                <td style={styles.nameTdValue}>{s.shares}</td>
-                                <td style={styles.nameTdValue}>{s.name}</td>
-                                <td style={styles.nameTdValue}>{s.address}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <div style={styles.sectionHeader}>Company Activities / Actividades de la Compañía</div>
-                <div style={styles.instructionBar}>
-                    Please provide an explanation of the corporation's activities, how it will be carried out and in which countries it will be carried out.<br/>
-                    Favor proveer una explicación de la actividad de la sociedad, como se realizará y en qué países se llevará a cabo.
-                </div>
-                <div style={{ border: BORDER, borderTop: 0, padding: '10px', minHeight: '80px', fontSize: '11px' }}>
-                    {data.companyActivities}
-                </div>
-
-                <div style={{ marginTop: '25px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold' }}>Declaration</div>
-                    <div style={{ fontSize: '10px', fontStyle: 'italic', fontWeight: 'bold', marginTop: '5px' }}>
-                        I hereby affirm that information given on this application is complete and accurate. I understand that any falsification or ommission will carry legal effects and penalties. I authorize the company to investigate the authenticity of above-mentioned information.
-                    </div>
-                </div>
-
-                <div style={{ ...styles.signatureArea, borderTop: BORDER }}>
-                    <div style={{ ...styles.signatureRow, borderTop: BORDER }}>
-                        <div style={styles.signatureLabel}>Signature // Firma</div>
-                        <div style={styles.signatureValue}></div>
-                    </div>
-                    <div style={styles.signatureRow}>
-                        <div style={styles.signatureLabel}>Name // Nombre:</div>
-                        <div style={styles.signatureValue}>{data.declarationName}</div>
-                    </div>
-                    <div style={styles.signatureRow}>
-                        <div style={{ ...styles.signatureRow, border: 0, height: '100%', width: '100%', display: 'flex' }}>
-                            <div style={styles.signatureLabel}>Date // Fecha:</div>
-                            <div style={{ ...styles.signatureValue, fontSize: '13px' }}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ 2025</div>
+            <div style={{ display: 'flex', border: `1px solid ${BORDER_COLOR}`, borderTop: 'none', marginBottom: '20px' }}>
+                <div style={{ width: '60%' }}>
+                    {['1st choice', '2nd choice', '3rd choice'].map((choice, i) => (
+                        <div key={choice} style={{ display: 'flex', borderBottom: i === 2 ? 'none' : `1px solid ${BORDER_COLOR}` }}>
+                            <div style={{ width: '150px', padding: '10px', fontWeight: '800', fontSize: '12px', textAlign: 'center', borderRight: `1px solid ${BORDER_COLOR}` }}>{choice}</div>
+                            <div style={{ flex: 1, padding: '10px', fontSize: '12px' }}>{data[i === 0 ? 'corpNameSA' : (i === 1 ? 'corpNameCorp' : 'corpNameInc')] || ''}</div>
                         </div>
+                    ))}
+                </div>
+                <div style={{ width: '40%', padding: '10px', fontSize: '8px', borderLeft: `1px solid ${BORDER_COLOR}`, lineHeight: '1.4' }}>
+                    The name of the Company must be determined by one of the following terminations: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.<br/><br/>
+                    El nombre de la Compañía debe terminar con una de las siguientes terminaciones: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.
+                </div>
+            </div>
+
+            {/* CAPITAL SOCIAL */}
+            <div style={{ display: 'flex', alignItems: 'stretch', marginBottom: '20px' }}>
+                <div style={{ flex: 1.5, background: PRIMARY_BLUE, color: 'white', padding: '10px 15px', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center' }}>
+                    Authorized Capital / Capital Social Autorizado:
+                </div>
+                <div style={{ flex: 1, border: `1px solid ${BORDER_COLOR}`, borderLeft: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>
+                    {data.capitalSocial || '10,000.00'} USD
+                </div>
+            </div>
+
+            {/* DIRECTORES - LAYOUT GEOMÉTRICO FIEL */}
+            <div style={{ background: PRIMARY_BLUE, color: 'white', padding: '10px 15px', fontWeight: '700', fontSize: '14px', marginBottom: '15px' }}>
+                Directors / directores:
+            </div>
+
+            {/* Director 1: Ancho Completo */}
+            {directors[0] && renderDirectorTable(directors[0], "Director 1")}
+
+            {/* Director 2 y 3: Dos Columnas */}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                {directors[1] && renderDirectorTable(directors[1], "Director 2", true)}
+                {directors[2] && renderDirectorTable(directors[2], "Director 3", true)}
+            </div>
+
+            {/* Director 4+: Ancho Completo (o saltar a nueva página si es necesario) */}
+            {directors.slice(3).map((d, i) => renderDirectorTable(d, `Director ${i + 4}`))}
+
+            {/* OFFICERS TABLE */}
+            <div style={{ background: PRIMARY_BLUE, color: 'white', padding: '10px 15px', fontWeight: '700', fontSize: '14px', marginBottom: '15px', marginTop: '30px' }}>
+                Officers / dignatarios:
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: `1px solid ${BORDER_COLOR}`, marginBottom: '20px' }}>
+                <thead>
+                    <tr style={{ background: LIGHT_BLUE }}>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}></th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Full name / Nombre completo</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Date of birth / Fecha de nacimiento</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Passport / Pasaporte</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Registration number (if company) / Número de Registro si es empresa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {['presidente', 'secretario', 'tesorero'].map(role => (
+                        <tr key={role}>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px', fontWeight: '700', textTransform: 'uppercase' }}>{role}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{dignitaries[role]?.fullName || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{dignitaries[role]?.birthDate || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{dignitaries[role]?.passport || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{dignitaries[role]?.registrationNum || ''}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {/* SHAREHOLDERS TABLE */}
+            <div style={{ background: PRIMARY_BLUE, color: 'white', padding: '10px 15px', fontWeight: '700', fontSize: '14px', marginBottom: '15px' }}>
+                Shareholders / Accionistas :
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: `1px solid ${BORDER_COLOR}`, marginBottom: '20px' }}>
+                <thead>
+                    <tr style={{ background: LIGHT_BLUE }}>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Share Certificate Number</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Share's value / valor por acción</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Number of Shares</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Shareholder / Accionista</th>
+                        <th style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>Address / dirección</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {shareholders.map((s, i) => (
+                        <tr key={i}>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{s.certificate || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{s.value || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{s.shares || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{s.name || ''}</td>
+                            <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: '8px' }}>{s.address || ''}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {/* DECLARATION SECTION (3px ADJUSTED) */}
+            <div style={{ marginTop: '40px', fontSize: '11px', lineHeight: '1.6' }}>
+                <p style={{ fontWeight: '700', fontStyle: 'italic' }}>
+                    I/We declare that the origin of funds and goods linked to the services provided by Panama Tax Lawyers and its associates derive from legitimate sources and without criminal origin...
+                </p>
+                <div style={{ marginTop: '30px' }}>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #333', marginBottom: '20px', paddingBottom: '3px' }}>
+                        <span style={{ fontWeight: '700', width: '120px' }}>Name // Nombre:</span>
+                        <span style={{ fontSize: '13px', paddingLeft: '10px' }}>{data.declarationName || ''}</span>
+                    </div>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #333', paddingBottom: '3px' }}>
+                        <span style={{ fontWeight: '700', width: '120px' }}>Date // Fecha:</span>
+                        <span style={{ fontSize: '13px', paddingLeft: '10px' }}>{data.declarationDate || ''}</span>
                     </div>
                 </div>
             </div>
         </div>
     );
-});
+};
 
 export default CorporacionPreview;

@@ -363,7 +363,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <Search size={22} color={PRIMARY} /> PREVISUALIZACIÓN FINAL
                 </h2>
                 <button onClick={handleDownloadPDF} className="expert-btn-finish" style={{ background: PRIMARY }}>
-                    <Download size={18} /> DESCARGAR PDF PROFESIONAL
+                    <Download size={18} /> DESCARGAR FORMULARIO LLENO
                 </button>
             </div>
             

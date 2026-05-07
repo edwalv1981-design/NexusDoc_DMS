@@ -8,6 +8,8 @@ import API_BASE_URL from '../config';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
 import CorporacionForm from './CorporacionForm';
+import CorporacionPreview from '../components/CorporacionPreview';
+import html2pdf from 'html2pdf.js';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -40,6 +42,8 @@ const ClientDashboard = () => {
     // SISTEMA DE NOTIFICACIONES UX-UI
     const [toast, setToast] = useState({ show: false, msg: '', type: 'error' });
     const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
+    const [pdfData, setPdfData] = useState(null); // Para el motor dinámico de descarga
+    const pdfRef = React.useRef(null);
 
     const [step, setStep] = useState(1);
     const EMPTY_FORM = {
@@ -186,21 +190,64 @@ const ClientDashboard = () => {
     const handleDownloadPDF = async (doc) => {
         const id = doc.id;
         const token = localStorage.getItem('token');
+        const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+        const isCorp = normType.includes('corporacion') || normType.includes('corporativos');
+
         showToast('Generando Fiel Copia...', 'success');
+
+        // SI ES CORPORACIÓN, USAMOS EL MOTOR DINÁMICO DE ALTA FIDELIDAD (FRONTEND)
+        if (isCorp) {
+            try {
+                // Obtenemos los datos frescos si no los tenemos
+                const response = await fetch(`${API_BASE_URL}/api/forms/${id}`, { headers: { 'x-auth-token': token } });
+                const result = await response.json();
+                const dataForPdf = result.data;
+                
+                setPdfData(dataForPdf);
+                
+                // Esperamos al render y disparamos captura
+                setTimeout(() => {
+                    const element = pdfRef.current;
+                    if (!element) return showToast('Error al inicializar motor dinámico');
+
+                    const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.substring(0, 8);
+                    const opt = {
+                        margin: 0,
+                        filename: `PTLC_${safeId}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { 
+                            scale: 3, 
+                            useCORS: true, 
+                            logging: false,
+                            width: 794 // A4 exact width to avoid distortion
+                        },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        setPdfData(null);
+                        showToast('Descarga completada', 'success');
+                    });
+                }, 500);
+            } catch (e) {
+                showToast('Error en motor dinámico de PDF');
+            }
+            return;
+        }
+
+        // OTROS FORMULARIOS: USAN EL MOTOR DEL SERVIDOR (BACKEND)
         try {
             const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${id}`, {
                 headers: { 'x-auth-token': token }
             });
             if (response.ok) {
-                const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
                 let prefix = 'DOC';
                 if (normType.includes('fondos')) prefix = 'SFAR';
-                else if (normType.includes('corporacion') || normType.includes('corporativos')) prefix = 'PTLC';
                 else if (normType.includes('fundacion')) prefix = 'PTLF';
                 else if (normType.includes('cumplimiento individual')) prefix = 'KYCI';
                 else if (normType.includes('cumplimiento entidades')) prefix = 'KYCE';
 
-                const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.substring(0, 8);
+                const safeId = doc.userUniqueCode ? doc.userUniqueCode : id.toString().substring(0, 8);
                 const filename = `${prefix}_${safeId}.pdf`;
 
                 const blob = await response.blob();
@@ -217,7 +264,7 @@ const ClientDashboard = () => {
                 }, 100);
             } else {
                 const errData = await response.json().catch(() => ({}));
-                showToast(errData.msg || 'Error al generar el PDF. Verifique que la plantilla exista.');
+                showToast(errData.msg || 'Error al generar el PDF. Verifique la conexión.');
             }
         } catch (e) {
             showToast('Falla de conexión al generar PDF');
@@ -488,6 +535,15 @@ const ClientDashboard = () => {
                 .field-group label { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.5px; } 
                 .input-expert { width: 100%; padding: 10px 14px; border: 1.5px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 13px; } 
             `}</style>
+
+            {/* MOTOR DINÁMICO OCULTO PARA DESCARGAS (BLINDAJE TOTAL) */}
+            {pdfData && (
+                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '794px' }}>
+                    <div ref={pdfRef}>
+                        <CorporacionPreview data={pdfData} />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
