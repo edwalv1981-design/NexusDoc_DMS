@@ -98,27 +98,27 @@ class CorporacionHtmlPdfService {
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
       const content = `
-        <header class="doc-header">
-          ${logoDataUri ? `<img class="logo" src="${logoDataUri}" alt="Logo" />` : `<div class="logo-fallback">PANAMA TAX LAWYERS</div>`}
-          <div>
-            <h1>Incorporation Form / Formulario de Incorporacion</h1>
-            <p>Formulario corporativo dinamico y autocompletable</p>
+        <header class="page-header">
+          ${logoDataUri ? `<img class="logo" src="${logoDataUri}" alt="Logo corporativo" />` : `<div class="logo-fallback">PANAMA TAX LAWYERS</div>`}
+          <div class="header-titles">
+            <h1>Incorporation Form / Formulario de Incorporación</h1>
+            <p>Formulario corporativo dinámico y autocompletable</p>
           </div>
         </header>
 
         <section class="card">
-          <h2>Name of the corporation / Nombre de la compania</h2>
-          <div class="hint">List the names you wish to use to incorporate your corporation in order of preference. / Listar los nombres que desea utilizar para incorporar su compania en orden de preferencia.</div>
+          <h2>Name of the Corporation / Nombre de la Compañía</h2>
+          <div class="hint">List the names you wish to use to incorporate your corporation in order of preference. / Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia.</div>
           <div class="grid3">
-            <div><label>1st choice (S.A.)</label><div class="value">${esc(data.corpNameSA)}</div></div>
-            <div><label>2nd choice (Corp.)</label><div class="value">${esc(data.corpNameCorp)}</div></div>
-            <div><label>3rd choice (Inc.)</label><div class="value">${esc(data.corpNameInc)}</div></div>
+            <div><label>1st Choice (S.A.)</label><div class="value">${esc(data.corpNameSA)}</div></div>
+            <div><label>2nd Choice (Corp.)</label><div class="value">${esc(data.corpNameCorp)}</div></div>
+            <div><label>3rd Choice (Inc.)</label><div class="value">${esc(data.corpNameInc)}</div></div>
           </div>
         </section>
 
         <section class="card">
           <h2>Authorized Capital / Capital Social Autorizado</h2>
-          <div class="hint">The minimum authorized capital of the company is US$10,000.00. / El capital minimo autorizado de la sociedad es US$10,000.00.</div>
+          <div class="hint">The minimum authorized capital of the company is US$10,000.00. / El capital mínimo autorizado de la sociedad es US$10,000.00.</div>
           <div class="capital"><span>Minimum:</span> <b>10,000 USD</b> <span>Authorized:</span> <b>${esc(capitalFmt)} USD</b></div>
         </section>
 
@@ -136,7 +136,7 @@ class CorporacionHtmlPdfService {
 
         <section class="card">
           <h2>Directors / Directores</h2>
-          <div class="hint">In Panama a minimum of 3 directors are required. / En Panama se requieren minimo 3 directores.</div>
+          <div class="hint">In Panama, a minimum of 3 directors are required. / En Panamá se requieren mínimo 3 directores.</div>
           <table>
             <thead>
               <tr>
@@ -156,14 +156,14 @@ class CorporacionHtmlPdfService {
         </section>
 
         <section class="card">
-          <h2>Company Activities / Actividades de la compania</h2>
-          <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicacion de la actividad de la sociedad.</div>
+          <h2>Company Activities / Actividades de la Compañía</h2>
+          <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicación de la actividad de la sociedad.</div>
           <div class="longtext">${esc(data.companyActivities)}</div>
         </section>
 
         <section class="card">
-          <h2>Declaration / Declaracion</h2>
-          <div class="hint">I hereby affirm that information given on this application is complete and accurate. / Declaro bajo juramento que la informacion es verdadera y correcta.</div>
+          <h2>Declaration / Declaración</h2>
+          <div class="hint">I hereby affirm that information given on this application is complete and accurate. / Declaro bajo juramento que la información es verdadera y correcta.</div>
           <div class="grid2">
             <div><label>Name / Nombre</label><div class="value">${esc(data.declarationName)}</div></div>
             <div><label>Date / Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
@@ -177,14 +177,26 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: 14mm; }
+            @page { size: A4; margin: 28mm 14mm 14mm 14mm; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; margin: 0; }
-            .doc-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
-            .doc-header h1 { font-size: 22px; margin: 0; color: #0369a1; }
-            .doc-header p { margin: 4px 0 0 0; color: #475569; }
-            .logo { width: 150px; height: 58px; object-fit: contain; object-position: left center; }
+            .page-header {
+              position: fixed;
+              top: -22mm;
+              left: 0;
+              right: 0;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              background: #fff;
+              padding-top: 2mm;
+            }
+            .header-titles h1 { font-size: 16px; margin: 0; color: #0369a1; font-weight: 800; }
+            .header-titles p { margin: 2px 0 0 0; color: #475569; font-size: 9px; }
+            .logo { width: 160px; max-height: 52px; object-fit: contain; object-position: center; margin-bottom: 2px; }
             .logo-fallback { font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
-            .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; }
+            .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: auto; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
             .hint { padding: 6px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.35; }
             .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
