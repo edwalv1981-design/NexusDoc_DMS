@@ -85,13 +85,10 @@ class CorporacionHtmlPdfService {
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
       const content = `
-        <header class="page-header">
-          ${logoDataUri ? `<img class="logo" src="${logoDataUri}" alt="Logo corporativo" />` : `<div class="logo-fallback">PANAMA TAX LAWYERS</div>`}
-          <div class="header-titles">
-            <h1>Incorporation Form / Formulario de Incorporación</h1>
-            <p>Formulario corporativo dinámico y autocompletable</p>
-          </div>
-        </header>
+        <section class="title-block">
+          <h1>Incorporation Form / Formulario de Incorporación</h1>
+          <p>Formulario corporativo dinámico y autocompletable</p>
+        </section>
 
         <section class="card">
           <h2>Name of the Corporation / Nombre de la Compañía</h2>
@@ -106,7 +103,14 @@ class CorporacionHtmlPdfService {
         <section class="card">
           <h2>Authorized Capital / Capital Social Autorizado</h2>
           <div class="hint">The minimum authorized capital of the company is US$10,000.00. / El capital mínimo autorizado de la sociedad es US$10,000.00.</div>
-          <div class="capital"><span>Minimum:</span> <b>10,000 USD</b> <span>Authorized:</span> <b>${esc(capitalFmt)} USD</b></div>
+          <table class="capital-table">
+            <thead>
+              <tr><th>Minimum / Mínimo</th><th>Authorized / Autorizado</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>10,000 USD</td><td>${esc(capitalFmt)} USD</td></tr>
+            </tbody>
+          </table>
         </section>
 
         <section class="card">
@@ -166,19 +170,9 @@ class CorporacionHtmlPdfService {
           <style>
             @page { size: A4; margin: 14mm; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; margin: 0; }
-            .page-header {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              text-align: center;
-              background: #fff;
-              margin-bottom: 10px;
-            }
-            .header-titles h1 { font-size: 16px; margin: 0; color: #0369a1; font-weight: 800; }
-            .header-titles p { margin: 2px 0 0 0; color: #475569; font-size: 9px; }
-            .logo { width: 160px; max-height: 52px; object-fit: contain; object-position: center; margin-bottom: 2px; }
-            .logo-fallback { font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
+            .title-block { text-align: center; margin: 0 0 10px 0; }
+            .title-block h1 { font-size: 16px; margin: 0; color: #0369a1; font-weight: 800; }
+            .title-block p { margin: 2px 0 0 0; color: #475569; font-size: 9px; }
             .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; break-inside: avoid; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
             .hint { padding: 6px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.35; }
@@ -187,7 +181,7 @@ class CorporacionHtmlPdfService {
             .grid2 { grid-template-columns: 1fr 1fr; }
             label { display: block; font-weight: 700; color: #334155; margin-bottom: 2px; }
             .value { min-height: 18px; border: 1px solid #bae6fd; padding: 4px; background: #f8fdff; word-break: break-word; }
-            .capital { padding: 10px; font-size: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+            .capital-table td { text-align: center; font-weight: 700; font-size: 11px; padding: 8px; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             thead { display: table-header-group; }
             th, td { border: 1px solid #7dd3fc; padding: 3px 4px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
@@ -206,11 +200,23 @@ class CorporacionHtmlPdfService {
       });
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' });
+      const headerTemplate = `
+        <div style="width:100%; text-align:center; font-size:8px; padding-top:6px;">
+          ${
+            logoDataUri
+              ? `<img src="${logoDataUri}" style="height:42px; object-fit:contain;" />`
+              : `<span style="font-weight:700; color:#94a3b8;">PANAMA TAX LAWYERS</span>`
+          }
+        </div>
+      `;
       return await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' }
+        displayHeaderFooter: true,
+        headerTemplate,
+        footerTemplate: '<div></div>',
+        margin: { top: '58px', right: '16px', bottom: '16px', left: '16px' }
       });
     } finally {
       if (browser) await browser.close();
