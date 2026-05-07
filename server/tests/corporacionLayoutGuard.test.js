@@ -24,6 +24,16 @@ describe('corporacionLayoutGuard', () => {
     assert.equal(m.bottom, g.LAYOUT.BOTTOM_INSET);
   });
 
+  it('getPrintPageMarginCss es top right bottom left en mm', () => {
+    const s = g.getPrintPageMarginCss(g.LAYOUT);
+    const parts = s.trim().split(/\s+/);
+    assert.equal(parts.length, 4);
+    assert.match(parts[0], /mm$/);
+    assert.match(parts[1], /mm$/);
+    assert.match(parts[2], /mm$/);
+    assert.match(parts[3], /mm$/);
+  });
+
   it('headerTemplate escapa comillas en data URI (no rompe atributo src)', () => {
     const evil = 'data:image/png;base64,AAA"BBB';
     const { headerTemplate } = g.buildPuppeteerHeaderFooterTemplates(g.LAYOUT, evil);

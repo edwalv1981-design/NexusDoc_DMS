@@ -89,6 +89,7 @@ class CorporacionHtmlPdfService {
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
       const bodyGuardClass = corporacionLayoutGuard.bodyClassForPlan(plan);
+      const pageMarginCss = corporacionLayoutGuard.getPrintPageMarginCss(corporacionLayoutGuard.LAYOUT);
 
       const content = `
         <main class="doc-body">
@@ -178,10 +179,10 @@ class CorporacionHtmlPdfService {
           <meta charset="utf-8" />
           <style>
             /*
-             * Márgenes laterales/superior/inferior: solo vía page.pdf({ margin }) (getPuppeteerPdfMargins).
-             * @page margin 0 + preferCSSPageSize false evita que CSS anule los márgenes del API al imprimir.
+             * Márgenes en @page (top right bottom left): se aplican en **cada** hoja al generar PDF.
+             * page.pdf({ margin: 0 }) evita doble margen; preferCSSPageSize true respeta esta regla.
              */
-            @page { size: A4; margin: 0; }
+            @page { size: A4; margin: ${pageMarginCss}; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
             .doc-body {
@@ -243,11 +244,14 @@ class CorporacionHtmlPdfService {
         corporacionLayoutGuard.LAYOUT,
         logoDataUri
       );
+      const { margin: _pdfMarginFromChromeOpts, ...chromePdfRest } = chromePdf;
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: false,
-        ...chromePdf
+        preferCSSPageSize: true,
+        scale: 1,
+        margin: { top: '0', right: '0', bottom: '0', left: '0' },
+        ...chromePdfRest,
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {

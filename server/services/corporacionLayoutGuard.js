@@ -6,8 +6,8 @@
  * PDF / logo (evitar errores recurrentes):
  * - Logo solo vía `headerTemplate` de Puppeteer (`getCorporacionPuppeteerPdfChromeOptions`), no `position:fixed` en el HTML.
  * - `getPdfBodyTopMarginPx` = altura cabecera + buffer; debe coincidir con el cálculo de altura útil en `refineAfterRender`.
- * - Márgenes laterales `H_INSET`: holgura para impresora (zona no imprimible); van en page.pdf({ margin }).
- * - `preferCSSPageSize: false` + `@page { margin: 0 }` para que los márgenes del API no los pise el CSS.
+ * - Márgenes: definidos en **@page** (mm) para que se repitan en **cada** hoja al imprimir; `page.pdf({ margin:0 })`.
+ * - `preferCSSPageSize: true` para que Chromium respete @page (si margin>0 en API + @page 0, el contenido iba a borde).
  * - Asset `templates/logo_empresa.png`: preferir PNG con transparencia; si el fondo es blanco “quemado”, seguirá tapando el teal.
  */
 
@@ -57,6 +57,14 @@ function getPuppeteerPdfMargins(layout = LAYOUT) {
     right: layout.H_INSET,
     bottom: layout.BOTTOM_INSET,
   };
+}
+
+/**
+ * Cadena `margin` para regla `@page` (orden CSS: top right bottom left).
+ */
+function getPrintPageMarginCss(layout = LAYOUT) {
+  const m = getPuppeteerPdfMargins(layout);
+  return `${m.top} ${m.right} ${m.bottom} ${m.left}`;
 }
 
 function escAttrHtml(s) {
@@ -298,7 +306,7 @@ const LAYOUT = Object.freeze({
    * Colchón extra bajo el logo → `margin-top` del PDF. Evita solapes por redondeo mm/px o escala del headerTemplate.
    * Si el logo “besa” el primer bloque, subir un poco (p. ej. 16–24).
    */
-  PDF_TOP_MARGIN_BUFFER_PX: 14,
+  PDF_TOP_MARGIN_BUFFER_PX: 22,
 });
 
 module.exports = {
@@ -307,6 +315,7 @@ module.exports = {
   getContentStartPx,
   getPdfBodyTopMarginPx,
   getPuppeteerPdfMargins,
+  getPrintPageMarginCss,
   buildPuppeteerHeaderFooterTemplates,
   getCorporacionPuppeteerPdfChromeOptions,
   assertCorporacionPdfLayoutInvariants,
@@ -318,5 +327,5 @@ module.exports = {
   refineAfterRender,
   estimateMinPages,
   /** Referencia para pruebas */
-  _constants: { A4_HEIGHT_PX, LAYOUT, getContentStartPx, getPdfBodyTopMarginPx },
+  _constants: { A4_HEIGHT_PX, LAYOUT, getContentStartPx, getPdfBodyTopMarginPx, getPrintPageMarginCss },
 };
