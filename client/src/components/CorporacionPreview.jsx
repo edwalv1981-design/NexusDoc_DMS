@@ -240,12 +240,15 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '12px' }}>
                     {data.directors.map((director, i) => {
-                        // LÓGICA DE RÉPLICA ORIGINAL:
-                        // 1. Directores en pares (1&2, 4&5...) van en columnas de 50%
-                        // 2. Si el director es el "3" o el último de una cuenta impar, va a ancho completo (Layout Split)
-                        const isSplit = (i === 2) || (i === data.directors.length - 1 && i % 2 === 0);
+                        // LÓGICA DE RÉPLICA ORIGINAL (CALIBRADA):
+                        // 1. Los directores se agrupan en pares (1&2, 3&4, 5&6...)
+                        // 2. Solo si un director queda "huérfano" al final (ej: el 3 de 3, o el 5 de 5)
+                        //    se le otorga el ancho completo con Layout Split.
+                        
+                        const isLast = i === data.directors.length - 1;
+                        const isOrphan = isLast && (i % 2 === 0); // i=0 es Dir 1, i=2 es Dir 3 (huérfano si es el último)
 
-                        if (isSplit) {
+                        if (isOrphan) {
                             return (
                                 <div key={i} style={{ ...styles.directorBox, width: '100%' }}>
                                     <div style={styles.directorHeader}>Director {i + 1}</div>
