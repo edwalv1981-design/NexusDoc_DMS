@@ -117,7 +117,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         };
         const templateName = templateMap[form.formType] || form.formType || "fondos"; 
 
-        // Ruta profesional para Corporación: PDF desde HTML dinámico (sin coordenadas por casillero)
+        // Corporación SIEMPRE en formato propio HTML (sin fallback al motor legacy).
         if (templateName === 'corporacion') {
             try {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {});
@@ -134,8 +134,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 res.setHeader('Content-Type', 'application/pdf');
                 return res.send(pdfBuffer);
             } catch (htmlErr) {
-                console.error('⚠️ Fallback Corporación: fallo motor HTML, usando motor Python.', htmlErr.message);
-                // continuar al flujo legacy Python para no bloquear descarga
+                console.error('❌ Corporación HTML falló:', htmlErr);
+                return res.status(500).json({ msg: `ERROR CORPORACION HTML: ${htmlErr.message}` });
             }
         }
 
