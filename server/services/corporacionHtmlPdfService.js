@@ -90,16 +90,14 @@ class CorporacionHtmlPdfService {
         H_INSET,
         BOTTOM_INSET,
         HEADER_LOGO_H,
-        RUNNING_HEADER_TOP_PX,
         RUNNING_HEADER_PADDING_TOP,
         RUNNING_HEADER_PADDING_BOTTOM,
       } = LAYOUT;
       const headerBandPx =
         RUNNING_HEADER_PADDING_TOP + HEADER_LOGO_H + RUNNING_HEADER_PADDING_BOTTOM;
+      const contentStartPx = corporacionLayoutGuard.getContentStartPx(LAYOUT);
       /** Márgenes de impresión solo en @page (con preferCSSPageSize no mezclar con margin de page.pdf). */
-      const pageTopMargin = corporacionLayoutGuard.pxToMmString(
-        corporacionLayoutGuard.getContentStartPx(LAYOUT)
-      );
+      const pageTopMargin = corporacionLayoutGuard.pxToMmString(contentStartPx);
 
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
@@ -207,13 +205,14 @@ class CorporacionHtmlPdfService {
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
             /*
-             * Encabezada solo envuelve el logo (ancho intrínseco). Nada de fondo blanco:
-             * un strip full-width + position:fixed + z-index tapaba las franjas teal en impresión.
+             * Chromium PDF: position:fixed suele usar el origen del área de contenido (tras @page).
+             * - left:0 alinea con el borde izquierdo del cuerpo (mismo que tablas); left:14mm duplicaba el margen.
+             * - top negativo = misma altura que el margen superior de @page (franja del logo en todas las hojas).
              */
             .running-header {
               position: fixed;
-              top: ${RUNNING_HEADER_TOP_PX}px;
-              left: ${H_INSET};
+              top: ${-contentStartPx}px;
+              left: 0;
               right: auto;
               width: max-content;
               max-width: 220px;
@@ -223,7 +222,7 @@ class CorporacionHtmlPdfService {
               box-sizing: border-box;
               background: none;
               box-shadow: none;
-              z-index: 1;
+              z-index: 0;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
