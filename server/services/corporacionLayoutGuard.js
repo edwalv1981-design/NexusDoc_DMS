@@ -2,6 +2,11 @@
  * Agente interno de maquetación para PDF Corporación (HTML).
  * Objetivo: reducir saltos de página "feos" (huérfanos, bloques imposibles de mantener juntos).
  * No afecta SFAR ni otros formularios.
+ *
+ * PDF / logo (evitar errores recurrentes):
+ * - Logo solo vía `headerTemplate` de Puppeteer (`getCorporacionPuppeteerPdfChromeOptions`), no `position:fixed` en el HTML.
+ * - `getPdfBodyTopMarginPx` = altura cabecera + buffer; debe coincidir con el cálculo de altura útil en `refineAfterRender`.
+ * - Asset `templates/logo_empresa.png`: preferir PNG con transparencia; si el fondo es blanco “quemado”, seguirá tapando el teal.
  */
 
 const A4_HEIGHT_PX = 1123; // ~297mm @ 96dpi
@@ -33,11 +38,19 @@ function getContentStartPx(layout) {
 }
 
 /**
+ * Margen superior del **cuerpo** del PDF (px): reserva cabecera + hueco; incluye buffer anti-solape Chrome.
+ * Debe usarse igual en `page.pdf({ margin.top })` y en `refineAfterRender` (altura útil).
+ */
+function getPdfBodyTopMarginPx(layout = LAYOUT) {
+  return getContentStartPx(layout) + layout.PDF_TOP_MARGIN_BUFFER_PX;
+}
+
+/**
  * Márgenes del `page.pdf()` de Puppeteer (área del cuerpo). Misma geometría en **cada** hoja.
  */
 function getPuppeteerPdfMargins(layout = LAYOUT) {
   return {
-    top: pxToMmString(getContentStartPx(layout)),
+    top: pxToMmString(getPdfBodyTopMarginPx(layout)),
     left: layout.H_INSET,
     right: layout.H_INSET,
     bottom: layout.BOTTOM_INSET,
@@ -61,11 +74,13 @@ function escAttrHtml(s) {
 function buildPuppeteerHeaderFooterTemplates(layout, logoDataUri) {
   const inset = layout.H_INSET;
   const padTop = layout.RUNNING_HEADER_PADDING_TOP;
+  const padBot = layout.RUNNING_HEADER_PADDING_BOTTOM;
   const h = layout.HEADER_LOGO_H;
   const img = logoDataUri
     ? `<img src="${escAttrHtml(logoDataUri)}" alt="" style="height:${h}px;width:auto;max-width:200px;display:block;object-fit:contain;" />`
-    : `<span style="font-size:9px;font-weight:bold;color:#94a3b8;line-height:${h}px;">PANAMA TAX LAWYERS</span>`;
-  const headerTemplate = `<div style="font-size:12px;width:100%;box-sizing:border-box;margin:0;padding:${padTop}px ${inset} 0 ${inset};text-align:left;font-family:Arial,Helvetica,sans-serif;line-height:0;">${img}</div>`;
+    : `<span style="font-size:9px;font-weight:bold;color:#94a3b8;line-height:${h}px;display:inline-block;">PANAMA TAX LAWYERS</span>`;
+  /* font-size:0 evita que Chrome infle la franja por line-height del contenedor (causa solapes “mediocres”). */
+  const headerTemplate = `<div style="font-size:0;line-height:0;width:100%;box-sizing:border-box;margin:0;padding:${padTop}px ${inset} ${padBot}px ${inset};text-align:left;font-family:Arial,Helvetica,sans-serif;">${img}</div>`;
   const footerTemplate =
     '<div style="height:1px;margin:0;padding:0;font-size:1px;">&nbsp;</div>';
   return {
@@ -177,10 +192,10 @@ function bodyClassForPlan(plan) {
  * @param {import('puppeteer').Page} page
  */
 async function refineAfterRender(page) {
-  const contentTopPx = getContentStartPx(LAYOUT);
+  const bodyTopPx = getPdfBodyTopMarginPx(LAYOUT);
   const bottomPx = insetMmToPx(LAYOUT.BOTTOM_INSET);
   /** Altura útil por página A4 (px @96dpi), sin depender de innerHeight del headless. */
-  const usablePerPage = A4_HEIGHT_PX - contentTopPx - Math.max(bottomPx, DEFAULT_BOTTOM_PX);
+  const usablePerPage = A4_HEIGHT_PX - bodyTopPx - Math.max(bottomPx, DEFAULT_BOTTOM_PX);
 
   await page.evaluate((usable) => {
     const tail = document.querySelector('.tail-block');
@@ -246,12 +261,18 @@ const LAYOUT = Object.freeze({
   RUNNING_HEADER_PADDING_BOTTOM: 18,
   /** Hueco entre la franja del logo y el inicio del contenido (como antes: 4px). */
   DOC_BODY_GAP_BELOW_HEADER: 4,
+  /**
+   * Colchón extra bajo el logo → `margin-top` del PDF. Evita solapes por redondeo mm/px o escala del headerTemplate.
+   * Si el logo “besa” el primer bloque, subir un poco (p. ej. 16–24).
+   */
+  PDF_TOP_MARGIN_BUFFER_PX: 14,
 });
 
 module.exports = {
   LAYOUT,
   getHeaderBandPx,
   getContentStartPx,
+  getPdfBodyTopMarginPx,
   getPuppeteerPdfMargins,
   buildPuppeteerHeaderFooterTemplates,
   getCorporacionPuppeteerPdfChromeOptions,
@@ -263,5 +284,5 @@ module.exports = {
   refineAfterRender,
   estimateMinPages,
   /** Referencia para pruebas */
-  _constants: { A4_HEIGHT_PX, LAYOUT, getContentStartPx },
+  _constants: { A4_HEIGHT_PX, LAYOUT, getContentStartPx, getPdfBodyTopMarginPx },
 };
