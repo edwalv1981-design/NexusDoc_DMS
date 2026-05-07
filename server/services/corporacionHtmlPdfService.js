@@ -200,11 +200,11 @@ class CorporacionHtmlPdfService {
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' });
       const headerTemplate = `
-        <div style="width:100%; font-family:Arial, Helvetica, sans-serif; box-sizing:border-box; padding:4px 0 0 0;">
-          <div style="text-align:left;">
+        <div style="width:100%; font-family:Arial, Helvetica, sans-serif; box-sizing:border-box; padding:6px 16px 0 16px;">
+          <div style="text-align:left; height:44px; display:flex; align-items:flex-start;">
             ${
               logoDataUri
-                ? `<img src="${logoDataUri}" style="height:40px; object-fit:contain; display:block;" />`
+                ? `<img src="${logoDataUri}" style="height:40px; object-fit:contain; object-position:left top; display:block;" />`
                 : `<span style="font-weight:700; color:#94a3b8; font-size:9px;">PANAMA TAX LAWYERS</span>`
             }
           </div>
@@ -217,7 +217,7 @@ class CorporacionHtmlPdfService {
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate: '<div></div>',
-        margin: { top: '62px', right: '16px', bottom: '16px', left: '16px' }
+        margin: { top: '96px', right: '16px', bottom: '16px', left: '16px' }
       });
     } finally {
       if (browser) await browser.close();
