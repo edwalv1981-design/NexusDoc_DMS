@@ -28,7 +28,7 @@ def insert_text_scaled(page, rect, text, fontname="Helvetica", max_fontsize=9, m
     page.insert_text((rect.x0, rect.y1 - 3), text, fontsize=fontsize, fontname=fontname, color=color)
 
 
-def insert_textbox_clipped(page, rect, text, fontsize=7.5, fontname="helv"):
+def insert_textbox_clipped(page, rect, text, fontsize=7.5, fontname="Helvetica"):
     """Escribe dentro de rect con ajuste; evita texto encima del siguiente campo."""
     if not text:
         return
@@ -47,8 +47,20 @@ def insert_textbox_clipped(page, rect, text, fontsize=7.5, fontname="helv"):
             align=fitz.TEXT_ALIGN_LEFT,
         )
     except Exception:
-        ff = max(5.5, fontsize - 1.5)
-        page.insert_text((rect.x0, rect.y1 - 3), txt[:520], fontsize=ff, fontname="Helvetica")
+        # Fallback: aún respetar el rectángulo y evitar “texto suelto”
+        ff = max(5.5, float(fontsize) - 1.5)
+        try:
+            page.insert_textbox(
+                rect,
+                txt[:520],
+                fontsize=ff,
+                fontname="Helvetica",
+                color=(0, 0, 0),
+                align=fitz.TEXT_ALIGN_LEFT,
+            )
+        except Exception:
+            # Último recurso (evitar crash). No ideal, pero mejor que fallar el PDF.
+            page.insert_text((rect.x0, rect.y1 - 3), txt[:220], fontsize=ff, fontname="Helvetica")
 
 
 def director_title_variants(n):
