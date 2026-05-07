@@ -66,6 +66,7 @@ class CorporacionHtmlPdfService {
       const logoPathCandidates = [
         process.env.CORPORACION_LOGO_PATH,
         path.join(rootDir, 'templates', 'logo_real.png'),
+        path.join(rootDir, 'templates', 'logo.png'),
         path.join(rootDir, 'templates', 'corporacion_logo.png'),
         path.join(rootDir, 'server', 'assets', 'logo_real.png'),
         path.join(rootDir, 'client', 'src', 'assets', 'logo_real.png'),
