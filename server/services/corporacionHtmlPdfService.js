@@ -88,13 +88,17 @@ class CorporacionHtmlPdfService {
       const LAYOUT = corporacionLayoutGuard.LAYOUT;
       const {
         H_INSET,
+        BOTTOM_INSET,
         HEADER_LOGO_H,
         RUNNING_HEADER_PADDING_TOP,
         RUNNING_HEADER_PADDING_BOTTOM,
       } = LAYOUT;
       const headerBandPx =
         RUNNING_HEADER_PADDING_TOP + HEADER_LOGO_H + RUNNING_HEADER_PADDING_BOTTOM;
-      const pdfMargins = corporacionLayoutGuard.getPdfMargins(LAYOUT);
+      /** Márgenes de impresión solo en @page (con preferCSSPageSize no mezclar con margin de page.pdf). */
+      const pageTopMargin = corporacionLayoutGuard.pxToMmString(
+        corporacionLayoutGuard.getContentStartPx(LAYOUT)
+      );
 
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
@@ -194,8 +198,11 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            /* Un solo sistema de márgenes: evita solape header PDF vs @page (Puppeteer + Chromium). */
-            @page { size: A4; margin: 0; }
+            /* Márgenes en @page: se repiten en cada hoja y no chocan con preferCSSPageSize. */
+            @page {
+              size: A4;
+              margin: ${pageTopMargin} ${H_INSET} ${BOTTOM_INSET} ${H_INSET};
+            }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
             .running-header {
@@ -286,7 +293,7 @@ class CorporacionHtmlPdfService {
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        margin: pdfMargins
+        margin: { top: '0', right: '0', bottom: '0', left: '0' }
       });
     } finally {
       if (browser) await browser.close();

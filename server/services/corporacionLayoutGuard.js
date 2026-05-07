@@ -33,18 +33,6 @@ function getContentStartPx(layout) {
 }
 
 /**
- * Márgenes PDF (Puppeteer): el superior reserva la franja del logo; así el texto no “sube” en páginas 2+.
- */
-function getPdfMargins(layout) {
-  return {
-    top: pxToMmString(getContentStartPx(layout)),
-    left: layout.H_INSET,
-    right: layout.H_INSET,
-    bottom: layout.BOTTOM_INSET,
-  };
-}
-
-/**
  * @param {object} data - Mismo payload que CorporacionForm guarda
  */
 function analyzeFormData(data = {}) {
@@ -210,7 +198,6 @@ module.exports = {
   LAYOUT,
   getHeaderBandPx,
   getContentStartPx,
-  getPdfMargins,
   pxToMmString,
   insetMmToPx,
   analyzeFormData,
