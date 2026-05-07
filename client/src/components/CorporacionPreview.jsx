@@ -238,66 +238,77 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
 
                 <div style={styles.sectionHeader}>Directors / directores:</div>
                 
-                <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
-                    {[0, 1].map(i => (
-                        <div key={i} style={{ width: 'calc(50% - 7.5px)', border: BORDER }}>
-                            <div style={styles.directorHeader}>Director {i + 1}</div>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <tbody>
-                                    {['First name / Nombre', 'Middle name / Segundo nombre', 'Surname(s) / Apellidos', 'Date of birth/ Fecha de nacimiento', 'Marital Status / Estado civil', 'Citizenship / Nacionalidad', 'Passport/Pasaporte', 'Phone/Teléfono', 'Email', 'Address / Dirección', 'City / ciudad', 'Country / Pais'].map((field, idx) => {
-                                        const keys = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email', 'address', 'city', 'country'];
-                                        return (
-                                            <tr key={idx} style={{ borderBottom: idx === 11 ? '0' : `1px solid ${PTL_TEAL}` }}>
-                                                <td style={{ ...styles.directorLabel, width: '45%' }}>{field}</td>
-                                                <td style={styles.directorValue}>{data.directors[i]?.[keys[idx]] || ''}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    ))}
-                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '12px' }}>
+                    {data.directors.map((director, i) => {
+                        // LÓGICA DE RÉPLICA ORIGINAL:
+                        // 1. Directores en pares (1&2, 4&5...) van en columnas de 50%
+                        // 2. Si el director es el "3" o el último de una cuenta impar, va a ancho completo (Layout Split)
+                        const isSplit = (i === 2) || (i === data.directors.length - 1 && i % 2 === 0);
 
-                {data.directors.length >= 3 && (
-                    <div style={{ border: BORDER, marginTop: '15px' }}>
-                        <div style={styles.directorHeader}>Director 3</div>
-                        <div style={{ display: 'flex' }}>
-                            <table style={{ width: '50%', borderCollapse: 'collapse', borderRight: BORDER }}>
-                                <tbody>
-                                    {['First name / Nombre', 'Middle name / Segundo nombre', 'Surname(s) / Apellidos', 'Date of birth/ Fecha de nacimiento', 'Marital Status / Estado civil', 'Citizenship / Nacionalidad', 'Passport/Pasaporte', 'Phone/Teléfono', 'Email'].map((field, idx) => {
-                                        const keys = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email'];
-                                        return (
-                                            <tr key={idx} style={{ borderBottom: idx === 8 ? '0' : `1px solid ${PTL_TEAL}` }}>
-                                                <td style={styles.directorLabel}>{field}</td>
-                                                <td style={styles.directorValue}>{data.directors[2]?.[keys[idx]] || ''}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            <div style={{ width: '50%' }}>
+                        if (isSplit) {
+                            return (
+                                <div key={i} style={{ ...styles.directorBox, width: '100%' }}>
+                                    <div style={styles.directorHeader}>Director {i + 1}</div>
+                                    <div style={{ display: 'flex' }}>
+                                        <table style={{ width: '50%', borderCollapse: 'collapse', borderRight: BORDER }}>
+                                            <tbody>
+                                                {['First name / Nombre', 'Middle name / Segundo nombre', 'Surname(s) / Apellidos', 'Date of birth/ Fecha de nacimiento', 'Marital Status / Estado civil', 'Citizenship / Nacionalidad', 'Passport/Pasaporte', 'Phone/Teléfono', 'Email'].map((field, idx) => {
+                                                    const keys = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email'];
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: idx === 8 ? '0' : `1px solid ${PTL_TEAL}` }}>
+                                                            <td style={styles.directorLabel}>{field}</td>
+                                                            <td style={styles.directorValue}>{director[keys[idx]] || ''}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                        <div style={{ width: '50%' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                <tbody>
+                                                    {['Address / Dirección', 'City / ciudad', 'Country / Pais'].map((field, idx) => {
+                                                        const keys = ['address', 'city', 'country'];
+                                                        return (
+                                                            <tr key={idx} style={{ borderBottom: `1px solid ${PTL_TEAL}` }}>
+                                                                <td style={{ ...styles.directorLabel, width: '40%' }}>{field}</td>
+                                                                <td style={styles.directorValue}>{director[keys[idx]] || ''}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                            {i === 2 && (
+                                                <div style={{ padding: '8px', fontSize: '7.5px', fontWeight: 'bold', lineHeight: '1.2' }}>
+                                                    In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
+                                                    En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div key={i} style={{ ...styles.directorBox, width: 'calc(50% - 7.5px)' }}>
+                                <div style={styles.directorHeader}>Director {i + 1}</div>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <tbody>
-                                        {['Address / Dirección', 'City / ciudad', 'Country / Pais'].map((field, idx) => {
-                                            const keys = ['address', 'city', 'country'];
+                                        {['First name / Nombre', 'Middle name / Segundo nombre', 'Surname(s) / Apellidos', 'Date of birth/ Fecha de nacimiento', 'Marital Status / Estado civil', 'Citizenship / Nacionalidad', 'Passport/Pasaporte', 'Phone/Teléfono', 'Email', 'Address / Dirección', 'City / ciudad', 'Country / Pais'].map((field, idx) => {
+                                            const keys = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email', 'address', 'city', 'country'];
                                             return (
-                                                <tr key={idx} style={{ borderBottom: `1px solid ${PTL_TEAL}` }}>
-                                                    <td style={{ ...styles.directorLabel, width: '40%' }}>{field}</td>
-                                                    <td style={styles.directorValue}>{data.directors[2]?.[keys[idx]] || ''}</td>
+                                                <tr key={idx} style={{ borderBottom: idx === 11 ? '0' : `1px solid ${PTL_TEAL}` }}>
+                                                    <td style={{ ...styles.directorLabel, width: '45%' }}>{field}</td>
+                                                    <td style={styles.directorValue}>{director[keys[idx]] || ''}</td>
                                                 </tr>
                                             );
                                         })}
                                     </tbody>
                                 </table>
-                                <div style={{ padding: '8px', fontSize: '7.5px', fontWeight: 'bold', lineHeight: '1.2' }}>
-                                    In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page.<br/><br/>
-                                    En PANAMÁ se requiere un minimo de 3 diferentes directores.Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.
-                                </div>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* PÁGINA 2 */}

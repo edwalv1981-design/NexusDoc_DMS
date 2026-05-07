@@ -336,18 +336,23 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     const handleDownloadPDF = () => {
         const element = document.getElementById('corp-document-preview');
+        if (!element) return;
+
         const opt = {
             margin: 0,
-            filename: `PTL_Corporacion_${formData.corpNameSA || 'Documento'}.pdf`,
+            filename: `PTL_2025_CORPORATE_FORM_${formData.corpNameSA || 'DOC'}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
-                scale: 3, // Resolución de grado legal (300 DPI equivalente)
-                useCORS: true, 
-                logging: false,
-                letterRendering: true
+                scale: 3, 
+                useCORS: true,
+                letterRendering: true,
+                width: 794, 
+                windowWidth: 794
             },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
+
         html2pdf().set(opt).from(element).save();
     };
 
