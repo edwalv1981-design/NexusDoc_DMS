@@ -90,6 +90,7 @@ class CorporacionHtmlPdfService {
         H_INSET,
         BOTTOM_INSET,
         HEADER_LOGO_H,
+        RUNNING_HEADER_TOP_PX,
         RUNNING_HEADER_PADDING_TOP,
         RUNNING_HEADER_PADDING_BOTTOM,
       } = LAYOUT;
@@ -211,7 +212,7 @@ class CorporacionHtmlPdfService {
              */
             .running-header {
               position: fixed;
-              top: 0;
+              top: ${RUNNING_HEADER_TOP_PX}px;
               left: ${H_INSET};
               right: auto;
               width: max-content;

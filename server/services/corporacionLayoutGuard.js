@@ -187,7 +187,12 @@ const LAYOUT = Object.freeze({
   H_INSET: '14mm',
   BOTTOM_INSET: '10mm',
   HEADER_LOGO_H: 40,
-  /** Logo ~3px más abajo respecto al borde superior (misma franja en cada página). */
+  /**
+   * Desde el borde superior del papel (px). Negativo sube el bloque del logo.
+   * `position: fixed` repite la misma posición en todas las impresiones/hojas.
+   */
+  RUNNING_HEADER_TOP_PX: -20,
+  /** Espacio interno sobre la imagen dentro de la franja fija. */
   RUNNING_HEADER_PADDING_TOP: 16,
   RUNNING_HEADER_PADDING_BOTTOM: 18,
   /** Hueco entre la franja del logo y el inicio del contenido (como antes: 4px). */
