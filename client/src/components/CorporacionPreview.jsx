@@ -369,7 +369,7 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                 </div>
 
                 <div style={{ ...styles.signatureArea, borderTop: BORDER }}>
-                    <div style={styles.signatureRow}>
+                    <div style={{ ...styles.signatureRow, borderTop: BORDER }}>
                         <div style={styles.signatureLabel}>Signature // Firma</div>
                         <div style={styles.signatureValue}></div>
                     </div>
@@ -378,8 +378,10 @@ const CorporacionPreview = React.forwardRef(({ data }, ref) => {
                         <div style={styles.signatureValue}>{data.declarationName}</div>
                     </div>
                     <div style={styles.signatureRow}>
-                        <div style={styles.signatureLabel}>Date // Fecha:</div>
-                        <div style={styles.signatureValue}> / / 2025</div>
+                        <div style={{ ...styles.signatureRow, border: 0, height: '100%', width: '100%', display: 'flex' }}>
+                            <div style={styles.signatureLabel}>Date // Fecha:</div>
+                            <div style={{ ...styles.signatureValue, fontSize: '13px' }}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ 2025</div>
+                        </div>
                     </div>
                 </div>
             </div>
