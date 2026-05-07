@@ -980,6 +980,9 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
         (xs_cert, xs_val, xs_shares, xs_name, xs_addr),
     )
 
+    # PyMuPDF invalida referencias Page tras insert_pdf; reacquirir la página base.
+    page_f = doc[officers_idx]
+
     act = data.get("companyActivities")
     if act:
         act_ymin = max(248.0, float(ay) + float(sh_section.get("activities_anchor_min_below_officers") or 120))
