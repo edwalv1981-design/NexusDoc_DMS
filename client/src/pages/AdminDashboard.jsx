@@ -294,8 +294,8 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody>
                           {[
-                            { id: 'fondos', label: 'Fondos Registros contables' },
-                            { id: 'corporacion', label: 'Corporación' },
+                            { id: 'fondos', label: 'Declaración de Fondos' },
+                            { id: 'corporacion', label: 'Incorporación' },
                             { id: 'fundaciones', label: 'Fundaciones' },
                             { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
                             { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
@@ -336,8 +336,8 @@ const AdminDashboard = () => {
                       <div className="field-group-admin">
                         <label style={{ fontSize: '10px', fontWeight: 700 }}>TIPO DE TRÁMITE A VINCULAR</label>
                         <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
-                          <option value="fondos">Fondos Registros contables</option>
-                          <option value="corporacion">Corporación</option>
+                          <option value="fondos">Declaración de Fondos</option>
+                          <option value="corporacion">Incorporación</option>
                           <option value="fundaciones">Fundaciones</option>
                           <option value="cumplimiento_individual">Cumplimiento Individual</option>
                           <option value="cumplimiento_entidades">Cumplimiento Entidades</option>

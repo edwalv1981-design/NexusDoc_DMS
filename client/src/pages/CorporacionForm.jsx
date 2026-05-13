@@ -341,7 +341,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <div>
-                    <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.5px' }}>CORPORACIÓN (2025)</h1>
+                    <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.5px' }}>INCORPORACIÓN</h1>
                     <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Sistema de Gestión de Trámites Corporativos de Alta Precisión</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>

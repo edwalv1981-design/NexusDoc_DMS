@@ -128,7 +128,7 @@ const Tutorial = () => {
                         </p>
                         <ol style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.8', paddingLeft: '20px' }}>
                             <li>Haga clic en la opción <strong>"NUEVO TRÁMITE"</strong> en el menú lateral izquierdo.</li>
-                            <li>Verá unas grandes tarjetas visuales para elegir el tipo de documento (Ej. Corporación, Fundaciones).</li>
+                            <li>Verá unas grandes tarjetas visuales para elegir el tipo de documento (Ej. Incorporación, Fundaciones).</li>
                             <li>Llene el formulario paso a paso. Cuando termine, haga clic en "Guardar Trámite".</li>
                         </ol>
                     </div>
@@ -143,7 +143,7 @@ const Tutorial = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
                                 <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><FileText size={24} color="#6366f1" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>Fondos</div></div>
-                                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><Shield size={24} color="#10b981" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>Corporación</div></div>
+                                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><Shield size={24} color="#10b981" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>Incorporación</div></div>
                             </div>
                         </div>
                     </div>
@@ -172,7 +172,7 @@ const Tutorial = () => {
                             </div>
                             <div style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
                                 <div>
-                                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>Corporación Alpha</div>
+                                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>Incorporación Alpha</div>
                                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>Actualizado hoy</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
