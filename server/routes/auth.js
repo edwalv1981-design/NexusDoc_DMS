@@ -208,6 +208,26 @@ router.get('/me', auth, async (req, res) => {
     }
 });
 
+// @route    PATCH api/auth/me/language
+// @desc     Update preferred language for the current user
+// @access   Private
+router.patch('/me/language', auth, async (req, res) => {
+    try {
+        const { language } = req.body || {};
+        if (!['es', 'en'].includes(language)) {
+            return res.status(400).json({ msg: 'Idioma inválido. Use "es" o "en".' });
+        }
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+        user.language = language;
+        await user.save();
+        return res.json({ msg: 'Idioma actualizado', language: user.language });
+    } catch (err) {
+        console.error('language update error:', err.message);
+        return res.status(500).json({ msg: 'Error al actualizar idioma' });
+    }
+});
+
 // @route   POST api/auth/login
 // @desc    Authenticate user & get token
 router.post('/login', async (req, res) => {

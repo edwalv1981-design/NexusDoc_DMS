@@ -73,6 +73,12 @@ const User = sequelize.define('User', {
     mustChangePassword: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    language: {
+        type: DataTypes.STRING(2),
+        allowNull: false,
+        defaultValue: 'es',
+        validate: { isIn: [['es', 'en']] }
     }
 }, {
     hooks: {

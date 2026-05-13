@@ -107,12 +107,15 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
+        const requester = await User.findByPk(req.user.id, { attributes: ['language'] });
+        const userLanguage = requester && requester.language ? requester.language : 'es';
+
         const templateName = stablePdfForms.getPdfTemplateNameForForm(form.formType);
 
         // Corporación: solo motor HTML (ver `config/stablePdfForms.js`).
         if (stablePdfForms.isCorporacionPdfForm(form.formType)) {
             try {
-                const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {});
+                const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
 
                 AuditLog.create({
                     userId: req.user.id,

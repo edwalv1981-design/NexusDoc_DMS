@@ -1,21 +1,25 @@
+import esDict from './i18n/locales/es';
+import enDict from './i18n/locales/en';
+
 /**
  * Etiquetas visibles para los tipos de trámite.
  *
  * IMPORTANTE: las claves (`id` / `formType`) son contratos estables ya guardados
  * en BD y en `server/config/stablePdfForms.js`; **no se renombran**.
- * Aquí solo se controla el texto que ve el usuario.
+ * Aquí solo se controla el texto que ve el usuario, en el idioma activo.
  */
 
-export const FORM_TYPE_LABELS = Object.freeze({
-  'Fondos Registros contables': 'Declaración de Fondos',
-  'Corporación': 'Incorporación',
-  Fundaciones: 'Fundaciones',
-  'Cumplimiento Individual': 'Cumplimiento Individual',
-  'Cumplimiento Entidades': 'Cumplimiento Entidades',
-});
+const DICTS = { es: esDict.formType, en: enDict.formType };
 
-/** Devuelve la etiqueta visible. Si no está mapeada, devuelve el propio `formType`. */
-export function getFormTypeLabel(formType) {
+export const FORM_TYPE_LABELS = DICTS.es;
+
+/**
+ * Devuelve la etiqueta visible para el tipo de trámite.
+ * @param {string} formType  Clave estable (igual a la BD).
+ * @param {string} [lang]    Idioma activo ('es' | 'en'). Default 'es'.
+ */
+export function getFormTypeLabel(formType, lang = 'es') {
   if (!formType) return '';
-  return FORM_TYPE_LABELS[formType] || formType;
+  const dict = DICTS[lang] || DICTS.es;
+  return dict[formType] || (DICTS.es[formType] || formType);
 }

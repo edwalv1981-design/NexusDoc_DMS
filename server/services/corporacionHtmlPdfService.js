@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const corporacionLayoutGuard = require('./corporacionLayoutGuard');
+const corporacionPdfI18n = require('./corporacionPdfI18n');
 const fs = require('fs');
 const path = require('path');
 
@@ -69,8 +70,9 @@ function buildShareholdersRows(shareholders) {
 }
 
 class CorporacionHtmlPdfService {
-  async generatePdf(data = {}) {
+  async generatePdf(data = {}, options = {}) {
     corporacionLayoutGuard.assertCorporacionPdfLayoutInvariants();
+    corporacionPdfI18n.assertCorporacionPdfI18nParity();
     let browser = null;
     try {
       const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
@@ -86,6 +88,9 @@ class CorporacionHtmlPdfService {
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
+      const lang = corporacionPdfI18n.normalizeLanguage(options.language || data.language);
+      const t = corporacionPdfI18n.getCorporacionPdfDict(lang);
+
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
       const bodyGuardClass = corporacionLayoutGuard.bodyClassForPlan(plan);
@@ -95,24 +100,23 @@ class CorporacionHtmlPdfService {
         <main class="doc-body">
         <section class="card">
           <div class="first-page-title">
-            <h1>Incorporation Form</h1>
-            <h2>Formulario de Incorporación</h2>
+            <h1>${esc(t.docTitle)}</h1>
           </div>
-          <h2>Name of the Corporation / Nombre de la Compañía</h2>
-          <div class="hint">List the names you wish to use to incorporate your corporation in order of preference. / Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia.</div>
+          <h2>${esc(t.sectionName)}</h2>
+          <div class="hint">${esc(t.sectionNameHint)}</div>
           <div class="grid3">
-            <div><label>1st Choice (S.A.)</label><div class="value">${esc(data.corpNameSA)}</div></div>
-            <div><label>2nd Choice (Corp.)</label><div class="value">${esc(data.corpNameCorp)}</div></div>
-            <div><label>3rd Choice (Inc.)</label><div class="value">${esc(data.corpNameInc)}</div></div>
+            <div><label>${esc(t.choice1)}</label><div class="value">${esc(data.corpNameSA)}</div></div>
+            <div><label>${esc(t.choice2)}</label><div class="value">${esc(data.corpNameCorp)}</div></div>
+            <div><label>${esc(t.choice3)}</label><div class="value">${esc(data.corpNameInc)}</div></div>
           </div>
         </section>
 
         <section class="card">
-          <h2>Authorized Capital / Capital Social Autorizado</h2>
-          <div class="hint">The minimum authorized capital of the company is US$10,000.00. / El capital mínimo autorizado de la sociedad es US$10,000.00.</div>
+          <h2>${esc(t.sectionCapital)}</h2>
+          <div class="hint">${esc(t.sectionCapitalHint)}</div>
           <table class="capital-table">
             <thead>
-              <tr><th>Minimum / Mínimo</th><th>Authorized / Autorizado</th></tr>
+              <tr><th>${esc(t.capitalMin)}</th><th>${esc(t.capitalAuth)}</th></tr>
             </thead>
             <tbody>
               <tr><td>10,000 USD</td><td>${esc(capitalFmt)} USD</td></tr>
@@ -121,24 +125,24 @@ class CorporacionHtmlPdfService {
         </section>
 
         <section class="card">
-          <h2>Officers / Dignatarios</h2>
+          <h2>${esc(t.sectionOfficers)}</h2>
           <table>
-            <thead><tr><th>Cargo</th><th>Full name / Nombre completo</th><th>Date of birth / Fecha de nacimiento</th><th>Passport / Pasaporte</th><th>Registration number / Registro</th></tr></thead>
+            <thead><tr><th>${esc(t.officerPosition)}</th><th>${esc(t.officerFullName)}</th><th>${esc(t.officerBirthDate)}</th><th>${esc(t.officerPassport)}</th><th>${esc(t.officerRegNumber)}</th></tr></thead>
             <tbody>
-              <tr><td>President / Presidente</td><td>${esc(dign.presidente?.fullName)}</td><td>${esc(fmtDate(dign.presidente?.birthDate))}</td><td>${esc(dign.presidente?.passport)}</td><td>${esc(dign.presidente?.registrationNumber)}</td></tr>
-              <tr><td>Secretary / Secretario</td><td>${esc(dign.secretario?.fullName)}</td><td>${esc(fmtDate(dign.secretario?.birthDate))}</td><td>${esc(dign.secretario?.passport)}</td><td>${esc(dign.secretario?.registrationNumber)}</td></tr>
-              <tr><td>Treasurer / Tesorero</td><td>${esc(dign.tesorero?.fullName)}</td><td>${esc(fmtDate(dign.tesorero?.birthDate))}</td><td>${esc(dign.tesorero?.passport)}</td><td>${esc(dign.tesorero?.registrationNumber)}</td></tr>
+              <tr><td>${esc(t.rolePresident)}</td><td>${esc(dign.presidente?.fullName)}</td><td>${esc(fmtDate(dign.presidente?.birthDate))}</td><td>${esc(dign.presidente?.passport)}</td><td>${esc(dign.presidente?.registrationNumber)}</td></tr>
+              <tr><td>${esc(t.roleSecretary)}</td><td>${esc(dign.secretario?.fullName)}</td><td>${esc(fmtDate(dign.secretario?.birthDate))}</td><td>${esc(dign.secretario?.passport)}</td><td>${esc(dign.secretario?.registrationNumber)}</td></tr>
+              <tr><td>${esc(t.roleTreasurer)}</td><td>${esc(dign.tesorero?.fullName)}</td><td>${esc(fmtDate(dign.tesorero?.birthDate))}</td><td>${esc(dign.tesorero?.passport)}</td><td>${esc(dign.tesorero?.registrationNumber)}</td></tr>
             </tbody>
           </table>
         </section>
 
         <section class="card">
-          <h2>Directors / Directores</h2>
-          <div class="hint">In Panama, a minimum of 3 directors are required. / En Panamá se requieren mínimo 3 directores.</div>
+          <h2>${esc(t.sectionDirectors)}</h2>
+          <div class="hint">${esc(t.sectionDirectorsHint)}</div>
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Full name / Nombre</th><th>Date of birth</th><th>Marital status</th><th>Nationality</th><th>Passport</th><th>Phone</th><th>Email</th><th>Address</th><th>City</th><th>Country</th>
+                <th>${esc(t.dirNum)}</th><th>${esc(t.dirFullName)}</th><th>${esc(t.dirBirthDate)}</th><th>${esc(t.dirMarital)}</th><th>${esc(t.dirNationality)}</th><th>${esc(t.dirPassport)}</th><th>${esc(t.dirPhone)}</th><th>${esc(t.dirEmail)}</th><th>${esc(t.dirAddress)}</th><th>${esc(t.dirCity)}</th><th>${esc(t.dirCountry)}</th>
               </tr>
             </thead>
             <tbody>${buildDirectorsRows(directors)}</tbody>
@@ -146,26 +150,26 @@ class CorporacionHtmlPdfService {
         </section>
 
         <section class="card">
-          <h2>Shareholders / Accionistas</h2>
+          <h2>${esc(t.sectionShareholders)}</h2>
           <table>
-            <thead><tr><th>#</th><th>Share certificate number</th><th>Share value</th><th>Number of shares</th><th>Shareholder</th><th>Address</th></tr></thead>
+            <thead><tr><th>${esc(t.shNum)}</th><th>${esc(t.shCertificate)}</th><th>${esc(t.shValue)}</th><th>${esc(t.shCount)}</th><th>${esc(t.shName)}</th><th>${esc(t.shAddress)}</th></tr></thead>
             <tbody>${buildShareholdersRows(shareholders)}</tbody>
           </table>
         </section>
 
         <section class="tail-block">
           <section class="card card--activities">
-            <h2>Company Activities / Actividades de la Compañía</h2>
-            <div class="hint">Please provide an explanation of the corporation's activities. / Favor provea una explicación de la actividad de la sociedad.</div>
+            <h2>${esc(t.sectionActivities)}</h2>
+            <div class="hint">${esc(t.sectionActivitiesHint)}</div>
             <div class="longtext">${esc(data.companyActivities)}</div>
           </section>
 
           <section class="card">
-            <h2>Declaration / Declaración</h2>
-            <div class="hint">I hereby affirm that information given on this application is complete and accurate. / Declaro bajo juramento que la información es verdadera y correcta.</div>
+            <h2>${esc(t.sectionDeclaration)}</h2>
+            <div class="hint">${esc(t.sectionDeclarationHint)}</div>
             <div class="grid2">
-              <div><label>Name / Nombre</label><div class="value">${esc(data.declarationName)}</div></div>
-              <div><label>Date / Fecha</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+              <div><label>${esc(t.declarationName)}</label><div class="value">${esc(data.declarationName)}</div></div>
+              <div><label>${esc(t.declarationDate)}</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
             </div>
           </section>
         </section>
@@ -174,7 +178,7 @@ class CorporacionHtmlPdfService {
 
       const html = `
         <!doctype html>
-        <html>
+        <html lang="${lang}">
         <head>
           <meta charset="utf-8" />
           <style>

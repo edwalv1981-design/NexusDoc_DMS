@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff, X, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
+import { useT } from '../i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const Login = () => {
   const navigate = useNavigate();
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +30,7 @@ const Login = () => {
       if (res.data.user.mustChangePassword) return navigate('/reset-password');
       res.data.user.role === 'admin' ? navigate('/admin') : navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Error al iniciar sesión');
+      setError(err.response?.data?.msg || t('login.errorGeneric'));
     }
   };
 
@@ -50,11 +53,11 @@ const Login = () => {
         setRecoveryStep(2);
       } else {
         console.error('❌ El servidor respondió con error:', data.msg);
-        setError(data.msg || data.error || 'Error en el servidor');
+        setError(data.msg || data.error || t('login.errorGeneric'));
       }
     } catch (err) { 
       console.error('🔥 Error de red o crítico en Frontend:', err);
-      setError('Error de conexión. Revisa tu internet o el estado del servidor.'); 
+      setError(t('login.connectionError')); 
     } finally { setRecoveryLoading(false); }
   };
 
@@ -76,17 +79,20 @@ const Login = () => {
       if (response.ok) {
         setRecoveryStep(3);
       } else {
-        setError(data.msg || data.error || 'Código inválido');
+        setError(data.msg || data.error || t('login.invalidCode'));
         if (data.expired) setHasExpired(true);
       }
     } catch (err) { 
       console.error('🔥 Error de red en verificación:', err);
-      setError('Error de conexión al validar código.'); 
+      setError(t('login.validateCodeError')); 
     } finally { setRecoveryLoading(false); }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f8fafc', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 5 }}>
+        <LanguageSwitcher />
+      </div>
       <div style={{ maxWidth: '900px', width: '100%', display: 'flex', overflow: 'hidden', background: 'white', borderRadius: '16px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
         
         {/* Left Side: Branding */}
@@ -97,34 +103,34 @@ const Login = () => {
           </div>
           
           <h2 style={{ fontSize: '24px', fontWeight: 700, lineHeight: 1.3, marginBottom: 20, color: 'white' }}>
-            Toma el control total de tu empresa.
+            {t('login.brandTitle')}
           </h2>
           <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: 15, lineHeight: 1.6 }}>
-            Olvida el caos de usar mil herramientas. Centraliza tu negocio en un solo lugar, diseñado para simplificar tu día a día.
+            {t('login.brandSubtitle1')}
           </p>
           <p style={{ fontSize: '13px', opacity: 0.8, lineHeight: 1.6 }}>
-            Personaliza tu experiencia: Activa solo lo que necesites hoy y añade funciones conforme tu negocio avance.
+            {t('login.brandSubtitle2')}
           </p>
           
           <button onClick={() => navigate('/onboarding')} style={{ marginTop: '30px', background: 'white', color: 'var(--primary)', border: 'none', padding: '12px 25px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, width: 'fit-content' }}>
-            <UserPlus size={16} /> Abre tu cuenta
+            <UserPlus size={16} /> {t('login.openAccount')}
           </button>
         </div>
 
         {/* Right Side: Login Form */}
         <div style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5 }}>Bienvenido</h3>
-            <p style={{ color: '#64748b', fontSize: '13px' }}>Ingresa tus credenciales para acceder</p>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5 }}>{t('login.welcome')}</h3>
+            <p style={{ color: '#64748b', fontSize: '13px' }}>{t('login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#475569' }}>EMAIL / USUARIO</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#475569' }}>{t('login.emailUser')}</label>
               <input type="text" className="input-expert" placeholder="ejemplo@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div style={{ position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#475569' }}>CONTRASEÑA</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#475569' }}>{t('login.password')}</label>
               <input type={showPassword ? "text" : "password"} className="input-expert" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '45px' }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '34px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -134,11 +140,11 @@ const Login = () => {
             {error && <p style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>{error}</p>}
 
             <button type="button" onClick={() => { setError(''); setRecoveryStep(1); }} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '-5px' }}>
-              ¿Olvidaste tu contraseña?
+              {t('login.forgotPassword')}
             </button>
 
             <button type="submit" className="btn-primary" style={{ marginTop: '5px' }}>
-              <LogIn size={16} /> Iniciar Sesión
+              <LogIn size={16} /> {t('login.signIn')}
             </button>
           </form>
 
@@ -151,29 +157,29 @@ const Login = () => {
                   style={{ position: 'absolute', top: '15px', right: '15px', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
-                  title="Cerrar"
+                  title={t('common.close')}
                 >
                   <X size={16} />
                 </button>
                 {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
                 {recoveryStep === 1 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Recuperar Acceso</h3>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>{t('login.recoverAccess')}</h3>
                     <div>
-                        <label style={{ fontSize: '11px', fontWeight: 700, marginBottom: 6, display: 'block' }}>EMAIL REGISTRADO</label>
+                        <label style={{ fontSize: '11px', fontWeight: 700, marginBottom: 6, display: 'block' }}>{t('login.registeredEmail')}</label>
                         <input type="email" className="input-expert" required value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => setRecoveryStep(0)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
-                      <button type="button" onClick={(e) => { console.log('📡 Disparando recuperación...'); handleForgotPassword(e); }} className="btn-primary" style={{ flex: 1.5 }}>Enviar Código</button>
+                      <button type="button" onClick={() => setRecoveryStep(0)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>{t('login.cancel')}</button>
+                      <button type="button" onClick={(e) => { console.log('📡 Disparando recuperación...'); handleForgotPassword(e); }} className="btn-primary" style={{ flex: 1.5 }}>{t('login.sendCode')}</button>
                     </div>
                   </div>
                 )}
                 {recoveryStep === 2 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>Verificar Código</h3>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>{t('login.verifyCode')}</h3>
                     <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textAlign: 'center', border: '1px solid #fde68a' }}>
-                        <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '5px', marginBottom: '2px' }} /> Caduca en 3 minutos
+                        <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '5px', marginBottom: '2px' }} /> {t('login.expiresIn3Min')}
                     </div>
                     <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px' }} />
                     {hasExpired && (
@@ -184,21 +190,21 @@ const Login = () => {
                         style={{ background: '#f59e0b', marginBottom: '-10px' }}
                         disabled={recoveryLoading}
                       >
-                        {recoveryLoading ? 'Generando...' : 'Generar nuevo código'}
+                        {recoveryLoading ? t('login.generating') : t('login.generateNewCode')}
                       </button>
                     )}
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); setHasExpired(false); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>Cancelar</button>
-                      <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5, background: hasExpired ? '#94a3b8' : '' }} disabled={hasExpired}>Validar</button>
+                      <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); setHasExpired(false); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>{t('login.cancel')}</button>
+                      <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5, background: hasExpired ? '#94a3b8' : '' }} disabled={hasExpired}>{t('login.validate')}</button>
                     </div>
                   </div>
                 )}
                 {recoveryStep === 3 && (
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ color: '#16a34a', marginBottom: 15 }}><ShieldCheck size={40} style={{ margin: '0 auto' }} /></div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 10 }}>¡Todo listo!</h3>
-                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: 20 }}>Hemos enviado una clave temporal a tu correo.</p>
-                    <button onClick={() => setRecoveryStep(0)} className="btn-primary" style={{ width: '100%' }}>Volver</button>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 10 }}>{t('login.allReady')}</h3>
+                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: 20 }}>{t('login.tempPasswordSent')}</p>
+                    <button onClick={() => setRecoveryStep(0)} className="btn-primary" style={{ width: '100%' }}>{t('login.back')}</button>
                   </div>
                 )}
               </div>

@@ -81,6 +81,14 @@ app.listen(PORT, '0.0.0.0', async () => {
             console.log('✅ Modo migraciones activo: sequelize.sync deshabilitado (DB_SYNC_ALTER=false).');
         }
 
+        try {
+            await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "language" VARCHAR(2) NOT NULL DEFAULT 'es'`);
+            await sequelize.query(`UPDATE "Users" SET "language" = 'es' WHERE "language" IS NULL OR "language" NOT IN ('es','en')`);
+            console.log('🌐 Columna Users.language asegurada (default es).');
+        } catch (langErr) {
+            console.warn('⚠️ No se pudo asegurar columna Users.language:', langErr.message);
+        }
+
         // Bootstrap de administrador opcional controlado por variables de entorno.
         const { User } = require('./models');
         const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;

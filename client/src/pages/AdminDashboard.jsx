@@ -4,8 +4,11 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
+import { useT } from '../i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const AdminDashboard = () => {
+  const t = useT();
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -157,7 +160,7 @@ const AdminDashboard = () => {
           <span style={{ fontWeight: 700, fontSize: '13px' }}>NEXUSDOC ADMIN</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[{ id: 'users', icon: Users, label: 'USUARIOS' }, { id: 'logs', icon: Clock, label: 'BITÁCORA' }, { id: 'templates', icon: FileText, label: 'PLANTILLAS PDF' }, { id: 'settings', icon: Settings, label: 'AJUSTES' }].map(item => (
+          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'settings', icon: Settings, label: t('admin.settings') }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS }}>
               <item.icon size={15} /> {item.label}
             </button>
@@ -166,8 +169,9 @@ const AdminDashboard = () => {
               <BookOpen size={15} /> AYUDA Y TUTORIAL
           </button>
         </nav>
-        <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '11px', borderRadius: RADIUS }}>
-          <LogOut size={15} /> SALIR
+        <LanguageSwitcher variant="sidebar" />
+        <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '11px', borderRadius: RADIUS, marginTop: 10 }}>
+          <LogOut size={15} /> {t('sidebar.logout')}
         </button>
       </div>
 

@@ -4,7 +4,9 @@ import {
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
     AlertCircle, CheckCircle2, ShieldCheck, Download, Eye, FileText
 } from 'lucide-react';
+import { useT } from '../i18n';
 const CorporacionForm = ({ initialData, onSave, saving }) => {
+    const t = useT();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         // Basic Info
@@ -341,12 +343,12 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <div>
-                    <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.5px' }}>INCORPORACIÓN</h1>
-                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Sistema de Gestión de Trámites Corporativos de Alta Precisión</p>
+                    <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.5px' }}>{t('corporacion.title')}</h1>
+                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>{t('corporacion.subtitle')}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save">
-                        <Save size={18} /> {saving ? 'GUARDANDO...' : 'GUARDAR BORRADOR'}
+                        <Save size={18} /> {saving ? t('common.saving') : t('corporacion.saveDraft')}
                     </button>
                 </div>
             </div>
