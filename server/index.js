@@ -67,63 +67,104 @@ app.get(/.*/, (req, res) => {
     res.sendFile(path.resolve(distPath, 'index.html'));
 });
 
-// 5. ARRANQUE NORMAL DE PRODUCCIÓN
-app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT}`);
-    
+/**
+ * Asegura columna users.language de forma idempotente y resiliente al casing del tableName.
+ *
+ * Sequelize con `define.underscored: true` puede crear tabla `users` (lowercase) o `Users`
+ * dependiendo de la versión y de si se hizo sync inicial con `freezeTableName`. Esta función:
+ *
+ * 1. Detecta el nombre real vía `information_schema.tables`.
+ * 2. Ejecuta `ADD COLUMN IF NOT EXISTS` sobre el nombre correcto.
+ * 3. Normaliza valores existentes a 'es' por defecto.
+ *
+ * Cualquier fallo se loggea pero NO derriba el server (queries de Sequelize toleran
+ * `language` faltante porque el modelo lo declara `allowNull: true`).
+ */
+async function ensureUserLanguageColumn() {
     try {
-        await connectDB();
-        const allowSchemaAlter = process.env.DB_SYNC_ALTER === 'true';
-        if (allowSchemaAlter) {
-            await sequelize.sync({ alter: true });
-            console.log('⚠️ DB_SYNC_ALTER=true: sincronización con alter aplicada.');
-        } else {
-            console.log('✅ Modo migraciones activo: sequelize.sync deshabilitado (DB_SYNC_ALTER=false).');
+        const [rows] = await sequelize.query(
+            `SELECT table_name FROM information_schema.tables
+              WHERE table_schema = current_schema()
+                AND lower(table_name) = 'users'
+              ORDER BY table_name ASC
+              LIMIT 1`
+        );
+        const tableName = rows && rows[0] && rows[0].table_name;
+        if (!tableName) {
+            console.warn('⚠️ ensureUserLanguageColumn: tabla users no encontrada en current_schema().');
+            return;
         }
-
-        try {
-            await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "language" VARCHAR(2) NOT NULL DEFAULT 'es'`);
-            await sequelize.query(`UPDATE "Users" SET "language" = 'es' WHERE "language" IS NULL OR "language" NOT IN ('es','en')`);
-            console.log('🌐 Columna Users.language asegurada (default es).');
-        } catch (langErr) {
-            console.warn('⚠️ No se pudo asegurar columna Users.language:', langErr.message);
-        }
-
-        // Bootstrap de administrador opcional controlado por variables de entorno.
-        const { User } = require('./models');
-        const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
-        const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
-        const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
-
-        if (adminEmail && adminPassword) {
-            let admin = await User.findOne({ where: { email: adminEmail } });
-
-            if (!admin) {
-                console.log('🌱 Creando administrador inicial desde entorno...');
-                await User.create({
-                    name: adminName,
-                    email: adminEmail,
-                    password: adminPassword,
-                    role: 'admin',
-                    status: 'authorized',
-                    idNumber: 'ADMIN-BOOTSTRAP',
-                    uniqueCode: 'MASTER-ADMIN-001'
-                });
-            } else {
-                console.log('🔄 Sincronizando rol/estado de administrador...');
-                admin.status = 'authorized';
-                admin.role = 'admin';
-                await admin.save();
-            }
-        } else {
-            console.log('ℹ️ Bootstrap de admin omitido (faltan BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).');
-        }
-        console.log('💎 SISTEMA OPERATIVO Y PERSISTENTE.');
-
-    } catch (error) {
-        console.error('⚠️ ALERTA TÉCNICA:', error.message);
+        const quoted = `"${tableName.replace(/"/g, '""')}"`;
+        await sequelize.query(`ALTER TABLE ${quoted} ADD COLUMN IF NOT EXISTS "language" VARCHAR(2)`);
+        await sequelize.query(`UPDATE ${quoted} SET "language" = 'es' WHERE "language" IS NULL OR "language" NOT IN ('es','en')`);
+        console.log(`🌐 Columna ${tableName}.language asegurada (default es).`);
+    } catch (langErr) {
+        console.warn('⚠️ ensureUserLanguageColumn falló:', langErr.message);
     }
-});
+}
+
+async function bootstrap() {
+    await connectDB();
+
+    const allowSchemaAlter = process.env.DB_SYNC_ALTER === 'true';
+    if (allowSchemaAlter) {
+        await sequelize.sync({ alter: true });
+        console.log('⚠️ DB_SYNC_ALTER=true: sincronización con alter aplicada.');
+    } else {
+        console.log('✅ Modo migraciones activo: sequelize.sync deshabilitado (DB_SYNC_ALTER=false).');
+    }
+
+    // CRÍTICO: aplicar antes de aceptar tráfico para que los SELECT incluyan la columna sin romper.
+    await ensureUserLanguageColumn();
+
+    const { User } = require('./models');
+    const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+    const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+    const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
+
+    if (adminEmail && adminPassword) {
+        let admin = await User.findOne({ where: { email: adminEmail } });
+
+        if (!admin) {
+            console.log('🌱 Creando administrador inicial desde entorno...');
+            await User.create({
+                name: adminName,
+                email: adminEmail,
+                password: adminPassword,
+                role: 'admin',
+                status: 'authorized',
+                idNumber: 'ADMIN-BOOTSTRAP',
+                uniqueCode: 'MASTER-ADMIN-001'
+            });
+        } else {
+            console.log('🔄 Sincronizando rol/estado de administrador...');
+            admin.status = 'authorized';
+            admin.role = 'admin';
+            await admin.save();
+        }
+    } else {
+        console.log('ℹ️ Bootstrap de admin omitido (faltan BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).');
+    }
+}
+
+// 5. ARRANQUE NORMAL DE PRODUCCIÓN
+// Bootstrap SÍNCRONO antes de aceptar tráfico: garantiza que el schema esté listo
+// (columna language en su lugar) antes de procesar logins. Evita 500s silenciosos.
+bootstrap()
+    .then(() => {
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT}`);
+            console.log('💎 SISTEMA OPERATIVO Y PERSISTENTE.');
+        });
+    })
+    .catch((error) => {
+        console.error('⚠️ ALERTA TÉCNICA al iniciar:', error.message);
+        // Arrancamos igualmente para no caer en bucle de reinicio en Railway; el `/health`
+        // sigue respondiendo y los endpoints toleran la ausencia de la columna por allowNull.
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 SERVIDOR WEB ACTIVO (modo degradado) EN PUERTO: ${PORT}`);
+        });
+    });
 // 6. MANEJADOR GLOBAL DE ERRORES (Telemetría final)
 app.use((err, req, res, next) => {
     console.error('🔥 ERROR NO CONTROLADO:', err.stack);

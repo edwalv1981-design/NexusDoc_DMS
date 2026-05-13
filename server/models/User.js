@@ -74,11 +74,13 @@ const User = sequelize.define('User', {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
+    // language es allowNull true a propósito: la columna puede aún no existir en
+    // ambientes donde no corrió el ALTER TABLE defensivo (ver server/index.js).
+    // Cuando falta o llega null, la app la trata como 'es'.
     language: {
         type: DataTypes.STRING(2),
-        allowNull: false,
-        defaultValue: 'es',
-        validate: { isIn: [['es', 'en']] }
+        allowNull: true,
+        defaultValue: 'es'
     }
 }, {
     hooks: {
