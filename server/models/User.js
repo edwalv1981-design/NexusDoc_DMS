@@ -40,7 +40,7 @@ const User = sequelize.define('User', {
         defaultValue: 0
     },
     activeToken: {
-        type: DataTypes.TEXT, // Almacena el JWT actual para control de sesión única
+        type: DataTypes.TEXT,
         allowNull: true
     },
     initialForm: {
@@ -73,15 +73,17 @@ const User = sequelize.define('User', {
     mustChangePassword: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
-    },
-    // language es allowNull true a propósito: la columna puede aún no existir en
-    // ambientes donde no corrió el ALTER TABLE defensivo (ver server/index.js).
-    // Cuando falta o llega null, la app la trata como 'es'.
-    language: {
-        type: DataTypes.STRING(2),
-        allowNull: true,
-        defaultValue: 'es'
     }
+    // IMPORTANTE: `language` NO se declara en el modelo Sequelize a propósito.
+    //
+    // En producción la columna puede no existir todavía (el ALTER TABLE defensivo
+    // de server/index.js es best-effort y puede fallar por permisos o casing).
+    // Declararla aquí haría que Sequelize la incluya en TODO SELECT/INSERT/UPDATE
+    // contra la tabla, y un solo "column does not exist" rompe login, recuperación,
+    // verificación de código, etc. en cadena.
+    //
+    // El idioma se lee/escribe vía SQL raw en server/services/userLanguageStore.js,
+    // que tolera ausencia de columna y siempre cae a 'es' como fallback seguro.
 }, {
     hooks: {
         beforeCreate: async (user) => {
@@ -99,7 +101,6 @@ const User = sequelize.define('User', {
     }
 });
 
-// Instance method to check password
 User.prototype.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };

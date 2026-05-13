@@ -201,7 +201,11 @@ router.get('/me', auth, async (req, res) => {
         const user = await User.findByPk(req.user.id, {
             attributes: { exclude: ['password'] }
         });
-        res.json(user);
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+        const language = await userLanguageStore.getUserLanguage(user.id);
+        const payload = user.toJSON();
+        payload.language = language;
+        res.json(payload);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -214,14 +218,11 @@ router.get('/me', auth, async (req, res) => {
 router.patch('/me/language', auth, async (req, res) => {
     try {
         const { language } = req.body || {};
-        if (!['es', 'en'].includes(language)) {
+        if (!userLanguageStore.SUPPORTED.includes(language)) {
             return res.status(400).json({ msg: 'Idioma inválido. Use "es" o "en".' });
         }
-        const user = await User.findByPk(req.user.id);
-        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
-        user.language = language;
-        await user.save();
-        return res.json({ msg: 'Idioma actualizado', language: user.language });
+        const persisted = await userLanguageStore.setUserLanguage(req.user.id, language);
+        return res.json({ msg: 'Idioma actualizado', language, persisted });
     } catch (err) {
         console.error('language update error:', err.message);
         return res.status(500).json({ msg: 'Error al actualizar idioma' });
