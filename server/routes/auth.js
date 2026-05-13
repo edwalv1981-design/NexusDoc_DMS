@@ -207,8 +207,12 @@ router.get('/me', auth, async (req, res) => {
         payload.language = language;
         res.json(payload);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('🔥 ERROR EN /ME:', err);
+        res.status(500).json({ 
+            msg: 'Error interno al recuperar perfil', 
+            error: err.message,
+            stack: err.stack 
+        });
     }
 });
 

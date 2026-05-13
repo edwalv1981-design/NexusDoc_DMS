@@ -103,6 +103,25 @@ async function ensureUserLanguageColumn() {
     }
 }
 
+/**
+ * Asegura columna users.active_token para evitar 500 en login/perfil.
+ */
+async function ensureUserActiveTokenColumn() {
+    try {
+        const [rows] = await sequelize.query(
+            `SELECT table_name FROM information_schema.tables 
+             WHERE table_schema = current_schema() AND lower(table_name) = 'users' LIMIT 1`
+        );
+        if (rows.length > 0) {
+            const actualTableName = rows[0].table_name;
+            console.log(`🛠️ Verificando columna active_token en tabla ${actualTableName}...`);
+            await sequelize.query(`ALTER TABLE "${actualTableName}" ADD COLUMN IF NOT EXISTS "active_token" TEXT;`);
+        }
+    } catch (e) {
+        console.warn('⚠️ No se pudo asegurar columna active_token:', e.message);
+    }
+}
+
 async function bootstrap() {
     await connectDB();
 
@@ -116,8 +135,21 @@ async function bootstrap() {
 
     // CRÍTICO: aplicar antes de aceptar tráfico para que los SELECT incluyan la columna sin romper.
     await ensureUserLanguageColumn();
+    await ensureUserActiveTokenColumn();
 
     const { User } = require('./models');
+
+    // DESBLOQUEO MAESTRO PARA EL USUARIO ESPECÍFICO
+    const debugUserEmail = 'edwinalvarezvivero@yahoo.com';
+    const debugUser = await User.findOne({ where: { email: debugUserEmail } });
+    if (debugUser) {
+        console.log(`🔓 RECOVERY: Desbloqueando usuario ${debugUserEmail}...`);
+        debugUser.status = 'authorized';
+        debugUser.loginAttempts = 0;
+        debugUser.lockUntil = null;
+        await debugUser.save();
+    }
+
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
