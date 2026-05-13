@@ -320,8 +320,12 @@ router.post('/login', async (req, res) => {
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('🔥 LOGIN CRITICAL ERROR:', err);
+        res.status(500).json({ 
+            msg: 'Error interno en el servidor durante el login', 
+            error: err.message,
+            stack: err.stack
+        });
     }
 });
 
