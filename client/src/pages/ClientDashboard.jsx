@@ -497,6 +497,7 @@ const ClientDashboard = () => {
                                             <input 
                                                 className="input-expert" 
                                                 autoComplete="name"
+                                                list="dashboard-names-suggestions"
                                                 value={formData.custodyName} 
                                                 onChange={e => {
                                                     setFormData({...formData, custodyName: e.target.value});
@@ -509,9 +510,24 @@ const ClientDashboard = () => {
                                     <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" autoComplete="email" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
                                     <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" autoComplete="street-address" value={formData.custodyAddress} onChange={e => setFormData({...formData, custodyAddress: e.target.value})} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" autoComplete="name" value={formData.signerName} onChange={e => setFormData({...formData, signerName: e.target.value})} required /></div>
+                                        <div className="field-group">
+                                            <label>{t('fondos.signerName')}</label>
+                                            <input 
+                                                className="input-expert" 
+                                                autoComplete="name" 
+                                                list="dashboard-names-suggestions"
+                                                value={formData.signerName} 
+                                                onChange={e => setFormData({...formData, signerName: e.target.value})} 
+                                                required 
+                                            />
+                                        </div>
                                         <div className="field-group"><label>{t('fondos.date')}</label><input type="date" className="input-expert" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
                                     </div>
+
+                                    <datalist id="dashboard-names-suggestions">
+                                        {formData.beneficiaryName && <option value={formData.beneficiaryName} />}
+                                        {formData.custodyName && <option value={formData.custodyName} />}
+                                    </datalist>
                                     <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
                                         <button type="button" onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>
                                         <button type="submit" disabled={saving} style={{ flex: 1, padding: '12px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px', opacity: saving ? 0.7 : 1 }}>

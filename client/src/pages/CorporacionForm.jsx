@@ -326,6 +326,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <input 
                                 className="expert-input" 
                                 autoComplete="name"
+                                list="corp-names-list"
                                 value={formData.declarationSignature} 
                                 onChange={e => setFormData({...formData, declarationSignature: e.target.value})} 
                                 placeholder="..." 
@@ -337,6 +338,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 <input 
                                     className="expert-input" 
                                     autoComplete="name"
+                                    list="corp-names-list"
                                     value={formData.declarationName} 
                                     onChange={e => setFormData({...formData, declarationName: e.target.value})} 
                                 />
@@ -348,6 +350,22 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                     </div>
                 </div>
+
+                <datalist id="corp-names-list">
+                    {/* Directores */}
+                    {formData.directors.map((d, i) => {
+                        const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
+                        return full ? <option key={`dir-${i}`} value={full} /> : null;
+                    })}
+                    {/* Dignatarios */}
+                    {Object.values(formData.dignitaries).map((d, i) => (
+                        d.fullName ? <option key={`dig-${i}`} value={d.fullName} /> : null
+                    ))}
+                    {/* Accionistas */}
+                    {formData.shareholders.map((s, i) => (
+                        s.name ? <option key={`sha-${i}`} value={s.name} /> : null
+                    ))}
+                </datalist>
             </div>
         </div>
     );
