@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { User, Globe, Mail, ChevronLeft, ArrowRight, CreditCard } from 'lucide-react';
+import { useT } from '../i18n';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
 const Register = () => {
   const navigate = useNavigate();
+  const t = useT();
   const [formData, setFormData] = useState({
     name: '',
     nationality: '',
@@ -43,11 +43,11 @@ const Register = () => {
         navigate('/verify');
       } else {
         console.error('❌ Error de registro:', data.msg);
-        setError(data.msg || 'Error al procesar el registro');
+        setError(data.msg || t('toast.saveError'));
       }
     } catch (err) {
       console.error('🔥 Error de red en registro:', err);
-      setError('Error de conexión. El servidor tardó demasiado en responder.');
+      setError(t('login.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -82,14 +82,14 @@ const Register = () => {
             padding: 0
           }}
         >
-          <ChevronLeft size={16} /> Cambiar formulario
+          <ChevronLeft size={16} /> {t('register.changeForm')}
         </button>
 
         {/* Header Section */}
         <div style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--primary)', marginBottom: '10px', letterSpacing: '-0.02em' }}>Datos de Usuario</h1>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--primary)', marginBottom: '10px', letterSpacing: '-0.02em' }}>{t('register.userData')}</h1>
           <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.5 }}>
-            Estás iniciando el proceso para: <span style={{ color: 'var(--primary)', fontWeight: 700, background: '#eff6ff', padding: '3px 8px', borderRadius: '6px' }}>{formData.initialForm}</span>
+            {t('register.startingProcessFor')} <span style={{ color: 'var(--primary)', fontWeight: 700, background: '#eff6ff', padding: '3px 8px', borderRadius: '6px' }}>{formData.initialForm}</span>
           </p>
         </div>
 
@@ -98,12 +98,12 @@ const Register = () => {
           
           <div className="input-group-expert">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              <User size={14} color="var(--primary)" /> Nombres completos
+              <User size={14} color="var(--primary)" /> {t('register.fullName')}
             </label>
             <input 
               type="text" 
               className="input-expert" 
-              placeholder="Ej: Juan Alberto Pérez"
+              placeholder={t('register.fullNamePlaceholder')}
               required
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -113,7 +113,7 @@ const Register = () => {
 
           <div className="input-group-expert">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              <CreditCard size={14} color="var(--primary)" /> Cédula o Pasaporte
+              <CreditCard size={14} color="var(--primary)" /> {t('register.idOrPassport')}
             </label>
             <input 
               type="text" 
@@ -129,12 +129,12 @@ const Register = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div className="input-group-expert">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  <Globe size={14} color="var(--primary)" /> Nacionalidad
+                  <Globe size={14} color="var(--primary)" /> {t('register.nationality')}
                 </label>
                 <input 
                   type="text" 
                   className="input-expert" 
-                  placeholder="Ej: Peruana"
+                  placeholder={t('register.nationalityPlaceholder')}
                   required
                   value={formData.nationality}
                   onChange={(e) => setFormData({...formData, nationality: e.target.value})}
@@ -183,7 +183,7 @@ const Register = () => {
               onMouseEnter={(e) => e.target.style.background = '#f8fafc'}
               onMouseLeave={(e) => e.target.style.background = 'white'}
             >
-              Regresar
+              {t('common.back')}
             </button>
             <button 
               type="submit"
@@ -197,14 +197,14 @@ const Register = () => {
               }}
               disabled={loading}
             >
-              {loading ? 'Procesando...' : 'Continuar'}
+              {loading ? t('register.processing') : t('common.continue')}
               {!loading && <ArrowRight size={18} />}
             </button>
           </div>
         </form>
 
         <p style={{ marginTop: '35px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
-          Al continuar, aceptas nuestros términos de seguridad y manejo de datos.
+          {t('register.termsNote')}
         </p>
       </div>
     </div>

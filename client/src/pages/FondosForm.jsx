@@ -4,11 +4,13 @@ import {
     ChevronLeft, ChevronRight, Check, Save, 
     FileCheck, Trash2, X, Building, Wallet, Shield 
 } from 'lucide-react';
+import { useT } from '../i18n';
 import API_BASE_URL from '../config';
 
 const FondosForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const t = useT();
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
 
@@ -139,25 +141,25 @@ const FondosForm = () => {
                             <div style={{ padding: '8px', background: `${PRIMARY_COLOR}11`, borderRadius: '8px', color: PRIMARY_COLOR }}>
                                 <Building size={20} />
                             </div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>I. Identificación Corporativa {editId && <span style={{ color: '#22c55e', fontSize: '12px', marginLeft: 10 }}>[Edición]</span>}</h2>
+                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step1')} {editId && <span style={{ color: '#22c55e', fontSize: '12px', marginLeft: 10 }}>{t('fondos.editing')}</span>}</h2>
                         </div>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
                             <div>
-                                <label style={labelStyle}>Razón Social de la Compañía</label>
-                                <input className="corporate-input" style={getErrorStyle('companyName')} value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder="Ingrese el nombre oficial..." />
+                                <label style={labelStyle}>{t('fondos.companyName')}</label>
+                                <input className="corporate-input" style={getErrorStyle('companyName')} value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
                             </div>
                             <div>
-                                <label style={labelStyle}>Actividades Principales</label>
+                                <label style={labelStyle}>{t('fondos.activities')}</label>
                                 <textarea className="corporate-input" style={getErrorStyle('activities')} rows={3} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'activities')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
-                                    <label style={labelStyle}>Jurisdicción / País</label>
+                                    <label style={labelStyle}>{t('fondos.country')}</label>
                                     <input className="corporate-input" style={getErrorStyle('country')} value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Beneficiario Final</label>
+                                    <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
                                     <input className="corporate-input" style={getErrorStyle('beneficiaryName')} value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
                                 </div>
                             </div>
@@ -165,96 +167,90 @@ const FondosForm = () => {
                         {validationErrors.length > 0 && (
                             <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '10px', marginTop: '20px', border: '1px solid #fee2e2' }}>
                                 <p style={{ color: '#ef4444', fontSize: '13px', fontWeight: 700, margin: 0 }}>
-                                    ⚠️ Falta completar información importante:
+                                    {t('fondos.validationTitle')}
                                 </p>
                                 <ul style={{ margin: '8px 0 0', paddingLeft: '20px', color: '#b91c1c', fontSize: '12px', fontWeight: 600 }}>
                                     {validationErrors.map(err => {
-                                        const labels = {
-                                            companyName: 'Razón Social de la Compañía',
-                                            activities: 'Actividades Principales',
-                                            country: 'Jurisdicción / País',
-                                            beneficiaryName: 'Nombre del Beneficiario Final'
-                                        };
-                                        return <li key={err}>{labels[err] || err}</li>;
+                                        return <li key={err}>{t(`fondos.fields.${err}`)}</li>;
                                     })}
                                 </ul>
                             </div>
                         )}
                         <button onClick={handleNext} className="corporate-btn-primary" style={{ marginTop: '40px' }}>
-                            Siguiente Paso <ChevronRight size={18} />
+                            {t('common.next')} <ChevronRight size={18} />
                         </button>
                     </div>
                 );
             case 2:
                 return (
                     <div className="corporate-step">
-                        <div style={headerStyle}>
+                         <div style={headerStyle}>
                             <div style={{ padding: '8px', background: `${PRIMARY_COLOR}11`, borderRadius: '8px', color: PRIMARY_COLOR }}>
                                 <Wallet size={20} />
                             </div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>II. Declaración de Origen de Fondos</h2>
+                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step2')}</h2>
                         </div>
-
-                        <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: validationErrors.includes('fundsSource') ? '2px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '25px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 4px #ef444415' : 'none' }}>
-                            <p style={{ fontSize: '13px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '20px' }}>Marque al menos una opción obligatoria:</p>
+              <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: validationErrors.includes('fundsSource') ? '2px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '25px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 4px #ef444415' : 'none' }}>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '20px' }}>{t('fondos.fundsInstructions')}</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {['Bienes personales', 'Inversiones Financieras', 'Negocios', 'Prestamos', 'Herencia o Fondo Fiduciario'].map(f => (
-                                    <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '10px 15px', borderRadius: '8px', border: formData.fundsSource.includes(f) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(f) ? `${PRIMARY_COLOR}08` : 'transparent', transition: '0.2s' }}>
-                                        <input type="checkbox" checked={formData.fundsSource.includes(f)} onChange={() => toggleFund(f)} style={{ width: '18px', height: '18px', accentColor: PRIMARY_COLOR }} />
-                                        <span style={{ fontSize: '14px', fontWeight: formData.fundsSource.includes(f) ? 700 : 500, color: '#1e293b' }}>{f}</span>
+                                {['bienes', 'inversiones', 'negocios', 'prestamos', 'herencia'].map(fKey => (
+                                    <label key={fKey} style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '10px 15px', borderRadius: '8px', border: formData.fundsSource.includes(fKey) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(fKey) ? `${PRIMARY_COLOR}08` : 'transparent', transition: '0.2s' }}>
+                                        <input type="checkbox" checked={formData.fundsSource.includes(fKey)} onChange={() => toggleFund(fKey)} style={{ width: '18px', height: '18px', accentColor: PRIMARY_COLOR }} />
+                                        <span style={{ fontSize: '14px', fontWeight: formData.fundsSource.includes(fKey) ? 700 : 500, color: '#1e293b' }}>{t(`fondos.sources.${fKey}`)}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
+             </div>
 
-                        <div>
-                            <label style={labelStyle}>Otras especificaciones</label>
+                         <div>
+                            <label style={labelStyle}>{t('fondos.fundsOther')}</label>
                             <input className="corporate-input" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} />
                         </div>
 
-                        {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>⚠️ Debe seleccionar al menos una fuente de origen de fondos.</p>}
+                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.fundsError')}</p>}
                         <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
-                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> Anterior</button>
-                            <button onClick={handleNext} className="corporate-btn-primary" style={{ flex: 1 }}>Continuar <ChevronRight size={18} /></button>
+                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> {t('common.back')}</button>
+                            <button onClick={handleNext} className="corporate-btn-primary" style={{ flex: 1 }}>{t('common.continue')} <ChevronRight size={18} /></button>
                         </div>
                     </div>
                 );
             case 3:
                 return (
                     <div className="corporate-step">
-                        <div style={headerStyle}>
+                         <div style={headerStyle}>
                             <div style={{ padding: '8px', background: `${PRIMARY_COLOR}11`, borderRadius: '8px', color: PRIMARY_COLOR }}>
                                 <Shield size={20} />
                             </div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>III. Registro y Responsabilidades</h2>
+                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step3')}</h2>
                         </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             <div>
-                                <label style={labelStyle}>Nombre del Responsable de Custodia</label>
+                                <label style={labelStyle}>{t('fondos.custodyName')}</label>
                                 <input className="corporate-input" style={getErrorStyle('custodyName')} value={formData.custodyName} onChange={e => { setFormData({...formData, custodyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
-                                    <label style={labelStyle}>Teléfono Corporativo</label>
+                                    <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
                                     <input className="corporate-input" style={getErrorStyle('custodyPhone')} value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Email Institucional</label>
+                                    <label style={labelStyle}>{t('fondos.custodyEmail')}</label>
                                     <input className="corporate-input" style={getErrorStyle('custodyEmail')} value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} />
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Dirección de Almacenamiento de Registros</label>
+                                <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
                                 <input className="corporate-input" style={getErrorStyle('custodyAddress')} value={formData.custodyAddress} onChange={e => { setFormData({...formData, custodyAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
                         </div>
+                   </div>
 
-                        {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>⚠️ Por favor complete los datos de custodia obligatorios.</p>}
+                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.custodyError')}</p>}
                         <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
-                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> Atrás</button>
+                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> {t('common.back')}</button>
                             <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '16px' }} disabled={loading}>
-                                <Save size={18} /> {loading ? 'Sincronizando...' : 'Finalizar Registro'}
+                                <Save size={18} /> {loading ? t('common.saving') : t('fondos.finish')}
                             </button>
                         </div>
                     </div>
@@ -265,12 +261,12 @@ const FondosForm = () => {
                         <div style={{ width: '72px', height: '72px', background: '#ecfdf5', color: '#10b981', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 30px', border: '1px solid #d1fae5' }}>
                             <Check size={36} />
                         </div>
-                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>Documentación Validada</h2>
-                        <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>El formulario ha sido procesado y guardado exitosamente en el sistema.</p>
+                         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>{t('fondos.validatedTitle')}</h2>
+                        <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>{t('fondos.validatedBody')}</p>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px', margin: '0 auto' }}>
                             <button onClick={() => navigate('/dashboard')} className="corporate-btn-primary">
-                                Regresar al Dashboard
+                                {t('fondos.backDashboard')}
                             </button>
                         </div>
                     </div>
@@ -282,8 +278,8 @@ const FondosForm = () => {
     return (
         <div className="corporate-page">
             <div className="corporate-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px' }}>Gestión de Registros Contables</div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px' }}>{t('fondos.management')}</div>
                     <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }}><X size={24} /></button>
                 </div>
                 

@@ -15,7 +15,7 @@ const FORM_TYPE_CORPORACION = 'Corporación';
 
 /** formType (DB / UI) → nombre interno de plantilla / motor. */
 const PDF_TEMPLATE_BY_FORM_TYPE = Object.freeze({
-  [FORM_TYPE_FONDOS_SFAR]: 'fondos',
+  [FORM_TYPE_FONDOS_SFAR]: 'referencia_maestra',
   [FORM_TYPE_CORPORACION]: 'corporacion',
   Fundaciones: 'fundaciones',
   'Cumplimiento Individual': 'cumplimiento_individual',
@@ -32,7 +32,18 @@ const UNIQUE_CODE_PREFIX_BY_FORM_TYPE = Object.freeze({
 });
 
 function getPdfTemplateNameForForm(formType) {
-  return PDF_TEMPLATE_BY_FORM_TYPE[formType] || formType || 'fondos';
+  const norm = String(formType || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (norm.includes('corporacion') || norm.includes('incorporation') || norm.includes('corporativo')) {
+    return 'corporacion';
+  }
+  if (norm.includes('fondos') || norm.includes('funds')) {
+    return 'referencia_maestra';
+  }
+  if (norm.includes('fundacion')) return 'fundaciones';
+  if (norm.includes('cumplimiento individual') || norm.includes('individual compliance')) return 'cumplimiento_individual';
+  if (norm.includes('cumplimiento entidades') || norm.includes('entity compliance')) return 'cumplimiento_entidades';
+  
+  return PDF_TEMPLATE_BY_FORM_TYPE[formType] || 'referencia_maestra';
 }
 
 function isCorporacionPdfForm(formType) {
@@ -48,13 +59,13 @@ function getPdfDownloadFilenamePrefix(formType) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
-  if (normType.includes('fondos')) return UNIQUE_CODE_PREFIX_BY_FORM_TYPE[FORM_TYPE_FONDOS_SFAR];
-  if (normType.includes('corporacion') || normType.includes('corporativos')) {
+  if (normType.includes('fondos') || normType.includes('funds')) return UNIQUE_CODE_PREFIX_BY_FORM_TYPE[FORM_TYPE_FONDOS_SFAR];
+  if (normType.includes('corporacion') || normType.includes('incorporation') || normType.includes('corporativo')) {
     return UNIQUE_CODE_PREFIX_BY_FORM_TYPE[FORM_TYPE_CORPORACION];
   }
   if (normType.includes('fundacion')) return 'PTLF';
-  if (normType.includes('cumplimiento individual')) return 'KYCI';
-  if (normType.includes('cumplimiento entidades')) return 'KYCE';
+  if (normType.includes('cumplimiento individual') || normType.includes('individual compliance')) return 'KYCI';
+  if (normType.includes('cumplimiento entidades') || normType.includes('entity compliance')) return 'KYCE';
   return 'DOC';
 }
 

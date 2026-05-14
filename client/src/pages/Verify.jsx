@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { useT } from '../i18n';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
 const Verify = () => {
   const navigate = useNavigate();
+  const t = useT();
   const [code, setCode] = useState('');
   const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -34,13 +34,13 @@ const Verify = () => {
         setShowSuccess(true);
       } else {
         console.error('❌ Error de verificación:', data.msg);
-        setErrorMessage(data.msg || 'El código ingresado no es correcto.');
+        setErrorMessage(data.msg || t('verify.invalidCode'));
         if (data.expired) setHasExpired(true);
         setShowError(true);
       }
     } catch (err) {
       console.error('🔥 Error de red en verificación:', err);
-      setErrorMessage('Error de conexión con el servidor.');
+      setErrorMessage(t('verify.connectionError'));
       setShowError(true);
     } finally {
       setLoading(false);
@@ -60,14 +60,14 @@ const Verify = () => {
         setHasExpired(false);
         setShowError(false);
         setCode('');
-        alert('Nuevo código enviado a tu correo.');
+        alert(t('verify.resendSuccess'));
       } else {
-        setErrorMessage(data.msg || 'Error al reenviar el código.');
+        setErrorMessage(data.msg || t('verify.resendError'));
         setShowError(true);
       }
     } catch (err) {
       console.error(err);
-      setErrorMessage('Error de conexión.');
+      setErrorMessage(t('verify.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -80,13 +80,13 @@ const Verify = () => {
           <ShieldCheck size={32} />
         </div>
 
-        <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Código de Seguridad</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>{t('verify.title')}</h1>
         <p style={{ color: 'var(--text-sub)', marginBottom: '15px' }}>
-          Ingresa el código que hemos enviado a tu correo: <br/>
+          {t('verify.subtitle')} <br/>
           <strong style={{ color: 'var(--text)' }}>{email}</strong>
         </p>
         <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '30px', border: '1px solid #fde68a' }}>
-            <AlertCircle size={16} /> Este código caduca en 3 minutos exactos
+            <AlertCircle size={16} /> {t('verify.expiresIn3Min')}
         </div>
 
         <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -102,7 +102,7 @@ const Verify = () => {
           />
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Verificando...' : 'Verificar Código'}
+            {loading ? t('verify.verifying') : t('verify.verifyButton')}
             {!loading && <ArrowRight size={18} style={{ marginLeft: 8, verticalAlign: 'middle' }} />}
           </button>
 
@@ -111,7 +111,7 @@ const Verify = () => {
             onClick={() => navigate('/register')}
             style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', fontSize: '14px', marginTop: '-8px' }}
           >
-            ¿Email incorrecto? Regresar
+            {t('verify.wrongEmail')}
           </button>
         </form>
 
@@ -122,7 +122,7 @@ const Verify = () => {
               <div style={{ color: 'var(--error)', marginBottom: '16px' }}>
                 <AlertCircle size={48} />
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Atención</h3>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>{t('common.error')}</h3>
               <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>{errorMessage}</p>
               
               {hasExpired ? (
@@ -132,7 +132,7 @@ const Verify = () => {
                   style={{ width: '100%', background: '#f59e0b', marginBottom: '10px' }}
                   disabled={loading}
                 >
-                  {loading ? 'Generando...' : 'Generar nuevo código'}
+                  {loading ? t('common.loading') : t('login.generateNewCode')}
                 </button>
               ) : null}
 
@@ -141,7 +141,7 @@ const Verify = () => {
                 className="btn-primary" 
                 style={{ width: '100%', background: hasExpired ? '#94a3b8' : 'var(--error)' }}
               >
-                Cerrar
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -154,14 +154,14 @@ const Verify = () => {
               <div style={{ color: 'var(--success)', marginBottom: '16px' }}>
                 <CheckCircle size={48} />
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>¡Verificación Exitosa!</h3>
-              <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>Tu código ha sido validado correctamente. <br/><br/> <strong>Revisa tu correo electrónico:</strong> te hemos enviado tu clave temporal de acceso.</p>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>{t('verify.successTitle')}</h3>
+              <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>{t('verify.successBody')}</p>
               <button 
                 onClick={() => navigate('/')}
                 className="btn-primary" 
                 style={{ width: '100%' }}
               >
-                Volver al inicio
+                {t('onboarding.backToStart')}
               </button>
             </div>
           </div>

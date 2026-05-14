@@ -64,7 +64,7 @@ const AdminDashboard = () => {
     try {
       await axios.put(`${API_BASE_URL}/api/admin/users/${userId}/status`, { status: newStatus }, { headers: { 'x-auth-token': token } });
       fetchData();
-      toast.success('Estado actualizado');
+      toast.success(t('toast.saveSuccess'));
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
         toast.error('Error'); 
@@ -73,11 +73,11 @@ const AdminDashboard = () => {
 
   const handleDeleteUser = async (userId) => {
     const token = localStorage.getItem('token');
-    if (window.confirm('¿Eliminar?')) {
+    if (window.confirm(t('modal.confirmDelete'))) {
       try {
         await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, { headers: { 'x-auth-token': token } });
         fetchData();
-        toast.success('Eliminado');
+        toast.success(t('modal.deleted'));
       } catch (err) { 
           if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
           toast.error('Error'); 
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { email: adminEmail, newPassword: newPassword || undefined }, { headers: { 'x-auth-token': token } });
-      toast.success('Perfil actualizado con éxito');
+      toast.success(t('toast.saveSuccess'));
       setNewPassword('');
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
@@ -100,11 +100,11 @@ const AdminDashboard = () => {
   };
 
   const handleResetPassword = async (userId) => {
-    if (window.confirm('¿Resetear contraseña y enviar por correo?')) {
+    if (window.confirm(t('modal.confirmReset'))) {
       const token = localStorage.getItem('token');
       try {
         await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/reset-password`, {}, { headers: { 'x-auth-token': token } });
-        toast.success('Contraseña enviada al usuario');
+        toast.success(t('modal.passwordSent'));
       } catch (err) { 
           if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
           toast.error('Error al resetear'); 
@@ -114,7 +114,7 @@ const AdminDashboard = () => {
 
   const handleTemplateUpload = async (e) => {
     e.preventDefault();
-    if (!templateFile) return toast.error('Selecciona un archivo PDF');
+    if (!templateFile) return toast.error(t('userDocs.selectPdf'));
     setUploadingTemplate(true);
     
     const formData = new FormData();
@@ -126,7 +126,7 @@ const AdminDashboard = () => {
       await axios.post(`${API_BASE_URL}/api/admin/upload-template`, formData, {
         headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
       });
-      toast.success('Plantilla subida con éxito');
+      toast.success(t('toast.saveSuccess'));
       setTemplateFile(null);
       fetchData();
     } catch (err) {
@@ -137,13 +137,13 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteTemplate = async (name) => {
-    if (!window.confirm(`⚠️ ADVERTENCIA: ¿Está seguro de eliminar la plantilla de "${name}"? \n\nSi la elimina, los usuarios NO podrán generar PDFs para este trámite hasta que suba una nueva plantilla.`)) return;
+    if (!window.confirm(t('modal.confirmDelete'))) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE_URL}/api/admin/delete-template/${name}`, {
         headers: { 'x-auth-token': token }
       });
-      toast.success('Plantilla eliminada correctamente');
+      toast.success(t('toast.saveSuccess'));
       fetchData();
     } catch (err) {
       toast.error('Error al eliminar la plantilla');
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
             </button>
           ))}
           <button onClick={() => navigate('/tutorial')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS, marginTop: '15px' }}>
-              <BookOpen size={15} /> AYUDA Y TUTORIAL
+              <BookOpen size={15} /> {t('admin.helpTutorial')}
           </button>
         </nav>
         <LanguageSwitcher variant="sidebar" />
@@ -178,11 +178,11 @@ const AdminDashboard = () => {
       <div style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
         <div style={{ maxWidth: '1000px' }}>
           <header style={{ marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <h1>ADMINISTRACIÓN MASTER</h1>
+            <h1>{t('admin.masterTitle')}</h1>
             {activeTab === 'logs' && (
               <div style={{ position: 'relative', width: '250px' }}>
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
-                <input placeholder="Buscar..." className="input-modern-admin" style={{ paddingLeft: '32px' }} value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+                <input placeholder={t('common.search')} className="input-modern-admin" style={{ paddingLeft: '32px' }} value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
               </div>
             )}
           </header>
@@ -193,9 +193,9 @@ const AdminDashboard = () => {
                 <thead style={{ background: '#f9f9f9', borderBottom: `1px solid ${BORDER}` }}>
                   <tr style={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>
                     <th style={{ padding: '12px 15px' }}>ID</th>
-                    <th style={{ padding: '12px 15px' }}>USUARIO</th>
-                    <th style={{ padding: '12px 15px' }}>ESTADO</th>
-                    <th style={{ padding: '12px 15px' }}>ACCIONES</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.user')}</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.status')}</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -203,8 +203,8 @@ const AdminDashboard = () => {
                     <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '12px' }}>
                       <td style={{ padding: '12px 15px', fontWeight: 700, color: PRIMARY }}>{user.uniqueCode}</td>
                       <td style={{ padding: '12px 15px' }}>{user.name}</td>
-                      <td style={{ padding: '12px 15px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{user.status.toUpperCase()}</span>
+                       <td style={{ padding: '12px 15px' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{user.status === 'authorized' ? t('corporacion.authorized') : t('corporacion.pending')}</span>
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 5 }}>
@@ -229,10 +229,10 @@ const AdminDashboard = () => {
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ background: '#f9f9f9', borderBottom: `1px solid ${BORDER}` }}>
                       <tr style={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>
-                        <th style={{ padding: '12px 15px' }}>FECHA</th>
-                        <th style={{ padding: '12px 15px' }}>ACCIÓN</th>
-                        <th style={{ padding: '12px 15px' }}>USUARIO</th>
-                        <th style={{ padding: '12px 15px' }}>DESCRIPCIÓN</th>
+                        <th style={{ padding: '12px 15px' }}>{t('admin.date')}</th>
+                        <th style={{ padding: '12px 15px' }}>{t('admin.action')}</th>
+                        <th style={{ padding: '12px 15px' }}>{t('admin.user')}</th>
+                        <th style={{ padding: '12px 15px' }}>{t('admin.description')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -252,14 +252,14 @@ const AdminDashboard = () => {
 
             {activeTab === 'settings' && (
               <div style={{ padding: '30px', maxWidth: '450px' }}>
-                <h3 style={{ marginBottom: '20px' }}>Configuración del Perfil</h3>
+                <h3 style={{ marginBottom: '20px' }}>{t('admin.profileSettings')}</h3>
                 <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                   <div className="field-group-admin">
-                    <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
+                    <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.email')}</label>
                     <input className="input-modern-admin" type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} required />
                   </div>
                   <div className="field-group-admin">
-                    <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVA CONTRASEÑA</label>
+                    <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.newPassword')}</label>
                     <div style={{ position: 'relative' }}>
                       <input 
                         className="input-modern-admin" 
@@ -278,7 +278,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <button type="submit" disabled={savingSettings} className="btn-primary" style={{ width: '100%', marginTop: 10 }}>
-                    {savingSettings ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+                    {savingSettings ? t('common.loading') : t('admin.saveChanges')}
                   </button>
                 </form>
               </div>
@@ -288,21 +288,21 @@ const AdminDashboard = () => {
               <div style={{ padding: '30px' }}>
                 <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>Estado de Plantillas Base</h3>
+                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>{t('admin.templatesStatus')}</h3>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
                         <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                           <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
-                            <th style={{ padding: '12px' }}>TIPO DE TRÁMITE</th>
-                            <th style={{ padding: '12px' }}>ESTADO ACTUAL</th>
+                            <th style={{ padding: '12px' }}>{t('admin.processType')}</th>
+                            <th style={{ padding: '12px' }}>{t('admin.currentStatus')}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {[
-                            { id: 'fondos', label: 'Declaración de Fondos' },
-                            { id: 'corporacion', label: 'Incorporación' },
-                            { id: 'fundaciones', label: 'Fundaciones' },
-                            { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
-                            { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
+                            { id: 'fondos', label: getFormTypeLabel('Fondos Registros contables', lang) },
+                            { id: 'corporacion', label: getFormTypeLabel('Corporación', lang) },
+                            { id: 'fundaciones', label: getFormTypeLabel('Fundaciones', lang) },
+                            { id: 'cumplimiento_individual', label: getFormTypeLabel('Cumplimiento Individual', lang) },
+                            { id: 'cumplimiento_entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang) }
                           ].map(type => {
                             const customTemplate = templates.find(t => t.name === type.id);
                             return (
@@ -311,7 +311,7 @@ const AdminDashboard = () => {
                                 <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     {customTemplate ? (
                                         <>
-                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ Personalizada (DB)</span>
+                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ {t('admin.customDb')}</span>
                                             <button 
                                                 onClick={() => handleDeleteTemplate(type.id)}
                                                 style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -321,7 +321,7 @@ const AdminDashboard = () => {
                                             </button>
                                         </>
                                     ) : (
-                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>⚠️ Sin Plantilla (Inactivo)</span>
+                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>⚠️ {t('admin.noTemplate')}</span>
                                     )}
                                 </td>
                               </tr>
@@ -334,21 +334,21 @@ const AdminDashboard = () => {
                   <div style={{ flex: 1, background: '#f8fafc', padding: '25px', borderRadius: RADIUS_LG, border: `1px dashed #cbd5e1` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                       <UploadCloud size={20} color={PRIMARY} />
-                      <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Subir/Reemplazar Plantilla</h3>
+                      <h3 style={{ fontSize: '14px', fontWeight: 700 }}>{t('admin.uploadReplace')}</h3>
                     </div>
                     <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                       <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>TIPO DE TRÁMITE A VINCULAR</label>
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.processToLink')}</label>
                         <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
-                          <option value="fondos">Declaración de Fondos</option>
-                          <option value="corporacion">Incorporación</option>
-                          <option value="fundaciones">Fundaciones</option>
-                          <option value="cumplimiento_individual">Cumplimiento Individual</option>
-                          <option value="cumplimiento_entidades">Cumplimiento Entidades</option>
+                          <option value="fondos">{getFormTypeLabel('Fondos Registros contables', lang)}</option>
+                          <option value="corporacion">{getFormTypeLabel('Corporación', lang)}</option>
+                          <option value="fundaciones">{getFormTypeLabel('Fundaciones', lang)}</option>
+                          <option value="cumplimiento_individual">{getFormTypeLabel('Cumplimiento Individual', lang)}</option>
+                          <option value="cumplimiento_entidades">{getFormTypeLabel('Cumplimiento Entidades', lang)}</option>
                         </select>
                       </div>
                       <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>ARCHIVO PDF</label>
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('userDocs.pdfLabel')}</label>
                         <input 
                           type="file" 
                           accept=".pdf" 
@@ -364,10 +364,10 @@ const AdminDashboard = () => {
                         className="btn-primary" 
                         style={{ marginTop: 10, background: templates.some(t => t.name === templateName) ? '#f59e0b' : '#16a34a' }}
                       >
-                        {uploadingTemplate ? 'PROCESANDO...' : (templates.some(t => t.name === templateName) ? 'ACTUALIZAR PLANTILLA EXISTENTE' : 'SUBIR NUEVA PLANTILLA')}
+                        {uploadingTemplate ? t('register.processing').toUpperCase() : (templates.some(t => t.name === templateName) ? t('admin.updateExisting') : t('admin.uploadNew'))}
                       </button>
                       <p style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>
-                        {templates.some(t => t.name === templateName) ? 'Esta acción sobreescribirá el archivo actual en la base de datos.' : 'Se inyectará un nuevo archivo en el sistema maestro.'}
+                        {templates.some(t => t.name === templateName) ? t('admin.overwriteNotice') : t('admin.injectNotice')}
                       </p>
                     </form>
                   </div>

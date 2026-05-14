@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, CheckCircle, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { useT } from '../i18n';
 import API_BASE_URL from '../config';
 import axios from 'axios';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const t = useT();
   const user = JSON.parse(localStorage.getItem('user'));
   const [passwords, setPasswords] = useState({ new: '', confirm: '' });
   const [showPass, setShowPass] = useState(false);
@@ -15,10 +17,10 @@ const ResetPassword = () => {
   const handleReset = async (e) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
-      return setError('Las contraseñas no coinciden');
+      return setError(t('reset.passwordsDontMatch'));
     }
     if (passwords.new.length < 7) {
-      return setError('La contraseña debe tener al menos 7 caracteres');
+      return setError(t('reset.passwordMinLength'));
     }
 
     setLoading(true);
@@ -38,7 +40,7 @@ const ResetPassword = () => {
       if (updatedUser.role === 'admin') navigate('/admin');
       else navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Error al actualizar la contraseña');
+      setError(err.response?.data?.msg || t('reset.updateError'));
     } finally {
       setLoading(false);
     }
@@ -51,13 +53,13 @@ const ResetPassword = () => {
           <div style={{ background: '#fef2f2', color: '#dc2626', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
             <ShieldAlert size={32} />
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '10px' }}>Actualización de Seguridad</h2>
-          <p style={{ color: 'var(--text-sub)' }}>Por favor, establece tu contraseña definitiva para activar tu cuenta.</p>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '10px' }}>{t('reset.securityUpdate')}</h2>
+          <p style={{ color: 'var(--text-sub)' }}>{t('reset.securitySubtitle')}</p>
         </div>
 
         <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>Nueva Contraseña</label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>{t('reset.newPassword')}</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type={showPass ? "text" : "password"} 
@@ -75,7 +77,7 @@ const ResetPassword = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>Confirmar Contraseña</label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: 8, color: 'var(--text-sub)' }}>{t('reset.confirmPassword')}</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type={showPass ? "text" : "password"} 
@@ -95,7 +97,7 @@ const ResetPassword = () => {
           {error && <p style={{ color: 'var(--error)', fontSize: '14px', textAlign: 'center', fontWeight: 500 }}>{error}</p>}
 
           <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '10px', height: '52px' }}>
-            {loading ? 'Guardando...' : 'Actualizar y Entrar'}
+            {loading ? t('common.saving') : t('reset.updateAndEnter')}
             {!loading && <CheckCircle size={18} style={{ marginLeft: 8, verticalAlign: 'middle' }} />}
           </button>
         </form>

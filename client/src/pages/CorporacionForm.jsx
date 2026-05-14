@@ -118,30 +118,30 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const renderStep1 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Building size={22} color={PRIMARY} /> INFORMACIÓN DE LA SOCIEDAD
+                <Building size={22} color={PRIMARY} /> {t('corporacion.steps.societyInfo')}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                 <div className="expert-group">
-                    <label>NOMBRE COMERCIAL (S.A.)</label>
+                    <label>{t('corporacion.fields.nameSA')}</label>
                     <input className="expert-input" value={formData.corpNameSA} onChange={e => setFormData({...formData, corpNameSA: e.target.value})} placeholder="Ej: NEXUS SOLUTIONS S.A." />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     <div className="expert-group">
-                        <label>NOMBRE OPCIONAL (CORP.)</label>
+                        <label>{t('corporacion.fields.nameCorp')}</label>
                         <input className="expert-input" value={formData.corpNameCorp} onChange={e => setFormData({...formData, corpNameCorp: e.target.value})} />
                     </div>
                     <div className="expert-group">
-                        <label>NOMBRE OPCIONAL (INC.)</label>
+                        <label>{t('corporacion.fields.nameInc')}</label>
                         <input className="expert-input" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} />
                     </div>
                 </div>
                 <div className="expert-group">
-                    <label>CAPITAL SOCIAL AUTORIZADO (MÍNIMO $10,000)</label>
+                    <label>{t('corporacion.fields.capital')}</label>
                     <div style={{ position: 'relative' }}>
                         <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>$</span>
                         <input type="number" min="10000" className="expert-input" style={{ paddingLeft: '30px' }} value={formData.capitalSocial} onChange={e => setFormData({...formData, capitalSocial: e.target.value})} />
                     </div>
-                    {parseInt(formData.capitalSocial) < 10000 && <p style={{ color: '#dc2626', fontSize: '11px', marginTop: '5px', fontWeight: 600 }}>El capital mínimo es de $10,000.00 USD</p>}
+                    {parseInt(formData.capitalSocial) < 10000 && <p style={{ color: '#dc2626', fontSize: '11px', marginTop: '5px', fontWeight: 600 }}>{t('corporacion.fields.minCapitalError')}</p>}
                 </div>
             </div>
         </div>
@@ -151,10 +151,10 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Users size={22} color={PRIMARY} /> JUNTA DIRECTIVA (MÍNIMO 3)
+                    <Users size={22} color={PRIMARY} /> {t('corporacion.steps.directors')}
                 </h2>
                 <button type="button" onClick={addDirector} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> AÑADIR DIRECTOR
+                    <Plus size={16} /> {t('corporacion.fields.addDirector')}
                 </button>
             </div>
             
@@ -162,34 +162,34 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 {formData.directors.map((d, index) => (
                     <div key={index} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', background: '#f8fafc', position: 'relative' }}>
                         <div style={{ position: 'absolute', right: '15px', top: '15px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8' }}>DIRECTOR #{index + 1}</span>
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8' }}>{t('corporacion.fields.directorNum', { n: index + 1 })}</span>
                             {formData.directors.length > 3 && (
                                 <button onClick={() => removeDirector(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
                             )}
                         </div>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
-                            <div className="expert-group"><label>PRIMER NOMBRE</label><input className="expert-input" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
-                            <div className="expert-group"><label>SEGUNDO NOMBRE</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
-                            <div className="expert-group"><label>APELLIDO</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
-                            <div className="expert-group"><label>ESTADO CIVIL</label>
+                            <div className="expert-group"><label>{t('corporacion.fields.firstName')}</label><input className="expert-input" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.middleName')}</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.lastName')}</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.maritalStatus')}</label>
                                 <select className="expert-input" value={d.maritalStatus} onChange={e => updateDirector(index, 'maritalStatus', e.target.value)}>
-                                    <option value="">-- Seleccionar --</option>
-                                    <option value="Soltero(a)">Soltero(a)</option>
-                                    <option value="Casado(a)">Casado(a)</option>
-                                    <option value="Divorciado(a)">Divorciado(a)</option>
-                                    <option value="Viudo(a)">Viudo(a)</option>
+                                    <option value="">{t('corporacion.fields.select')}</option>
+                                    <option value="Soltero(a)">{t('corporacion.marital.single')}</option>
+                                    <option value="Casado(a)">{t('corporacion.marital.married')}</option>
+                                    <option value="Divorciado(a)">{t('corporacion.marital.divorced')}</option>
+                                    <option value="Viudo(a)">{t('corporacion.marital.widowed')}</option>
                                 </select>
                             </div>
-                            <div className="expert-group"><label>NACIONALIDAD</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
-                            <div className="expert-group"><label>PASAPORTE / ID</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
-                            <div className="expert-group"><label>FECHA NACIMIENTO</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
-                            <div className="expert-group"><label>TELÉFONO</label><input type="text" className="expert-input" value={d.phone} onChange={e => updateDirector(index, 'phone', e.target.value)} /></div>
-                            <div className="expert-group"><label>EMAIL</label><input type="email" className="expert-input" value={d.email} onChange={e => updateDirector(index, 'email', e.target.value)} /></div>
-                            <div className="expert-group"><label>CIUDAD</label><input className="expert-input" value={d.city} onChange={e => updateDirector(index, 'city', e.target.value)} /></div>
-                            <div className="expert-group"><label>PAÍS</label><input className="expert-input" value={d.country} onChange={e => updateDirector(index, 'country', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.nationality')}</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.passport')}</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.birthDate')}</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.phone')}</label><input type="text" className="expert-input" value={d.phone} onChange={e => updateDirector(index, 'phone', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.email')}</label><input type="email" className="expert-input" value={d.email} onChange={e => updateDirector(index, 'email', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.city')}</label><input className="expert-input" value={d.city} onChange={e => updateDirector(index, 'city', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.country')}</label><input className="expert-input" value={d.country} onChange={e => updateDirector(index, 'country', e.target.value)} /></div>
                         </div>
-                        <div className="expert-group" style={{ marginTop: '15px' }}><label>DIRECCIÓN RESIDENCIAL</label><input className="expert-input" value={d.address} onChange={e => updateDirector(index, 'address', e.target.value)} /></div>
+                        <div className="expert-group" style={{ marginTop: '15px' }}><label>{t('corporacion.fields.address')}</label><input className="expert-input" value={d.address} onChange={e => updateDirector(index, 'address', e.target.value)} /></div>
                     </div>
                 ))}
             </div>
@@ -199,9 +199,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const renderStep3 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <UserCheck size={22} color={PRIMARY} /> DIGNATARIOS
+                <UserCheck size={22} color={PRIMARY} /> {t('corporacion.steps.dignitaries')}
             </h2>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '25px' }}>Asigne los cargos principales seleccionando miembros de la Junta Directiva.</p>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '25px' }}>{t('corporacion.fields.dignitaryInstructions')}</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {['presidente', 'secretario', 'tesorero'].map(role => (
@@ -213,20 +213,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="expert-group">
-                                <label>VINCULAR CON DIRECTOR</label>
+                                <label>{t('corporacion.fields.linkDirector')}</label>
                                 <select 
                                     className="expert-input" 
                                     value={formData.dignitaries[role].directorRef} 
                                     onChange={e => handleDirectorSelectForDignitary(role, e.target.value)}
                                 >
-                                    <option value="">-- Seleccionar Director --</option>
+                                    <option value="">{t('corporacion.fields.select')}</option>
                                     {formData.directors.map((d, i) => (
                                         <option key={i} value={i}>{d.firstName} {d.lastName}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="expert-group">
-                                <label>NÚMERO DE REGISTRO (OPCIONAL)</label>
+                                <label>{t('corporacion.fields.regNumber')}</label>
                                 <input className="expert-input" value={formData.dignitaries[role].registrationNumber} onChange={e => setFormData({
                                     ...formData,
                                     dignitaries: {
@@ -238,7 +238,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
                             <div className="expert-group">
-                                <label>FECHA DE NACIMIENTO</label>
+                                <label>{t('corporacion.fields.birthDate')}</label>
                                 <input type="date" className="expert-input" value={formData.dignitaries[role].birthDate} onChange={e => setFormData({
                                     ...formData,
                                     dignitaries: {
@@ -248,7 +248,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 })} />
                             </div>
                             <div className="expert-group">
-                                <label>PASAPORTE / ID</label>
+                                <label>{t('corporacion.fields.passport')}</label>
                                 <input className="expert-input" value={formData.dignitaries[role].passport} onChange={e => setFormData({
                                     ...formData,
                                     dignitaries: {
@@ -268,10 +268,10 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Briefcase size={22} color={PRIMARY} /> ACCIONISTAS
+                    <Briefcase size={22} color={PRIMARY} /> {t('corporacion.steps.shareholders')}
                 </h2>
                 <button type="button" onClick={addShareholder} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> AÑADIR ACCIONISTA
+                    <Plus size={16} /> {t('corporacion.fields.addShareholder')}
                 </button>
             </div>
 
@@ -279,11 +279,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 {formData.shareholders.map((s, index) => (
                     <div key={index} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '15px', background: 'white', position: 'relative' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 80px 1fr 1fr', gap: '12px', alignItems: 'flex-end' }}>
-                            <div className="expert-group"><label>CERT.</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(index, 'certificate', e.target.value)} /></div>
-                            <div className="expert-group"><label>VALOR</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(index, 'value', e.target.value)} /></div>
-                            <div className="expert-group"><label>ACC.</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(index, 'shares', e.target.value)} /></div>
-                            <div className="expert-group"><label>NOMBRE COMPLETO</label><input className="expert-input" value={s.name} onChange={e => updateShareholder(index, 'name', e.target.value)} /></div>
-                            <div className="expert-group"><label>DIRECCIÓN</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(index, 'address', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.cert')}</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(index, 'certificate', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.value')}</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(index, 'value', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.shares')}</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(index, 'shares', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.fullName')}</label><input className="expert-input" value={s.name} onChange={e => updateShareholder(index, 'name', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.address')}</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(index, 'address', e.target.value)} /></div>
                             {formData.shareholders.length > 1 && (
                                 <button onClick={() => removeShareholder(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '10px' }}><Trash2 size={16} /></button>
                             )}
@@ -297,34 +297,33 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const renderStep5 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <FileCheck size={22} color={PRIMARY} /> FINALIZACIÓN
+                <FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.finalization')}
             </h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                 <div className="expert-group">
-                    <label>OBJETO SOCIAL Y ACTIVIDADES DE LA COMPAÑÍA</label>
+                    <label>{t('corporacion.fields.activities')}</label>
                     <textarea 
                         className="expert-input" 
                         rows={4} 
                         value={formData.companyActivities} 
                         onChange={e => setFormData({...formData, companyActivities: e.target.value})} 
-                        placeholder="Describa detalladamente las actividades principales..."
+                        placeholder={t('corporacion.fields.activitiesPlaceholder')}
                     />
                 </div>
                 
                 <div style={{ border: `1px solid ${PRIMARY}30`, background: `${PRIMARY}05`, borderRadius: '12px', padding: '25px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '15px', color: PRIMARY }}>DECLARACIÓN JURADA</h3>
+                    <h3 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '15px', color: PRIMARY }}>{t('corporacion.fields.declarationTitle')}</h3>
                     <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.6, marginBottom: '20px' }}>
-                        Yo declaro bajo fe de juramento que la información suministrada en este formulario es verdadera y correcta. 
-                        Entiendo que cualquier falsedad u omisión podría invalidar el registro de la sociedad ante las autoridades competentes.
+                        {t('corporacion.fields.declarationBody')}
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div className="expert-group">
-                            <label>NOMBRE DEL DECLARANTE</label>
+                            <label>{t('corporacion.fields.declarantName')}</label>
                             <input className="expert-input" value={formData.declarationName} onChange={e => setFormData({...formData, declarationName: e.target.value})} />
                         </div>
                         <div className="expert-group">
-                            <label>FECHA DE FIRMA</label>
+                            <label>{t('corporacion.fields.signatureDate')}</label>
                             <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                         </div>
                     </div>
@@ -359,7 +358,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div key={s} style={{ flex: 1, position: 'relative' }}>
                         <div style={{ height: '5px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '10px', transition: 'all 0.3s' }} />
                         <div style={{ position: 'absolute', top: '-25px', left: '0', fontSize: '10px', fontWeight: 800, color: step >= s ? PRIMARY : '#94a3b8' }}>
-                            PASO 0{s}
+                            {t(`corporacion.steps.step${s}`)}
                         </div>
                     </div>
                 ))}
@@ -381,16 +380,16 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         className="expert-btn-nav"
                         style={{ opacity: step === 1 ? 0.3 : 1 }}
                     >
-                        <ChevronLeft size={18} /> ANTERIOR
+                        <ChevronLeft size={18} /> {t('corporacion.status.prev')}
                     </button>
                     
                     {step < 5 ? (
                         <button type="button" onClick={nextStep} className="expert-btn-primary">
-                            SIGUIENTE PASO <ChevronRight size={18} />
+                            {t('corporacion.status.next')} <ChevronRight size={18} />
                         </button>
                     ) : (
                         <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-finish">
-                            <CheckCircle2 size={18} /> {saving ? 'FINALIZAR Y PROCESAR' : 'GUARDAR Y FINALIZAR'}
+                            <CheckCircle2 size={18} /> {saving ? t('common.saving') : t('corporacion.status.saveFinish')}
                         </button>
                     )}
                 </div>

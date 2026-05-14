@@ -6,30 +6,9 @@ const SUPPORTED = ['es', 'en'];
 const DEFAULT_LANG = 'es';
 
 /**
- * Resuelve el nombre real de la tabla users en el schema activo.
- * Cachea el resultado en memoria del proceso para evitar lookup repetido.
- *
- * Devuelve null si la tabla no existe o si el lookup falla.
+ * Servicio de Idioma Blindado contra Dependencias Circulares.
+ * No importa '../models' para evitar bloqueos de inicialización.
  */
-let cachedTableName = null;
-let cachedTableLookupAttempted = false;
-async function getUsersTableName() {
-  if (cachedTableLookupAttempted) return cachedTableName;
-  cachedTableLookupAttempted = true;
-  try {
-    const [rows] = await sequelize.query(
-      `SELECT table_name FROM information_schema.tables
-        WHERE table_schema = current_schema()
-          AND lower(table_name) = 'users'
-        ORDER BY table_name ASC
-        LIMIT 1`
-    );
-    cachedTableName = rows && rows[0] && rows[0].table_name ? rows[0].table_name : null;
-  } catch (_) {
-    cachedTableName = null;
-  }
-  return cachedTableName;
-}
 
 function normalizeLang(value) {
   if (!value) return DEFAULT_LANG;
@@ -38,47 +17,63 @@ function normalizeLang(value) {
 }
 
 /**
- * Lee el idioma persistido de un usuario.
- *
- * Si la columna o tabla no existen (ej. ALTER TABLE no se ha aplicado en este
- * entorno), devuelve DEFAULT_LANG en lugar de propagar un error.
+ * Obtiene el nombre de la tabla de forma segura sin cargar el archivo de modelos.
  */
+function getActualTableName() {
+  try {
+    // Acceso directo al registro de modelos de Sequelize
+    const UserModel = sequelize.models.User;
+    if (UserModel) {
+      const raw = UserModel.getTableName();
+      return typeof raw === 'object' ? raw.tableName : raw;
+    }
+    return 'users';
+  } catch (e) {
+    return 'users';
+  }
+}
+
 async function getUserLanguage(userId) {
   if (!userId) return DEFAULT_LANG;
   try {
-    const table = await getUsersTableName();
-    if (!table) return DEFAULT_LANG;
-    const quoted = `"${table.replace(/"/g, '""')}"`;
+    const tableName = getActualTableName();
+    const quoted = `"${tableName.replace(/"/g, '""')}"`;
+    
     const [rows] = await sequelize.query(
       `SELECT "language" FROM ${quoted} WHERE id = :id LIMIT 1`,
-      { replacements: { id: userId } }
-    );
-    if (rows && rows[0] && rows[0].language) return normalizeLang(rows[0].language);
+      { 
+        replacements: { id: userId }, 
+        type: sequelize.QueryTypes.SELECT 
+      }
+    ).catch(() => [{ language: DEFAULT_LANG }]);
+    
+    if (rows && rows.language) {
+      return normalizeLang(rows.language);
+    }
+    
     return DEFAULT_LANG;
-  } catch (_) {
+  } catch (err) {
+    console.error('[LanguageStore] Fallo en getUserLanguage:', err.message);
     return DEFAULT_LANG;
   }
 }
 
-/**
- * Persiste el idioma elegido. Devuelve un booleano de éxito.
- *
- * Si la columna no existe, devuelve false sin lanzar. El llamador puede
- * informar 200 con `{ persisted: false }` o decidir su política.
- */
 async function setUserLanguage(userId, language) {
   if (!userId) return false;
   const lang = normalizeLang(language);
   try {
-    const table = await getUsersTableName();
-    if (!table) return false;
-    const quoted = `"${table.replace(/"/g, '""')}"`;
+    const tableName = getActualTableName();
+    const quoted = `"${tableName.replace(/"/g, '""')}"`;
+    
     await sequelize.query(
       `UPDATE ${quoted} SET "language" = :lang WHERE id = :id`,
       { replacements: { lang, id: userId } }
-    );
+    ).catch((e) => {
+        console.error('[LanguageStore] Error en UPDATE language:', e.message);
+    });
+    
     return true;
-  } catch (_) {
+  } catch (err) {
     return false;
   }
 }

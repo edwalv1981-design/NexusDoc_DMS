@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
 const stablePdfForms = require('../config/stablePdfForms');
+// const userLanguageStore = require('../services/userLanguageStore'); // Movido a nivel de función
 
 // @route   POST api/forms/save
 router.post('/save', auth, async (req, res) => {
@@ -107,7 +108,15 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
-        const userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
+        console.log(`[PDF] Iniciando generación para trámite ID: ${req.params.id}, tipo: ${form.formType}`);
+        
+        let userLanguage = 'es';
+        try {
+            const userLanguageStore = require('../services/userLanguageStore');
+            userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
+        } catch (langErr) {
+            console.error('⚠️ Error al obtener idioma, usando default "es":', langErr.message);
+        }
 
         const templateName = stablePdfForms.getPdfTemplateNameForForm(form.formType);
 
@@ -128,8 +137,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 res.setHeader('Content-Type', 'application/pdf');
                 return res.send(pdfBuffer);
             } catch (htmlErr) {
-                console.error('❌ Corporación HTML falló:', htmlErr);
-                return res.status(500).json({ msg: `ERROR CORPORACION HTML: ${htmlErr.message}` });
+                console.error('❌ ERROR CRÍTICO CORPORACIÓN HTML:', htmlErr);
+                return res.status(500).json({ msg: `ERROR GENERACIÓN CORPORACIÓN: ${htmlErr.message}` });
             }
         }
 
@@ -147,7 +156,11 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 if (dbTemplate) {
                     await dbTemplate.update({ fileData: fileBuffer });
                 } else {
-                    dbTemplate = await DocumentTemplate.create({ name: templateName, fileData: fileBuffer });
+                    dbTemplate = await DocumentTemplate.create({ 
+                        name: templateName, 
+                        fileData: fileBuffer,
+                        uploadedBy: req.user.id // ASIGNAR AL USUARIO ACTUAL PARA EVITAR FALLO DE VALIDACIÓN
+                    });
                 }
             } else {
                 return res.status(400).json({ msg: `Error crítico: No existe plantilla (${templateName}) ni archivo base en el servidor.` });
@@ -164,13 +177,25 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const { spawn } = require('child_process');
         const pythonProcess = spawn(pythonCommand, [scriptPath]);
 
+        let stdoutData = '';
         let stderrData = '';
+
+        pythonProcess.stdout.on('data', (data) => { stdoutData += data.toString(); });
         pythonProcess.stderr.on('data', (data) => { stderrData += data.toString(); });
 
+        pythonProcess.on('error', (spawnErr) => {
+            console.error('❌ ERROR AL INICIAR MOTOR PYTHON:', spawnErr);
+            if (!res.headersSent) {
+                res.status(500).json({ msg: 'Error crítico: No se pudo iniciar el motor de generación.', error: spawnErr.message });
+            }
+        });
+
         pythonProcess.on('close', async (code) => {
+            if (res.headersSent) return;
+            
             if (code !== 0) {
-                console.error(`❌ Error motor Python: ${stderrData}`);
-                return res.status(500).json({ msg: `ERROR MOTOR: ${stderrData.substring(0, 150)}` });
+                console.error(`❌ ERROR MOTOR PYTHON (Exit Code ${code}): ${stderrData}`);
+                return res.status(500).json({ msg: `ERROR MOTOR GENERACIÓN: ${stderrData.substring(0, 200)}` });
             }
             if (!fs.existsSync(outputPath)) return res.status(500).json({ msg: 'No se generó el PDF' });
 
@@ -204,8 +229,10 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         pythonProcess.stdin.end();
 
     } catch (e) {
-        console.error(e);
-        res.status(500).json({ msg: 'Error de servidor' });
+        const errorDetail = `[${new Date().toISOString()}] ERROR PDF: ${e.message}\nStack: ${e.stack}\n`;
+        require('fs').appendFileSync(require('path').join(__dirname, '../last_pdf_error.txt'), errorDetail);
+        console.error('❌ Error general en generate-pdf:', e);
+        res.status(500).json({ msg: 'Error de servidor', error: e.message });
     }
 });
 

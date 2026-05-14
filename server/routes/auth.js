@@ -9,6 +9,7 @@ const { Op } = require('sequelize');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const stablePdfForms = require('../config/stablePdfForms');
+// const userLanguageStore = require('../services/userLanguageStore'); // Movido a nivel de función para evitar dependencias circulares
 
 const generateUniqueCode = async (formType) => {
     const prefix = stablePdfForms.UNIQUE_CODE_PREFIX_BY_FORM_TYPE[formType] || 'NDOC';
@@ -202,12 +203,20 @@ router.get('/me', auth, async (req, res) => {
             attributes: { exclude: ['password'] }
         });
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
-        const language = await userLanguageStore.getUserLanguage(user.id);
-        const payload = user.toJSON();
+        
+        let language = 'es';
+        try {
+            const store = require('../services/userLanguageStore');
+            language = await store.getUserLanguage(user.id);
+        } catch (lErr) {
+            console.error('[ME] Error silencioso en idioma:', lErr.message);
+        }
+
+        const payload = user.get({ plain: true });
         payload.language = language;
         res.json(payload);
     } catch (err) {
-        console.error('🔥 ERROR EN /ME:', err);
+        console.error('🔥 ERROR CRÍTICO EN /ME:', err);
         res.status(500).json({ 
             msg: 'Error interno al recuperar perfil', 
             error: err.message,
@@ -222,6 +231,7 @@ router.get('/me', auth, async (req, res) => {
 router.patch('/me/language', auth, async (req, res) => {
     try {
         const { language } = req.body || {};
+        const userLanguageStore = require('../services/userLanguageStore');
         if (!userLanguageStore.SUPPORTED.includes(language)) {
             return res.status(400).json({ msg: 'Idioma inválido. Use "es" o "en".' });
         }

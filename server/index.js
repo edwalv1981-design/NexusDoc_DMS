@@ -82,16 +82,12 @@ app.get(/.*/, (req, res) => {
  */
 async function ensureUserLanguageColumn() {
     try {
-        const [rows] = await sequelize.query(
-            `SELECT table_name FROM information_schema.tables
-              WHERE table_schema = current_schema()
-                AND lower(table_name) = 'users'
-              ORDER BY table_name ASC
-              LIMIT 1`
-        );
-        const tableName = rows && rows[0] && rows[0].table_name;
+        const { User } = require('./models');
+        const rawTableName = User.getTableName();
+        const tableName = typeof rawTableName === 'object' ? rawTableName.tableName : rawTableName;
+        
         if (!tableName) {
-            console.warn('⚠️ ensureUserLanguageColumn: tabla users no encontrada en current_schema().');
+            console.warn('⚠️ ensureUserLanguageColumn: no se pudo obtener el nombre de la tabla de User.');
             return;
         }
         const quoted = `"${tableName.replace(/"/g, '""')}"`;
@@ -108,15 +104,13 @@ async function ensureUserLanguageColumn() {
  */
 async function ensureUserActiveTokenColumn() {
     try {
-        const [rows] = await sequelize.query(
-            `SELECT table_name FROM information_schema.tables 
-             WHERE table_schema = current_schema() AND lower(table_name) = 'users' LIMIT 1`
-        );
-        if (rows.length > 0) {
-            const actualTableName = rows[0].table_name;
-            console.log(`🛠️ Verificando columna active_token en tabla ${actualTableName}...`);
-            await sequelize.query(`ALTER TABLE "${actualTableName}" ADD COLUMN IF NOT EXISTS "active_token" TEXT;`);
-        }
+        const { User } = require('./models');
+        const rawTableName = User.getTableName();
+        const tableName = typeof rawTableName === 'object' ? rawTableName.tableName : rawTableName;
+        if (!tableName) return;
+        
+        console.log(`🛠️ Verificando columna active_token en tabla ${tableName}...`);
+        await sequelize.query(`ALTER TABLE "${tableName.replace(/"/g, '""')}" ADD COLUMN IF NOT EXISTS "active_token" TEXT;`);
     } catch (e) {
         console.warn('⚠️ No se pudo asegurar columna active_token:', e.message);
     }
@@ -197,7 +191,17 @@ bootstrap()
             console.log(`🚀 SERVIDOR WEB ACTIVO (modo degradado) EN PUERTO: ${PORT}`);
         });
     });
-// 6. MANEJADOR GLOBAL DE ERRORES (Telemetría final)
+// 6. HEALTH CHECK & DIAGNOSTICS
+app.get('/api/health-check', async (req, res) => {
+    try {
+        await sequelize.authenticate();
+        res.json({ status: 'OK', database: 'CONNECTED', timestamp: new Date().toISOString() });
+    } catch (err) {
+        res.status(500).json({ status: 'ERROR', database: 'DISCONNECTED', error: err.message });
+    }
+});
+
+// 7. MANEJADOR GLOBAL DE ERRORES (Telemetría final)
 app.use((err, req, res, next) => {
     console.error('🔥 ERROR NO CONTROLADO:', err.stack);
     res.status(500).json({ 
