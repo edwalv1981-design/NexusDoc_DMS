@@ -144,7 +144,11 @@ const es = {
     confirmReset: '¿Resetear contraseña y enviar por correo?',
     passwordSent: 'Contraseña enviada al usuario',
     deleted: 'Eliminado',
-    confirmDelete: '¿Eliminar?',
+    confirmDelete: '¿Está seguro de eliminar este registro?',
+    deleteWarning: 'Esta acción no se puede deshacer y el documento se borrará permanentemente.',
+    confirmAction: 'Confirmar Acción',
+    cancel: 'Cancelar',
+    delete: 'Eliminar',
     helpTutorial: 'AYUDA Y TUTORIAL',
   },
   timeout: {

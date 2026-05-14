@@ -144,7 +144,11 @@ const en = {
     confirmReset: 'Reset password and send by email?',
     passwordSent: 'Password sent to user',
     deleted: 'Deleted',
-    confirmDelete: 'Delete?',
+    confirmDelete: 'Are you sure you want to delete this record?',
+    deleteWarning: 'This action cannot be undone and the document will be permanently deleted.',
+    confirmAction: 'Confirm Action',
+    cancel: 'Cancel',
+    delete: 'Delete',
     helpTutorial: 'HELP AND TUTORIAL',
   },
   timeout: {

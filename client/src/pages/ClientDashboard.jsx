@@ -43,7 +43,7 @@ const ClientDashboard = () => {
 
     // SISTEMA DE NOTIFICACIONES UX-UI
     const [toast, setToast] = useState({ show: false, msg: '', type: 'error' });
-    const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
+    const [modal, setModal] = useState({ show: false, title: '', msg: '', onConfirm: null, type: 'info' });
 
     const [step, setStep] = useState(1);
     const EMPTY_FORM = {
@@ -170,8 +170,10 @@ const ClientDashboard = () => {
     const confirmDelete = (id) => {
         setModal({
             show: true,
-            msg: t('modal.confirmDelete'),
-            onConfirm: () => handleDelete(id)
+            title: t('modal.confirmDelete'),
+            msg: t('modal.deleteWarning'),
+            onConfirm: () => handleDelete(id),
+            type: 'danger'
         });
     };
 
@@ -243,16 +245,47 @@ const ClientDashboard = () => {
     return (
         <div style={{ minHeight: '100vh', background: BG, display: 'flex', fontFamily: "'Inter', sans-serif", color: TEXT, position: 'relative' }}>
             
-            {/* MODAL DE CONFIRMACIÓN UX-UI */}
+            {/* MODAL DE CONFIRMACIÓN UX-UI (REDISEÑO EXPERTO) */}
             {modal.show && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-                    <div style={{ background: 'white', padding: '30px', borderRadius: RADIUS_LG, maxWidth: '400px', width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
-                        <div style={{ color: PRIMARY, marginBottom: '15px' }}><Info size={32} /></div>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '15px', color: '#1e293b' }}>{t('modal.confirmAction')}</h3>
-                        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '25px', lineHeight: 1.5 }}>{modal.msg}</p>
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <button onClick={() => setModal({ ...modal, show: false })} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>{t('modal.cancel')}</button>
-                            <button onClick={modal.onConfirm} style={{ flex: 1, padding: '10px', background: '#dc2626', color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>{t('modal.delete')}</button>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, animation: 'fadeIn 0.2s ease-out' }}>
+                    <div style={{ background: 'white', padding: '0', borderRadius: '24px', maxWidth: '420px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+                        <div style={{ padding: '35px 30px 25px', textAlign: 'center' }}>
+                            <div style={{ 
+                                width: '64px', height: '64px', background: modal.type === 'danger' ? '#fef2f2' : '#f0f9ff', 
+                                color: modal.type === 'danger' ? '#dc2626' : PRIMARY, borderRadius: '20px', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+                                border: `1px solid ${modal.type === 'danger' ? '#fee2e2' : '#e0f2fe'}`
+                            }}>
+                                {modal.type === 'danger' ? <ShieldAlert size={32} /> : <Info size={32} />}
+                            </div>
+                            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px', color: '#1e293b', letterSpacing: '-0.5px' }}>
+                                {modal.title || t('modal.confirmAction')}
+                            </h3>
+                            <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '0', lineHeight: 1.6 }}>
+                                {modal.msg}
+                            </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 0, borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                            <button 
+                                onClick={() => setModal({ ...modal, show: false })} 
+                                style={{ flex: 1, padding: '20px', background: 'transparent', border: 'none', borderRight: '1px solid #f1f5f9', color: '#64748b', fontWeight: 700, cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                {t('modal.cancel')}
+                            </button>
+                            <button 
+                                onClick={modal.onConfirm} 
+                                style={{ 
+                                    flex: 1, padding: '20px', background: 'transparent', border: 'none', 
+                                    color: modal.type === 'danger' ? '#dc2626' : PRIMARY, fontWeight: 800, 
+                                    cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' 
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = modal.type === 'danger' ? '#fef2f2' : '#f0f9ff'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                {t(modal.type === 'danger' ? 'modal.delete' : 'common.confirm')}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -497,6 +530,8 @@ const ClientDashboard = () => {
             </main>
             <style>{`
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
                 .field-group { display: flex; flex-direction: column; gap: 4px; } 
                 .field-group label { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.5px; } 
                 .input-expert { width: 100%; padding: 10px 14px; border: 1.5px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 13px; } 
