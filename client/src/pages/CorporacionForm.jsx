@@ -75,6 +75,16 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const updateDignitary = (index, field, value) => {
         const newDigs = [...formData.dignitaries];
         newDigs[index][field] = value;
+        
+        // AUTOCOMPLETADO INTELIGENTE
+        if (field === 'fullName' && value.length > 3) {
+            const person = findPersonData(value);
+            if (person) {
+                if (person.birthDate && !newDigs[index].birthDate) newDigs[index].birthDate = person.birthDate;
+                if (person.passport && !newDigs[index].passport) newDigs[index].passport = person.passport;
+            }
+        }
+        
         setFormData(prev => ({ ...prev, dignitaries: newDigs }));
     };
 
@@ -117,6 +127,15 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const updateShareholder = (index, field, value) => {
         const newShareholders = [...formData.shareholders];
         newShareholders[index][field] = value;
+        
+        // AUTOCOMPLETADO INTELIGENTE
+        if (field === 'name' && value.length > 3) {
+            const person = findPersonData(value);
+            if (person && person.address && !newShareholders[index].address) {
+                newShareholders[index].address = person.address;
+            }
+        }
+        
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
     };
 
@@ -140,6 +159,36 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const newSigners = [...formData.signers];
         newSigners[index][field] = value;
         setFormData(prev => ({ ...prev, signers: newSigners }));
+    };
+
+    // MOTOR DE BÚSQUEDA CONTEXTUAL
+    const findPersonData = (name) => {
+        if (!name || name.trim().length < 3) return null;
+        const searchName = name.toLowerCase().trim();
+
+        // Buscar en Directores
+        for (const d of formData.directors) {
+            const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
+            if (full.toLowerCase().trim() === searchName) {
+                return { birthDate: d.birthDate, passport: d.passport, address: d.address };
+            }
+        }
+
+        // Buscar en otros Dignatarios
+        for (const d of formData.dignitaries) {
+            if (d.fullName && d.fullName.toLowerCase().trim() === searchName) {
+                return { birthDate: d.birthDate, passport: d.passport };
+            }
+        }
+
+        // Buscar en otros Accionistas
+        for (const s of formData.shareholders) {
+            if (s.name && s.name.toLowerCase().trim() === searchName) {
+                return { address: s.address };
+            }
+        }
+
+        return null;
     };
 
     const PRIMARY = '#0078d4';
