@@ -33,13 +33,13 @@ const FondosForm = () => {
         custodyEmail: '',
         custodyAddress: '',
         signerName: '',
-        date: new Date().toISOString().split('T')[0],
-        sameAsBeneficiary: false
+        date: new Date().toISOString().split('T')[0]
     });
 
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
     const [validationErrors, setValidationErrors] = useState([]);
+    const [showSuggestion, setShowSuggestion] = useState(false);
 
     useEffect(() => {
         if (editId) fetchExistingData();
@@ -161,20 +161,7 @@ const FondosForm = () => {
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
-                                    <input 
-                                        className="corporate-input" 
-                                        style={getErrorStyle('beneficiaryName')} 
-                                        value={formData.beneficiaryName} 
-                                        onChange={e => { 
-                                            const val = e.target.value;
-                                            setFormData(prev => ({
-                                                ...prev, 
-                                                beneficiaryName: val,
-                                                custodyName: prev.sameAsBeneficiary ? val : prev.custodyName
-                                            })); 
-                                            if (val) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); 
-                                        }} 
-                                    />
+                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
                                 </div>
                             </div>
                         </div>
@@ -239,36 +226,56 @@ const FondosForm = () => {
                         </div>
          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <label style={{ ...labelStyle, marginBottom: 0 }}>{t('fondos.custodyName')}</label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: PRIMARY_COLOR, cursor: 'pointer' }}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={formData.sameAsBeneficiary} 
-                                            onChange={e => {
-                                                const checked = e.target.checked;
-                                                setFormData(prev => ({
-                                                    ...prev, 
-                                                    sameAsBeneficiary: checked,
-                                                    custodyName: checked ? prev.beneficiaryName : prev.custodyName
-                                                }));
-                                            }}
-                                            style={{ accentColor: PRIMARY_COLOR }}
-                                        />
-                                        {t('fondos.sameAsBeneficiary')}
-                                    </label>
-                                </div>
+                                <label style={labelStyle}>{t('fondos.custodyName')}</label>
                                 <input 
                                     className="corporate-input" 
                                     style={getErrorStyle('custodyName')} 
                                     value={formData.custodyName} 
                                     onChange={e => { 
-                                        setFormData({...formData, custodyName: e.target.value, sameAsBeneficiary: false}); 
-                                        if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName')); 
+                                        const val = e.target.value;
+                                        setFormData({...formData, custodyName: val}); 
+                                        if (val) setValidationErrors(prev => prev.filter(err => err !== 'custodyName'));
+                                        
+                                        // Lógica de autocompletado inteligente
+                                        if (val && formData.beneficiaryName && 
+                                            formData.beneficiaryName.toLowerCase().startsWith(val.toLowerCase()) && 
+                                            val.toLowerCase() !== formData.beneficiaryName.toLowerCase()) {
+                                            setShowSuggestion(true);
+                                        } else {
+                                            setShowSuggestion(false);
+                                        }
                                     }} 
-                                    disabled={formData.sameAsBeneficiary}
                                 />
+                                {showSuggestion && (
+                                    <div 
+                                        onClick={() => { 
+                                            setFormData({...formData, custodyName: formData.beneficiaryName}); 
+                                            setShowSuggestion(false); 
+                                        }}
+                                        style={{ 
+                                            background: '#f0f9ff', 
+                                            padding: '10px 15px', 
+                                            border: `1px solid ${PRIMARY_COLOR}30`, 
+                                            borderRadius: '10px', 
+                                            marginTop: '8px', 
+                                            fontSize: '12px', 
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            animation: 'slideDown 0.2s ease-out'
+                                        }}
+                                    >
+                                        <div style={{ background: PRIMARY_COLOR, borderRadius: '4px', padding: '2px' }}>
+                                            <Check size={10} color="white" />
+                                        </div>
+                                        <span style={{ color: '#475569' }}>
+                                            <strong style={{ color: PRIMARY_COLOR }}>{t('fondos.suggestion')}:</strong> {formData.beneficiaryName}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>

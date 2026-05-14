@@ -179,7 +179,7 @@ const en = {
     custodyPhone: 'Corporate Phone',
     custodyEmail: 'Institutional Email',
     custodyAddress: 'Records Storage Address',
-    sameAsBeneficiary: 'Same as ultimate beneficial owner',
+    suggestion: 'Suggestion',
     custodyError: '⚠️ Please complete the mandatory custody data.',
     finish: 'Finish Registration',
     validatedTitle: 'Documentation Validated',
