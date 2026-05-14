@@ -147,20 +147,24 @@ function assertCorporacionPdfLayoutInvariants(layout = LAYOUT) {
 function analyzeFormData(data = {}) {
   const directors = Array.isArray(data.directors) ? data.directors.length : 0;
   const shareholders = Array.isArray(data.shareholders) ? data.shareholders.length : 0;
+  const dignitaries = Array.isArray(data.dignitaries) ? data.dignitaries.length : 0;
+  const signers = Array.isArray(data.signers) ? data.signers.length : 0;
   const actLen = String(data.companyActivities || '').length;
 
   let density = 'normal';
-  if (directors > 6 || shareholders > 12 || actLen > 2200) density = 'high';
-  if (directors > 10 || shareholders > 22 || actLen > 5000) density = 'very_high';
+  if (directors > 6 || shareholders > 12 || dignitaries > 5 || actLen > 2200) density = 'high';
+  if (directors > 10 || shareholders > 22 || dignitaries > 10 || actLen > 5000) density = 'very_high';
 
   /** Si el bloque final es enorme, forzar política de ruptura permisiva (evita cortar mal el PDF). */
-  const tailKeepTogether = actLen < 3200 && directors <= 8 && shareholders <= 16;
+  const tailKeepTogether = actLen < 3200 && directors <= 8 && shareholders <= 16 && signers <= 3;
 
   return {
     density,
     tailKeepTogether,
     directors,
     shareholders,
+    dignitaries,
+    signers,
     activitiesChars: actLen,
   };
 }

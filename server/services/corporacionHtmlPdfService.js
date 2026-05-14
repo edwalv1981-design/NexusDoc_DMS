@@ -69,6 +69,31 @@ function buildShareholdersRows(shareholders) {
   `).join('');
 }
 
+function buildDignitariesRows(dignitaries, fmtDate) {
+  if (!Array.isArray(dignitaries)) return '';
+  return dignitaries.map(d => `
+    <tr>
+      <td>${esc(d.role)}</td>
+      <td>${esc(d.fullName)}</td>
+      <td>${esc(fmtDate(d.birthDate))}</td>
+      <td>${esc(d.passport)}</td>
+      <td>${esc(d.registrationNumber)}</td>
+    </tr>
+  `).join('');
+}
+
+function buildSignersRows(signers, fmtDate, t) {
+  if (!Array.isArray(signers)) return '';
+  return signers.map(s => `
+    <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px;">
+      <div><label>${esc(t.declarationSignature)}</label><div class="value">${esc(s.signature)}</div></div>
+      <div class="grid2" style="padding: 0; margin-top: 4px;">
+        <div><label>${esc(t.declarationName)}</label><div class="value">${esc(s.name)}</div></div>
+      </div>
+    </div>
+  `).join('');
+}
+
 class CorporacionHtmlPdfService {
   async generatePdf(data = {}, options = {}) {
     corporacionLayoutGuard.assertCorporacionPdfLayoutInvariants();
@@ -84,7 +109,9 @@ class CorporacionHtmlPdfService {
 
       const directors = Array.isArray(data.directors) ? data.directors : [];
       const shareholders = Array.isArray(data.shareholders) ? data.shareholders : [];
-      const dign = data.dignitaries || {};
+      const dignitaries = Array.isArray(data.dignitaries) ? data.dignitaries : [];
+      const signers = Array.isArray(data.signers) ? data.signers : [];
+      
       const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
       const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
@@ -129,9 +156,7 @@ class CorporacionHtmlPdfService {
           <table>
             <thead><tr><th>${esc(t.officerPosition)}</th><th>${esc(t.officerFullName)}</th><th>${esc(t.officerBirthDate)}</th><th>${esc(t.officerPassport)}</th><th>${esc(t.officerRegNumber)}</th></tr></thead>
             <tbody>
-              <tr><td>${esc(t.rolePresident)}</td><td>${esc(dign.presidente?.fullName)}</td><td>${esc(fmtDate(dign.presidente?.birthDate))}</td><td>${esc(dign.presidente?.passport)}</td><td>${esc(dign.presidente?.registrationNumber)}</td></tr>
-              <tr><td>${esc(t.roleSecretary)}</td><td>${esc(dign.secretario?.fullName)}</td><td>${esc(fmtDate(dign.secretario?.birthDate))}</td><td>${esc(dign.secretario?.passport)}</td><td>${esc(dign.secretario?.registrationNumber)}</td></tr>
-              <tr><td>${esc(t.roleTreasurer)}</td><td>${esc(dign.tesorero?.fullName)}</td><td>${esc(fmtDate(dign.tesorero?.birthDate))}</td><td>${esc(dign.tesorero?.passport)}</td><td>${esc(dign.tesorero?.registrationNumber)}</td></tr>
+              ${buildDignitariesRows(dignitaries, fmtDate)}
             </tbody>
           </table>
         </section>
@@ -167,11 +192,11 @@ class CorporacionHtmlPdfService {
           <section class="card">
             <h2>${esc(t.sectionDeclaration)}</h2>
             <div class="hint">${esc(t.sectionDeclarationHint)}</div>
-            <div style="display: flex; flex-direction: column; gap: 8px; padding: 8px;">
-              <div><label>${esc(t.declarationSignature)}</label><div class="value">${esc(data.declarationSignature)}</div></div>
-              <div class="grid2" style="padding: 0; margin-top: 4px;">
-                <div><label>${esc(t.declarationName)}</label><div class="value">${esc(data.declarationName)}</div></div>
-                <div><label>${esc(t.declarationDate)}</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+            <div style="padding: 8px;">
+              ${buildSignersRows(signers, fmtDate, t)}
+              <div style="margin-top: 10px;">
+                <label>${esc(t.declarationDate)}</label>
+                <div class="value">${esc(fmtDate(data.declarationDate))}</div>
               </div>
             </div>
           </section>
