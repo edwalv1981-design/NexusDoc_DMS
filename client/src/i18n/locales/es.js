@@ -183,6 +183,8 @@ const es = {
     custodyPhone: 'Teléfono Corporativo',
     custodyEmail: 'Correo Institucional',
     custodyAddress: 'Dirección de Almacenamiento de Registros',
+    signerName: 'Nombre del Declarante',
+    date: 'Fecha',
     suggestion: 'Sugerencia',
     custodyError: '⚠️ Por favor complete los datos obligatorios de custodia.',
     finish: 'Finalizar Registro',

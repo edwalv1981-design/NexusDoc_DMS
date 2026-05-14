@@ -183,6 +183,8 @@ const en = {
     custodyPhone: 'Corporate Phone',
     custodyEmail: 'Institutional Email',
     custodyAddress: 'Records Storage Address',
+    signerName: 'Declarant Name',
+    date: 'Date',
     suggestion: 'Suggestion',
     custodyError: '⚠️ Please complete the mandatory custody data.',
     finish: 'Finish Registration',
