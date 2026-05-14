@@ -179,6 +179,7 @@ const es = {
     custodyPhone: 'Teléfono Corporativo',
     custodyEmail: 'Correo Institucional',
     custodyAddress: 'Dirección de Almacenamiento de Registros',
+    sameAsBeneficiary: 'Es el mismo que el beneficiario final',
     custodyError: '⚠️ Por favor complete los datos obligatorios de custodia.',
     finish: 'Finalizar Registro',
     validatedTitle: 'Documentación Validada',

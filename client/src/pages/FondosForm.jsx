@@ -33,7 +33,8 @@ const FondosForm = () => {
         custodyEmail: '',
         custodyAddress: '',
         signerName: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        sameAsBeneficiary: false
     });
 
     const [loading, setLoading] = useState(false);
@@ -160,7 +161,20 @@ const FondosForm = () => {
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
+                                    <input 
+                                        className="corporate-input" 
+                                        style={getErrorStyle('beneficiaryName')} 
+                                        value={formData.beneficiaryName} 
+                                        onChange={e => { 
+                                            const val = e.target.value;
+                                            setFormData(prev => ({
+                                                ...prev, 
+                                                beneficiaryName: val,
+                                                custodyName: prev.sameAsBeneficiary ? val : prev.custodyName
+                                            })); 
+                                            if (val) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); 
+                                        }} 
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -225,8 +239,35 @@ const FondosForm = () => {
                         </div>
          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             <div>
-                                <label style={labelStyle}>{t('fondos.custodyName')}</label>
-                                <input className="corporate-input" style={getErrorStyle('custodyName')} value={formData.custodyName} onChange={e => { setFormData({...formData, custodyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName')); }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <label style={{ ...labelStyle, marginBottom: 0 }}>{t('fondos.custodyName')}</label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: PRIMARY_COLOR, cursor: 'pointer' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={formData.sameAsBeneficiary} 
+                                            onChange={e => {
+                                                const checked = e.target.checked;
+                                                setFormData(prev => ({
+                                                    ...prev, 
+                                                    sameAsBeneficiary: checked,
+                                                    custodyName: checked ? prev.beneficiaryName : prev.custodyName
+                                                }));
+                                            }}
+                                            style={{ accentColor: PRIMARY_COLOR }}
+                                        />
+                                        {t('fondos.sameAsBeneficiary')}
+                                    </label>
+                                </div>
+                                <input 
+                                    className="corporate-input" 
+                                    style={getErrorStyle('custodyName')} 
+                                    value={formData.custodyName} 
+                                    onChange={e => { 
+                                        setFormData({...formData, custodyName: e.target.value, sameAsBeneficiary: false}); 
+                                        if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName')); 
+                                    }} 
+                                    disabled={formData.sameAsBeneficiary}
+                                />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
