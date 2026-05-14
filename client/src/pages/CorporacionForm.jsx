@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
     Building, Users, UserCheck, Briefcase, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
-    AlertCircle, CheckCircle2, ShieldCheck, Download, Eye, FileText
+    CheckCircle2
 } from 'lucide-react';
 import { useT } from '../i18n';
+
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const t = useT();
     const [step, setStep] = useState(1);
@@ -42,7 +43,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    // GESTIÓN DE DIGNATARIOS (DINÁMICO)
+    // GESTIÓN DE DIGNATARIOS
     const addDignitary = () => {
         setFormData(prev => ({
             ...prev,
@@ -94,11 +95,19 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     const removeShareholder = (index) => {
         if (formData.shareholders.length <= 1) return;
-        const newShareholders = formData.shareholders.filter((_, i) => i !== index);
+        setFormData(prev => ({
+            ...prev,
+            shareholders: formData.shareholders.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateShareholder = (index, field, value) => {
+        const newShareholders = [...formData.shareholders];
+        newShareholders[index][field] = value;
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
     };
 
-    // GESTIÓN DE FIRMANTES (DINÁMICO)
+    // GESTIÓN DE FIRMANTES
     const addSigner = () => {
         setFormData(prev => ({
             ...prev,
@@ -162,7 +171,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <Users size={22} color={PRIMARY} /> {t('corporacion.steps.directors')}
                 </h2>
                 <button type="button" onClick={addDirector} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> {t('corporacion.fields.addDirector')}
+                    <Plus size={16} /> {t('corporacion.fields.addDirector') === 'corporacion.fields.addDirector' ? 'Añadir Director' : t('corporacion.fields.addDirector')}
                 </button>
             </div>
             
@@ -193,13 +202,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <div className="expert-group"><label>{t('corporacion.fields.passport')}</label><input className="expert-input" autoComplete="off" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.birthDate')}</label><input type="date" className="expert-input" autoComplete="bday" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                            <div className="expert-group"><label>{t('corporacion.fields.phone')}</label><input type="text" className="expert-input" autoComplete="tel" value={d.phone} onChange={e => updateDirector(index, 'phone', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.email')}</label><input type="email" className="expert-input" autoComplete="email" value={d.email} onChange={e => updateDirector(index, 'email', e.target.value)} /></div>
-                            <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{t('corporacion.fields.address')}</label><input className="expert-input" autoComplete="street-address" value={d.address} onChange={e => updateDirector(index, 'address', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.city')}</label><input className="expert-input" autoComplete="address-level2" value={d.city} onChange={e => updateDirector(index, 'city', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.country')}</label><input className="expert-input" autoComplete="country-name" value={d.country} onChange={e => updateDirector(index, 'country', e.target.value)} /></div>
-                        </div>
                     </div>
                 ))}
             </div>
@@ -213,10 +215,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <UserCheck size={22} color={PRIMARY} /> {t('corporacion.steps.dignitaries')}
                 </h2>
                 <button type="button" onClick={addDignitary} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> {t('corporacion.fields.addDignitary') || 'Añadir Dignatario'}
+                    <Plus size={16} /> {t('corporacion.fields.addDignitary') === 'corporacion.fields.addDignitary' ? 'Añadir Dignatario' : t('corporacion.fields.addDignitary')}
                 </button>
             </div>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '25px' }}>{t('corporacion.fields.dignitaryInstructions')}</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {formData.dignitaries.map((dig, index) => (
@@ -226,7 +227,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         )}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
                             <div className="expert-group">
-                                <label>{t('corporacion.fields.role') || 'Cargo'}</label>
+                                <label>{t('corporacion.fields.role') === 'corporacion.fields.role' ? 'Cargo' : t('corporacion.fields.role')}</label>
                                 <input className="expert-input" value={dig.role} onChange={e => updateDignitary(index, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" />
                             </div>
                             <div className="expert-group">
@@ -252,10 +253,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <Briefcase size={22} color={PRIMARY} /> {t('corporacion.steps.shareholders')}
                 </h2>
                 <button type="button" onClick={addShareholder} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> {t('corporacion.fields.addShareholder')}
+                    <Plus size={16} /> {t('corporacion.fields.addShareholder') === 'corporacion.fields.addShareholder' ? 'Añadir Accionista' : t('corporacion.fields.addShareholder')}
                 </button>
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {formData.shareholders.map((s, index) => (
                     <div key={index} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '15px', background: 'white', position: 'relative' }}>
@@ -280,54 +280,31 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.finalization')}
             </h2>
-            
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                 <div className="expert-group">
                     <label>{t('corporacion.fields.activities')}</label>
-                    <textarea 
-                        className="expert-input" 
-                        rows={4} 
-                        value={formData.companyActivities} 
-                        onChange={e => setFormData({...formData, companyActivities: e.target.value})} 
-                        placeholder={t('corporacion.fields.activitiesPlaceholder')}
-                    />
+                    <textarea className="expert-input" rows={4} value={formData.companyActivities} onChange={e => setFormData({...formData, companyActivities: e.target.value})} />
                 </div>
                 
-                <div style={{ border: `1px solid ${PRIMARY}30`, background: `${PRIMARY}05`, borderRadius: '12px', padding: '25px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.declaration')}
-                </h2>
-                <button type="button" onClick={addSigner} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> {t('corporacion.fields.addSigner') || 'Añadir Firmante'}
-                </button>
-            </div>
-            <div style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, padding: '30px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                <div style={{ background: '#f8fafc', border: `1px solid #e2e8f0`, borderRadius: '16px', padding: '30px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: SECONDARY }}>{t('corporacion.steps.declaration')}</h3>
+                        <button type="button" onClick={addSigner} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
+                            <Plus size={16} /> {t('corporacion.fields.addSigner') === 'corporacion.fields.addSigner' ? 'Añadir Firmante' : t('corporacion.fields.addSigner')}
+                        </button>
+                    </div>
                     {formData.signers.map((signer, index) => (
-                        <div key={index} style={{ borderBottom: index < formData.signers.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: '20px', position: 'relative' }}>
+                        <div key={index} style={{ borderBottom: index < formData.signers.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: '20px', marginBottom: '20px', position: 'relative' }}>
                             {formData.signers.length > 1 && (
                                 <button onClick={() => removeSigner(index)} style={{ position: 'absolute', right: '0', top: '0', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
                             )}
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.signature')}</label>
-                                <input 
-                                    className="expert-input" 
-                                    autoComplete="off"
-                                    value={signer.signature} 
-                                    onChange={e => updateSigner(index, 'signature', e.target.value)} 
-                                    placeholder="..." 
-                                />
+                                <input className="expert-input" autoComplete="off" value={signer.signature} onChange={e => updateSigner(index, 'signature', e.target.value)} placeholder="..." />
                             </div>
                             <div className="expert-group" style={{ marginTop: '15px' }}>
                                 <label>{t('corporacion.fields.declarantName')}</label>
-                                <input 
-                                    className="expert-input" 
-                                    autoComplete="name"
-                                    list="corp-global-names"
-                                    value={signer.name} 
-                                    onChange={e => updateSigner(index, 'name', e.target.value)} 
-                                />
+                                <input className="expert-input" list="corp-global-names" autoComplete="name" value={signer.name} onChange={e => updateSigner(index, 'name', e.target.value)} />
                             </div>
                         </div>
                     ))}
@@ -337,27 +314,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-            <datalist id="corp-global-names">
-                {/* Recolectar nombres de todas las fuentes posibles del formulario */}
-                {formData.directors.map((d, i) => {
-                    const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
-                    return full ? <option key={`dir-g-${i}`} value={full} /> : null;
-                })}
-                {formData.directors.map(d => d.firstName && <option key={`fn-${d.firstName}`} value={d.firstName} />)}
-                {formData.directors.map(d => d.lastName && <option key={`ln-${d.lastName}`} value={d.lastName} />)}
-                {formData.dignitaries.map((d, i) => (
-                    d.fullName ? <option key={`dig-g-${i}`} value={d.fullName} /> : null
-                ))}
-                {formData.shareholders.map((s, i) => (
-                    s.name ? <option key={`sha-g-${i}`} value={s.name} /> : null
-                ))}
-                {formData.signers.map((s, i) => (
-                    s.name ? <option key={`sig-n-${i}`} value={s.name} /> : null
-                ))}
-            </datalist>
         </div>
     );
 
@@ -373,26 +329,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.5px' }}>{t('corporacion.title')}</h1>
                     <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>{t('corporacion.subtitle')}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save">
-                        <Save size={18} /> {saving ? t('common.saving') : t('corporacion.saveDraft')}
-                    </button>
-                </div>
+                <button onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save">
+                    <Save size={18} /> {saving ? t('common.saving') : t('corporacion.saveDraft')}
+                </button>
             </div>
 
-            {/* PROGRESS TRACKER */}
             <div style={{ display: 'flex', gap: 10, marginBottom: '40px' }}>
                 {[1, 2, 3, 4, 5].map(s => (
                     <div key={s} style={{ flex: 1, position: 'relative' }}>
                         <div style={{ height: '5px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '10px', transition: 'all 0.3s' }} />
-                        <div style={{ position: 'absolute', top: '-25px', left: '0', fontSize: '10px', fontWeight: 800, color: step >= s ? PRIMARY : '#94a3b8' }}>
-                            {t(`corporacion.steps.step${s}`)}
-                        </div>
+                        <div style={{ position: 'absolute', top: '-25px', left: '0', fontSize: '10px', fontWeight: 800, color: step >= s ? PRIMARY : '#94a3b8' }}>{t(`corporacion.steps.step${s}`)}</div>
                     </div>
                 ))}
             </div>
 
-            {/* FORM CONTENT */}
             <div style={{ background: 'white', padding: '40px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' }}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStep2()}
@@ -401,38 +351,37 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 {step === 5 && renderStep5()}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #f1f5f9' }}>
-                    <button 
-                        type="button" 
-                        onClick={() => setStep(prev => prev - 1)} 
-                        disabled={step === 1}
-                        className="expert-btn-nav"
-                        style={{ opacity: step === 1 ? 0.3 : 1 }}
-                    >
-                        <ChevronLeft size={18} /> {t('corporacion.status.prev')}
-                    </button>
-                    
+                    <button type="button" onClick={() => setStep(prev => prev - 1)} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}><ChevronLeft size={18} /> {t('corporacion.status.prev')}</button>
                     {step < 5 ? (
-                        <button type="button" onClick={nextStep} className="expert-btn-primary">
-                            {t('corporacion.status.next')} <ChevronRight size={18} />
-                        </button>
+                        <button type="button" onClick={nextStep} className="expert-btn-primary">{t('corporacion.status.next')} <ChevronRight size={18} /></button>
                     ) : (
-                        <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-finish">
-                            <CheckCircle2 size={18} /> {saving ? t('common.saving') : t('corporacion.status.saveFinish')}
-                        </button>
+                        <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-finish"><CheckCircle2 size={18} /> {saving ? t('common.saving') : t('corporacion.status.saveFinish')}</button>
                     )}
                 </div>
             </div>
+
+            <datalist id="corp-global-names">
+                {formData.directors.map((d, i) => {
+                    const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
+                    return full ? <option key={`dir-g-${i}`} value={full} /> : null;
+                })}
+                {formData.directors.map((d, i) => d.firstName && <option key={`fn-${i}`} value={d.firstName} />)}
+                {formData.directors.map((d, i) => d.lastName && <option key={`ln-${i}`} value={d.lastName} />)}
+                {formData.dignitaries.map((d, i) => d.fullName && <option key={`dig-g-${i}`} value={d.fullName} />)}
+                {formData.shareholders.map((s, i) => s.name && <option key={`sha-g-${i}`} value={s.name} />)}
+                {formData.signers.map((s, i) => s.name && <option key={`sig-n-${i}`} value={s.name} />)}
+            </datalist>
 
             <style>{`
                 .expert-input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 13px; font-weight: 500; transition: all 0.2s; }
                 .expert-input:focus { border-color: ${PRIMARY}; box-shadow: 0 0 0 4px ${PRIMARY}15; }
                 .expert-group { display: flex; flex-direction: column; gap: 6px; }
                 .expert-group label { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 0.5px; }
-                .expert-btn-primary { padding: 12px 25px; background: ${PRIMARY}; color: white; border: none; borderRadius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-                .expert-btn-nav { padding: 12px 25px; background: #f1f5f9; color: #475569; border: none; borderRadius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-                .expert-btn-save { padding: 10px 20px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; borderRadius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; }
-                .expert-btn-secondary { background: white; color: ${SECONDARY}; border: 1.5px solid #e2e8f0; borderRadius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-                .expert-btn-finish { padding: 12px 25px; background: #16a34a; color: white; border: none; borderRadius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+                .expert-btn-primary { padding: 12px 25px; background: ${PRIMARY}; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+                .expert-btn-nav { padding: 12px 25px; background: #f1f5f9; color: #475569; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+                .expert-btn-save { padding: 10px 20px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+                .expert-btn-secondary { background: white; color: ${SECONDARY}; border: 1.5px solid #e2e8f0; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+                .expert-btn-finish { padding: 12px 25px; background: #16a34a; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
             `}</style>
         </div>
     );
