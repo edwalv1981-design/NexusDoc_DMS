@@ -8,8 +8,6 @@ import { useT } from '../i18n';
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const t = useT();
     const [step, setStep] = useState(1);
-    const [nameSuggestion, setNameSuggestion] = useState('');
-    const [sigSuggestion, setSigSuggestion] = useState('');
     const [formData, setFormData] = useState({
         // Basic Info
         corpNameSA: '', corpNameCorp: '', corpNameInc: '',
@@ -109,19 +107,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
     };
 
-    // AUXILIAR: Obtener nombres disponibles para autocompletado
-    const getAvailableNames = () => {
-        const names = new Set();
-        formData.directors.forEach(d => {
-            const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim() !== "").join(' ');
-            if (full) names.add(full);
-        });
-        Object.values(formData.dignitaries).forEach(d => {
-            if (d.fullName) names.add(d.fullName);
-        });
-        return Array.from(names);
-    };
-
     const updateShareholder = (index, field, value) => {
         const newShareholders = [...formData.shareholders];
         newShareholders[index][field] = value;
@@ -139,16 +124,16 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                 <div className="expert-group">
                     <label>{t('corporacion.fields.nameSA')}</label>
-                    <input className="expert-input" value={formData.corpNameSA} onChange={e => setFormData({...formData, corpNameSA: e.target.value})} placeholder="Ej: NEXUS SOLUTIONS S.A." />
+                    <input className="expert-input" autoComplete="organization" value={formData.corpNameSA} onChange={e => setFormData({...formData, corpNameSA: e.target.value})} placeholder="Ej: NEXUS SOLUTIONS S.A." />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     <div className="expert-group">
                         <label>{t('corporacion.fields.nameCorp')}</label>
-                        <input className="expert-input" value={formData.corpNameCorp} onChange={e => setFormData({...formData, corpNameCorp: e.target.value})} />
+                        <input className="expert-input" autoComplete="organization" value={formData.corpNameCorp} onChange={e => setFormData({...formData, corpNameCorp: e.target.value})} />
                     </div>
                     <div className="expert-group">
                         <label>{t('corporacion.fields.nameInc')}</label>
-                        <input className="expert-input" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} />
+                        <input className="expert-input" autoComplete="organization" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} />
                     </div>
                 </div>
                 <div className="expert-group">
@@ -185,9 +170,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
-                            <div className="expert-group"><label>{t('corporacion.fields.firstName')}</label><input className="expert-input" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.middleName')}</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.lastName')}</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.firstName')}</label><input className="expert-input" autoComplete="given-name" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.middleName')}</label><input className="expert-input" autoComplete="additional-name" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.lastName')}</label><input className="expert-input" autoComplete="family-name" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.maritalStatus')}</label>
                                 <select className="expert-input" value={d.maritalStatus} onChange={e => updateDirector(index, 'maritalStatus', e.target.value)}>
                                     <option value="">{t('corporacion.fields.select')}</option>
@@ -197,15 +182,17 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                     <option value="Viudo(a)">{t('corporacion.marital.widowed')}</option>
                                 </select>
                             </div>
-                            <div className="expert-group"><label>{t('corporacion.fields.nationality')}</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.passport')}</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.birthDate')}</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.phone')}</label><input type="text" className="expert-input" value={d.phone} onChange={e => updateDirector(index, 'phone', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.email')}</label><input type="email" className="expert-input" value={d.email} onChange={e => updateDirector(index, 'email', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.city')}</label><input className="expert-input" value={d.city} onChange={e => updateDirector(index, 'city', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.country')}</label><input className="expert-input" value={d.country} onChange={e => updateDirector(index, 'country', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.nationality')}</label><input className="expert-input" autoComplete="country-name" value={d.nationality} onChange={e => updateDirector(index, 'nationality', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.passport')}</label><input className="expert-input" autoComplete="off" value={d.passport} onChange={e => updateDirector(index, 'passport', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.birthDate')}</label><input type="date" className="expert-input" autoComplete="bday" value={d.birthDate} onChange={e => updateDirector(index, 'birthDate', e.target.value)} /></div>
                         </div>
-                        <div className="expert-group" style={{ marginTop: '15px' }}><label>{t('corporacion.fields.address')}</label><input className="expert-input" value={d.address} onChange={e => updateDirector(index, 'address', e.target.value)} /></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
+                            <div className="expert-group"><label>{t('corporacion.fields.phone')}</label><input type="text" className="expert-input" autoComplete="tel" value={d.phone} onChange={e => updateDirector(index, 'phone', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.email')}</label><input type="email" className="expert-input" autoComplete="email" value={d.email} onChange={e => updateDirector(index, 'email', e.target.value)} /></div>
+                            <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{t('corporacion.fields.address')}</label><input className="expert-input" autoComplete="street-address" value={d.address} onChange={e => updateDirector(index, 'address', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.city')}</label><input className="expert-input" autoComplete="address-level2" value={d.city} onChange={e => updateDirector(index, 'city', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.country')}</label><input className="expert-input" autoComplete="country-name" value={d.country} onChange={e => updateDirector(index, 'country', e.target.value)} /></div>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -255,7 +242,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.birthDate')}</label>
-                                <input type="date" className="expert-input" value={formData.dignitaries[role].birthDate} onChange={e => setFormData({
+                                <input type="date" className="expert-input" autoComplete="bday" value={formData.dignitaries[role].birthDate} onChange={e => setFormData({
                                     ...formData,
                                     dignitaries: {
                                         ...formData.dignitaries,
@@ -265,7 +252,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             </div>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.passport')}</label>
-                                <input className="expert-input" value={formData.dignitaries[role].passport} onChange={e => setFormData({
+                                <input className="expert-input" autoComplete="off" value={formData.dignitaries[role].passport} onChange={e => setFormData({
                                     ...formData,
                                     dignitaries: {
                                         ...formData.dignitaries,
@@ -297,9 +284,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 80px 1fr 1fr', gap: '12px', alignItems: 'flex-end' }}>
                             <div className="expert-group"><label>{t('corporacion.fields.cert')}</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(index, 'certificate', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.value')}</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(index, 'value', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.shares')}</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(index, 'shares', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.fullName')}</label><input className="expert-input" value={s.name} onChange={e => updateShareholder(index, 'name', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.address')}</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(index, 'address', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.shares')}</label><input className="expert-input" autoComplete="off" value={s.shares} onChange={e => updateShareholder(index, 'shares', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.fullName')}</label><input className="expert-input" autoComplete="name" value={s.name} onChange={e => updateShareholder(index, 'name', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.address')}</label><input className="expert-input" autoComplete="street-address" value={s.address} onChange={e => updateShareholder(index, 'address', e.target.value)} /></div>
                             {formData.shareholders.length > 1 && (
                                 <button onClick={() => removeShareholder(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '10px' }}><Trash2 size={16} /></button>
                             )}
@@ -338,55 +325,21 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <label>{t('corporacion.fields.signature')}</label>
                             <input 
                                 className="expert-input" 
+                                autoComplete="name"
                                 value={formData.declarationSignature} 
-                                onChange={e => {
-                                    const val = e.target.value;
-                                    setFormData({...formData, declarationSignature: val});
-                                    if (val.length > 1) {
-                                        const match = getAvailableNames().find(n => n.toLowerCase().startsWith(val.toLowerCase()) && n.toLowerCase() !== val.toLowerCase());
-                                        setSigSuggestion(match || '');
-                                    } else {
-                                        setSigSuggestion('');
-                                    }
-                                }} 
+                                onChange={e => setFormData({...formData, declarationSignature: e.target.value})} 
                                 placeholder="..." 
                             />
-                            {sigSuggestion && (
-                                <div 
-                                    onClick={() => { setFormData({...formData, declarationSignature: sigSuggestion}); setSigSuggestion(''); }}
-                                    style={{ background: `${PRIMARY}08`, padding: '8px 12px', border: `1px solid ${PRIMARY}20`, borderRadius: '8px', marginTop: '5px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                >
-                                    <CheckCircle2 size={12} color={PRIMARY} />
-                                    <span style={{ fontWeight: 600 }}>{t('corporacion.fields.suggestion')}:</span> {sigSuggestion}
-                                </div>
-                            )}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.declarantName')}</label>
                                 <input 
                                     className="expert-input" 
+                                    autoComplete="name"
                                     value={formData.declarationName} 
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setFormData({...formData, declarationName: val});
-                                        if (val.length > 1) {
-                                            const match = getAvailableNames().find(n => n.toLowerCase().startsWith(val.toLowerCase()) && n.toLowerCase() !== val.toLowerCase());
-                                            setNameSuggestion(match || '');
-                                        } else {
-                                            setNameSuggestion('');
-                                        }
-                                    }} 
+                                    onChange={e => setFormData({...formData, declarationName: e.target.value})} 
                                 />
-                                {nameSuggestion && (
-                                    <div 
-                                        onClick={() => { setFormData({...formData, declarationName: nameSuggestion}); setNameSuggestion(''); }}
-                                        style={{ background: `${PRIMARY}08`, padding: '8px 12px', border: `1px solid ${PRIMARY}20`, borderRadius: '8px', marginTop: '5px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                    >
-                                        <CheckCircle2 size={12} color={PRIMARY} />
-                                        <span style={{ fontWeight: 600 }}>{t('corporacion.fields.suggestion')}:</span> {nameSuggestion}
-                                    </div>
-                                )}
                             </div>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.signatureDate')}</label>

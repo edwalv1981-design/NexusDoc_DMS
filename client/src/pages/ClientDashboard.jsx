@@ -446,20 +446,20 @@ const ClientDashboard = () => {
                             {step === 1 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.companyName')}</label><input className="input-expert" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.companyName')}</label><input className="input-expert" autoComplete="organization" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" autoComplete="country-name" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></div>
                                     </div>
                                     <div className="field-group"><label>{t('fondos.activities')}</label><textarea className="input-expert" rows={2} value={formData.activities} onChange={e => setFormData({...formData, activities: e.target.value})} required /></div>
-                                    <div className="field-group"><label>{t('fondos.beneficiaryName')}</label><input className="input-expert" value={formData.beneficiaryName} onChange={e => { 
+                                    <div className="field-group"><label>{t('fondos.beneficiaryName')}</label><input className="input-expert" autoComplete="name" value={formData.beneficiaryName} onChange={e => { 
                                         const val = e.target.value;
-                                        setFormData({...formData, beneficiaryName: val, custodyName: showSuggestion ? val : formData.custodyName}); 
+                                        setFormData({...formData, beneficiaryName: val}); 
                                         if (val) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); 
                                     }} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" autoComplete="bday" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" autoComplete="country-name" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} required /></div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.address')}</label><input className="input-expert" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required /></div>
+                                    <div className="field-group"><label>{t('fondos.address')}</label><input className="input-expert" autoComplete="street-address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required /></div>
                                     <button type="button" onClick={() => validateStep(1) && setStep(2)} style={{ padding: '12px 30px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, alignSelf: 'flex-end', cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
                                 </div>
                             )}
@@ -496,54 +496,20 @@ const ClientDashboard = () => {
                                             <label>{t('fondos.custodyName')}</label>
                                             <input 
                                                 className="input-expert" 
+                                                autoComplete="name"
                                                 value={formData.custodyName} 
                                                 onChange={e => {
-                                                    const val = e.target.value;
-                                                    setFormData({...formData, custodyName: val});
-                                                    if (val && formData.beneficiaryName && 
-                                                        formData.beneficiaryName.toLowerCase().startsWith(val.toLowerCase()) && 
-                                                        val.toLowerCase() !== formData.beneficiaryName.toLowerCase()) {
-                                                        setShowSuggestion(true);
-                                                    } else {
-                                                        setShowSuggestion(false);
-                                                    }
+                                                    setFormData({...formData, custodyName: e.target.value});
                                                 }} 
                                                 required 
                                             />
-                                            {showSuggestion && (
-                                                <div 
-                                                    onClick={() => { 
-                                                        setFormData({...formData, custodyName: formData.beneficiaryName}); 
-                                                        setShowSuggestion(false); 
-                                                    }}
-                                                    style={{ 
-                                                        background: '#f0f9ff', 
-                                                        padding: '10px 15px', 
-                                                        border: `1px solid ${PRIMARY}30`, 
-                                                        borderRadius: '10px', 
-                                                        marginTop: '8px', 
-                                                        fontSize: '12px', 
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '8px'
-                                                    }}
-                                                >
-                                                    <div style={{ background: PRIMARY, borderRadius: '4px', padding: '2px' }}>
-                                                        <Check size={10} color="white" />
-                                                    </div>
-                                                    <span style={{ color: '#475569' }}>
-                                                        <strong style={{ color: PRIMARY }}>{t('fondos.suggestion')}:</strong> {formData.beneficiaryName}
-                                                    </span>
-                                                </div>
-                                            )}
                                         </div>
-                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" autoComplete="tel" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')})} required /></div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
-                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" value={formData.custodyAddress} onChange={e => setFormData({...formData, custodyAddress: e.target.value})} required /></div>
+                                    <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" autoComplete="email" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
+                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" autoComplete="street-address" value={formData.custodyAddress} onChange={e => setFormData({...formData, custodyAddress: e.target.value})} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" value={formData.signerName} onChange={e => setFormData({...formData, signerName: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" autoComplete="name" value={formData.signerName} onChange={e => setFormData({...formData, signerName: e.target.value})} required /></div>
                                         <div className="field-group"><label>{t('fondos.date')}</label><input type="date" className="input-expert" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>

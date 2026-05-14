@@ -39,7 +39,6 @@ const FondosForm = () => {
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
     const [validationErrors, setValidationErrors] = useState([]);
-    const [showSuggestion, setShowSuggestion] = useState(false);
 
     useEffect(() => {
         if (editId) fetchExistingData();
@@ -147,8 +146,9 @@ const FondosForm = () => {
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
                             <div>
+                            <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
-                                <input className="corporate-input" style={getErrorStyle('companyName')} value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
+                                <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="organization" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.activities')}</label>
@@ -157,11 +157,11 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.country')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('country')} value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('country')} autoComplete="country-name" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="name" value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
                                 </div>
                             </div>
                         </div>
@@ -224,66 +224,30 @@ const FondosForm = () => {
                             </div>
                             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step3')}</h2>
                         </div>
-         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyName')}</label>
                                 <input 
                                     className="corporate-input" 
                                     style={getErrorStyle('custodyName')} 
+                                    autoComplete="name"
                                     value={formData.custodyName} 
                                     onChange={e => { 
                                         const val = e.target.value;
                                         setFormData({...formData, custodyName: val}); 
                                         if (val) setValidationErrors(prev => prev.filter(err => err !== 'custodyName'));
-                                        
-                                        // Lógica de autocompletado inteligente
-                                        if (val && formData.beneficiaryName && 
-                                            formData.beneficiaryName.toLowerCase().startsWith(val.toLowerCase()) && 
-                                            val.toLowerCase() !== formData.beneficiaryName.toLowerCase()) {
-                                            setShowSuggestion(true);
-                                        } else {
-                                            setShowSuggestion(false);
-                                        }
                                     }} 
                                 />
-                                {showSuggestion && (
-                                    <div 
-                                        onClick={() => { 
-                                            setFormData({...formData, custodyName: formData.beneficiaryName}); 
-                                            setShowSuggestion(false); 
-                                        }}
-                                        style={{ 
-                                            background: '#f0f9ff', 
-                                            padding: '10px 15px', 
-                                            border: `1px solid ${PRIMARY_COLOR}30`, 
-                                            borderRadius: '10px', 
-                                            marginTop: '8px', 
-                                            fontSize: '12px', 
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            animation: 'slideDown 0.2s ease-out'
-                                        }}
-                                    >
-                                        <div style={{ background: PRIMARY_COLOR, borderRadius: '4px', padding: '2px' }}>
-                                            <Check size={10} color="white" />
-                                        </div>
-                                        <span style={{ color: '#475569' }}>
-                                            <strong style={{ color: PRIMARY_COLOR }}>{t('fondos.suggestion')}:</strong> {formData.beneficiaryName}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('custodyPhone')} value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
+                                    <input type="text" className="corporate-input" style={getErrorStyle('custodyPhone')} autoComplete="tel" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyEmail')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('custodyEmail')} value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} />
+                                    <input type="email" className="corporate-input" style={getErrorStyle('custodyEmail')} autoComplete="email" value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} placeholder="ejemplo@correo.com" />
                                 </div>
                             </div>
                             <div>
