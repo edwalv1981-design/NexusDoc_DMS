@@ -8,6 +8,8 @@ import { useT } from '../i18n';
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const t = useT();
     const [step, setStep] = useState(1);
+    const [nameSuggestion, setNameSuggestion] = useState('');
+    const [sigSuggestion, setSigSuggestion] = useState('');
     const [formData, setFormData] = useState({
         // Basic Info
         corpNameSA: '', corpNameCorp: '', corpNameInc: '',
@@ -105,6 +107,19 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         if (formData.shareholders.length <= 1) return;
         const newShareholders = formData.shareholders.filter((_, i) => i !== index);
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
+    };
+
+    // AUXILIAR: Obtener nombres disponibles para autocompletado
+    const getAvailableNames = () => {
+        const names = new Set();
+        formData.directors.forEach(d => {
+            const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim() !== "").join(' ');
+            if (full) names.add(full);
+        });
+        Object.values(formData.dignitaries).forEach(d => {
+            if (d.fullName) names.add(d.fullName);
+        });
+        return Array.from(names);
     };
 
     const updateShareholder = (index, field, value) => {
@@ -321,12 +336,57 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div className="expert-group">
                             <label>{t('corporacion.fields.signature')}</label>
-                            <input className="expert-input" value={formData.declarationSignature} onChange={e => setFormData({...formData, declarationSignature: e.target.value})} placeholder="..." />
+                            <input 
+                                className="expert-input" 
+                                value={formData.declarationSignature} 
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setFormData({...formData, declarationSignature: val});
+                                    if (val.length > 1) {
+                                        const match = getAvailableNames().find(n => n.toLowerCase().startsWith(val.toLowerCase()) && n.toLowerCase() !== val.toLowerCase());
+                                        setSigSuggestion(match || '');
+                                    } else {
+                                        setSigSuggestion('');
+                                    }
+                                }} 
+                                placeholder="..." 
+                            />
+                            {sigSuggestion && (
+                                <div 
+                                    onClick={() => { setFormData({...formData, declarationSignature: sigSuggestion}); setSigSuggestion(''); }}
+                                    style={{ background: `${PRIMARY}08`, padding: '8px 12px', border: `1px solid ${PRIMARY}20`, borderRadius: '8px', marginTop: '5px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                >
+                                    <CheckCircle2 size={12} color={PRIMARY} />
+                                    <span style={{ fontWeight: 600 }}>{t('corporacion.fields.suggestion')}:</span> {sigSuggestion}
+                                </div>
+                            )}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.declarantName')}</label>
-                                <input className="expert-input" value={formData.declarationName} onChange={e => setFormData({...formData, declarationName: e.target.value})} />
+                                <input 
+                                    className="expert-input" 
+                                    value={formData.declarationName} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setFormData({...formData, declarationName: val});
+                                        if (val.length > 1) {
+                                            const match = getAvailableNames().find(n => n.toLowerCase().startsWith(val.toLowerCase()) && n.toLowerCase() !== val.toLowerCase());
+                                            setNameSuggestion(match || '');
+                                        } else {
+                                            setNameSuggestion('');
+                                        }
+                                    }} 
+                                />
+                                {nameSuggestion && (
+                                    <div 
+                                        onClick={() => { setFormData({...formData, declarationName: nameSuggestion}); setNameSuggestion(''); }}
+                                        style={{ background: `${PRIMARY}08`, padding: '8px 12px', border: `1px solid ${PRIMARY}20`, borderRadius: '8px', marginTop: '5px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <CheckCircle2 size={12} color={PRIMARY} />
+                                        <span style={{ fontWeight: 600 }}>{t('corporacion.fields.suggestion')}:</span> {nameSuggestion}
+                                    </div>
+                                )}
                             </div>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.signatureDate')}</label>

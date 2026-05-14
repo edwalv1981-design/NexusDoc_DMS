@@ -356,6 +356,7 @@ const es = {
       declarationBody: 'Declaro bajo la gravedad del juramento que la información proporcionada en este formulario es verdadera y correcta. Entiendo que cualquier falsedad u omisión podría invalidar el registro de la sociedad ante las autoridades competentes.',
       signature: 'FIRMA',
       declarantName: 'NOMBRE DEL DECLARANTE',
+      suggestion: 'Sugerencia',
       signatureDate: 'FECHA DE FIRMA',
     },
     status: {
