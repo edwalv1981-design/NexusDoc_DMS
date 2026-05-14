@@ -146,7 +146,6 @@ const FondosForm = () => {
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
                             <div>
-                            <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
                                 <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="organization" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
                             </div>
@@ -252,7 +251,17 @@ const FondosForm = () => {
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
-                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} value={formData.custodyAddress} onChange={e => { setFormData({...formData, custodyAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
+                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="street-address" value={formData.custodyAddress} onChange={e => { setFormData({...formData, custodyAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fondos.signerName')}</label>
+                                    <input className="corporate-input" style={getErrorStyle('signerName')} autoComplete="name" value={formData.signerName} onChange={e => { setFormData({...formData, signerName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'signerName')); }} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>{t('fondos.date')}</label>
+                                    <input type="date" className="corporate-input" style={getErrorStyle('date')} value={formData.date} onChange={e => { setFormData({...formData, date: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'date')); }} />
+                                </div>
                             </div>
                         </div>
 
