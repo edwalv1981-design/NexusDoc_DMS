@@ -20,18 +20,19 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', phone: '', email: '', address: '', city: '', country: '' },
             { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', phone: '', email: '', address: '', city: '', country: '' }
         ],
-        dignitaries: {
-            presidente: { fullName: '', birthDate: '', passport: '', registrationNumber: '', directorRef: '' },
-            secretario: { fullName: '', birthDate: '', passport: '', registrationNumber: '', directorRef: '' },
-            tesorero: { fullName: '', birthDate: '', passport: '', registrationNumber: '', directorRef: '' }
-        },
+        dignitaries: [
+            { role: 'PRESIDENTE', fullName: '', birthDate: '', passport: '', registrationNumber: '' },
+            { role: 'SECRETARIO', fullName: '', birthDate: '', passport: '', registrationNumber: '' },
+            { role: 'TESORERO', fullName: '', birthDate: '', passport: '', registrationNumber: '' }
+        ],
         shareholders: [
             { certificate: '', value: '', shares: '', name: '', address: '' }
         ],
         
         // Declaration
-        declarationSignature: '',
-        declarationName: '',
+        signers: [
+            { signature: '', name: '' }
+        ],
         declarationDate: new Date().toISOString().split('T')[0]
     });
 
@@ -41,36 +42,26 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    // LÓGICA DE DIGNATARIOS VINCULADOS
-    const handleDirectorSelectForDignitary = (role, directorIndex) => {
-        if (directorIndex === "") {
-            setFormData(prev => ({
-                ...prev,
-                dignitaries: {
-                    ...prev.dignitaries,
-                    [role]: { fullName: '', birthDate: '', passport: '', registrationNumber: '', directorRef: '' }
-                }
-            }));
-            return;
-        }
-
-        const director = formData.directors[directorIndex];
-        const nameParts = [director.firstName, director.secondName, director.lastName].filter(p => p && p.trim() !== "");
-        const fullName = nameParts.join(' ');
-        
+    // GESTIÓN DE DIGNATARIOS (DINÁMICO)
+    const addDignitary = () => {
         setFormData(prev => ({
             ...prev,
-            dignitaries: {
-                ...prev.dignitaries,
-                [role]: { 
-                    fullName, 
-                    birthDate: director.birthDate, 
-                    passport: director.passport,
-                    registrationNumber: prev.dignitaries[role].registrationNumber,
-                    directorRef: directorIndex 
-                }
-            }
+            dignitaries: [...prev.dignitaries, { role: '', fullName: '', birthDate: '', passport: '', registrationNumber: '' }]
         }));
+    };
+
+    const removeDignitary = (index) => {
+        if (formData.dignitaries.length <= 1) return;
+        setFormData(prev => ({
+            ...prev,
+            dignitaries: prev.dignitaries.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateDignitary = (index, field, value) => {
+        const newDigs = [...formData.dignitaries];
+        newDigs[index][field] = value;
+        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
     };
 
     // GESTIÓN DE DIRECTORES
@@ -107,10 +98,26 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
     };
 
-    const updateShareholder = (index, field, value) => {
-        const newShareholders = [...formData.shareholders];
-        newShareholders[index][field] = value;
-        setFormData(prev => ({ ...prev, shareholders: newShareholders }));
+    // GESTIÓN DE FIRMANTES (DINÁMICO)
+    const addSigner = () => {
+        setFormData(prev => ({
+            ...prev,
+            signers: [...prev.signers, { signature: '', name: '' }]
+        }));
+    };
+
+    const removeSigner = (index) => {
+        if (formData.signers.length <= 1) return;
+        setFormData(prev => ({
+            ...prev,
+            signers: prev.signers.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateSigner = (index, field, value) => {
+        const newSigners = [...formData.signers];
+        newSigners[index][field] = value;
+        setFormData(prev => ({ ...prev, signers: newSigners }));
     };
 
     const PRIMARY = '#0078d4';
@@ -201,78 +208,36 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     const renderStep3 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <UserCheck size={22} color={PRIMARY} /> {t('corporacion.steps.dignitaries')}
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <UserCheck size={22} color={PRIMARY} /> {t('corporacion.steps.dignitaries')}
+                </h2>
+                <button type="button" onClick={addDignitary} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
+                    <Plus size={16} /> {t('corporacion.fields.addDignitary') || 'Añadir Dignatario'}
+                </button>
+            </div>
             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '25px' }}>{t('corporacion.fields.dignitaryInstructions')}</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {['presidente', 'secretario', 'tesorero'].map(role => (
-                    <div key={role} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '15px' }}>
+                {formData.dignitaries.map((dig, index) => (
+                    <div key={index} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', position: 'relative' }}>
+                        {formData.dignitaries.length > 1 && (
+                            <button onClick={() => removeDignitary(index)} style={{ position: 'absolute', right: '15px', top: '15px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                        )}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
+                            <div className="expert-group">
+                                <label>{t('corporacion.fields.role') || 'Cargo'}</label>
+                                <input className="expert-input" value={dig.role} onChange={e => updateDignitary(index, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" />
+                            </div>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.fullName')}</label>
-                                <input 
-                                    className="expert-input" 
-                                    list="corp-global-names" 
-                                    autoComplete="name"
-                                    value={formData.dignitaries[role].fullName} 
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        dignitaries: {
-                                            ...formData.dignitaries,
-                                            [role]: { ...formData.dignitaries[role], fullName: e.target.value }
-                                        }
-                                    })} 
-                                />
+                                <input className="expert-input" list="corp-global-names" autoComplete="name" value={dig.fullName} onChange={e => updateDignitary(index, 'fullName', e.target.value)} />
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                            <div className="expert-group">
-                                <label>{t('corporacion.fields.linkDirector')}</label>
-                                <select 
-                                    className="expert-input" 
-                                    value={formData.dignitaries[role].directorRef} 
-                                    onChange={e => handleDirectorSelectForDignitary(role, e.target.value)}
-                                >
-                                    <option value="">{t('corporacion.fields.select')}</option>
-                                    {formData.directors.map((d, i) => (
-                                        <option key={i} value={i}>{d.firstName} {d.lastName}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="expert-group">
-                                <label>{t('corporacion.fields.regNumber')}</label>
-                                <input className="expert-input" value={formData.dignitaries[role].registrationNumber} onChange={e => setFormData({
-                                    ...formData,
-                                    dignitaries: {
-                                        ...formData.dignitaries,
-                                        [role]: { ...formData.dignitaries[role], registrationNumber: e.target.value }
-                                    }
-                                })} />
-                            </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
-                            <div className="expert-group">
-                                <label>{t('corporacion.fields.birthDate')}</label>
-                                <input type="date" className="expert-input" autoComplete="bday" value={formData.dignitaries[role].birthDate} onChange={e => setFormData({
-                                    ...formData,
-                                    dignitaries: {
-                                        ...formData.dignitaries,
-                                        [role]: { ...formData.dignitaries[role], birthDate: e.target.value }
-                                    }
-                                })} />
-                            </div>
-                            <div className="expert-group">
-                                <label>{t('corporacion.fields.passport')}</label>
-                                <input className="expert-input" autoComplete="off" value={formData.dignitaries[role].passport} onChange={e => setFormData({
-                                    ...formData,
-                                    dignitaries: {
-                                        ...formData.dignitaries,
-                                        [role]: { ...formData.dignitaries[role], passport: e.target.value }
-                                    }
-                                })} />
-                            </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
+                            <div className="expert-group"><label>{t('corporacion.fields.regNumber')}</label><input className="expert-input" value={dig.registrationNumber} onChange={e => updateDignitary(index, 'registrationNumber', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.birthDate')}</label><input type="date" className="expert-input" autoComplete="bday" value={dig.birthDate} onChange={e => updateDignitary(index, 'birthDate', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.passport')}</label><input className="expert-input" autoComplete="off" value={dig.passport} onChange={e => updateDignitary(index, 'passport', e.target.value)} /></div>
                         </div>
                     </div>
                 ))}
@@ -329,62 +294,72 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </div>
                 
                 <div style={{ border: `1px solid ${PRIMARY}30`, background: `${PRIMARY}05`, borderRadius: '12px', padding: '25px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '15px', color: PRIMARY }}>{t('corporacion.fields.declarationTitle')}</h3>
-                    <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.6, marginBottom: '20px' }}>
-                        {t('corporacion.fields.declarationBody')}
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div className="expert-group">
-                            <label>{t('corporacion.fields.signature')}</label>
-                            <input 
-                                className="expert-input" 
-                                autoComplete="name"
-                                list="corp-global-names"
-                                value={formData.declarationSignature} 
-                                onChange={e => setFormData({...formData, declarationSignature: e.target.value})} 
-                                placeholder="..." 
-                            />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.declaration')}
+                </h2>
+                <button type="button" onClick={addSigner} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
+                    <Plus size={16} /> {t('corporacion.fields.addSigner') || 'Añadir Firmante'}
+                </button>
+            </div>
+            <div style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, padding: '30px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                    {formData.signers.map((signer, index) => (
+                        <div key={index} style={{ borderBottom: index < formData.signers.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: '20px', position: 'relative' }}>
+                            {formData.signers.length > 1 && (
+                                <button onClick={() => removeSigner(index)} style={{ position: 'absolute', right: '0', top: '0', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                            )}
                             <div className="expert-group">
+                                <label>{t('corporacion.fields.signature')}</label>
+                                <input 
+                                    className="expert-input" 
+                                    autoComplete="off"
+                                    value={signer.signature} 
+                                    onChange={e => updateSigner(index, 'signature', e.target.value)} 
+                                    placeholder="..." 
+                                />
+                            </div>
+                            <div className="expert-group" style={{ marginTop: '15px' }}>
                                 <label>{t('corporacion.fields.declarantName')}</label>
                                 <input 
                                     className="expert-input" 
                                     autoComplete="name"
                                     list="corp-global-names"
-                                    value={formData.declarationName} 
-                                    onChange={e => setFormData({...formData, declarationName: e.target.value})} 
+                                    value={signer.name} 
+                                    onChange={e => updateSigner(index, 'name', e.target.value)} 
                                 />
                             </div>
-                            <div className="expert-group">
-                                <label>{t('corporacion.fields.signatureDate')}</label>
-                                <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
-                            </div>
                         </div>
+                    ))}
+                    <div className="expert-group">
+                        <label>{t('corporacion.fields.declarationDate')}</label>
+                        <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                     </div>
                 </div>
-
-                <datalist id="corp-global-names">
-                    {/* Recolectar nombres de todas las fuentes posibles del formulario */}
-                    {formData.directors.map((d, i) => {
-                        const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
-                        return full ? <option key={`dir-g-${i}`} value={full} /> : null;
-                    })}
-                    {formData.directors.map(d => d.firstName && <option key={`fn-${d.firstName}`} value={d.firstName} />)}
-                    {formData.directors.map(d => d.lastName && <option key={`ln-${d.lastName}`} value={d.lastName} />)}
-                    {Object.values(formData.dignitaries).map((d, i) => (
-                        d.fullName ? <option key={`dig-g-${i}`} value={d.fullName} /> : null
-                    ))}
-                    {formData.shareholders.map((s, i) => (
-                        s.name ? <option key={`sha-g-${i}`} value={s.name} /> : null
-                    ))}
-                    {formData.declarationName && <option value={formData.declarationName} />}
-                    {formData.declarationSignature && <option value={formData.declarationSignature} />}
-                </datalist>
             </div>
         </div>
-    );
+    </div>
 
+            <datalist id="corp-global-names">
+                {/* Recolectar nombres de todas las fuentes posibles del formulario */}
+                {formData.directors.map((d, i) => {
+                    const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
+                    return full ? <option key={`dir-g-${i}`} value={full} /> : null;
+                })}
+                {formData.directors.map(d => d.firstName && <option key={`fn-${d.firstName}`} value={d.firstName} />)}
+                {formData.directors.map(d => d.lastName && <option key={`ln-${d.lastName}`} value={d.lastName} />)}
+                {formData.dignitaries.map((d, i) => (
+                    d.fullName ? <option key={`dig-g-${i}`} value={d.fullName} /> : null
+                ))}
+                {formData.shareholders.map((s, i) => (
+                    s.name ? <option key={`sha-g-${i}`} value={s.name} /> : null
+                ))}
+                {formData.signers.map((s, i) => (
+                    s.name ? <option key={`sig-n-${i}`} value={s.name} /> : null
+                ))}
+            </datalist>
+        </div>
+    );
 
     const nextStep = () => {
         if (step === 1 && parseInt(formData.capitalSocial) < 10000) return;
