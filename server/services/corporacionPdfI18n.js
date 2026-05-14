@@ -54,6 +54,7 @@ const ES = Object.freeze({
   sectionActivitiesHint: 'Favor provea una explicación de la actividad de la sociedad.',
   sectionDeclaration: 'Declaración',
   sectionDeclarationHint: 'Declaro bajo juramento que la información proporcionada es verdadera y correcta.',
+  declarationSignature: 'Firma',
   declarationName: 'Nombre',
   declarationDate: 'Fecha',
 });
@@ -102,6 +103,7 @@ const EN = Object.freeze({
   sectionActivitiesHint: "Please provide an explanation of the corporation's activities.",
   sectionDeclaration: 'Declaration',
   sectionDeclarationHint: 'I hereby affirm that information given on this application is complete and accurate.',
+  declarationSignature: 'Signature',
   declarationName: 'Name',
   declarationDate: 'Date',
 });

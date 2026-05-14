@@ -167,9 +167,12 @@ class CorporacionHtmlPdfService {
           <section class="card">
             <h2>${esc(t.sectionDeclaration)}</h2>
             <div class="hint">${esc(t.sectionDeclarationHint)}</div>
-            <div class="grid2">
-              <div><label>${esc(t.declarationName)}</label><div class="value">${esc(data.declarationName)}</div></div>
-              <div><label>${esc(t.declarationDate)}</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+            <div style="display: flex; flex-direction: column; gap: 8px; padding: 8px;">
+              <div><label>${esc(t.declarationSignature)}</label><div class="value">${esc(data.declarationSignature)}</div></div>
+              <div class="grid2" style="padding: 0; margin-top: 4px;">
+                <div><label>${esc(t.declarationName)}</label><div class="value">${esc(data.declarationName)}</div></div>
+                <div><label>${esc(t.declarationDate)}</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+              </div>
             </div>
           </section>
         </section>

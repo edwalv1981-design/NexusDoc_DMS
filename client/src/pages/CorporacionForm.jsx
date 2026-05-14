@@ -30,6 +30,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         ],
         
         // Declaration
+        declarationSignature: '',
         declarationName: '',
         declarationDate: new Date().toISOString().split('T')[0]
     });
@@ -317,14 +318,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.6, marginBottom: '20px' }}>
                         {t('corporacion.fields.declarationBody')}
                     </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div className="expert-group">
-                            <label>{t('corporacion.fields.declarantName')}</label>
-                            <input className="expert-input" value={formData.declarationName} onChange={e => setFormData({...formData, declarationName: e.target.value})} />
+                            <label>{t('corporacion.fields.signature')}</label>
+                            <input className="expert-input" value={formData.declarationSignature} onChange={e => setFormData({...formData, declarationSignature: e.target.value})} placeholder="..." />
                         </div>
-                        <div className="expert-group">
-                            <label>{t('corporacion.fields.signatureDate')}</label>
-                            <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <div className="expert-group">
+                                <label>{t('corporacion.fields.declarantName')}</label>
+                                <input className="expert-input" value={formData.declarationName} onChange={e => setFormData({...formData, declarationName: e.target.value})} />
+                            </div>
+                            <div className="expert-group">
+                                <label>{t('corporacion.fields.signatureDate')}</label>
+                                <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
+                            </div>
                         </div>
                     </div>
                 </div>

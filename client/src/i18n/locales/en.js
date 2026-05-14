@@ -353,6 +353,7 @@ const en = {
       activitiesPlaceholder: 'Describe the main activities in detail...',
       declarationTitle: 'SWORN DECLARATION',
       declarationBody: 'I declare under oath that the information provided in this form is true and correct. I understand that any falsehood or omission could invalidate the registration of the company before the competent authorities.',
+      signature: 'SIGNATURE',
       declarantName: 'DECLARANT NAME',
       signatureDate: 'SIGNATURE DATE',
     },
