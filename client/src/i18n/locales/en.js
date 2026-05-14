@@ -177,6 +177,7 @@ const en = {
     fundsSourceTitle: 'SOURCE OF FUNDS',
     fundsInstructions: 'Check at least one mandatory option:',
     fundsOther: 'Other specifications',
+    fundsOtherPlaceholder: 'Specify other sources of funds here...',
     fundsError: '⚠️ You must select at least one source of funds.',
     custodyTitle: 'Record Custody and Responsibilities',
     custodyName: 'Name of Custody Responsible',
