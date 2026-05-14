@@ -170,9 +170,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
-                            <div className="expert-group"><label>{t('corporacion.fields.firstName')}</label><input className="expert-input" autoComplete="given-name" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.middleName')}</label><input className="expert-input" autoComplete="additional-name" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.lastName')}</label><input className="expert-input" autoComplete="family-name" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.firstName')}</label><input className="expert-input" list="corp-global-names" autoComplete="given-name" value={d.firstName} onChange={e => updateDirector(index, 'firstName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.middleName')}</label><input className="expert-input" list="corp-global-names" autoComplete="additional-name" value={d.secondName} onChange={e => updateDirector(index, 'secondName', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.lastName')}</label><input className="expert-input" list="corp-global-names" autoComplete="family-name" value={d.lastName} onChange={e => updateDirector(index, 'lastName', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.maritalStatus')}</label>
                                 <select className="expert-input" value={d.maritalStatus} onChange={e => updateDirector(index, 'maritalStatus', e.target.value)}>
                                     <option value="">{t('corporacion.fields.select')}</option>
@@ -209,11 +209,24 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {['presidente', 'secretario', 'tesorero'].map(role => (
                     <div key={role} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: '15px' }}>
-                            <div style={{ width: '40px', height: '40px', background: `${PRIMARY}10`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: PRIMARY, fontWeight: 800 }}>{role[0].toUpperCase()}</div>
-                            <h3 style={{ fontSize: '14px', fontWeight: 700, textTransform: 'capitalize' }}>{role}</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '15px' }}>
+                            <div className="expert-group">
+                                <label>{t('corporacion.fields.fullName')}</label>
+                                <input 
+                                    className="expert-input" 
+                                    list="corp-global-names" 
+                                    autoComplete="name"
+                                    value={formData.dignitaries[role].fullName} 
+                                    onChange={e => setFormData({
+                                        ...formData,
+                                        dignitaries: {
+                                            ...formData.dignitaries,
+                                            [role]: { ...formData.dignitaries[role], fullName: e.target.value }
+                                        }
+                                    })} 
+                                />
+                            </div>
                         </div>
-                        
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="expert-group">
                                 <label>{t('corporacion.fields.linkDirector')}</label>
@@ -285,7 +298,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <div className="expert-group"><label>{t('corporacion.fields.cert')}</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(index, 'certificate', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.value')}</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(index, 'value', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.shares')}</label><input className="expert-input" autoComplete="off" value={s.shares} onChange={e => updateShareholder(index, 'shares', e.target.value)} /></div>
-                            <div className="expert-group"><label>{t('corporacion.fields.fullName')}</label><input className="expert-input" autoComplete="name" value={s.name} onChange={e => updateShareholder(index, 'name', e.target.value)} /></div>
+                            <div className="expert-group"><label>{t('corporacion.fields.fullName')}</label><input className="expert-input" list="corp-global-names" autoComplete="name" value={s.name} onChange={e => updateShareholder(index, 'name', e.target.value)} /></div>
                             <div className="expert-group"><label>{t('corporacion.fields.address')}</label><input className="expert-input" autoComplete="street-address" value={s.address} onChange={e => updateShareholder(index, 'address', e.target.value)} /></div>
                             {formData.shareholders.length > 1 && (
                                 <button onClick={() => removeShareholder(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '10px' }}><Trash2 size={16} /></button>
@@ -326,7 +339,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             <input 
                                 className="expert-input" 
                                 autoComplete="name"
-                                list="corp-names-list"
+                                list="corp-global-names"
                                 value={formData.declarationSignature} 
                                 onChange={e => setFormData({...formData, declarationSignature: e.target.value})} 
                                 placeholder="..." 
@@ -338,7 +351,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 <input 
                                     className="expert-input" 
                                     autoComplete="name"
-                                    list="corp-names-list"
+                                    list="corp-global-names"
                                     value={formData.declarationName} 
                                     onChange={e => setFormData({...formData, declarationName: e.target.value})} 
                                 />
@@ -351,20 +364,22 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     </div>
                 </div>
 
-                <datalist id="corp-names-list">
-                    {/* Directores */}
+                <datalist id="corp-global-names">
+                    {/* Recolectar nombres de todas las fuentes posibles del formulario */}
                     {formData.directors.map((d, i) => {
                         const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
-                        return full ? <option key={`dir-${i}`} value={full} /> : null;
+                        return full ? <option key={`dir-g-${i}`} value={full} /> : null;
                     })}
-                    {/* Dignatarios */}
+                    {formData.directors.map(d => d.firstName && <option key={`fn-${d.firstName}`} value={d.firstName} />)}
+                    {formData.directors.map(d => d.lastName && <option key={`ln-${d.lastName}`} value={d.lastName} />)}
                     {Object.values(formData.dignitaries).map((d, i) => (
-                        d.fullName ? <option key={`dig-${i}`} value={d.fullName} /> : null
+                        d.fullName ? <option key={`dig-g-${i}`} value={d.fullName} /> : null
                     ))}
-                    {/* Accionistas */}
                     {formData.shareholders.map((s, i) => (
-                        s.name ? <option key={`sha-${i}`} value={s.name} /> : null
+                        s.name ? <option key={`sha-g-${i}`} value={s.name} /> : null
                     ))}
+                    {formData.declarationName && <option value={formData.declarationName} />}
+                    {formData.declarationSignature && <option value={formData.declarationSignature} />}
                 </datalist>
             </div>
         </div>
