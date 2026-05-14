@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { UploadCloud, FileText, Trash2, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import { useT } from '../i18n';
 import axios from 'axios';

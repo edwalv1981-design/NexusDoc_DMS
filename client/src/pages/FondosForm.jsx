@@ -200,8 +200,7 @@ const FondosForm = () => {
                                     </label>
                                 ))}
                             </div>
-                        </div>
-             </div>
+                    </div>
 
                          <div>
                             <label style={labelStyle}>{t('fondos.fundsOther')}</label>
@@ -244,7 +243,6 @@ const FondosForm = () => {
                                 <input className="corporate-input" style={getErrorStyle('custodyAddress')} value={formData.custodyAddress} onChange={e => { setFormData({...formData, custodyAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
                         </div>
-                   </div>
 
                          {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.custodyError')}</p>}
                         <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>

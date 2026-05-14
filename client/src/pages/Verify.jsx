@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { useT } from '../i18n';
 import axios from 'axios';

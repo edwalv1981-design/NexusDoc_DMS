@@ -1,11 +1,11 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Shield, FileText, Download, Mail, LayoutGrid, CheckCircle, Edit, FileUp, Lock } from 'lucide-react';
-import { useT, useLang } from '../i18n';
-import { getFormTypeLabel } from '../formTypes';
+import { useT } from '../i18n';
 
 const Tutorial = () => {
     const navigate = useNavigate();
     const t = useT();
-    const { lang } = useLang();
 
     // Determinar rol
     const userString = localStorage.getItem('user');
@@ -144,8 +144,8 @@ const Tutorial = () => {
                                 <div style={{ background: '#0078d4', color: 'white', borderRadius: '50%', padding: '2px' }}><CheckCircle size={14} /></div> {t('sidebar.newProcess')}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><FileText size={24} color="#6366f1" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>{getFormTypeLabel('Fondos Registros contables', lang).split(' ')[0]}</div></div>
-                                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><Shield size={24} color="#10b981" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>{getFormTypeLabel('Corporación', lang).split(' ')[0]}</div></div>
+                                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><FileText size={24} color="#6366f1" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>{t('formType.Fondos Registros contables').split(' ')[0]}</div></div>
+                                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><Shield size={24} color="#10b981" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>{t('formType.Corporación').split(' ')[0]}</div></div>
                             </div>
                         </div>
                     </div>

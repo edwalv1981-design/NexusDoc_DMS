@@ -5,8 +5,8 @@ import {
     Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, BookOpen, UploadCloud
 } from 'lucide-react';
 import API_BASE_URL from '../config';
-import { getFormTypeLabel } from '../formTypes';
-import { useLang, useT } from '../i18n';
+
+import { useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
@@ -15,7 +15,6 @@ import CorporacionForm from './CorporacionForm';
 const ClientDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { lang } = useLang();
     const t = useT();
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
@@ -56,11 +55,11 @@ const ClientDashboard = () => {
     const [formData, setFormData] = useState(EMPTY_FORM);
 
     const formOptions = [
-        { id: 'Fondos Registros contables', label: getFormTypeLabel('Fondos Registros contables', lang), icon: <ClipboardList size={24} />, color: '#6366f1' },
-        { id: 'Corporación', label: getFormTypeLabel('Corporación', lang), icon: <Building size={24} />, color: '#10b981' },
-        { id: 'Fundaciones', label: getFormTypeLabel('Fundaciones', lang), icon: <Heart size={24} />, color: '#ef4444' },
-        { id: 'Cumplimiento Individual', label: getFormTypeLabel('Cumplimiento Individual', lang), icon: <UserIcon size={24} />, color: '#f59e0b' },
-        { id: 'Cumplimiento Entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
+        { id: 'Fondos Registros contables', label: t('formType.Fondos Registros contables'), icon: <ClipboardList size={24} />, color: '#6366f1' },
+        { id: 'Corporación', label: t('formType.Corporación'), icon: <Building size={24} />, color: '#10b981' },
+        { id: 'Fundaciones', label: t('formType.Fundaciones'), icon: <Heart size={24} />, color: '#ef4444' },
+        { id: 'Cumplimiento Individual', label: t('formType.Cumplimiento Individual'), icon: <UserIcon size={24} />, color: '#f59e0b' },
+        { id: 'Cumplimiento Entidades', label: t('formType.Cumplimiento Entidades'), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
     ];
 
     useEffect(() => {
@@ -310,7 +309,7 @@ const ClientDashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                                     <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: RADIUS, padding: '12px 18px', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }}>
                                         <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.9, marginBottom: '3px' }}>{t('dashboard.assignedProcess')}</div>
-                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm ? getFormTypeLabel(user.initialForm, lang) : t('dashboard.notAssigned')}</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm ? t(`formType.${user.initialForm}`) : t('dashboard.notAssigned')}</div>
                                     </div>
                                     {user?.initialForm && (
                                         <button 
@@ -352,7 +351,7 @@ const ClientDashboard = () => {
                                 <div key={doc.id} style={{ display: 'flex', alignItems: 'center', padding: '15px 25px', borderBottom: `1px solid ${BORDER}` }}>
                                     <FileText size={16} color={PRIMARY} style={{ marginRight: 15 }} />
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 700, fontSize: '13px' }}>{getFormTypeLabel(doc.type, lang)}</div>
+                                        <div style={{ fontWeight: 700, fontSize: '13px' }}>{t(`formType.${doc.type}`)}</div>
                                         {/* FECHA Y HORA EXACTA (INGENIERO PROTOCOL) */}
                                         <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 2 }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {new Date(doc.date).toLocaleDateString()}</span>
@@ -400,7 +399,7 @@ const ClientDashboard = () => {
                     </div>
                 ) : currentFormType === 'Fondos Registros contables' ? (
                     <div style={{ maxWidth: '800px' }}>
-                        <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
+                        <h1 style={{ marginBottom: '25px' }}>{t(`formType.${currentFormType}`)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '10px', fontWeight: 800, color: PRIMARY, letterSpacing: '1px' }}>{t('dashboard.recordState')}</span>
@@ -488,7 +487,7 @@ const ClientDashboard = () => {
                         </div>
                         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '15px' }}>{t('dashboard.formInDev')}</h2>
                         <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '30px', maxWidth: '400px', margin: '0 auto 30px' }}>
-                            {t('dashboard.formInDevBody', { type: getFormTypeLabel(currentFormType, lang) })}
+                            {t('dashboard.formInDevBody', { type: t(`formType.${currentFormType}`) })}
                         </p>
                         <button onClick={() => { setCurrentFormType(''); navigate('/dashboard?view=form'); }} style={{ padding: '12px 25px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
                             {t('dashboard.chooseAnother')}

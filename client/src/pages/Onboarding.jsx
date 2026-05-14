@@ -1,21 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardList, Building, Heart, User, ShieldAlert, ChevronLeft } from 'lucide-react';
-import { getFormTypeLabel } from '../formTypes';
-import { useLang, useT } from '../i18n';
+
+import { useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { lang } = useLang();
   const t = useT();
 
   const options = [
-    { id: 'Fondos Registros contables', label: getFormTypeLabel('Fondos Registros contables', lang), icon: <ClipboardList size={24} />, color: '#6366f1' },
-    { id: 'Corporación', label: getFormTypeLabel('Corporación', lang), icon: <Building size={24} />, color: '#10b981' },
-    { id: 'Fundaciones', label: getFormTypeLabel('Fundaciones', lang), icon: <Heart size={24} />, color: '#ef4444' },
-    { id: 'Cumplimiento Individual', label: getFormTypeLabel('Cumplimiento Individual', lang), icon: <User size={24} />, color: '#f59e0b' },
-    { id: 'Cumplimiento Entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
+    { id: 'Fondos Registros contables', label: t('formType.Fondos Registros contables'), icon: <ClipboardList size={24} />, color: '#6366f1' },
+    { id: 'Corporación', label: t('formType.Corporación'), icon: <Building size={24} />, color: '#10b981' },
+    { id: 'Fundaciones', label: t('formType.Fundaciones'), icon: <Heart size={24} />, color: '#ef4444' },
+    { id: 'Cumplimiento Individual', label: t('formType.Cumplimiento Individual'), icon: <User size={24} />, color: '#f59e0b' },
+    { id: 'Cumplimiento Entidades', label: t('formType.Cumplimiento Entidades'), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
   ];
 
   const handleSelect = (optionId) => {

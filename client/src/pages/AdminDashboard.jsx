@@ -298,11 +298,11 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody>
                           {[
-                            { id: 'fondos', label: getFormTypeLabel('Fondos Registros contables', lang) },
-                            { id: 'corporacion', label: getFormTypeLabel('Corporación', lang) },
-                            { id: 'fundaciones', label: getFormTypeLabel('Fundaciones', lang) },
-                            { id: 'cumplimiento_individual', label: getFormTypeLabel('Cumplimiento Individual', lang) },
-                            { id: 'cumplimiento_entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang) }
+                            { id: 'fondos', label: t('formType.Fondos Registros contables') },
+                            { id: 'corporacion', label: t('formType.Corporación') },
+                            { id: 'fundaciones', label: t('formType.Fundaciones') },
+                            { id: 'cumplimiento_individual', label: t('formType.Cumplimiento Individual') },
+                            { id: 'cumplimiento_entidades', label: t('formType.Cumplimiento Entidades') }
                           ].map(type => {
                             const customTemplate = templates.find(t => t.name === type.id);
                             return (
@@ -340,11 +340,11 @@ const AdminDashboard = () => {
                       <div className="field-group-admin">
                         <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.processToLink')}</label>
                         <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
-                          <option value="fondos">{getFormTypeLabel('Fondos Registros contables', lang)}</option>
-                          <option value="corporacion">{getFormTypeLabel('Corporación', lang)}</option>
-                          <option value="fundaciones">{getFormTypeLabel('Fundaciones', lang)}</option>
-                          <option value="cumplimiento_individual">{getFormTypeLabel('Cumplimiento Individual', lang)}</option>
-                          <option value="cumplimiento_entidades">{getFormTypeLabel('Cumplimiento Entidades', lang)}</option>
+                          <option value="fondos">{t('formType.Fondos Registros contables')}</option>
+                          <option value="corporacion">{t('formType.Corporación')}</option>
+                          <option value="fundaciones">{t('formType.Fundaciones')}</option>
+                          <option value="cumplimiento_individual">{t('formType.Cumplimiento Individual')}</option>
+                          <option value="cumplimiento_entidades">{t('formType.Cumplimiento Entidades')}</option>
                         </select>
                       </div>
                       <div className="field-group-admin">
