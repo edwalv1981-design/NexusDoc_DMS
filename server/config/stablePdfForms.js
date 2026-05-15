@@ -12,6 +12,7 @@
 
 const FORM_TYPE_FONDOS_SFAR = 'Fondos Registros contables';
 const FORM_TYPE_CORPORACION = 'Corporación';
+const FORM_TYPE_FUNDACION = 'Fundaciones';
 
 /** formType (DB / UI) → nombre interno de plantilla / motor. */
 const PDF_TEMPLATE_BY_FORM_TYPE = Object.freeze({
@@ -50,6 +51,10 @@ function isCorporacionPdfForm(formType) {
   return getPdfTemplateNameForForm(formType) === 'corporacion';
 }
 
+function isFundacionPdfForm(formType) {
+  return getPdfTemplateNameForForm(formType) === 'fundaciones';
+}
+
 /**
  * Prefijo del nombre de archivo al descargar PDF (lógica tolerante a variantes de texto).
  */
@@ -72,9 +77,11 @@ function getPdfDownloadFilenamePrefix(formType) {
 module.exports = {
   FORM_TYPE_FONDOS_SFAR,
   FORM_TYPE_CORPORACION,
+  FORM_TYPE_FUNDACION,
   PDF_TEMPLATE_BY_FORM_TYPE,
   UNIQUE_CODE_PREFIX_BY_FORM_TYPE,
   getPdfTemplateNameForForm,
   isCorporacionPdfForm,
+  isFundacionPdfForm,
   getPdfDownloadFilenamePrefix,
 };

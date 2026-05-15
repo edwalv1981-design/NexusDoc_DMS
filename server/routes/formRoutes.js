@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const path = require('path');
 const fs = require('fs');
 const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
+const fundacionHtmlPdfService = require('../services/fundacionHtmlPdfService');
 const stablePdfForms = require('../config/stablePdfForms');
 // const userLanguageStore = require('../services/userLanguageStore'); // Movido a nivel de función
 
@@ -120,25 +121,43 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
 
         const templateName = stablePdfForms.getPdfTemplateNameForForm(form.formType);
 
-        // Corporación: solo motor HTML (ver `config/stablePdfForms.js`).
+        // Corporación: solo motor HTML
         if (stablePdfForms.isCorporacionPdfForm(form.formType)) {
             try {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
-
                 AuditLog.create({
                     userId: req.user.id,
                     action: 'DOCUMENT_DOWNLOAD',
                     description: `Usuario descargó PDF HTML de trámite tipo: ${form.formType} (ID: ${form.id})`
                 }).catch(err => console.error('Error registrando en bitácora:', err));
-
                 const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.toString().substring(0, 8);
                 const fileName = `PTLC_${safeId}.pdf`;
                 res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
                 res.setHeader('Content-Type', 'application/pdf');
                 return res.send(pdfBuffer);
             } catch (htmlErr) {
-                console.error('❌ ERROR CRÍTICO CORPORACIÓN HTML:', htmlErr);
+                console.error('❌ ERROR CORPORACIÓN HTML:', htmlErr);
                 return res.status(500).json({ msg: `ERROR GENERACIÓN CORPORACIÓN: ${htmlErr.message}` });
+            }
+        }
+
+        // Fundación: motor HTML (Nivel Experto)
+        if (stablePdfForms.isFundacionPdfForm(form.formType)) {
+            try {
+                const pdfBuffer = await fundacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
+                AuditLog.create({
+                    userId: req.user.id,
+                    action: 'DOCUMENT_DOWNLOAD',
+                    description: `Usuario descargó PDF HTML de Fundación (ID: ${form.id})`
+                }).catch(err => console.error('Error registrando en bitácora:', err));
+                const safeId = form.userUniqueCode ? form.userUniqueCode : form.id.toString().substring(0, 8);
+                const fileName = `PTLF_${safeId}.pdf`;
+                res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+                res.setHeader('Content-Type', 'application/pdf');
+                return res.send(pdfBuffer);
+            } catch (htmlErr) {
+                console.error('❌ ERROR FUNDACIÓN HTML:', htmlErr);
+                return res.status(500).json({ msg: `ERROR GENERACIÓN FUNDACIÓN: ${htmlErr.message}` });
             }
         }
 
