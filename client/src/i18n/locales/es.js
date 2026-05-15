@@ -337,6 +337,15 @@ const es = {
       shareholders: 'ACCIONISTAS',
       finalization: 'FINALIZACIÓN',
     },
+    hints: {
+      societyInfo: 'Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia.',
+      capital: 'El capital mínimo autorizado de la sociedad es US$10,000.00.',
+      directors: 'En Panamá se requieren mínimo 3 directores para la junta directiva.',
+      dignitaries: 'Los dignatarios pueden ser los mismos directores o terceras personas.',
+      shareholders: 'Indicar la distribución de las acciones iniciales de la sociedad.',
+      activities: 'Favor provea una explicación detallada de la actividad comercial de la sociedad.',
+      declaration: 'Declaro bajo juramento que la información proporcionada es verdadera y correcta.',
+    },
     fields: {
       nameSA: 'NOMBRE COMERCIAL (S.A.)',
       nameCorp: 'NOMBRE OPCIONAL (CORP.)',
@@ -388,6 +397,28 @@ const es = {
       widowed: 'Viudo(a)',
     }
   },
+  fundacion: {
+    title: 'FUNDACIÓN DE INTERÉS PRIVADO',
+    subtitle: 'Gestión de Fundaciones de Alta Precisión',
+    steps: {
+      basicInfo: 'INFORMACIÓN DE LA FUNDACIÓN',
+      founders: 'FUNDADORES',
+      council: 'CONSEJO DE FUNDACIÓN',
+      protectors: 'PROTECTORES Y DIGNATARIOS',
+      beneficiaries: 'BENEFICIARIOS Y DECLARACIÓN',
+    },
+    hints: {
+      basicInfo: 'Listar los nombres que desea utilizar para su fundación en orden de preferencia.',
+      capital: 'El patrimonio inicial mínimo declarado es de US$10,000.00.',
+      founders: 'Persona(s) natural o jurídica que constituye la fundación.',
+      council: 'En Panamá se requieren mínimo 3 miembros para el consejo de fundación.',
+      protectors: 'Persona(s) encargada(s) de supervisar las actuaciones del consejo.',
+      dignitaries: 'Cargos administrativos dentro del consejo de fundación.',
+      beneficiaries: 'Personas que recibirán los beneficios según el acta fundacional.',
+      activities: 'Favor provea una explicación de los objetivos y fines de la fundación.',
+      declaration: 'Declaro bajo juramento que la información proporcionada es verdadera y correcta.',
+    }
+  }
 };
 
 export default es;

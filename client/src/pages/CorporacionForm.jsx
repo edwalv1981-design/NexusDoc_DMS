@@ -214,13 +214,10 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <input className="expert-input" autoComplete="organization" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} />
                     </div>
                 </div>
-                <div className="expert-group">
-                    <label>{getT('corporacion.fields.capital', 'Capital Social')}</label>
-                    <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>$</span>
-                        <input type="number" min="10000" className="expert-input" style={{ paddingLeft: '30px' }} value={formData.capitalSocial} onChange={e => setFormData({...formData, capitalSocial: e.target.value})} />
-                    </div>
-                    {parseInt(formData.capitalSocial) < 10000 && <p style={{ color: '#dc2626', fontSize: '11px', marginTop: '5px', fontWeight: 600 }}>{getT('corporacion.fields.minCapitalError', 'El capital mínimo es $10,000')}</p>}
+                <div className="field-group">
+                    <label>{t('corporacion.fields.capital')}</label>
+                    <div className="expert-hint-mini">{t('corporacion.hints.capital')}</div>
+                    <input className="expert-input" type="text" value={formData.capitalSocial} onChange={e => setFormData({...formData, capitalSocial: e.target.value})} placeholder="$10,000.00" />
                 </div>
             </div>
         </div>
@@ -228,14 +225,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     const renderStep2 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Users size={22} color={PRIMARY} /> {getT('corporacion.steps.directors', 'Directores')}
-                </h2>
-                <button type="button" onClick={addDirector} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> {getT('corporacion.fields.addDirector', 'Añadir Director')}
-                </button>
+            <div className="section-header">
+                <h2 className="step-title"><Users size={22} color={PRIMARY} /> {t('corporacion.steps.directors')}</h2>
+                <button type="button" onClick={addDirector} className="expert-btn-secondary"><Plus size={16} /> {t('corporacion.fields.addDirector')}</button>
             </div>
+            <div className="expert-hint-box"><Info size={16} /> {t('corporacion.hints.directors')}</div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                 {formData.directors.map((d, index) => (
@@ -310,14 +304,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     const renderStep4 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Briefcase size={22} color={PRIMARY} /> {getT('corporacion.steps.shareholders', 'Accionistas')}
-                </h2>
-                <button type="button" onClick={addShareholder} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                    <Plus size={16} /> {getT('corporacion.fields.addShareholder', 'Agregar Accionista')}
-                </button>
+            <div className="section-header">
+                <h2 className="step-title"><Building size={22} color={PRIMARY} /> {t('corporacion.steps.shareholders')}</h2>
+                <button type="button" onClick={addShareholder} className="expert-btn-secondary"><Plus size={16} /> {t('corporacion.fields.addShareholder')}</button>
             </div>
+            <div className="expert-hint-box"><Info size={16} /> {t('corporacion.hints.shareholders')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {formData.shareholders.map((s, index) => (
                     <div key={index} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '15px', background: 'white', position: 'relative' }}>
@@ -339,41 +330,41 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     const renderStep5 = () => (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <FileCheck size={22} color={PRIMARY} /> {getT('corporacion.steps.finalization', 'Finalización')}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-                <div className="expert-group">
-                    <label>{getT('corporacion.fields.activities', 'Actividades de la Empresa')}</label>
-                    <textarea className="expert-input" rows={4} value={formData.companyActivities} onChange={e => setFormData({...formData, companyActivities: e.target.value})} />
-                </div>
+            <h2 className="step-title"><FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.finalization')}</h2>
+            
+            <div className="field-group" style={{ marginBottom: '25px' }}>
+                <label>{t('corporacion.fields.activities')}</label>
+                <div className="expert-hint-mini">{t('corporacion.hints.activities')}</div>
+                <textarea className="expert-input" rows={4} value={formData.companyActivities} onChange={e => setFormData({...formData, companyActivities: e.target.value})} placeholder={t('corporacion.fields.activitiesPlaceholder')} />
+            </div>
+
+            <div className="expert-final-declaration" style={{ background: '#f8fafc', border: `1px solid #e2e8f0`, borderRadius: '16px', padding: '30px' }}>
+                <h3 className="final-title" style={{ fontSize: '16px', fontWeight: 800, color: SECONDARY }}>{t('corporacion.fields.declarationTitle')}</h3>
+                <div className="expert-hint-mini" style={{ color: '#64748b', marginBottom: '10px' }}>{t('corporacion.hints.declaration')}</div>
                 
-                <div style={{ background: '#f8fafc', border: `1px solid #e2e8f0`, borderRadius: '16px', padding: '30px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: SECONDARY }}>{getT('corporacion.steps.declaration', 'Declaración')}</h3>
-                        <button type="button" onClick={addSigner} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
-                            <Plus size={16} /> {getT('corporacion.fields.addSigner', 'Añadir Firmante')}
-                        </button>
-                    </div>
-                    {formData.signers.map((signer, index) => (
-                        <div key={index} style={{ borderBottom: index < formData.signers.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: '20px', marginBottom: '20px', position: 'relative' }}>
-                            {formData.signers.length > 1 && (
-                                <button onClick={() => removeSigner(index)} style={{ position: 'absolute', right: '0', top: '0', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                            )}
-                            <div className="expert-group">
-                                <label>{getT('corporacion.fields.signature', 'Firma')}</label>
-                                <input className="expert-input" autoComplete="off" value={signer.signature} onChange={e => updateSigner(index, 'signature', e.target.value)} placeholder="..." />
-                            </div>
-                            <div className="expert-group" style={{ marginTop: '15px' }}>
-                                <label>{getT('corporacion.fields.declarantName', 'Nombre del Declarante')}</label>
-                                <input className="expert-input" list="corp-global-names" value={signer.name} onChange={e => updateSigner(index, 'name', e.target.value)} />
-                            </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <button type="button" onClick={addSigner} className="expert-btn-secondary" style={{ padding: '8px 15px', fontSize: '12px' }}>
+                        <Plus size={16} /> {getT('corporacion.fields.addSigner', 'Añadir Firmante')}
+                    </button>
+                </div>
+                {formData.signers.map((signer, index) => (
+                    <div key={index} style={{ borderBottom: index < formData.signers.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: '20px', marginBottom: '20px', position: 'relative' }}>
+                        {formData.signers.length > 1 && (
+                            <button onClick={() => removeSigner(index)} style={{ position: 'absolute', right: '0', top: '0', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                        )}
+                        <div className="expert-group">
+                            <label>{getT('corporacion.fields.signature', 'Firma')}</label>
+                            <input className="expert-input" autoComplete="off" value={signer.signature} onChange={e => updateSigner(index, 'signature', e.target.value)} placeholder="..." />
                         </div>
-                    ))}
-                    <div className="expert-group">
-                        <label>{getT('corporacion.fields.declarationDate', 'Fecha')}</label>
-                        <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
+                        <div className="expert-group" style={{ marginTop: '15px' }}>
+                            <label>{getT('corporacion.fields.declarantName', 'Nombre del Declarante')}</label>
+                            <input className="expert-input" list="corp-global-names" value={signer.name} onChange={e => updateSigner(index, 'name', e.target.value)} />
+                        </div>
                     </div>
+                ))}
+                <div className="expert-group">
+                    <label>{getT('corporacion.fields.declarationDate', 'Fecha')}</label>
+                    <input type="date" className="expert-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                 </div>
             </div>
         </div>
@@ -435,7 +426,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             </datalist>
 
             <style>{`
-                .expert-input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+                .step-title { font-size: 18px; font-weight: 800; color: ${SECONDARY}; display: flex; alignItems: center; gap: 10px; margin-bottom: 20px; }
+                .section-header { display: flex; justifyContent: space-between; alignItems: center; marginBottom: 20px; }
+                .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 12px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
+                .expert-hint-mini { font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 5px; font-style: italic; }
+                .expert-input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-size: 13px; font-weight: 500; transition: all 0.2s; box-sizing: border-box; }
                 .expert-input:focus { border-color: ${PRIMARY}; box-shadow: 0 0 0 4px ${PRIMARY}15; }
                 .expert-group { display: flex; flex-direction: column; gap: 6px; }
                 .expert-group label { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 0.5px; }

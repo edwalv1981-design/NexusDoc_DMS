@@ -337,6 +337,15 @@ const en = {
       shareholders: 'SHAREHOLDERS',
       finalization: 'FINALIZATION',
     },
+    hints: {
+      societyInfo: 'List the names you wish to use to incorporate your company in order of preference.',
+      capital: 'The minimum authorized capital of the company is US$10,000.00.',
+      directors: 'In Panama, a minimum of 3 directors are required for the board of directors.',
+      dignitaries: 'Dignitaries can be the directors themselves or third parties.',
+      shareholders: 'Indicate the distribution of the company\'s initial shares.',
+      activities: 'Please provide a detailed explanation of the company\'s commercial activities.',
+      declaration: 'I declare under oath that the information provided is true and correct.',
+    },
     fields: {
       nameSA: 'COMMERCIAL NAME (S.A.)',
       nameCorp: 'OPTIONAL NAME (CORP.)',
@@ -388,6 +397,28 @@ const en = {
       widowed: 'Widowed',
     }
   },
+  fundacion: {
+    title: 'PRIVATE INTEREST FOUNDATION',
+    subtitle: 'High-Precision Foundation Management',
+    steps: {
+      basicInfo: 'FOUNDATION INFORMATION',
+      founders: 'FOUNDERS',
+      council: 'FOUNDATION COUNCIL',
+      protectors: 'PROTECTORS AND DIGNITARIES',
+      beneficiaries: 'BENEFICIARIES AND DECLARATION',
+    },
+    hints: {
+      basicInfo: 'List the names you wish to use for your foundation in order of preference.',
+      capital: 'The minimum declared initial endowment is US$10,000.00.',
+      founders: 'Natural or legal person(s) constituting the foundation.',
+      council: 'In Panama, a minimum of 3 members are required for the foundation council.',
+      protectors: 'Person(s) in charge of supervising the council\'s actions.',
+      dignitaries: 'Administrative positions within the foundation council.',
+      beneficiaries: 'Persons who will receive the benefits according to the foundation charter.',
+      activities: 'Please provide an explanation of the foundation\'s objectives and purposes.',
+      declaration: 'I declare under oath that the information provided is true and correct.',
+    }
+  }
 };
 
 export default en;
