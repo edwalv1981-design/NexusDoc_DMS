@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Building, Users, UserCheck, Briefcase, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
-    CheckCircle2
+    CheckCircle2, Info, Shield
 } from 'lucide-react';
 import { useT } from '../i18n';
 
@@ -426,10 +426,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             </datalist>
 
             <style>{`
-                .step-title { font-size: 18px; font-weight: 800; color: ${SECONDARY}; display: flex; alignItems: center; gap: 10px; margin-bottom: 20px; }
-                .section-header { display: flex; justifyContent: space-between; alignItems: center; marginBottom: 20px; }
+                .step-title { font-size: 18px; font-weight: 800; color: ${SECONDARY}; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+                .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
                 .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 12px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
                 .expert-hint-mini { font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 5px; font-style: italic; }
+                .field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
                 .expert-input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-size: 13px; font-weight: 500; transition: all 0.2s; box-sizing: border-box; }
                 .expert-input:focus { border-color: ${PRIMARY}; box-shadow: 0 0 0 4px ${PRIMARY}15; }
                 .expert-group { display: flex; flex-direction: column; gap: 6px; }
