@@ -161,33 +161,33 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
-        
-        // AUTO-HEALING: Si no existe en DB, intentamos cargar desde el disco maestro
-        if (!dbTemplate || !dbTemplate.fileData) {
-            const masterPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
-            const localSpecificPath = path.join(__dirname, `../../templates/${templateName}.pdf`);
-            const pathToImport = fs.existsSync(localSpecificPath) ? localSpecificPath : (fs.existsSync(masterPath) ? masterPath : null);
+        // 1. DETERMINAR PREFIJO Y RUTA LOCAL (Siguiendo instrucción de Master: Buscar por Ruta)
+        let prefix = 'SFAR';
+        if (stablePdfForms.isCorporacionPdfForm(form.formType)) prefix = 'PTLC';
+        if (stablePdfForms.isFundacionPdfForm(form.formType)) prefix = 'PTLF';
 
-            if (pathToImport) {
-                console.log(`🛠️ Auto-Healing: Cargando plantilla ${templateName} desde disco a la DB...`);
-                const fileBuffer = fs.readFileSync(pathToImport);
-                if (dbTemplate) {
-                    await dbTemplate.update({ fileData: fileBuffer });
-                } else {
-                    dbTemplate = await DocumentTemplate.create({ 
-                        name: templateName, 
-                        fileData: fileBuffer,
-                        uploadedBy: req.user.id // ASIGNAR AL USUARIO ACTUAL PARA EVITAR FALLO DE VALIDACIÓN
-                    });
-                }
+        const localPath = path.join(__dirname, `../templates/${prefix}.pdf`);
+        const legacyPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`); // Fallback original
+        
+        let customTemplatePath = path.join(__dirname, `../../temp_custom_template_${form.id}.pdf`);
+
+        if (fs.existsSync(localPath)) {
+            console.log(`📂 Usando plantilla local por ruta directa: ${localPath}`);
+            fs.copyFileSync(localPath, customTemplatePath);
+        } else {
+            // Respaldos y auto-healing (Si no existe el archivo con prefijo, buscamos en DB)
+            let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
+            
+            if (dbTemplate && dbTemplate.fileData) {
+                console.log(`🗄️ Usando plantilla desde Base de Datos: ${templateName}`);
+                fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
+            } else if (fs.existsSync(legacyPath)) {
+                console.log(`⚠️ Plantilla ${prefix}.pdf no encontrada. Usando referencia_maestra.pdf como fallback.`);
+                fs.copyFileSync(legacyPath, customTemplatePath);
             } else {
-                return res.status(400).json({ msg: `Error crítico: No existe plantilla (${templateName}) ni archivo base en el servidor.` });
+                return res.status(404).json({ msg: `Error: No se encontró plantilla en ruta (${localPath}) ni en DB.` });
             }
         }
-
-        const customTemplatePath = path.join(__dirname, `../../temp_custom_template_${form.id}.pdf`);
-        fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
 
         const outputPath = path.join(__dirname, `../../temp_filled_${form.id}.pdf`);
         const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';

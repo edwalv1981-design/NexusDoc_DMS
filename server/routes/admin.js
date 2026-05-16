@@ -137,17 +137,31 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 
         const templateName = req.body.name || req.file.originalname;
 
-        // Check if a template with this name already exists
-        let template = await DocumentTemplate.findOne({ where: { name: templateName } });
+        // DEFINIR RUTA SEGÚN PREFIJO OFICIAL
+        let prefix = 'DOC';
+        const nameNorm = templateName.toLowerCase();
+        if (nameNorm.includes('corporacion') || nameNorm.includes('incorporacion')) prefix = 'PTLC';
+        else if (nameNorm.includes('fundacion')) prefix = 'PTLF';
+        else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
 
+        const templatesDir = path.join(__dirname, '../templates');
+        if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
+
+        const fileName = `${prefix}.pdf`;
+        const filePath = path.join(templatesDir, fileName);
+
+        // 1. GUARDAR EN SISTEMA DE ARCHIVOS (Ruta Directa)
+        fs.writeFileSync(filePath, req.file.buffer);
+        console.log(`💾 Plantilla guardada en ruta: ${filePath}`);
+
+        // 2. RESPALDO EN BASE DE DATOS (Opcional pero recomendado para consistencia)
+        let template = await DocumentTemplate.findOne({ where: { name: templateName } });
         if (template) {
-            // Update existing
             template.fileData = req.file.buffer;
             template.uploadedBy = req.user.id;
             await template.save();
         } else {
-            // Create new
-            template = await DocumentTemplate.create({
+            await DocumentTemplate.create({
                 name: templateName,
                 fileData: req.file.buffer,
                 uploadedBy: req.user.id
@@ -157,10 +171,13 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
         await AuditLog.create({
             userId: req.user.id,
             action: 'TEMPLATE_UPLOAD',
-            description: `Admin subió plantilla: ${templateName}`
+            description: `Admin subió plantilla ${templateName} -> Guardada como ${fileName}`
         });
 
-        res.json({ msg: 'Plantilla subida y guardada en base de datos correctamente' });
+        res.json({ 
+            msg: `Plantilla subida exitosamente. Guardada físicamente como ${fileName} y respaldada en DB.`,
+            path: filePath 
+        });
     } catch (err) {
         console.error('🔥 Error al subir plantilla:', err);
         res.status(500).send('Server error');

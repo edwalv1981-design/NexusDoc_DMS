@@ -1,49 +1,34 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-async function findData() {
-    const dbs = ['nexusdoc', 'sistema_formularios', 'mydb', 'postgres'];
-    const user = process.env.DB_USER;
-    const pass = process.env.DB_PASS;
-    const host = process.env.DB_HOST;
-    const port = process.env.DB_PORT;
-
+async function globalSearch() {
+    const dbs = ['postgres', 'mydb', 'sistema_formularios', 'nexusdoc'];
     for (const db of dbs) {
-        console.log(`--- Buscando en DB: ${db} ---`);
-        const sequelize = new Sequelize(`postgres://${user}:${pass}@${host}:${port}/${db}`, { logging: false });
+        console.log(`--- SEARCHING IN DB: ${db} ---`);
+        const s = new Sequelize(`postgres://postgres:postgres123@localhost:5432/${db}`, { logging: false });
         try {
-            await sequelize.authenticate();
-            const [tables] = await sequelize.query(`
-                SELECT table_schema, table_name 
-                FROM information_schema.tables 
-                WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
-            `);
-            
+            const [tables] = await s.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
             for (const t of tables) {
-                const fullName = `"${t.table_schema}"."${t.table_name}"`;
+                const table = t.table_name;
                 try {
-                    const [count] = await sequelize.query(`SELECT count(*) FROM ${fullName}`);
-                    const n = parseInt(count[0].count);
-                    if (n > 0) {
-                        console.log(`  [+] ${fullName} tiene ${n} filas`);
-                        const [rows] = await sequelize.query(`SELECT * FROM ${fullName} LIMIT 1`);
-                        console.log(`      Campos: ${Object.keys(rows[0]).join(', ')}`);
-                        
-                        // Si parece ser una tabla de plantillas, mostrar nombres
-                        if (fullName.toLowerCase().includes('template')) {
-                            const [names] = await sequelize.query(`SELECT name FROM ${fullName}`);
-                            names.forEach(x => console.log(`      * Plantilla: ${x.name}`));
+                    const [[countResult]] = await s.query(`SELECT count(*) FROM "${table}"`);
+                    const count = parseInt(countResult.count);
+                    if (count > 0) {
+                        const [foundRows] = await s.query(`SELECT * FROM "${table}" LIMIT 10`);
+                        const str = JSON.stringify(foundRows);
+                        if (str.includes('PTLF') || str.includes('Fundaci') || str.includes('Incorpora') || str.includes('pdf')) {
+                            console.log(`✅ MATCH FOUND IN ${db}.${table} (${count} rows)`);
+                            foundRows.forEach(r => {
+                                 // Log names/types to identify templates
+                                 console.log(`Row: ${r.nombre || r.name || r.id || '?'}`);
+                            });
                         }
                     }
-                } catch (e) {
-                    // Ignorar errores de permisos o tablas especiales
-                }
+                } catch (e) { /* console.log(`Err table ${table}:`, e.message); */ }
             }
-            await sequelize.close();
-        } catch (err) {
-            console.log(`  [!] Error conectando a ${db}: ${err.message}`);
-        }
+        } catch (e) { console.log(`Error in ${db}:`, e.message); }
+        await s.close();
     }
     process.exit(0);
 }
-findData();
+globalSearch();
