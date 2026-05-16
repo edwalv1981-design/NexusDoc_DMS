@@ -72,12 +72,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
     const renderStep1 = () => (
         <div className="step-content animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="step-title"><Heart size={24} /> {t('fundacion.steps.basicInfo')}</h2>
-            <div className="expert-hint-box"><Info size={16} /> {t('fundacion.hints.basicInfo')}</div>
+            <h2 className="step-title-legal">1. NOMBRE DE LA FUNDACIÓN <span className="legal-hint">({t('fundacion.hints.basicInfo')})</span></h2>
             <div className="expert-form-grid">
                 <div className="field-group full-width">
                     <label>OPCIÓN 1 DE NOMBRE</label>
-                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value})} placeholder="EJ: FUNDACIÓN PROSPERIDAD" />
+                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value})} placeholder="EJ: FUNDACIÓN ESPERANZA" />
                 </div>
                 <div className="field-group">
                     <label>OPCIÓN 2 DE NOMBRE</label>
@@ -87,18 +86,17 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <label>OPCIÓN 3 DE NOMBRE</label>
                     <input className="expert-input" value={formData.foundationNameOption3} onChange={e => setFormData({...formData, foundationNameOption3: e.target.value})} />
                 </div>
-                <div className="field-group">
+                <div className="field-group full-width">
+                    <h2 className="step-title-legal" style={{ marginTop: '20px' }}>2. PATRIMONIO DE LA FUNDACIÓN <span className="legal-hint">({t('fundacion.hints.capital')})</span></h2>
                     <label>PATRIMONIO INICIAL (USD)</label>
-                    <div className="expert-hint-mini">{t('fundacion.hints.capital')}</div>
                     <div className="input-with-icon">
                         <span className="prefix">$</span>
                         <input type="number" className="expert-input" style={{ paddingLeft: '30px' }} value={formData.initialPatrimony} onChange={e => setFormData({...formData, initialPatrimony: e.target.value})} />
                     </div>
                 </div>
                 <div className="field-group full-width">
-                    <label>{t('fundacion.steps.activities') || 'OBJETIVOS Y FINES DE LA FUNDACIÓN'}</label>
-                    <div className="expert-hint-mini">{t('fundacion.hints.activities')}</div>
-                    <textarea className="expert-input" rows={4} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder="Describa el propósito de la fundación..." />
+                    <h2 className="step-title-legal" style={{ marginTop: '20px' }}>OBJETIVOS Y FINES <span className="legal-hint">({t('fundacion.hints.activities')})</span></h2>
+                    <textarea className="expert-input" rows={4} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder="Describa los fines de la fundación..." />
                 </div>
             </div>
         </div>
@@ -107,10 +105,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const renderStep2 = () => (
         <div className="step-content animate-in fade-in slide-in-from-bottom-4">
             <div className="section-header">
-                <h2 className="step-title"><User size={24} /> {t('fundacion.steps.founders')}</h2>
+                <h2 className="step-title-legal">3. FUNDADOR (ES) <span className="legal-hint">({t('fundacion.hints.founders')})</span></h2>
                 <button type="button" onClick={() => setFormData({...formData, founders: [...formData.founders, { fullName: '', birthDate: '', passport: '', address: '' }]})} className="btn-add"><Plus size={16} /> Añadir Fundador</button>
             </div>
-            <div className="expert-hint-box"><Info size={16} /> {t('fundacion.hints.founders')}</div>
             {formData.founders.map((f, i) => (
                 <div key={i} className="expert-card">
                     <div className="card-badge">FUNDADOR #{i+1}</div>
@@ -129,10 +126,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const renderStep3 = () => (
         <div className="step-content animate-in fade-in slide-in-from-bottom-4">
             <div className="section-header">
-                <h2 className="step-title"><Shield size={24} /> {t('fundacion.steps.council')}</h2>
+                <h2 className="step-title-legal">4. CONSEJO DE FUNDACIÓN <span className="legal-hint">({t('fundacion.hints.council')})</span></h2>
                 <button type="button" onClick={() => setFormData({...formData, councilMembers: [...formData.councilMembers, { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', address: '', city: '', country: '' }]})} className="btn-add"><Plus size={16} /> Añadir Miembro</button>
             </div>
-            <div className="expert-hint-box"><Info size={16} /> {t('fundacion.hints.council')}</div>
             {formData.councilMembers.map((m, i) => (
                 <div key={i} className="expert-card">
                     <div className="card-badge">MIEMBRO DEL CONSEJO #{i+1}</div>
@@ -152,9 +148,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
     const renderStep4 = () => (
         <div className="step-content animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="step-title"><UserCheck size={24} /> {t('fundacion.steps.protectors')}</h2>
+            <h2 className="step-title-legal">5. PROTECTOR (ES) <span className="legal-hint">({t('fundacion.hints.protectors')})</span></h2>
             <div className="section-header-mini"><span>PROTECTORES</span><button type="button" onClick={() => setFormData({...formData, protectors: [...formData.protectors, { fullName: '', birthDate: '', passport: '', address: '' }]})} className="btn-add-mini"><Plus size={14} /> Añadir</button></div>
-            <div className="expert-hint-box"><Info size={16} /> {t('fundacion.hints.protectors')}</div>
             {formData.protectors.map((p, i) => (
                 <div key={i} className="expert-card-mini">
                     <div className="card-badge-mini">PROTECTOR #{i+1}</div>
@@ -167,8 +162,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 </div>
             ))}
             
-            <div className="section-header-mini" style={{ marginTop: '30px' }}><span>DIGNATARIOS (PARA EL CONSEJO)</span></div>
-            <div className="expert-hint-mini">{t('fundacion.hints.dignitaries')}</div>
+            <div className="section-header-mini" style={{ marginTop: '30px' }}><span>6. DIGNATARIOS <span className="legal-hint" style={{ textTransform: 'none' }}>({t('fundacion.hints.dignitaries')})</span></span></div>
             {formData.dignitaries.map((d, i) => (
                 <div key={i} className="expert-card-mini">
                     <div className="expert-form-grid" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
@@ -184,10 +178,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const renderStep5 = () => (
         <div className="step-content animate-in fade-in slide-in-from-bottom-4">
             <div className="section-header">
-                <h2 className="step-title"><FileCheck size={24} /> {t('fundacion.steps.beneficiaries')}</h2>
+                <h2 className="step-title-legal">7. BENEFICIARIOS <span className="legal-hint">({t('fundacion.hints.beneficiaries')})</span></h2>
                 <button type="button" onClick={() => setFormData({...formData, beneficiaries: [...formData.beneficiaries, { fullName: '', birthDate: '', passport: '', address: '', percentage: '' }]})} className="btn-add"><Plus size={16} /> Añadir Beneficiario</button>
             </div>
-            <div className="expert-hint-box"><Info size={16} /> {t('fundacion.hints.beneficiaries')}</div>
             {formData.beneficiaries.map((b, i) => (
                 <div key={i} className="expert-card">
                     <div className="card-badge">BENEFICIARIO #{i+1}</div>
@@ -202,8 +195,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             ))}
             
             <div className="expert-final-box">
-                <h3 className="final-box-title">DECLARACIÓN Y FIRMA</h3>
-                <div className="expert-hint-mini" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '15px' }}>{t('fundacion.hints.declaration')}</div>
+                <h3 className="final-box-title">8. DECLARACIÓN Y FIRMA</h3>
+                <div className="legal-hint" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '15px', fontStyle: 'italic' }}>({t('fundacion.hints.declaration')})</div>
                 {formData.signers.map((s, i) => (
                     <div key={i} className="expert-form-grid">
                         <div className="field-group full-width"><label>NOMBRE DEL DECLARANTE</label><input className="expert-input" list="names-global" value={s.name} onChange={e => {
@@ -285,7 +278,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .step-node.completed .step-line { background: ${PRIMARY}; }
 
                 .expert-form-panel { background: white; border-radius: 24px; padding: 45px; border: 1px solid #e2e8f0; box-shadow: 0 10px 40px rgba(0,0,0,0.03); }
-                .step-title { font-size: 20px; font-weight: 800; color: ${SECONDARY}; display: flex; align-items: center; gap: 12px; margin: 0 0 35px; }
+                .step-title-legal { font-size: 14px; font-weight: 900; color: ${SECONDARY}; margin: 0 0 25px; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+                .legal-hint { font-size: 12px; font-weight: 500; color: #64748b; font-style: italic; margin-left: 5px; }
                 .expert-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
                 .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 12px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
                 .expert-hint-mini { font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 5px; font-style: italic; }
