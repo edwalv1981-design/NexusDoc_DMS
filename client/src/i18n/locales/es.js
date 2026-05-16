@@ -371,6 +371,8 @@ const es = {
       linkDirector: 'VINCULAR CON DIRECTOR',
       regNumber: 'NÚMERO DE REGISTRO (OPCIONAL)',
       addShareholder: 'AGREGAR ACCIONISTA',
+      addDignitary: 'AGREGAR DIGNATARIO',
+      addSigner: 'AGREGAR FIRMANTE',
       cert: 'CERT.',
       value: 'VALOR',
       shares: 'ACC.',
@@ -417,6 +419,10 @@ const es = {
       beneficiaries: 'Personas que recibirán los beneficios según el acta fundacional.',
       activities: 'Favor provea una explicación de los objetivos y fines de la fundación.',
       declaration: 'Declaro bajo juramento que la información proporcionada es verdadera y correcta.',
+      addFounder: 'AÑADIR FUNDADOR',
+      addCouncil: 'AÑADIR MIEMBRO DEL CONSEJO',
+      addProtector: 'AÑADIR PROTECTOR',
+      addBeneficiary: 'AÑADIR BENEFICIARIO',
     }
   }
 };

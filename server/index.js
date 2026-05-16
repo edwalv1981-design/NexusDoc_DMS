@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const helmet = require('helmet');
+const { rateLimit } = require('express-rate-limit');
 require('dotenv').config();
 const { connectDB, sequelize } = require('./config/db');
 
@@ -20,6 +22,30 @@ app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 if (!JWT_SECRET) {
     throw new Error('JWT_SECRET no está definido. El servidor no puede iniciar de forma segura.');
 }
+
+// 0. SEGURIDAD DE CABECERAS (HELMET)
+app.use(helmet({
+    crossOriginResourcePolicy: false, // Permitir cargar imágenes/PDFs si se sirven estáticamente
+}));
+
+// 0.1 RATE LIMITING (PROTECCIÓN CONTRA ATAQUES DE FUERZA BRUTA)
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    limit: 150, // Límite de 150 peticiones por ventana por IP
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { msg: 'Demasiadas peticiones desde esta IP, por favor intente más tarde.' }
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10, // Solo 10 intentos de login/registro cada 15 min
+    message: { msg: 'Límite de intentos de autenticación superado. Espere 15 minutos.' }
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // 1. MIDDLEWARES
 app.use(cors({

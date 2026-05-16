@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { User, AuditLog, PendingRegistration } = require('../models');
 const { sequelize } = require('../config/db');
@@ -155,8 +156,8 @@ router.post('/verify', async (req, res) => {
             return res.status(400).json({ msg: `Código de verificación incorrecto. Le quedan ${3 - pending.attempts} intentos.` });
         }
 
-        // Generate a random temporary password (the user will need to change it later or admin will set it)
-        const tempPassword = Math.random().toString(36).slice(-10) + '*';
+        // Generate a cryptographically secure temporary password
+        const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '!@';
 
         // Generate Unique Code
         const uniqueCode = await generateUniqueCode(pending.initialForm);
@@ -479,7 +480,7 @@ router.post('/verify-forgot-password', async (req, res) => {
 
         // PROTOCOLO DE RECUPERACIÓN TOTAL (Unblock + Reset)
         console.log('🔓 Iniciando Desbloqueo y Reseteo por validación de identidad...');
-        const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + '@RECOV';
+        const tempPassword = crypto.randomBytes(5).toString('hex').toUpperCase() + '@RECOV';
         
         user.password = tempPassword;
         user.securityCode = null; // Limpiar código usado
