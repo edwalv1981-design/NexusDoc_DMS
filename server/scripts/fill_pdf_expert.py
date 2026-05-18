@@ -1131,6 +1131,18 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         for k, pos in checks.items():
             if k in f_d: page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
         
+        if data.get("fundsOther"):
+            spec_r = None
+            for kw in ["favor especificar", "please specify", "especificar:"]:
+                rects = page1.search_for(kw)
+                if rects:
+                    spec_r = rects[0]
+                    break
+            if spec_r:
+                page1.insert_text((74.5, spec_r.y1 + 13), str(data["fundsOther"]), fontsize=9, fontname="Helvetica")
+            else:
+                page1.insert_text((74.5, 452.0), str(data["fundsOther"]), fontsize=9, fontname="Helvetica")
+        
         if data.get("custodyAddress"):
             for w in page1.get_text("words"):
                 if "Address:" in w[4] and w[1] > 700:
