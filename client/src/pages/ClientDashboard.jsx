@@ -478,7 +478,6 @@ const ClientDashboard = () => {
                                     <div className="field-group"><label>{t('fondos.beneficiaryName')}</label><input className="input-expert" autoComplete="name" value={formData.beneficiaryName} onChange={e => { 
                                         const val = e.target.value;
                                         setFormData({...formData, beneficiaryName: val}); 
-                                        if (val) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); 
                                     }} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                                         <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" autoComplete="bday" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>

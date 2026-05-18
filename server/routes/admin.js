@@ -193,7 +193,14 @@ router.get('/templates', [auth, isAdmin], async (req, res) => {
         const templates = await DocumentTemplate.findAll({
             attributes: ['id', 'name', 'updatedAt']
         });
-        res.json(templates);
+        const normalized = templates.map(t => {
+            const raw = t.toJSON ? t.toJSON() : t;
+            if (raw.name === 'referencia_maestra') {
+                raw.name = 'fondos';
+            }
+            return raw;
+        });
+        res.json(normalized);
     } catch (err) {
         res.status(500).send('Server error');
     }
@@ -204,12 +211,17 @@ router.get('/templates', [auth, isAdmin], async (req, res) => {
 router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
     try {
         const { name } = req.params;
-        const template = await DocumentTemplate.findOne({ where: { name } });
+        const { Op } = require('sequelize');
+        const searchNames = name === 'fondos' ? ['fondos', 'referencia_maestra'] : [name];
         
-        if (!template) {
-            return res.status(404).json({ msg: 'Plantilla no encontrada' });
-        }
-
+        const count = await DocumentTemplate.destroy({
+            where: {
+                name: {
+                    [Op.in]: searchNames
+                }
+            }
+        });
+        
         // DETERMINAR PREFIJO OFICIAL Y BORRAR ARCHIVO FÍSICO
         let prefix = 'DOC';
         const nameNorm = name.toLowerCase();
@@ -232,15 +244,17 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
             }
         }
 
-        await template.destroy();
+        if (count === 0 && !fs.existsSync(filePath)) {
+            return res.status(404).json({ msg: 'Plantilla no encontrada' });
+        }
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'TEMPLATE_DELETE',
-            description: `Admin eliminó plantilla personalizada: ${name} (Prefijo: ${prefix})`
+            description: `Admin eliminó plantilla personalizada: ${name} (Prefijo: ${prefix}, DB Rows: ${count})`
         });
 
-        res.json({ msg: `Plantilla y archivo físico (${prefix}.pdf) eliminados correctamente.` });
+        res.json({ msg: `Plantilla y archivo físico (${prefix}.pdf) eliminados correctamente. Filas eliminadas: ${count}` });
     } catch (err) {
         console.error('🔥 Error al eliminar plantilla:', err);
         res.status(500).send('Server error');
