@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Heart, Users, UserCheck, Shield, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
-    CheckCircle2, Info, Award
+    CheckCircle2, Info, Award, KeyRound, Globe, FileText
 } from 'lucide-react';
 import { useLang } from '../i18n';
 
@@ -10,19 +10,20 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const { lang, t } = useLang();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
-        // Basic Info
+        // Basic Info (Step 1)
         foundationNameOption1: '', foundationNameOption2: '', foundationNameOption3: '',
-        initialPatrimony: '10000', 
-        foundationObjects: '',
         
-        // Dynamic Arrays
+        // Capital Social (Step 2)
+        initialPatrimony: '10000', 
+        
+        // Dynamic Arrays (Steps 3, 4, 5, 6, 7)
         founders: [{ fullName: '', birthDate: '', passport: '', address: '' }],
+        protectors: [{ fullName: '', birthDate: '', passport: '', address: '' }],
         councilMembers: [
             { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', address: '', city: '', country: '' },
             { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', address: '', city: '', country: '' },
             { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', address: '', city: '', country: '' }
         ],
-        protectors: [{ fullName: '', birthDate: '', passport: '', address: '' }],
         dignitaries: [
             { role: 'PRESIDENTE', fullName: '', birthDate: '', passport: '' },
             { role: 'SECRETARIO', fullName: '', birthDate: '', passport: '' },
@@ -30,7 +31,23 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         ],
         beneficiaries: [{ fullName: '', birthDate: '', passport: '', address: '', percentage: '' }],
         
-        // Finalization
+        // Powers (Step 8)
+        hasPowers: 'no', // 'no', 'yes'
+        powerType: 'general', // 'general', 'especial'
+        powerHolderName: '',
+        powerHolderPassport: '',
+        powerHolderAddress: '',
+        powerScopeBanks: false,
+        powerScopeAccounts: false,
+        powerScopeRealEstate: false,
+        powerScopeContracts: false,
+        powerScopeCourts: false,
+        powerDescription: '',
+
+        // Fines/Actividades (Step 9)
+        foundationObjects: '',
+
+        // Finalization/Declaraciones (Step 10)
         signers: [{ signature: '', name: '' }],
         declarationDate: new Date().toISOString().split('T')[0]
     });
@@ -44,6 +61,20 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             if (!cleanData.dignitaries) cleanData.dignitaries = formData.dignitaries;
             if (!cleanData.beneficiaries) cleanData.beneficiaries = formData.beneficiaries;
             if (!cleanData.signers) cleanData.signers = formData.signers;
+            
+            // Asegurar carga segura de Poderes
+            if (cleanData.hasPowers === undefined) cleanData.hasPowers = formData.hasPowers;
+            if (cleanData.powerType === undefined) cleanData.powerType = formData.powerType;
+            if (cleanData.powerHolderName === undefined) cleanData.powerHolderName = formData.powerHolderName;
+            if (cleanData.powerHolderPassport === undefined) cleanData.powerHolderPassport = formData.powerHolderPassport;
+            if (cleanData.powerHolderAddress === undefined) cleanData.powerHolderAddress = formData.powerHolderAddress;
+            if (cleanData.powerScopeBanks === undefined) cleanData.powerScopeBanks = formData.powerScopeBanks;
+            if (cleanData.powerScopeAccounts === undefined) cleanData.powerScopeAccounts = formData.powerScopeAccounts;
+            if (cleanData.powerScopeRealEstate === undefined) cleanData.powerScopeRealEstate = formData.powerScopeRealEstate;
+            if (cleanData.powerScopeContracts === undefined) cleanData.powerScopeContracts = formData.powerScopeContracts;
+            if (cleanData.powerScopeCourts === undefined) cleanData.powerScopeCourts = formData.powerScopeCourts;
+            if (cleanData.powerDescription === undefined) cleanData.powerDescription = formData.powerDescription;
+
             setFormData(prev => ({ ...prev, ...cleanData }));
         }
     }, [initialData]);
@@ -80,8 +111,28 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         for (const b of formData.beneficiaries) {
             if (b.fullName && b.fullName.toLowerCase().includes(searchName)) return b;
         }
+
+        // Buscar en Apoderado
+        if (formData.powerHolderName && formData.powerHolderName.toLowerCase().includes(searchName)) {
+            return { fullName: formData.powerHolderName, passport: formData.powerHolderPassport, address: formData.powerHolderAddress };
+        }
         
         return null;
+    };
+
+    // Autocompletado extendido inteligente para Apoderado o inputs directos
+    const handlePowerHolderNameChange = (val) => {
+        setFormData(prev => {
+            const updated = { ...prev, powerHolderName: val };
+            if (val.length > 3) {
+                const matched = findPersonData(val);
+                if (matched) {
+                    if (matched.passport) updated.powerHolderPassport = matched.passport;
+                    if (matched.address) updated.powerHolderAddress = matched.address;
+                }
+            }
+            return updated;
+        });
     };
 
     const updateArrayField = (arrayName, index, field, value) => {
@@ -133,6 +184,14 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         newSigners[index][field] = value;
         if (field === 'name') {
             newSigners[index].signature = value;
+            // Autocompletado instantáneo en la firma
+            if (value.length > 3) {
+                const person = findPersonData(value);
+                if (person && person.fullName) {
+                    newSigners[index].name = person.fullName;
+                    newSigners[index].signature = person.fullName;
+                }
+            }
         }
         setFormData(prev => ({ ...prev, signers: newSigners }));
     };
@@ -152,23 +211,26 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const PRIMARY = '#0078d4';
     const SECONDARY = '#1e293b';
 
+    // RENDER DE LOS 10 PASOS SOLICITADOS POR EL USUARIO
+
+    // Paso 1: Nombre de la fundación (colocar 3 nombres)
     const renderStep1 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="expert-step-title"><Heart size={22} color={PRIMARY} /> {t('fundacion.steps.basicInfo') || 'Información de la Fundación'}</h2>
+            <h2 className="expert-step-title"><Heart size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 1: Foundation Name' : 'Paso 1: Nombre de la Fundación'}</h2>
             
-            <div className="expert-hint-box" style={{ marginBottom: '25px', display: 'flex', gap: '12px', alignItems: 'flex-start', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: '8px', padding: '15px' }}>
+            <div className="expert-hint-box">
                 <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '13px', color: '#1e293b', lineHeight: '1.5' }}>
+                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
                     <strong>
                         {lang === 'en'
-                            ? 'List the names you wish to use for your private interest foundation in order of preference.'
-                            : 'Listar los nombres que desea utilizar para su fundación de interés privado en orden de preferencia.'
+                            ? 'Please submit 3 name options in order of preference. The system will verify availability.'
+                            : 'Por favor ingrese 3 opciones de nombre en orden de preferencia para verificar disponibilidad legal.'
                         }
                     </strong>
                     <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#475569' }}>
                         {lang === 'en'
-                            ? 'The name of the Private Interest Foundation must end with the word "Foundation" or "Fundación".'
-                            : 'El nombre de la Fundación de Interés Privado debe terminar con la palabra "Foundation" o "Fundación".'
+                            ? 'Note: The name must end with the word "Foundation" or "Fundación".'
+                            : 'Nota: El nombre debe terminar obligatoriamente con la palabra "Foundation" o "Fundación".'
                         }
                     </div>
                 </div>
@@ -176,50 +238,53 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             <div className="expert-grid">
                 <div className="expert-field full-width">
-                    <label>{lang === 'en' ? 'Foundation Name - 1st Choice' : 'Opción 1 de Nombre'}</label>
-                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value})} placeholder="EJ: FUNDACIÓN ESPERANZA" />
+                    <label>{lang === 'en' ? 'Foundation Name - 1st Choice (Required)' : 'Opción 1 de Nombre (Requerido)'}</label>
+                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN ESPERANZA" required />
                 </div>
                 <div className="expert-field">
                     <label>{lang === 'en' ? 'Foundation Name - 2nd Choice' : 'Opción 2 de Nombre'}</label>
-                    <input className="expert-input" value={formData.foundationNameOption2} onChange={e => setFormData({...formData, foundationNameOption2: e.target.value})} />
+                    <input className="expert-input" value={formData.foundationNameOption2} onChange={e => setFormData({...formData, foundationNameOption2: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN PROGRESO" />
                 </div>
                 <div className="expert-field">
                     <label>{lang === 'en' ? 'Foundation Name - 3rd Choice' : 'Opción 3 de Nombre'}</label>
-                    <input className="expert-input" value={formData.foundationNameOption3} onChange={e => setFormData({...formData, foundationNameOption3: e.target.value})} />
-                </div>
-                
-                <div className="expert-field full-width" style={{ marginTop: '20px' }}>
-                    <label>{lang === 'en' ? 'Initial Endowment (USD)' : 'Patrimonio Inicial (USD)'}</label>
-                    <div className="expert-hint" style={{ marginBottom: '8px' }}>
-                        {lang === 'en'
-                            ? 'The minimum authorized initial endowment of the foundation is US$10,000.00.'
-                            : 'El patrimonio inicial mínimo autorizado de la fundación es de US$10,000.00.'
-                        }
-                    </div>
-                    <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', fontWeight: 900, color: '#94a3b8' }}>$</span>
-                        <input type="number" className="expert-input" style={{ paddingLeft: '32px' }} value={formData.initialPatrimony} onChange={e => setFormData({...formData, initialPatrimony: e.target.value})} placeholder="10000" />
-                    </div>
-                </div>
-
-                <div className="expert-field full-width" style={{ marginTop: '20px' }}>
-                    <label>{lang === 'en' ? 'Foundation Objectives / Purpose' : 'Objetivos y Fines de la Fundación'}</label>
-                    <div className="expert-hint" style={{ marginBottom: '8px' }}>
-                        {lang === 'en'
-                            ? 'Please provide a detailed explanation of the foundation\'s objectives and purposes.'
-                            : 'Favor provea una explicación detallada de los objetivos y fines de la fundación.'
-                        }
-                    </div>
-                    <textarea className="expert-input" rows={4} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder={lang === 'en' ? 'Describe foundation purpose...' : 'Describa detalladamente los fines de la fundación...'} />
+                    <input className="expert-input" value={formData.foundationNameOption3} onChange={e => setFormData({...formData, foundationNameOption3: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN FUTURO" />
                 </div>
             </div>
         </div>
     );
 
+    // Paso 2: Capital social (Patrimonio inicial)
     const renderStep2 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
+            <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 2: Initial Endowment' : 'Paso 2: Capital Social / Patrimonio Inicial'}</h2>
+            
+            <div className="expert-hint-box">
+                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                    {lang === 'en'
+                        ? 'The minimum initial endowment (Capital Social) to constitute a Private Interest Foundation in Panama is US$10,000.00.'
+                        : 'El patrimonio mínimo inicial (Capital Social) para constituir una Fundación de Interés Privado en Panamá es de US$10,000.00.'
+                    }
+                </div>
+            </div>
+
+            <div className="expert-grid">
+                <div className="expert-field full-width">
+                    <label>{lang === 'en' ? 'Initial Endowment (USD)' : 'Capital Social / Patrimonio Declarado (USD)'}</label>
+                    <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', fontWeight: 900, color: '#94a3b8' }}>$</span>
+                        <input type="number" className="expert-input" style={{ paddingLeft: '32px' }} value={formData.initialPatrimony} onChange={e => setFormData({...formData, initialPatrimony: e.target.value})} placeholder="10000" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    // Paso 3: Fundadores
+    const renderStep3 = () => (
+        <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
-                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {t('fundacion.steps.founders') || 'Fundadores'}</h2>
+                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founders' : 'Paso 3: Fundadores'}</h2>
                 <button type="button" onClick={() => addArrayItem('founders', { fullName: '', birthDate: '', passport: '', address: '' })} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD FOUNDER' : 'AÑADIR FUNDADOR'}
                 </button>
@@ -228,19 +293,19 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'The founder is the natural or legal person who constitutes the private interest foundation.'
-                        : 'El fundador es la persona natural o jurídica que constituye la fundación de interés privado.'
+                        ? 'Founders are the persons (natural or legal) who transfer the assets to constitute the foundation.'
+                        : 'Los fundadores son las personas (naturales o jurídicas) que constituyen y aportan los bienes iniciales.'
                     }
                 </div>
             </div>
             {formData.founders.map((f, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `FOUNDER #${i+1}` : `FUNDADOR #${i+1}`}</div>
-                    {formData.founders.length > 1 && <button onClick={() => removeArrayItem('founders', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    {formData.founders.length > 1 && <button type="button" onClick={() => removeArrayItem('founders', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport...' : 'Como aparece en el pasaporte...'} />
+                            <input className="expert-input" list="names-global" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
@@ -252,7 +317,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
-                            <input className="expert-input" value={f.address} onChange={e => updateArrayField('founders', i, 'address', e.target.value)} />
+                            <input className="expert-input" value={f.address} onChange={e => updateArrayField('founders', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
                         </div>
                     </div>
                 </div>
@@ -260,10 +325,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderStep3 = () => (
+    // Paso 4: Protectores
+    const renderStep4 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
-                <h2 className="expert-step-title"><Shield size={22} color={PRIMARY} /> {lang === 'en' ? 'Protectors' : 'Protector (es)'}</h2>
+                <h2 className="expert-step-title"><Shield size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 4: Protectors' : 'Paso 4: Protectores'}</h2>
                 <button type="button" onClick={() => addArrayItem('protectors', { fullName: '', birthDate: '', passport: '', address: '' })} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'AÑADIR PROTECTOR'}
                 </button>
@@ -272,19 +338,19 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'The Protector is the governing body in charge of supervising the actions of the Foundation Council.'
-                        : 'El Protector es el órgano de control encargado de supervisar las acciones del Consejo de Fundación.'
+                        ? 'The Protector is the highest supervisory body of the foundation, responsible for guarding the interests of the beneficiaries.'
+                        : 'El Protector es el máximo órgano de control y supervisión, responsable de velar por los intereses de los beneficiarios.'
                     }
                 </div>
             </div>
             {formData.protectors.map((p, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `PROTECTOR #${i+1}` : `PROTECTOR #${i+1}`}</div>
-                    {formData.protectors.length > 1 && <button onClick={() => removeArrayItem('protectors', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    {formData.protectors.length > 1 && <button type="button" onClick={() => removeArrayItem('protectors', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={p.fullName} onChange={e => updateArrayField('protectors', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport...' : 'Como aparece en el pasaporte...'} />
+                            <input className="expert-input" list="names-global" value={p.fullName} onChange={e => updateArrayField('protectors', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
@@ -296,7 +362,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
-                            <input className="expert-input" value={p.address} onChange={e => updateArrayField('protectors', i, 'address', e.target.value)} />
+                            <input className="expert-input" value={p.address} onChange={e => updateArrayField('protectors', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
                         </div>
                     </div>
                 </div>
@@ -304,10 +370,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderStep4 = () => (
+    // Paso 5: Directores (Consejo de Fundación)
+    const renderStep5 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
-                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {t('fundacion.steps.council') || 'Consejo de Fundación'}</h2>
+                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 5: Directors (Foundation Council)' : 'Paso 5: Directores (Consejo de Fundación)'}</h2>
                 <button type="button" onClick={() => addArrayItem('councilMembers', { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', address: '', city: '', country: '' })} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'AÑADIR MIEMBRO'}
                 </button>
@@ -316,15 +383,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'In Panama, a minimum of 3 members are required for the Foundation Council.'
-                        : 'En Panamá se requiere un mínimo de 3 miembros para el Consejo de Fundación.'
+                        ? 'The Foundation Council (equivalent to Directors) must consist of at least three members.'
+                        : 'El Consejo de Fundación (equivalente a Directores) debe estar integrado por un mínimo de tres miembros.'
                     }
                 </div>
             </div>
             {formData.councilMembers.map((m, i) => (
                 <div key={i} className="expert-card-legal">
-                    <div className="expert-card-label">{lang === 'en' ? `COUNCIL MEMBER #${i+1}` : `MIEMBRO DEL CONSEJO #${i+1}`}</div>
-                    {formData.councilMembers.length > 3 && <button onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    <div className="expert-card-label">{lang === 'en' ? `COUNCIL MEMBER / DIRECTOR #${i+1}` : `MIEMBRO DEL CONSEJO / DIRECTOR #${i+1}`}</div>
+                    {formData.councilMembers.length > 3 && <button type="button" onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" list="names-global" value={m.firstName} onChange={e => updateArrayField('councilMembers', i, 'firstName', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Middle Name' : 'Segundo nombre'}</label><input className="expert-input" value={m.secondName} onChange={e => updateArrayField('councilMembers', i, 'secondName', e.target.value)} /></div>
@@ -339,16 +406,21 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                                 <option value="Viudo">{lang === 'en' ? 'Widowed' : 'Viudo(a)'}</option>
                             </select>
                         </div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="expert-input" value={m.nationality} onChange={e => updateArrayField('councilMembers', i, 'nationality', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Nationality' : 'Nacionalidad'}</label><input className="expert-input" value={m.nationality} onChange={e => updateArrayField('councilMembers', i, 'nationality', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={m.passport} onChange={e => updateArrayField('councilMembers', i, 'passport', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={m.birthDate} onChange={e => updateArrayField('councilMembers', i, 'birthDate', e.target.value)} /></div>
                         <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="expert-input" value={m.address} onChange={e => updateArrayField('councilMembers', i, 'address', e.target.value)} /></div>
                     </div>
                 </div>
             ))}
-            
-            <div className="expert-section-header" style={{ marginTop: '40px' }}>
-                <h2 className="expert-step-title"><UserCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Dignitaries' : 'Dignatarios'}</h2>
+        </div>
+    );
+
+    // Paso 6: Dignatarios
+    const renderStep6 = () => (
+        <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
+            <div className="expert-section-header">
+                <h2 className="expert-step-title"><UserCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 6: Dignitaries' : 'Paso 6: Dignatarios'}</h2>
                 <button type="button" onClick={() => addArrayItem('dignitaries', { role: '', fullName: '', birthDate: '', passport: '' })} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
                 </button>
@@ -357,15 +429,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'Dignitaries are the administrative roles (President, Secretary, Treasurer).'
-                        : 'Los dignatarios son los cargos administrativos del consejo (Presidente, Secretario, Tesorero).'
+                        ? 'Dignitaries hold administrative offices: President, Secretary, Treasurer.'
+                        : 'Los dignatarios ocupan los cargos administrativos del consejo: Presidente, Secretario, Tesorero.'
                     }
                 </div>
             </div>
             {formData.dignitaries.map((d, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
-                    {formData.dignitaries.length > 3 && <button onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Position / Role' : 'Cargo'}</label>
@@ -373,7 +445,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={d.fullName} onChange={e => updateArrayField('dignitaries', i, 'fullName', e.target.value)} />
+                            <input className="expert-input" list="names-global" value={d.fullName} onChange={e => updateArrayField('dignitaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
@@ -389,10 +461,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderStep5 = () => (
+    // Paso 7: Beneficiarios
+    const renderStep7 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
-                <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {lang === 'en' ? 'Beneficiaries' : 'Beneficiarios'}</h2>
+                <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 7: Beneficiaries' : 'Paso 7: Beneficiarios'}</h2>
                 <button type="button" onClick={() => addArrayItem('beneficiaries', { fullName: '', birthDate: '', passport: '', address: '', percentage: '' })} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'AÑADIR BENEFICIARIO'}
                 </button>
@@ -401,53 +474,200 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'Indicate the persons who will receive the benefits according to the foundation charter.'
-                        : 'Indicar las personas que recibirán los beneficios según el acta de la fundación.'
+                        ? 'Indicate the persons who will receive the benefits of the foundation. Distribution should preferably sum 100%.'
+                        : 'Indique las personas que recibirán los beneficios de la fundación. La distribución preferiblemente debe sumar el 100%.'
                     }
                 </div>
             </div>
             {formData.beneficiaries.map((b, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
-                    {formData.beneficiaries.length > 1 && <button onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    {formData.beneficiaries.length > 1 && <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={b.fullName} onChange={e => updateArrayField('beneficiaries', i, 'fullName', e.target.value)} />
+                            <input className="expert-input" list="names-global" value={b.fullName} onChange={e => updateArrayField('beneficiaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
                             <input className="expert-input" value={b.passport} onChange={e => updateArrayField('beneficiaries', i, 'passport', e.target.value)} />
                         </div>
                         <div className="expert-field">
-                            <label>{lang === 'en' ? '% of Participation' : '% de Participación'}</label>
+                            <label>{lang === 'en' ? '% of Benefit' : '% de Beneficio'}</label>
                             <input className="expert-input" placeholder="Ej: 100%" value={b.percentage} onChange={e => updateArrayField('beneficiaries', i, 'percentage', e.target.value)} />
                         </div>
+                        <div className="expert-field">
+                            <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
+                            <input type="date" className="expert-input" value={b.birthDate} onChange={e => updateArrayField('beneficiaries', i, 'birthDate', e.target.value)} />
+                        </div>
                         <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Residential Address' : 'Dirección'}</label>
-                            <input className="expert-input" value={b.address} onChange={e => updateArrayField('beneficiaries', i, 'address', e.target.value)} />
+                            <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
+                            <input className="expert-input" value={b.address} onChange={e => updateArrayField('beneficiaries', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
                         </div>
                     </div>
                 </div>
             ))}
+        </div>
+    );
+
+    // Paso 8: Poderes (General/Especial, Apoderado details, standard checkbox scope, custom textbox)
+    const renderStep8 = () => (
+        <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
+            <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Powers of Representation' : 'Paso 8: Poderes de Representación'}</h2>
             
-            <div className="expert-legal-box" style={{ marginTop: '40px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 900, color: SECONDARY, margin: 0 }}>{lang === 'en' ? 'Declaration / Sworn Affidavit' : 'Declaración / Declaración Jurada'}</h3>
-                    <button onClick={addSigner} className="expert-btn-add-white"><Plus size={16} /> {lang === 'en' ? 'ADD SIGNER' : 'AGREGAR FIRMANTE'}</button>
+            <div className="expert-hint-box">
+                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                    {lang === 'en'
+                        ? 'Select whether the foundation will grant a Power of Attorney (General or Special) to a designated representative.'
+                        : 'Seleccione si la fundación otorgará algún Poder de Representación (General o Especial) a un representante designado.'
+                    }
                 </div>
+            </div>
+
+            <div className="expert-grid">
+                {/* LIST BOX (Select Dropdown) */}
+                <div className="expert-field full-width">
+                    <label>{lang === 'en' ? 'Do you wish to grant a Power of Attorney?' : '¿Otorgará algún Poder de Representación?'}</label>
+                    <select className="expert-input" value={formData.hasPowers} onChange={e => setFormData({...formData, hasPowers: e.target.value})}>
+                        <option value="no">{lang === 'en' ? 'No, do not grant powers' : 'No, no otorgar poderes'}</option>
+                        <option value="yes">{lang === 'en' ? 'Yes, grant a Power of Attorney' : 'Sí, otorgar Poder de Representación'}</option>
+                    </select>
+                </div>
+
+                {formData.hasPowers === 'yes' && (
+                    <>
+                        {/* LIST BOX (Power Type) */}
+                        <div className="expert-field full-width animate-in fade-in slide-in-from-top-2">
+                            <label>{lang === 'en' ? 'Type of Power' : 'Tipo de Poder'}</label>
+                            <select className="expert-input" value={formData.powerType} onChange={e => setFormData({...formData, powerType: e.target.value})}>
+                                <option value="general">{lang === 'en' ? 'General Power of Attorney (Broad powers)' : 'Poder General (Facultades amplias de administración)'}</option>
+                                <option value="especial">{lang === 'en' ? 'Special Power of Attorney (Restricted scope)' : 'Poder Especial (Facultades restringidas y específicas)'}</option>
+                            </select>
+                        </div>
+
+                        {/* TEXT BOXES (Apoderado Details) */}
+                        <div className="expert-field full-width animate-in fade-in" style={{ marginTop: '10px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '900', color: SECONDARY }}>{lang === 'en' ? 'ATTORNEY-IN-FACT / APODERADO' : 'DATOS DEL APODERADO / REPRESENTANTE'}</span>
+                        </div>
+
+                        <div className="expert-field full-width">
+                            <label>{lang === 'en' ? 'Full Name of Representative' : 'Nombre Completo del Apoderado'}</label>
+                            <input className="expert-input" list="names-global" value={formData.powerHolderName} onChange={e => handlePowerHolderNameChange(e.target.value)} placeholder={lang === 'en' ? 'Type to autocomplete if already added...' : 'Escriba para autocompletar si ya existe en el formulario...'} />
+                        </div>
+
+                        <div className="expert-field">
+                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula del Apoderado'}</label>
+                            <input className="expert-input" value={formData.powerHolderPassport} onChange={e => setFormData({...formData, powerHolderPassport: e.target.value})} />
+                        </div>
+
+                        <div className="expert-field">
+                            <label>{lang === 'en' ? 'Residential Address' : 'Domicilio Completo'}</label>
+                            <input className="expert-input" value={formData.powerHolderAddress} onChange={e => setFormData({...formData, powerHolderAddress: e.target.value})} />
+                        </div>
+
+                        {/* CHECK BOXES (Standard Powers Scope) */}
+                        <div className="expert-field full-width animate-in fade-in" style={{ marginTop: '20px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: '800', color: SECONDARY, textTransform: 'uppercase' }}>
+                                {lang === 'en' ? 'Granted Faculties / Standard Scope' : 'Facultades Otorgadas / Alcance Estándar'}
+                            </label>
+                            <div className="expert-hint" style={{ marginBottom: '10px' }}>
+                                {lang === 'en' ? 'Check the checkboxes for powers you wish to grant:' : 'Marque las casillas de verificación para los poderes que desea otorgar:'}
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '2.5px solid #f1f5f9' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                    <input type="checkbox" checked={formData.powerScopeBanks} onChange={e => setFormData({...formData, powerScopeBanks: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
+                                    <span>{lang === 'en' ? 'Represent the foundation before banking entities' : 'Representar a la fundación ante cualquier entidad bancaria'}</span>
+                                </label>
+                                
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                    <input type="checkbox" checked={formData.powerScopeAccounts} onChange={e => setFormData({...formData, powerScopeAccounts: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
+                                    <span>{lang === 'en' ? 'Open, operate and close bank accounts' : 'Abrir, manejar, operar y cerrar cuentas bancarias o de inversión'}</span>
+                                </label>
+
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                    <input type="checkbox" checked={formData.powerScopeRealEstate} onChange={e => setFormData({...formData, powerScopeRealEstate: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
+                                    <span>{lang === 'en' ? 'Administer and dispose of real estate and personal assets' : 'Administrar, comprar, vender y gravar bienes inmuebles o muebles'}</span>
+                                </label>
+
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                    <input type="checkbox" checked={formData.powerScopeContracts} onChange={e => setFormData({...formData, powerScopeContracts: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
+                                    <span>{lang === 'en' ? 'Sign agreements, contracts and obligations' : 'Firmar contratos, acuerdos, convenios y contraer obligaciones legales'}</span>
+                                </label>
+
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                    <input type="checkbox" checked={formData.powerScopeCourts} onChange={e => setFormData({...formData, powerScopeCourts: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
+                                    <span>{lang === 'en' ? 'Appear before judicial, administrative, and public authorities' : 'Comparecer ante autoridades judiciales, administrativas y públicas'}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* TEXT BOX / TEXTAREA (Custom Power Description) */}
+                        <div className="expert-field full-width animate-in fade-in" style={{ marginTop: '15px' }}>
+                            <label>{lang === 'en' ? 'Additional Custom Powers / Specific Limitations' : 'Facultades Específicas / Limitaciones del Poder'}</label>
+                            <div className="expert-hint" style={{ marginBottom: '8px' }}>
+                                {lang === 'en'
+                                    ? 'Describe any custom powers, instructions, or specific restrictions to be included in the public deed.'
+                                    : 'Describa cualquier otra facultad específica o restricciones del poder que desee incluir en la escritura pública.'
+                                }
+                            </div>
+                            <textarea className="expert-input" rows={4} value={formData.powerDescription} onChange={e => setFormData({...formData, powerDescription: e.target.value})} placeholder={lang === 'en' ? 'Describe specific powers here...' : 'Describa las facultades específicas aquí...'} />
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+
+    // Paso 9: Actividades de la fundación (foundationObjects / fines)
+    const renderStep9 = () => (
+        <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
+            <h2 className="expert-step-title"><Globe size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 9: Foundation Objects & Activities' : 'Paso 9: Actividades y Fines de la Fundación'}</h2>
+            
+            <div className="expert-hint-box">
+                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                    {lang === 'en'
+                        ? 'Describe in detail the objects and purposes of the Private Interest Foundation. (e.g. Asset Protection, Estate Planning).'
+                        : 'Describa detalladamente el objeto y fines de la Fundación de Interés Privado. (Ej. Protección familiar, planificación patrimonial, administración de bienes).'
+                    }
+                </div>
+            </div>
+
+            <div className="expert-grid">
+                <div className="expert-field full-width">
+                    <label>{lang === 'en' ? 'Foundation Objects (Text Box)' : 'Fines de la Fundación (Detallar)'}</label>
+                    <textarea className="expert-input" rows={6} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder={lang === 'en' ? 'e.g. The objectives of the foundation are estate planning, family protection, holding shares...' : 'Ej: Los fines de la fundación consisten en velar por el patrimonio familiar, la planificación sucesoria, la tenencia de activos...'} required />
+                </div>
+            </div>
+        </div>
+    );
+
+    // Paso 10: Declaraciones (Declaración Jurada y Firmantes)
+    const renderStep10 = () => (
+        <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
+            <div className="expert-section-header">
+                <h2 className="expert-step-title"><FileCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 10: Declaration / Sworn Affidavit' : 'Paso 10: Declaración / Declaración Jurada'}</h2>
+                <button type="button" onClick={addSigner} className="expert-btn-add">
+                    <Plus size={16} /> {lang === 'en' ? 'ADD SIGNER' : 'AÑADIR FIRMANTE'}
+                </button>
+            </div>
+
+            <div className="expert-legal-box">
                 <p className="expert-legal-text">
                     {lang === 'en'
-                        ? 'I/We declare that the origin of funds and goods linked to the services provided by Panama Tax Lawyers and its associates derive from legitimate sources and without criminal origin.'
-                        : 'Declaro que el origen de los fondos y bienes vinculados a los servicios prestados por Panama Tax Lawyers y sus asociados derivan de fuentes legítimas y sin origen delictivo.'
+                        ? 'I/We hereby declare under penalty of perjury that all information and statements provided in this document are true, correct, and complete. All foundation assets derive from lawful activities.'
+                        : 'Declaro(amos) bajo la gravedad del juramento que toda la información y manifestaciones consignadas en este formulario son verdaderas, correctas y completas. Todos los bienes de la fundación provienen de actividades lícitas.'
                     }
                 </p>
+                
                 {formData.signers.map((s, i) => (
-                    <div key={i} style={{ marginTop: '20px', padding: '25px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', position: 'relative' }}>
+                    <div key={i} className="signer-row animate-in fade-in" style={{ marginTop: '20px', padding: '25px', background: 'white', border: '2px solid #f1f5f9', borderRadius: '16px', position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <span style={{ fontSize: '11px', fontWeight: 900, color: PRIMARY, letterSpacing: '0.5px' }}>{lang === 'en' ? `SIGNER #${i+1}` : `FIRMANTE #${i+1}`}</span>
                             {formData.signers.length > 1 && (
-                                <button onClick={() => removeSigner(i)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button type="button" onClick={() => removeSigner(i)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                     <Trash2 size={13} /> {lang === 'en' ? 'REMOVE' : 'ELIMINAR'}
                                 </button>
                             )}
@@ -459,11 +679,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                             </div>
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
-                                <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} />
+                                <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} style={{ fontFamily: 'monospace' }} />
                             </div>
                         </div>
                     </div>
                 ))}
+                
                 <div className="expert-field" style={{ marginTop: '25px' }}>
                     <label style={{ color: '#475569', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaración'}</label>
                     <input type="date" className="expert-input-legal" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
@@ -477,9 +698,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             <div className="expert-header">
                 <div>
                     <h1 className="expert-title">{lang === 'en' ? 'PRIVATE INTEREST FOUNDATION' : 'FUNDACIÓN DE INTERÉS PRIVADO'}</h1>
-                    <p className="expert-subtitle">{lang === 'en' ? 'High-Precision Foundation DMS System' : 'Sistema de Alta Precisión en Fundaciones'}</p>
+                    <p className="expert-subtitle">{lang === 'en' ? 'High-Precision Corporate DMS System' : 'Sistema de Alta Precisión en Fundaciones'}</p>
                 </div>
-                <button onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save-master">
+                <button type="button" onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save-master">
                     <Save size={18} /> {saving ? (lang === 'en' ? 'Synchronizing...' : 'Sincronizando...') : (lang === 'en' ? 'SAVE PROGRESS' : 'GUARDAR AVANCE')}
                 </button>
             </div>
@@ -487,20 +708,25 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             {/* Cabecera de Paso Estándar */}
             <div className="standard-step-header">
                 <span className="standard-step-title">
-                    {step === 1 && `I. ${lang === 'en' ? 'Foundation Name & Objectives' : 'Nombre y Objetivos de la Fundación'}`}
-                    {step === 2 && `II. ${lang === 'en' ? 'Founders' : 'Fundador (es)'}`}
-                    {step === 3 && `III. ${lang === 'en' ? 'Protectors' : 'Protector (es)'}`}
-                    {step === 4 && `IV. ${lang === 'en' ? 'Foundation Council & Dignitaries' : 'Consejo de Fundación y Dignatarios'}`}
-                    {step === 5 && `V. ${lang === 'en' ? 'Beneficiaries & Sworn Affidavit' : 'Beneficiarios y Declaración Jurada'}`}
+                    {step === 1 && `I. ${lang === 'en' ? 'Foundation Name' : 'Nombre de la Fundación'}`}
+                    {step === 2 && `II. ${lang === 'en' ? 'Initial Endowment' : 'Capital Social'}`}
+                    {step === 3 && `III. ${lang === 'en' ? 'Founders' : 'Fundadores'}`}
+                    {step === 4 && `IV. ${lang === 'en' ? 'Protectors' : 'Protectores'}`}
+                    {step === 5 && `V. ${lang === 'en' ? 'Directors (Foundation Council)' : 'Directores (Consejo)'}`}
+                    {step === 6 && `VI. ${lang === 'en' ? 'Dignitaries' : 'Dignatarios'}`}
+                    {step === 7 && `VII. ${lang === 'en' ? 'Beneficiaries' : 'Beneficiarios'}`}
+                    {step === 8 && `VIII. ${lang === 'en' ? 'Powers of Representation' : 'Poderes de Representación'}`}
+                    {step === 9 && `IX. ${lang === 'en' ? 'Foundation Objects & Activities' : 'Actividades de la Fundación'}`}
+                    {step === 10 && `X. ${lang === 'en' ? 'Declaration & Signatures' : 'Declaración y Firmas'}`}
                 </span>
                 <span className="standard-step-badge">
-                    {t('dashboard.stepOf', { step, total: 5 })}
+                    {lang === 'en' ? `Step ${step} of 10` : `Paso ${step} de 10`}
                 </span>
             </div>
 
-            {/* Stepper Progresivo Estándar */}
+            {/* Stepper Progresivo Estándar de 10 Pasos */}
             <div className="standard-progress-stepper">
-                {[1, 2, 3, 4, 5].map(s => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => (
                     <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
                 ))}
             </div>
@@ -511,10 +737,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 {step === 3 && renderStep3()}
                 {step === 4 && renderStep4()}
                 {step === 5 && renderStep5()}
+                {step === 6 && renderStep6()}
+                {step === 7 && renderStep7()}
+                {step === 8 && renderStep8()}
+                {step === 9 && renderStep9()}
+                {step === 10 && renderStep10()}
 
                 <div className="expert-nav-footer">
                     <button type="button" onClick={() => setStep(prev => prev - 1)} disabled={step === 1} className="expert-btn-nav-prev"><ChevronLeft size={18} /> {lang === 'en' ? 'PREVIOUS' : 'ANTERIOR'}</button>
-                    {step < 5 ? (
+                    {step < 10 ? (
                         <button type="button" onClick={() => setStep(prev => prev + 1)} className="expert-btn-nav-next">{lang === 'en' ? 'NEXT STEP' : 'SIGUIENTE PASO'} <ChevronRight size={18} /></button>
                     ) : (
                         <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? (lang === 'en' ? 'FINALIZING...' : 'FINALIZANDO...') : (lang === 'en' ? 'REGISTER FOUNDATION' : 'REGISTRAR FUNDACIÓN')}</button>
@@ -531,6 +762,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 })}
                 {formData.protectors.map((p, i) => p.fullName && <option key={`p-${i}`} value={p.fullName} />)}
                 {formData.dignitaries.map((d, i) => d.fullName && <option key={`d-${i}`} value={d.fullName} />)}
+                {formData.beneficiaries.map((b, i) => b.fullName && <option key={`b-${i}`} value={b.fullName} />)}
             </datalist>
 
             <datalist id="roles-dignitaries">
@@ -583,8 +815,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                 .expert-legal-box { background: #f8fafc; border: 2.5px dashed #cbd5e1; border-radius: 20px; padding: 35px; color: ${SECONDARY}; margin-top: 30px; }
                 .expert-legal-text { font-size: 13px; line-height: 1.6; color: #334155; margin-bottom: 25px; font-style: italic; border-left: 4px solid ${PRIMARY}; padding: 15px 20px; background: #eff6ff; border-radius: 8px; font-weight: 500; }
-                .expert-btn-add-white { background: ${PRIMARY}10; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}30; padding: 10px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 11px; transition: all 0.2s; }
-                .expert-btn-add-white:hover { background: ${PRIMARY}; color: white; transform: scale(1.02); }
                 .expert-input-legal { width: 100%; padding: 14px 18px; border: 2.5px solid #e2e8f0; border-radius: 12px; background: white; color: ${SECONDARY}; outline: none; font-size: 14px; font-weight: 600; transition: all 0.2s; }
                 .expert-input-legal:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 4px ${PRIMARY}10; }
 
