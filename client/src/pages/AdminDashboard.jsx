@@ -17,8 +17,9 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [templateFile, setTemplateFile] = useState(null);
-  const [templateName, setTemplateName] = useState('fondos');
+  const [templateName, setTemplateName] = useState('');
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
+  const fileInputRef = React.useRef(null);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
@@ -114,7 +115,10 @@ const AdminDashboard = () => {
 
   const handleTemplateUpload = async (e) => {
     e.preventDefault();
-    if (!templateFile) return toast.error(t('userDocs.selectPdf'));
+    if (!templateName || !templateFile) {
+      toast.error("Primero debe seleccionar un trámite y estar listo para descarga");
+      return;
+    }
     setUploadingTemplate(true);
     
     const formData = new FormData();
@@ -286,94 +290,240 @@ const AdminDashboard = () => {
 
             {activeTab === 'templates' && (
               <div style={{ padding: '30px' }}>
-                <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>{t('admin.templatesStatus')}</h3>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
-                        <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                          <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
-                            <th style={{ padding: '12px' }}>{t('admin.processType')}</th>
-                            <th style={{ padding: '12px' }}>{t('admin.currentStatus')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            { id: 'fondos', label: t('formType.Fondos Registros contables') },
-                            { id: 'corporacion', label: t('formType.Corporación') },
-                            { id: 'fundaciones', label: t('formType.Fundaciones') },
-                            { id: 'cumplimiento_individual', label: t('formType.Cumplimiento Individual') },
-                            { id: 'cumplimiento_entidades', label: t('formType.Cumplimiento Entidades') }
-                          ].map(type => {
-                            const customTemplate = templates.find(t => t.name === type.id);
-                            return (
-                              <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
-                                <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{type.label}</td>
-                                <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    {customTemplate ? (
-                                        <>
-                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ {t('admin.customDb')}</span>
-                                            <button 
-                                                onClick={() => handleDeleteTemplate(type.id)}
-                                                style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Eliminar plantilla (Desactiva la generación de PDF para este trámite)"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>⚠️ {t('admin.noTemplate')}</span>
-                                    )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                <div style={{ display: 'flex', gap: '30px', alignItems: 'stretch' }}>
+                  {/* PANEL IZQUIERDO: ESTADO DE TRÁMITES */}
+                  <div style={{ flex: 1.2, background: 'white', padding: '25px', borderRadius: RADIUS_LG, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: `1px solid ${BORDER}` }}>
+                    <h3 style={{ marginBottom: '20px', fontSize: '15px', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.025em' }}>
+                      {t('admin.templatesStatus')}
+                    </h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', borderBottom: `2px solid ${BORDER}` }}>
+                          <th style={{ padding: '12px 8px' }}>{t('admin.processType')}</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right' }}>{t('admin.currentStatus')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { id: 'fondos', label: t('formType.Fondos Registros contables') },
+                          { id: 'corporacion', label: t('formType.Corporación') },
+                          { id: 'fundaciones', label: t('formType.Fundaciones') },
+                          { id: 'cumplimiento_individual', label: t('formType.Cumplimiento Individual') },
+                          { id: 'cumplimiento_entidades', label: t('formType.Cumplimiento Entidades') }
+                        ].map(type => {
+                          const customTemplate = templates.find(t => t.name === type.id);
+                          return (
+                            <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, transition: 'background 0.2s', ':hover': { background: '#f8fafc' } }}>
+                              <td style={{ padding: '16px 8px', fontWeight: 700, color: '#334155', fontSize: '13px' }}>{type.label}</td>
+                              <td style={{ padding: '16px 8px', textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                                  {customTemplate ? (
+                                    <>
+                                      <span style={{ 
+                                        background: '#ecfdf5', 
+                                        color: '#047857', 
+                                        padding: '5px 10px', 
+                                        borderRadius: '9999px', 
+                                        fontSize: '11px', 
+                                        fontWeight: 700, 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '5px',
+                                        border: '1px solid #a7f3d0'
+                                      }}>
+                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                                        {t('admin.customDb')}
+                                      </span>
+                                      <button 
+                                        onClick={() => handleDeleteTemplate(type.id)}
+                                        style={{ 
+                                          background: '#fff1f2', 
+                                          color: '#e11d48', 
+                                          border: '1px solid #fecdd3', 
+                                          padding: '6px', 
+                                          borderRadius: '8px', 
+                                          cursor: 'pointer', 
+                                          transition: 'all 0.2s', 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          justifyContent: 'center' 
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#ffe4e6'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#fff1f2'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                        title="Eliminar plantilla"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span style={{ 
+                                      background: '#fff1f2', 
+                                      color: '#e11d48', 
+                                      padding: '5px 10px', 
+                                      borderRadius: '9999px', 
+                                      fontSize: '11px', 
+                                      fontWeight: 700, 
+                                      display: 'inline-flex', 
+                                      alignItems: 'center', 
+                                      gap: '5px',
+                                      border: '1px solid #fecdd3'
+                                    }}>
+                                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f43f5e', display: 'inline-block' }}></span>
+                                      {t('admin.noTemplate')}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                   
-                  <div style={{ flex: 1, background: '#f8fafc', padding: '25px', borderRadius: RADIUS_LG, border: `1px dashed #cbd5e1` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                      <UploadCloud size={20} color={PRIMARY} />
-                      <h3 style={{ fontSize: '14px', fontWeight: 700 }}>{t('admin.uploadReplace')}</h3>
+                  {/* PANEL DERECHO: CARGADOR DE PLANTILLA */}
+                  <div style={{ flex: 1, background: 'white', padding: '25px', borderRadius: RADIUS_LG, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                        <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '8px' }}>
+                          <UploadCloud size={20} color={PRIMARY} />
+                        </div>
+                        <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.025em' }}>
+                          {t('admin.uploadReplace')}
+                        </h3>
+                      </div>
+                      
+                      <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        {/* SELECTOR DE TRÁMITE */}
+                        <div className="field-group-admin">
+                          <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                            {t('admin.processToLink')}
+                          </label>
+                          <select 
+                            className="input-modern-admin" 
+                            value={templateName} 
+                            onChange={(e) => setTemplateName(e.target.value)} 
+                            style={{ 
+                              cursor: 'pointer', 
+                              padding: '12px', 
+                              borderRadius: '8px', 
+                              border: `1px solid ${BORDER}`,
+                              fontSize: '13px',
+                              background: '#f8fafc',
+                              color: templateName ? '#0f172a' : '#94a3b8',
+                              fontWeight: templateName ? '600' : '400',
+                              outline: 'none',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <option value="" style={{ color: '#94a3b8' }}>-- Seleccione un Trámite --</option>
+                            <option value="fondos">{t('formType.Fondos Registros contables')}</option>
+                            <option value="corporacion">{t('formType.Corporación')}</option>
+                            <option value="fundaciones">{t('formType.Fundaciones')}</option>
+                            <option value="cumplimiento_individual">{t('formType.Cumplimiento Individual')}</option>
+                            <option value="cumplimiento_entidades">{t('formType.Cumplimiento Entidades')}</option>
+                          </select>
+                        </div>
+                        
+                        {/* ZONA DE CARGA DE ARCHIVO (DROPZONE UX HÍBRIDA) */}
+                        <div className="field-group-admin">
+                          <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                            {t('userDocs.pdfLabel')}
+                          </label>
+                          
+                          {/* INPUT DE FILE OCULTO */}
+                          <input 
+                            ref={fileInputRef}
+                            type="file" 
+                            accept=".pdf" 
+                            onChange={(e) => setTemplateFile(e.target.files[0])} 
+                            style={{ display: 'none' }}
+                          />
+                          
+                          {/* DISEÑO UX REEMPLAZO DE FILE INPUT */}
+                          <div 
+                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                            style={{ 
+                              border: `2px dashed ${templateFile ? '#10b981' : '#cbd5e1'}`, 
+                              background: templateFile ? '#f0fdf4' : '#f8fafc', 
+                              borderRadius: '10px', 
+                              padding: '30px 20px', 
+                              textAlign: 'center', 
+                              cursor: 'pointer', 
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '10px'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = templateFile ? '#10b981' : PRIMARY; e.currentTarget.style.background = templateFile ? '#f0fdf4' : '#eff6ff'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = templateFile ? '#10b981' : '#cbd5e1'; e.currentTarget.style.background = templateFile ? '#f0fdf4' : '#f8fafc'; }}
+                          >
+                            <UploadCloud size={32} color={templateFile ? '#10b981' : '#64748b'} style={{ marginBottom: 5 }} />
+                            {templateFile ? (
+                              <div>
+                                <p style={{ fontSize: '13px', fontWeight: 700, color: '#047857', wordBreak: 'break-all' }}>
+                                  📄 {templateFile.name}
+                                </p>
+                                <p style={{ fontSize: '11px', color: '#059669', marginTop: 4 }}>
+                                  ({(templateFile.size / (1024 * 1024)).toFixed(2)} MB) - Haga clic para cambiar
+                                </p>
+                              </div>
+                            ) : (
+                              <div>
+                                <p style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+                                  Haga clic aquí para seleccionar el archivo PDF
+                                </p>
+                                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: 4 }}>
+                                  Soporta formato PDF (Máx. 10MB)
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* BOTÓN DE CARGA */}
+                        <button 
+                          type="submit" 
+                          disabled={uploadingTemplate} 
+                          className="btn-primary" 
+                          style={{ 
+                            marginTop: 10, 
+                            padding: '12px',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                            cursor: uploadingTemplate ? 'not-allowed' : 'pointer',
+                            background: uploadingTemplate ? '#94a3b8' : (templateName && templates.some(t => t.name === templateName) ? '#f59e0b' : '#10b981'),
+                            border: 'none',
+                            color: 'white',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => { if (!uploadingTemplate) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseLeave={(e) => { if (!uploadingTemplate) e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                          {uploadingTemplate 
+                            ? t('register.processing').toUpperCase() 
+                            : (templateName && templates.some(t => t.name === templateName) 
+                               ? 'REEMPLAZAR PLANTILLA EXISTENTE' 
+                               : 'SUBIR NUEVA PLANTILLA'
+                              )}
+                        </button>
+
+                        <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', margin: 0, lineHeight: 1.4 }}>
+                          {templateName && templates.some(t => t.name === templateName) 
+                            ? '⚠️ Atención: Subir una plantilla para un trámite con plantilla existente sobrescribirá el archivo maestro anterior.' 
+                            : 'Las plantillas subidas se utilizarán como base interactiva para la inyección de datos de los clientes.'}
+                        </p>
+                      </form>
                     </div>
-                    <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                      <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.processToLink')}</label>
-                        <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
-                          <option value="fondos">{t('formType.Fondos Registros contables')}</option>
-                          <option value="corporacion">{t('formType.Corporación')}</option>
-                          <option value="fundaciones">{t('formType.Fundaciones')}</option>
-                          <option value="cumplimiento_individual">{t('formType.Cumplimiento Individual')}</option>
-                          <option value="cumplimiento_entidades">{t('formType.Cumplimiento Entidades')}</option>
-                        </select>
-                      </div>
-                      <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('userDocs.pdfLabel')}</label>
-                        <input 
-                          type="file" 
-                          accept=".pdf" 
-                          onChange={(e) => setTemplateFile(e.target.files[0])} 
-                          className="input-modern-admin" 
-                          style={{ background: 'white', padding: '8px' }}
-                          required 
-                        />
-                      </div>
-                      <button 
-                        type="submit" 
-                        disabled={uploadingTemplate || !templateFile} 
-                        className="btn-primary" 
-                        style={{ marginTop: 10, background: templates.some(t => t.name === templateName) ? '#f59e0b' : '#16a34a' }}
-                      >
-                        {uploadingTemplate ? t('register.processing').toUpperCase() : (templates.some(t => t.name === templateName) ? t('admin.updateExisting') : t('admin.uploadNew'))}
-                      </button>
-                      <p style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>
-                        {templates.some(t => t.name === templateName) ? t('admin.overwriteNotice') : t('admin.injectNotice')}
-                      </p>
-                    </form>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
         </div>
       </div>
