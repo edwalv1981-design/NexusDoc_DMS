@@ -204,21 +204,6 @@ async function bootstrap() {
 // (columna language en su lugar) antes de procesar logins. Evita 500s silenciosos.
 bootstrap()
     .then(() => {
-        // AUTO-CLEANUP: Purge legacy 'referencia_maestra' and 'fondos' database templates on startup
-        try {
-            const { DocumentTemplate } = require('./models');
-            DocumentTemplate.destroy({
-                where: {
-                    name: ['referencia_maestra', 'fondos']
-                }
-            }).then(count => {
-                if (count > 0) {
-                    console.log(`🧹 [AUTO-CLEANUP] Se eliminaron ${count} registros de plantillas obsoletas (referencia_maestra / fondos) de la base de datos.`);
-                }
-            }).catch(err => console.error('⚠️ [AUTO-CLEANUP] Fallo al limpiar plantillas en base de datos:', err));
-        } catch (e) {
-            console.error('⚠️ [AUTO-CLEANUP] No se pudo inicializar la limpieza de plantillas:', e);
-        }
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT}`);
