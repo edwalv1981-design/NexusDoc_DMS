@@ -260,10 +260,21 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             fs.copyFileSync(localPath, customTemplatePath);
         } else {
             // Respaldos y auto-healing (Si no existe el archivo con prefijo, buscamos en DB)
-            let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
+            const { Op } = require('sequelize');
+            const searchNames = (templateName === 'referencia_maestra' || templateName === 'fondos')
+                ? ['referencia_maestra', 'fondos']
+                : [templateName];
+
+            let dbTemplate = await DocumentTemplate.findOne({
+                where: {
+                    name: {
+                        [Op.in]: searchNames
+                    }
+                }
+            });
             
             if (dbTemplate && dbTemplate.fileData) {
-                console.log(`🗄️ Usando plantilla desde Base de Datos: ${templateName}`);
+                console.log(`🗄️ Usando plantilla desde Base de Datos: ${dbTemplate.name}`);
                 fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
             } else {
                 return res.status(404).json({ msg: `Error: No se encontró plantilla en ruta (${localPath}) ni en DB.` });
