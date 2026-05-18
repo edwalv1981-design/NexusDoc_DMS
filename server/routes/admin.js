@@ -3,6 +3,8 @@ const router = express.Router();
 const { User, AuditLog, DocumentTemplate } = require('../models');
 const { sendTemporaryPassword } = require('../services/emailService');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 // Configure multer for memory storage (we will save the buffer to the DB)
 const upload = multer({ 
@@ -230,9 +232,6 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
         else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
         else if (nameNorm.includes('cumplimiento_individual') || nameNorm.includes('individual')) prefix = 'KYCI';
         else if (nameNorm.includes('cumplimiento_entidades') || nameNorm.includes('entidad') || nameNorm.includes('entidades')) prefix = 'KYCE';
-
-        const fs = require('fs');
-        const path = require('path');
         const filePath = path.join(__dirname, `../templates/${prefix}.pdf`);
 
         if (fs.existsSync(filePath)) {
