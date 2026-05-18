@@ -10,7 +10,7 @@ const { Op } = require('sequelize');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const stablePdfForms = require('../config/stablePdfForms');
-// const userLanguageStore = require('../services/userLanguageStore'); // Movido a nivel de función para evitar dependencias circulares
+const userLanguageStore = require('../services/userLanguageStore');
 
 const generateUniqueCode = async (formType) => {
     const prefix = stablePdfForms.UNIQUE_CODE_PREFIX_BY_FORM_TYPE[formType] || 'NDOC';

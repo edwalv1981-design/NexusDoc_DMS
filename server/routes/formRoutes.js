@@ -7,9 +7,12 @@ const fs = require('fs');
 const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
 const fundacionHtmlPdfService = require('../services/fundacionHtmlPdfService');
 const stablePdfForms = require('../config/stablePdfForms');
-// const userLanguageStore = require('../services/userLanguageStore'); // Movido a nivel de función
+const userLanguageStore = require('../services/userLanguageStore');
 
 const checkTemplateExists = async (formType) => {
+    if (stablePdfForms.isCorporacionPdfForm(formType) || stablePdfForms.isFundacionPdfForm(formType)) {
+        return true;
+    }
     let prefix = 'SFAR';
     let dbNames = ['referencia_maestra', 'fondos'];
     
@@ -195,13 +198,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
 
         console.log(`[PDF] Iniciando generación para trámite ID: ${req.params.id}, tipo: ${form.formType}`);
         
-        let userLanguage = 'es';
-        try {
-            const userLanguageStore = require('../services/userLanguageStore');
-            userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
-        } catch (langErr) {
-            console.error('⚠️ Error al obtener idioma, usando default "es":', langErr.message);
-        }
+        const userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
 
         const templateName = stablePdfForms.getPdfTemplateNameForForm(form.formType);
 
