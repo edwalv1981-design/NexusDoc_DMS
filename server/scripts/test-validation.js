@@ -28,7 +28,6 @@ const checkTemplateExistsTest = async (formType) => {
     }
     
     const localPath = path.join(__dirname, `../templates/${prefix}.pdf`);
-    const legacyPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
 
     if (fs.existsSync(localPath)) {
         return { exists: true, source: 'Filesystem (Direct Path)', path: localPath };
@@ -45,10 +44,6 @@ const checkTemplateExistsTest = async (formType) => {
     
     if (dbTemplate && dbTemplate.fileData) {
         return { exists: true, source: 'Database Backup', name: dbTemplate.name };
-    }
-
-    if (prefix === 'SFAR' && fs.existsSync(legacyPath)) {
-        return { exists: true, source: 'Filesystem Legacy', path: legacyPath };
     }
 
     return { exists: false, reason: 'No se encontró archivo físico ni registro en base de datos' };
@@ -92,6 +87,15 @@ async function runTests() {
             console.log('❌ FAIL: Fundaciones debería estar bloqueado!');
         }
 
+        // Caso Declaración de Fondos
+        status = await checkTemplateExistsTest('Fondos Registros contables');
+        console.log(`[Fondos Registros contables] ¿Existe?: ${status.exists}. Razón: ${status.reason || status.source}`);
+        if (!status.exists) {
+            console.log('✅ PASS: Declaración de Fondos bloqueado exitosamente cuando no hay plantilla.');
+        } else {
+            console.log('❌ FAIL: Declaración de Fondos debería estar bloqueado!');
+        }
+
         console.log('\n--- TEST 2: Comportamiento al subir una plantilla física ---');
         // Escribimos un mock PDF en el filesystem
         const dummyPdf = Buffer.from('%PDF-1.4 mock content');
@@ -127,10 +131,25 @@ async function runTests() {
             console.log('❌ FAIL: Debería detectar el respaldo de base de datos!');
         }
 
+        // Creamos una plantilla en base de datos para 'fondos'
+        await DocumentTemplate.create({
+            name: 'fondos',
+            fileData: dummyPdf,
+            uploadedBy: userUuid
+        });
+
+        status = await checkTemplateExistsTest('Fondos Registros contables');
+        console.log(`[Fondos Registros contables] ¿Existe?: ${status.exists}. Ubicación: ${status.source} -> ${status.name}`);
+        if (status.exists && status.source === 'Database Backup' && status.name === 'fondos') {
+            console.log('✅ PASS: Plantilla de Fondos detectada correctamente en Base de Datos como respaldo.');
+        } else {
+            console.log('❌ FAIL: Debería detectar el respaldo de base de datos para Fondos!');
+        }
+
         console.log('\n--- TEST 4: Eliminación y Blindaje de Consistencia ---');
         // Simulamos la llamada a delete-template/:name (elimina del DB y del filesystem)
         // 1. Borramos DB
-        await DocumentTemplate.destroy({ where: { name: 'fundaciones' } });
+        await DocumentTemplate.destroy({ where: { name: ['fundaciones', 'fondos'] } });
         // 2. Borramos físico de Corporación
         if (fs.existsSync(ptlcPath)) {
             fs.unlinkSync(ptlcPath);
@@ -152,6 +171,14 @@ async function runTests() {
             console.log('✅ PASS: Fundaciones bloqueado de nuevo tras eliminación en DB.');
         } else {
             console.log('❌ FAIL: Fundaciones no se bloqueó tras eliminar de la DB!');
+        }
+
+        status = await checkTemplateExistsTest('Fondos Registros contables');
+        console.log(`[Fondos Registros contables] ¿Existe?: ${status.exists}. Razón: ${status.reason || status.source}`);
+        if (!status.exists) {
+            console.log('✅ PASS: Declaración de Fondos bloqueado de nuevo tras eliminación en DB.');
+        } else {
+            console.log('❌ FAIL: Declaración de Fondos no se bloqueó tras eliminar de la DB!');
         }
 
         console.log('\n🌟 ¡TODAS LAS PRUEBAS DE VALIDACIÓN HAN PASADO CON EXCELENCIA! 🌟');

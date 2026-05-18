@@ -53,10 +53,6 @@ const checkTemplateExists = async (formType) => {
         return true;
     }
 
-    if (prefix === 'SFAR' && fs.existsSync(legacyPath)) {
-        return true;
-    }
-
     return false;
 };
 
@@ -269,9 +265,6 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             if (dbTemplate && dbTemplate.fileData) {
                 console.log(`🗄️ Usando plantilla desde Base de Datos: ${templateName}`);
                 fs.writeFileSync(customTemplatePath, dbTemplate.fileData);
-            } else if (fs.existsSync(legacyPath)) {
-                console.log(`⚠️ Plantilla ${prefix}.pdf no encontrada. Usando referencia_maestra.pdf como fallback.`);
-                fs.copyFileSync(legacyPath, customTemplatePath);
             } else {
                 return res.status(404).json({ msg: `Error: No se encontró plantilla en ruta (${localPath}) ni en DB.` });
             }
