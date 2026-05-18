@@ -98,12 +98,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         if (field === 'fullName' && value.length > 3) {
             const person = findPersonData(value);
             if (person) {
-                if (person.birthDate && !newDigs[index].birthDate) newDigs[index].birthDate = person.birthDate;
-                if (person.passport && !newDigs[index].passport) newDigs[index].passport = person.passport;
+                if (person.birthDate) newDigs[index].birthDate = person.birthDate;
+                if (person.passport) newDigs[index].passport = person.passport;
             }
         }
         setFormData(prev => ({ ...prev, dignitaries: newDigs }));
     };
+
 
     const addDirector = () => {
         setFormData(prev => ({
@@ -140,12 +141,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         newShareholders[index][field] = value;
         if (field === 'name' && value.length > 3) {
             const person = findPersonData(value);
-            if (person && person.address && !newShareholders[index].address) {
+            if (person && person.address) {
                 newShareholders[index].address = person.address;
             }
         }
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
     };
+
 
     const addSigner = () => {
         setFormData(prev => ({ ...prev, signers: [...prev.signers, { signature: '', name: '' }] }));
@@ -159,8 +161,12 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const updateSigner = (index, field, value) => {
         const newSigners = [...formData.signers];
         newSigners[index][field] = value;
+        if (field === 'name') {
+            newSigners[index].signature = value;
+        }
         setFormData(prev => ({ ...prev, signers: newSigners }));
     };
+
 
     const PRIMARY = '#0078d4';
     const SECONDARY = '#1e293b';
@@ -310,29 +316,39 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             </div>
 
             <div className="expert-legal-box">
-                <h3 style={{ fontSize: '16px', fontWeight: 900, marginBottom: '15px' }}>Declaration / Declaración Jurada</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 900, color: SECONDARY, margin: 0 }}>Declaration / Declaración Jurada</h3>
+                    <button onClick={addSigner} className="expert-btn-add-white"><Plus size={16} /> {t('corporacion.fields.addSigner') || 'AGREGAR FIRMANTE'}</button>
+                </div>
                 <p className="expert-legal-text">
                     I/We declare that the origin of funds and goods linked to the services provided by Panama Tax Lawyers and its associates derive from legitimate sources and without criminal origin / Declaro que el origen de los fondos y bienes vinculados a los servicios prestados por Panama Tax Lawyers y sus asociados derivan de fuentes legítimas y sin origen delictivo.
                 </p>
-                <button onClick={addSigner} className="expert-btn-add-white"><Plus size={16} /> {t('corporacion.fields.addSigner')}</button>
                 
                 {formData.signers.map((s, i) => (
-                    <div key={i} style={{ marginTop: '20px', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div key={i} style={{ marginTop: '20px', padding: '25px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', position: 'relative' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 900, color: PRIMARY, letterSpacing: '0.5px' }}>SIGNER / FIRMANTE #{i+1}</span>
+                            {formData.signers.length > 1 && (
+                                <button onClick={() => removeSigner(i)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Trash2 size={13} /> REMOVE / ELIMINAR
+                                </button>
+                            )}
+                        </div>
                         <div className="expert-grid">
                             <div className="expert-field full-width">
-                                <label style={{ color: '#94a3b8' }}>Name / Nombre del Firmante</label>
-                                <input className="expert-input-legal" list="corp-global-names" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} />
+                                <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>Name / Nombre del Firmante</label>
+                                <input className="expert-input-legal" list="corp-global-names" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder="Ej: Pedro Roman Romano" />
                             </div>
                             <div className="expert-field full-width">
-                                <label style={{ color: '#94a3b8' }}>Signature / Firma (Nombre completo)</label>
+                                <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>Signature / Firma (Nombre completo)</label>
                                 <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder="Como aparece en su identificación..." />
                             </div>
                         </div>
                     </div>
                 ))}
-                <div className="expert-field" style={{ marginTop: '20px' }}>
-                    <label style={{ color: '#94a3b8' }}>Date / Fecha de Declaración</label>
-
+                
+                <div className="expert-field" style={{ marginTop: '25px' }}>
+                    <label style={{ color: '#475569', fontWeight: 800, fontSize: '11px' }}>Date / Fecha de Declaración</label>
                     <input type="date" className="expert-input-legal" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                 </div>
             </div>
@@ -391,11 +407,12 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
             <datalist id="corp-global-names">
                 {formData.directors.map((d, i) => {
-                    const full = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                    const full = [d.firstName, d.secondName, d.lastName].filter(Boolean).join(' ');
                     return full && <option key={`d-${i}`} value={full} />;
                 })}
                 {formData.dignitaries.map((d, i) => d.fullName && <option key={`dig-${i}`} value={d.fullName} />)}
             </datalist>
+
 
             <style>{`
                 .expert-container { width: 100%; maxWidth: 900px; margin: 0 auto; padding: 20px 0 80px; font-family: 'Inter', sans-serif; }
@@ -437,12 +454,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-remove { position: absolute; top: 15px; right: 15px; color: #ef4444; background: #fee2e2; border: none; padding: 8px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
                 .expert-btn-remove:hover { transform: rotate(90deg); }
 
-                .expert-legal-box { background: ${SECONDARY}; border-radius: 24px; padding: 35px; color: white; margin-top: 30px; }
-                .expert-legal-text { font-size: 13px; line-height: 1.6; color: #94a3b8; margin-bottom: 25px; font-style: italic; border-left: 2px solid ${PRIMARY}; padding-left: 15px; }
-                .expert-btn-add-white { background: rgba(255,255,255,0.1); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 11px; }
-                .expert-btn-add-white:hover { background: white; color: ${SECONDARY}; }
-                .expert-input-legal { width: 100%; padding: 14px 18px; border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.05); color: white; outline: none; }
-                .expert-input-legal:focus { border-color: ${PRIMARY}; background: rgba(255,255,255,0.1); }
+                .expert-legal-box { background: #f8fafc; border: 2.5px dashed #cbd5e1; border-radius: 20px; padding: 35px; color: ${SECONDARY}; margin-top: 30px; }
+                .expert-legal-text { font-size: 13px; line-height: 1.6; color: #334155; margin-bottom: 25px; font-style: italic; border-left: 4px solid ${PRIMARY}; padding: 15px 20px; background: #eff6ff; border-radius: 8px; font-weight: 500; }
+                .expert-btn-add-white { background: ${PRIMARY}10; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}30; padding: 10px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 11px; transition: all 0.2s; }
+                .expert-btn-add-white:hover { background: ${PRIMARY}; color: white; transform: scale(1.02); }
+                .expert-input-legal { width: 100%; padding: 14px 18px; border: 2.5px solid #e2e8f0; border-radius: 12px; background: white; color: ${SECONDARY}; outline: none; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+                .expert-input-legal:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 4px ${PRIMARY}10; }
+
 
                 .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 30px; border-top: 2px solid #f1f5f9; }
                 .expert-btn-nav-prev { padding: 14px 28px; background: #f8fafc; color: #64748b; border: 2px solid #e2e8f0; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; font-size: 13px; }

@@ -84,11 +84,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         if ((field === 'fullName' || field === 'firstName') && value.length > 3) {
             const person = findPersonData(value);
             if (person) {
-                if (person.birthDate && !newArray[index].birthDate) newArray[index].birthDate = person.birthDate;
-                if (person.passport && !newArray[index].passport) newArray[index].passport = person.passport;
-                if (person.address && !newArray[index].address) newArray[index].address = person.address;
+                if (person.birthDate) newArray[index].birthDate = person.birthDate;
+                if (person.passport) newArray[index].passport = person.passport;
+                if (person.address) newArray[index].address = person.address;
             }
         }
+
         setFormData(prev => ({ ...prev, [arrayName]: newArray }));
     };
 
@@ -416,12 +417,13 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             <datalist id="names-global">
                 {formData.founders.map((f, i) => f.fullName && <option key={`f-${i}`} value={f.fullName} />)}
                 {formData.councilMembers.map((m, i) => {
-                    const full = [m.firstName, m.lastName].filter(Boolean).join(' ');
+                    const full = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
                     return full && <option key={`c-${i}`} value={full} />;
                 })}
                 {formData.protectors.map((p, i) => p.fullName && <option key={`p-${i}`} value={p.fullName} />)}
                 {formData.dignitaries.map((d, i) => d.fullName && <option key={`d-${i}`} value={d.fullName} />)}
             </datalist>
+
 
             <datalist id="roles-dignitaries">
                 <option value="PRESIDENTE" />
