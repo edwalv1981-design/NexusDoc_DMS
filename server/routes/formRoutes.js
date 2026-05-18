@@ -11,18 +11,24 @@ const stablePdfForms = require('../config/stablePdfForms');
 
 const checkTemplateExists = async (formType) => {
     let prefix = 'SFAR';
-    let dbName = 'referencia_maestra';
+    let dbNames = ['referencia_maestra', 'fondos'];
     
     const norm = String(formType || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (norm.includes('corporacion') || norm.includes('incorporation') || norm.includes('corporativo')) {
         prefix = 'PTLC';
-        dbName = 'corporacion';
+        dbNames = ['corporacion'];
     } else if (norm.includes('fundacion')) {
         prefix = 'PTLF';
-        dbName = 'fundaciones';
+        dbNames = ['fundaciones'];
     } else if (norm.includes('fondos') || norm.includes('funds')) {
         prefix = 'SFAR';
-        dbName = 'referencia_maestra';
+        dbNames = ['referencia_maestra', 'fondos'];
+    } else if (norm.includes('cumplimiento individual') || norm.includes('individual compliance')) {
+        prefix = 'KYCI';
+        dbNames = ['cumplimiento_individual'];
+    } else if (norm.includes('cumplimiento entidades') || norm.includes('entity compliance')) {
+        prefix = 'KYCE';
+        dbNames = ['cumplimiento_entidades'];
     } else {
         return false;
     }
@@ -34,7 +40,15 @@ const checkTemplateExists = async (formType) => {
         return true;
     }
 
-    const dbTemplate = await DocumentTemplate.findOne({ where: { name: dbName } });
+    const { Op } = require('sequelize');
+    const dbTemplate = await DocumentTemplate.findOne({
+        where: {
+            name: {
+                [Op.in]: dbNames
+            }
+        }
+    });
+    
     if (dbTemplate && dbTemplate.fileData) {
         return true;
     }

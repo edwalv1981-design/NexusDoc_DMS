@@ -143,6 +143,8 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
         if (nameNorm.includes('corporacion') || nameNorm.includes('incorporacion')) prefix = 'PTLC';
         else if (nameNorm.includes('fundacion')) prefix = 'PTLF';
         else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
+        else if (nameNorm.includes('cumplimiento_individual') || nameNorm.includes('individual')) prefix = 'KYCI';
+        else if (nameNorm.includes('cumplimiento_entidades') || nameNorm.includes('entidad') || nameNorm.includes('entidades')) prefix = 'KYCE';
 
         const templatesDir = path.join(__dirname, '../templates');
         if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
@@ -214,6 +216,8 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
         if (nameNorm.includes('corporacion') || nameNorm.includes('incorporacion')) prefix = 'PTLC';
         else if (nameNorm.includes('fundacion')) prefix = 'PTLF';
         else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
+        else if (nameNorm.includes('cumplimiento_individual') || nameNorm.includes('individual')) prefix = 'KYCI';
+        else if (nameNorm.includes('cumplimiento_entidades') || nameNorm.includes('entidad') || nameNorm.includes('entidades')) prefix = 'KYCE';
 
         const fs = require('fs');
         const path = require('path');
