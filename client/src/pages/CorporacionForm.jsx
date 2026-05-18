@@ -318,12 +318,24 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </button>
             </div>
 
-            <div className="expert-stepper">
+            {/* Cabecera de Paso Estándar */}
+            <div className="standard-step-header">
+                <span className="standard-step-title">
+                    {step === 1 && `I. ${getT('corporacion.steps.societyInfo', 'Información de la Sociedad')}`}
+                    {step === 2 && `II. ${t('corporacion.steps.directors') || 'Junta Directiva'}`}
+                    {step === 3 && `III. ${t('corporacion.steps.dignitaries') || 'Dignatarios'}`}
+                    {step === 4 && `IV. ${t('corporacion.steps.shareholders') || 'Accionistas'}`}
+                    {step === 5 && `V. ${t('corporacion.steps.finalization') || 'Declaración Jurada'}`}
+                </span>
+                <span className="standard-step-badge">
+                    {t('dashboard.stepOf', { step, total: 5 })}
+                </span>
+            </div>
+
+            {/* Stepper Progresivo Estándar */}
+            <div className="standard-progress-stepper">
                 {[1, 2, 3, 4, 5].map(s => (
-                    <div key={s} className={`expert-step-node ${step === s ? 'active' : step > s ? 'done' : ''}`}>
-                        <div className="expert-step-circle">{step > s ? <CheckCircle2 size={16} /> : s}</div>
-                        <div className="expert-step-line" />
-                    </div>
+                    <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
                 ))}
             </div>
 
@@ -361,14 +373,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-save-master { padding: 12px 24px; background: white; color: ${PRIMARY}; border: 2.5px solid ${PRIMARY}; border-radius: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; font-size: 13px; }
                 .expert-btn-save-master:hover { background: ${PRIMARY}; color: white; transform: translateY(-2px); box-shadow: 0 10px 20px ${PRIMARY}30; }
 
-                .expert-stepper { display: flex; gap: 10px; margin-bottom: 40px; padding: 0 10px; }
-                .expert-step-node { flex: 1; position: relative; }
-                .expert-step-circle { width: 30px; height: 30px; border-radius: 50%; background: white; border: 2px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #94a3b8; z-index: 2; position: relative; }
-                .expert-step-line { position: absolute; height: 4px; background: #e2e8f0; width: 100%; top: 13px; left: 15px; z-index: 1; border-radius: 10px; }
-                .expert-step-node:last-child .expert-step-line { display: none; }
-                .expert-step-node.active .expert-step-circle { border-color: ${PRIMARY}; color: ${PRIMARY}; box-shadow: 0 0 0 4px ${PRIMARY}15; }
-                .expert-step-node.done .expert-step-circle { background: ${PRIMARY}; border-color: ${PRIMARY}; color: white; }
-                .expert-step-node.done .expert-step-line { background: ${PRIMARY}; }
+                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 5px; }
+                .standard-step-title { font-size: 14px; font-weight: 800; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 11px; font-weight: 900; color: ${PRIMARY}; background: ${PRIMARY}15; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
+
+                .standard-progress-stepper { display: flex; gap: 8px; margin-bottom: 40px; }
+                .standard-progress-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 10px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+                .standard-progress-bar.active { background: ${PRIMARY}; }
 
                 .expert-main-panel { background: white; border-radius: 24px; padding: 45px; border: 1px solid #e2e8f0; box-shadow: 0 10px 40px rgba(0,0,0,0.03); }
                 .expert-step-title { font-size: 17px; font-weight: 900; color: ${SECONDARY}; margin: 0 0 25px; display: flex; align-items: center; gap: 12px; }

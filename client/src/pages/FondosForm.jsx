@@ -316,10 +316,23 @@ const FondosForm = () => {
                     <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }}><X size={24} /></button>
                 </div>
                 
-                {/* Stepper Progresivo Color-Matched */}
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '45px' }}>
-                    {[1,2,3].map(s => (
-                        <div key={s} style={{ flex: 1, height: '6px', background: step >= s ? PRIMARY_COLOR : '#f1f5f9', borderRadius: '10px', transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+                {/* Cabecera de Paso Estándar */}
+                <div className="standard-step-header">
+                    <span className="standard-step-title">
+                        {step === 1 && `I. Identificación Corporativa`}
+                        {step === 2 && `II. Declaración de Origen de Fondos`}
+                        {step === 3 && `III. Registro y Responsabilidades`}
+                        {step === 4 && `IV. Validación Completa`}
+                    </span>
+                    <span className="standard-step-badge">
+                        PASO {step} DE 3
+                    </span>
+                </div>
+
+                {/* Stepper Progresivo Estándar */}
+                <div className="standard-progress-stepper">
+                    {[1, 2, 3].map(s => (
+                        <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
                     ))}
                 </div>
 
@@ -327,6 +340,14 @@ const FondosForm = () => {
             </div>
 
             <style>{`
+                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 5px; }
+                .standard-step-title { font-size: 14px; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 11px; font-weight: 900; color: ${PRIMARY_COLOR}; background: ${PRIMARY_COLOR}15; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
+
+                .standard-progress-stepper { display: flex; gap: 8px; margin-bottom: 40px; }
+                .standard-progress-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 10px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+                .standard-progress-bar.active { background: ${PRIMARY_COLOR}; }
+
                 .corporate-page {
                     min-height: 100vh;
                     background: #f1f5f9;

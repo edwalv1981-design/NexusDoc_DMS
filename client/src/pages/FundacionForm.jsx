@@ -368,13 +368,24 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 </button>
             </div>
 
-            <div className="expert-stepper-panel">
+            {/* Cabecera de Paso Estándar */}
+            <div className="standard-step-header">
+                <span className="standard-step-title">
+                    {step === 1 && `I. Nombre y Fines de la Fundación`}
+                    {step === 2 && `II. Fundador (es)`}
+                    {step === 3 && `III. Consejo de Fundación`}
+                    {step === 4 && `IV. Protector (es) y Dignatarios`}
+                    {step === 5 && `V. Beneficiarios`}
+                </span>
+                <span className="standard-step-badge">
+                    PASO {step} DE 5
+                </span>
+            </div>
+
+            {/* Stepper Progresivo Estándar */}
+            <div className="standard-progress-stepper">
                 {[1, 2, 3, 4, 5].map(s => (
-                    <div key={s} className={`step-node ${step === s ? 'active' : step > s ? 'completed' : ''}`}>
-                        <div className="step-circle">{step > s ? <CheckCircle2 size={16} /> : s}</div>
-                        <div className="step-line" />
-                        <span className="step-text">PASO {s}</span>
-                    </div>
+                    <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
                 ))}
             </div>
 
@@ -429,15 +440,13 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-save { padding: 12px 24px; background: white; color: ${PRIMARY}; border: 2.5px solid ${PRIMARY}; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; font-size: 13px; }
                 .expert-btn-save:hover { background: ${PRIMARY}; color: white; transform: translateY(-2px); box-shadow: 0 10px 20px ${PRIMARY}20; }
 
-                .expert-stepper-panel { display: flex; gap: 0; margin-bottom: 50px; padding: 0 40px; position: relative; }
-                .step-node { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
-                .step-circle { width: 36px; height: 36px; background: white; border: 2px solid #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: #94a3b8; z-index: 2; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-                .step-text { font-size: 11px; font-weight: 800; color: #94a3b8; margin-top: 12px; letter-spacing: 1px; }
-                .step-line { position: absolute; height: 3px; background: #e2e8f0; width: 100%; top: 18px; left: 50%; z-index: 1; }
-                .step-node.active .step-circle { border-color: ${PRIMARY}; color: ${PRIMARY}; box-shadow: 0 0 0 6px ${PRIMARY}15; transform: scale(1.1); }
-                .step-node.active .step-text { color: ${PRIMARY}; }
-                .step-node.completed .step-circle { background: ${PRIMARY}; border-color: ${PRIMARY}; color: white; }
-                .step-node.completed .step-line { background: ${PRIMARY}; }
+                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 5px; }
+                .standard-step-title { font-size: 14px; font-weight: 800; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 11px; font-weight: 900; color: ${PRIMARY}; background: ${PRIMARY}15; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
+
+                .standard-progress-stepper { display: flex; gap: 8px; margin-bottom: 40px; }
+                .standard-progress-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 10px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+                .standard-progress-bar.active { background: ${PRIMARY}; }
 
                 .expert-form-panel { background: white; border-radius: 32px; padding: 50px; border: 1px solid #e2e8f0; box-shadow: 0 20px 50px rgba(0,0,0,0.04); }
                 .step-title-legal { font-size: 16px; font-weight: 900; color: ${SECONDARY}; margin: 0 0 30px; text-transform: uppercase; border-left: 5px solid ${PRIMARY}; padding-left: 15px; line-height: 1.2; }
