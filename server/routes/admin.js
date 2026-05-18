@@ -208,15 +208,35 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
             return res.status(404).json({ msg: 'Plantilla no encontrada' });
         }
 
+        // DETERMINAR PREFIJO OFICIAL Y BORRAR ARCHIVO FÍSICO
+        let prefix = 'DOC';
+        const nameNorm = name.toLowerCase();
+        if (nameNorm.includes('corporacion') || nameNorm.includes('incorporacion')) prefix = 'PTLC';
+        else if (nameNorm.includes('fundacion')) prefix = 'PTLF';
+        else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
+
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, `../templates/${prefix}.pdf`);
+
+        if (fs.existsSync(filePath)) {
+            try {
+                fs.unlinkSync(filePath);
+                console.log(`🗑️ Archivo físico de plantilla eliminado: ${filePath}`);
+            } catch (err) {
+                console.error(`⚠️ Error al eliminar archivo físico ${filePath}:`, err.message);
+            }
+        }
+
         await template.destroy();
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'TEMPLATE_DELETE',
-            description: `Admin eliminó plantilla personalizada: ${name}`
+            description: `Admin eliminó plantilla personalizada: ${name} (Prefijo: ${prefix})`
         });
 
-        res.json({ msg: 'Plantilla eliminada correctamente. La generación de PDF para este trámite ha sido desactivada.' });
+        res.json({ msg: `Plantilla y archivo físico (${prefix}.pdf) eliminados correctamente.` });
     } catch (err) {
         console.error('🔥 Error al eliminar plantilla:', err);
         res.status(500).send('Server error');

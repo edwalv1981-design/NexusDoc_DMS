@@ -9,11 +9,75 @@ const fundacionHtmlPdfService = require('../services/fundacionHtmlPdfService');
 const stablePdfForms = require('../config/stablePdfForms');
 // const userLanguageStore = require('../services/userLanguageStore'); // Movido a nivel de función
 
+const checkTemplateExists = async (formType) => {
+    let prefix = 'SFAR';
+    let dbName = 'referencia_maestra';
+    
+    const norm = String(formType || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (norm.includes('corporacion') || norm.includes('incorporation') || norm.includes('corporativo')) {
+        prefix = 'PTLC';
+        dbName = 'corporacion';
+    } else if (norm.includes('fundacion')) {
+        prefix = 'PTLF';
+        dbName = 'fundaciones';
+    } else if (norm.includes('fondos') || norm.includes('funds')) {
+        prefix = 'SFAR';
+        dbName = 'referencia_maestra';
+    } else {
+        return false;
+    }
+    
+    const localPath = path.join(__dirname, `../templates/${prefix}.pdf`);
+    const legacyPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
+
+    if (fs.existsSync(localPath)) {
+        return true;
+    }
+
+    const dbTemplate = await DocumentTemplate.findOne({ where: { name: dbName } });
+    if (dbTemplate && dbTemplate.fileData) {
+        return true;
+    }
+
+    if (prefix === 'SFAR' && fs.existsSync(legacyPath)) {
+        return true;
+    }
+
+    return false;
+};
+
+// @route   GET api/forms/templates/status
+router.get('/templates/status', auth, async (req, res) => {
+    try {
+        const statuses = {
+            'Corporación': await checkTemplateExists('Corporación'),
+            'Fundaciones': await checkTemplateExists('Fundaciones'),
+            'Fondos Registros contables': await checkTemplateExists('Fondos Registros contables'),
+            'Cumplimiento Individual': await checkTemplateExists('Cumplimiento Individual'),
+            'Cumplimiento Entidades': await checkTemplateExists('Cumplimiento Entidades')
+        };
+        res.json(statuses);
+    } catch (err) {
+        console.error('🔥 Error al verificar estado de plantillas:', err);
+        res.status(500).json({ msg: 'Error al verificar plantillas en el servidor.' });
+    }
+});
+
 // @route   POST api/forms/save
 router.post('/save', auth, async (req, res) => {
   try {
     const { id, type, data } = req.body;
     const formTypeLabel = type || 'Documento General';
+
+    // Validación estricta de consistencia de plantilla antes de guardar
+    const hasTemplate = await checkTemplateExists(formTypeLabel);
+    if (!hasTemplate) {
+        return res.status(400).json({ 
+            status: 'error',
+            errorType: 'TEMPLATE_MISSING',
+            msg: `No se puede procesar el trámite porque la plantilla base para "${formTypeLabel}" no ha sido cargada por el administrador. Por favor, cargue la plantilla base en el panel de administración antes de continuar.`
+        });
+    }
 
     if (id) {
       const form = await FormData.findByPk(id);
@@ -108,6 +172,16 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
+
+        // Validación estricta de plantilla para generación de PDF
+        const hasTemplate = await checkTemplateExists(form.formType);
+        if (!hasTemplate) {
+            return res.status(400).json({ 
+                status: 'error',
+                errorType: 'TEMPLATE_MISSING',
+                msg: `No se puede generar el archivo PDF porque la plantilla base para "${form.formType}" no ha sido cargada por el administrador. Por favor, cargue la plantilla antes de continuar.`
+            });
+        }
 
         console.log(`[PDF] Iniciando generación para trámite ID: ${req.params.id}, tipo: ${form.formType}`);
         

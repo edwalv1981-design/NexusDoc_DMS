@@ -37,6 +37,7 @@ const ClientDashboard = () => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [templateStatuses, setTemplateStatuses] = useState({});
     
     // FILTROS Y BÚSQUEDA
     const [searchTerm, setSearchTerm] = useState('');
@@ -78,13 +79,15 @@ const ClientDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return navigate('/');
-            const [userRes, docsRes] = await Promise.all([
+            const [userRes, docsRes, statusRes] = await Promise.all([
                 fetch(`${API_BASE_URL}/api/auth/me`, { headers: { 'x-auth-token': token } }),
-                fetch(`${API_BASE_URL}/api/forms/my-forms`, { headers: { 'x-auth-token': token } })
+                fetch(`${API_BASE_URL}/api/forms/my-forms`, { headers: { 'x-auth-token': token } }),
+                fetch(`${API_BASE_URL}/api/forms/templates/status`, { headers: { 'x-auth-token': token } })
             ]);
             if (userRes.status === 401 || docsRes.status === 401) { localStorage.clear(); return navigate('/'); }
             if (userRes.ok) setUser(await userRes.json());
             if (docsRes.ok) setDocuments(await docsRes.json());
+            if (statusRes.ok) setTemplateStatuses(await statusRes.json());
         } catch (error) { console.error(error); } finally { setLoading(false); }
     };
 
@@ -194,6 +197,12 @@ const ClientDashboard = () => {
         const id = doc.id;
         const token = localStorage.getItem('token');
         const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+
+        // Validación estricta de plantilla en frontend
+        if (templateStatuses[doc.type] === false) {
+            showToast(`No se puede generar/descargar PDF para "${doc.type}" porque no hay una plantilla base cargada por el administrador. Por favor, cargue la plantilla base en el panel de administración antes de continuar.`, 'error');
+            return;
+        }
 
         showToast(t('toast.generatingFile'), 'success');
 
@@ -429,6 +438,21 @@ const ClientDashboard = () => {
                               <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>{opt.label}</span>
                             </button>
                           ))}
+                        </div>
+                    </div>
+                ) : templateStatuses[currentFormType] === false ? (
+                    <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
+                        <div style={{ width: '80px', height: '80px', background: '#fef2f2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#dc2626' }}>
+                            <ShieldAlert size={40} />
+                        </div>
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#dc2626', marginBottom: '15px' }}>Plantilla Base No Disponible</h2>
+                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '30px', maxWidth: '500px', margin: '0 auto 30px' }}>
+                            La plantilla base para el trámite <strong>"{t(`formType.${currentFormType}`)}"</strong> ha sido eliminada o no está cargada. Por favor, cargue la plantilla base en el panel de administración antes de continuar para mantener la consistencia legal y de datos.
+                        </p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            <button onClick={() => { setCurrentFormType(''); navigate('/dashboard?view=form'); }} style={{ padding: '12px 25px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+                                {t('dashboard.chooseAnother')}
+                            </button>
                         </div>
                     </div>
                 ) : currentFormType === 'Fondos Registros contables' ? (
