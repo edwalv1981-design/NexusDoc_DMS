@@ -306,9 +306,13 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             
             if (code !== 0) {
                 console.error(`❌ ERROR MOTOR PYTHON (Exit Code ${code}): ${stderrData}`);
+                if (customTemplatePath && fs.existsSync(customTemplatePath)) try { fs.unlinkSync(customTemplatePath); } catch(e) {}
                 return res.status(500).json({ msg: `ERROR MOTOR GENERACIÓN: ${stderrData.substring(0, 200)}` });
             }
-            if (!fs.existsSync(outputPath)) return res.status(500).json({ msg: 'No se generó el PDF' });
+            if (!fs.existsSync(outputPath)) {
+                if (customTemplatePath && fs.existsSync(customTemplatePath)) try { fs.unlinkSync(customTemplatePath); } catch(e) {}
+                return res.status(500).json({ msg: 'No se generó el PDF' });
+            }
 
             // LOG ACCTION IN BITACORA
             AuditLog.create({
