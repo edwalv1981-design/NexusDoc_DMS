@@ -177,6 +177,7 @@ const es = {
     fundsSourceTitle: 'ORIGEN DE LOS FONDOS',
     fundsInstructions: 'Marque al menos una opción obligatoria:',
     fundsOther: 'Otras especificaciones',
+    fundsOtherPlaceholder: 'Especifique el origen de sus fondos...',
     fundsError: '⚠️ Debe seleccionar al menos una fuente de fondos.',
     custodyTitle: 'Custodia de Registros y Responsabilidades',
     custodyName: 'Nombre del Responsable de Custodia',
