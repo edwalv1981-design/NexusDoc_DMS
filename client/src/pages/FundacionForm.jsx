@@ -31,18 +31,24 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         ],
         beneficiaries: [{ fullName: '', birthDate: '', passport: '', address: '', percentage: '' }],
         
-        // Powers (Step 8)
-        hasPowers: 'no', // 'no', 'yes'
-        powerType: 'general', // 'general', 'especial'
-        powerHolderName: '',
-        powerHolderPassport: '',
-        powerHolderAddress: '',
-        powerScopeBanks: false,
-        powerScopeAccounts: false,
-        powerScopeRealEstate: false,
-        powerScopeContracts: false,
-        powerScopeCourts: false,
-        powerDescription: '',
+        // Original POA Fields (Step 8)
+        poaIssue: 'NO', // 'YES', 'NO'
+        poaType: 'GENERAL', // 'GENERAL', 'SPECIAL'
+        poaValidityDate: '',
+        poaLegalized: 'NO', // 'YES', 'NO'
+        poaFirstName: '',
+        poaMiddleName: '',
+        poaLastName: '',
+        poaBirthDate: '',
+        poaMaritalStatus: '',
+        poaNationality: '',
+        poaPassport: '',
+        poaIdCard: '',
+        poaPhone: '',
+        poaEmail: '',
+        poaAddress: '',
+        poaCity: '',
+        poaCountry: '',
 
         // Fines/Actividades (Step 9)
         foundationObjects: '',
@@ -62,105 +68,93 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             if (!cleanData.beneficiaries) cleanData.beneficiaries = formData.beneficiaries;
             if (!cleanData.signers) cleanData.signers = formData.signers;
             
-            // Asegurar carga segura de Poderes
-            if (cleanData.hasPowers === undefined) cleanData.hasPowers = formData.hasPowers;
-            if (cleanData.powerType === undefined) cleanData.powerType = formData.powerType;
-            if (cleanData.powerHolderName === undefined) cleanData.powerHolderName = formData.powerHolderName;
-            if (cleanData.powerHolderPassport === undefined) cleanData.powerHolderPassport = formData.powerHolderPassport;
-            if (cleanData.powerHolderAddress === undefined) cleanData.powerHolderAddress = formData.powerHolderAddress;
-            if (cleanData.powerScopeBanks === undefined) cleanData.powerScopeBanks = formData.powerScopeBanks;
-            if (cleanData.powerScopeAccounts === undefined) cleanData.powerScopeAccounts = formData.powerScopeAccounts;
-            if (cleanData.powerScopeRealEstate === undefined) cleanData.powerScopeRealEstate = formData.powerScopeRealEstate;
-            if (cleanData.powerScopeContracts === undefined) cleanData.powerScopeContracts = formData.powerScopeContracts;
-            if (cleanData.powerScopeCourts === undefined) cleanData.powerScopeCourts = formData.powerScopeCourts;
-            if (cleanData.powerDescription === undefined) cleanData.powerDescription = formData.powerDescription;
+            // Garantizar inicialización segura de los campos originales de poderes
+            if (cleanData.poaIssue === undefined) cleanData.poaIssue = formData.poaIssue;
+            if (cleanData.poaType === undefined) cleanData.poaType = formData.poaType;
+            if (cleanData.poaValidityDate === undefined) cleanData.poaValidityDate = formData.poaValidityDate;
+            if (cleanData.poaLegalized === undefined) cleanData.poaLegalized = formData.poaLegalized;
+            
+            if (cleanData.poaFirstName === undefined) cleanData.poaFirstName = formData.poaFirstName;
+            if (cleanData.poaMiddleName === undefined) cleanData.poaMiddleName = formData.poaMiddleName;
+            if (cleanData.poaLastName === undefined) cleanData.poaLastName = formData.poaLastName;
+            if (cleanData.poaBirthDate === undefined) cleanData.poaBirthDate = formData.poaBirthDate;
+            if (cleanData.poaMaritalStatus === undefined) cleanData.poaMaritalStatus = formData.poaMaritalStatus;
+            if (cleanData.poaNationality === undefined) cleanData.poaNationality = formData.poaNationality;
+            if (cleanData.poaPassport === undefined) cleanData.poaPassport = formData.poaPassport;
+            if (cleanData.poaIdCard === undefined) cleanData.poaIdCard = formData.poaIdCard;
+            if (cleanData.poaPhone === undefined) cleanData.poaPhone = formData.poaPhone;
+            if (cleanData.poaEmail === undefined) cleanData.poaEmail = formData.poaEmail;
+            if (cleanData.poaAddress === undefined) cleanData.poaAddress = formData.poaAddress;
+            if (cleanData.poaCity === undefined) cleanData.poaCity = formData.poaCity;
+            if (cleanData.poaCountry === undefined) cleanData.poaCountry = formData.poaCountry;
 
             setFormData(prev => ({ ...prev, ...cleanData }));
         }
     }, [initialData]);
 
-    const findPersonData = (name) => {
-        if (!name || name.trim().length < 3) return null;
-        const searchName = name.toLowerCase().trim();
-        
-        // Buscar en Fundadores
-        for (const f of formData.founders) {
-            if (f.fullName && f.fullName.toLowerCase().includes(searchName)) return f;
-        }
-        
-        // Buscar en Consejo
-        for (const m of formData.councilMembers) {
-            const full = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
-            const parts = [m.firstName, m.lastName].filter(Boolean).join(' ');
-            if (full.toLowerCase().includes(searchName) || parts.toLowerCase().includes(searchName)) {
-                return { fullName: full, birthDate: m.birthDate, passport: m.passport, address: m.address };
-            }
-        }
-        
-        // Buscar en Protectores
-        for (const p of formData.protectors) {
-            if (p.fullName && p.fullName.toLowerCase().includes(searchName)) return p;
-        }
-
-        // Buscar en Dignatarios
-        for (const d of formData.dignitaries) {
-            if (d.fullName && d.fullName.toLowerCase().includes(searchName)) return d;
-        }
-
-        // Buscar en Beneficiarios
-        for (const b of formData.beneficiaries) {
-            if (b.fullName && b.fullName.toLowerCase().includes(searchName)) return b;
-        }
-
-        // Buscar en Apoderado
-        if (formData.powerHolderName && formData.powerHolderName.toLowerCase().includes(searchName)) {
-            return { fullName: formData.powerHolderName, passport: formData.powerHolderPassport, address: formData.powerHolderAddress };
-        }
-        
-        return null;
+    // Generar listado dinámico de personas en el formulario para autocompletar o importar
+    const getAvailablePersons = () => {
+        const list = [];
+        formData.founders.forEach((f, idx) => {
+            if (f.fullName) list.push({ label: `${lang === 'en' ? 'Founder' : 'Fundador'} - ${f.fullName}`, data: { ...f, type: 'fullName' } });
+        });
+        formData.councilMembers.forEach((m, idx) => {
+            const name = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
+            if (name) list.push({ label: `${lang === 'en' ? 'Council' : 'Consejo'} - ${name}`, data: { ...m, type: 'splitName' } });
+        });
+        formData.protectors.forEach((p, idx) => {
+            if (p.fullName) list.push({ label: `${lang === 'en' ? 'Protector' : 'Protector'} - ${p.fullName}`, data: { ...p, type: 'fullName' } });
+        });
+        formData.dignitaries.forEach((d, idx) => {
+            if (d.fullName) list.push({ label: `${lang === 'en' ? 'Dignitary' : 'Dignatario'} (${d.role}) - ${d.fullName}`, data: { ...d, type: 'fullName' } });
+        });
+        formData.beneficiaries.forEach((b, idx) => {
+            if (b.fullName) list.push({ label: `${lang === 'en' ? 'Beneficiary' : 'Beneficiario'} - ${b.fullName}`, data: { ...b, type: 'fullName' } });
+        });
+        return list;
     };
 
-    // Autocompletado extendido inteligente para Apoderado o inputs directos
-    const handlePowerHolderNameChange = (val) => {
-        setFormData(prev => {
-            const updated = { ...prev, powerHolderName: val };
-            if (val.length > 3) {
-                const matched = findPersonData(val);
-                if (matched) {
-                    if (matched.passport) updated.powerHolderPassport = matched.passport;
-                    if (matched.address) updated.powerHolderAddress = matched.address;
-                }
+    // Función inteligente de importación para Apoderado
+    const handleImportPOA = (person) => {
+        if (!person) return;
+        const info = person.data;
+        const update = { ...formData };
+        
+        if (person.data.type === 'fullName') {
+            const parts = String(info.fullName || '').split(' ');
+            if (parts.length >= 3) {
+                update.poaFirstName = parts[0];
+                update.poaMiddleName = parts[1];
+                update.poaLastName = parts.slice(2).join(' ');
+            } else if (parts.length === 2) {
+                update.poaFirstName = parts[0];
+                update.poaMiddleName = '';
+                update.poaLastName = parts[1];
+            } else {
+                update.poaFirstName = parts[0] || '';
+                update.poaMiddleName = '';
+                update.poaLastName = '';
             }
-            return updated;
-        });
+        } else {
+            update.poaFirstName = info.firstName || '';
+            update.poaMiddleName = info.secondName || '';
+            update.poaLastName = info.lastName || '';
+        }
+
+        update.poaBirthDate = info.birthDate || '';
+        update.poaPassport = info.passport || '';
+        update.poaNationality = info.nationality || '';
+        update.poaAddress = info.address || '';
+        update.poaCity = info.city || '';
+        update.poaCountry = info.country || '';
+        update.poaMaritalStatus = info.maritalStatus || '';
+
+        setFormData(update);
     };
 
     const updateArrayField = (arrayName, index, field, value) => {
         const newArray = [...formData[arrayName]];
         newArray[index][field] = value;
-        
-        // AUTOCOMPLETADO INTELIGENTE E INMEDIATO (SOBREESCRIBE DATOS RELACIONADOS AL COINCIDIR)
-        if ((field === 'fullName' || field === 'firstName') && value.length > 3) {
-            const person = findPersonData(value);
-            if (person) {
-                if (person.birthDate) newArray[index].birthDate = person.birthDate;
-                if (person.passport) newArray[index].passport = person.passport;
-                if (person.address) newArray[index].address = person.address;
-                
-                if (arrayName === 'councilMembers' && field === 'firstName') {
-                    const parts = person.fullName ? person.fullName.split(' ') : [];
-                    if (parts.length >= 3) {
-                        newArray[index].firstName = parts[0];
-                        newArray[index].secondName = parts[1];
-                        newArray[index].lastName = parts.slice(2).join(' ');
-                    } else if (parts.length === 2) {
-                        newArray[index].firstName = parts[0];
-                        newArray[index].lastName = parts[1];
-                    }
-                }
-            }
-        }
-
         setFormData(prev => ({ ...prev, [arrayName]: newArray }));
     };
 
@@ -184,14 +178,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         newSigners[index][field] = value;
         if (field === 'name') {
             newSigners[index].signature = value;
-            // Autocompletado instantáneo en la firma
-            if (value.length > 3) {
-                const person = findPersonData(value);
-                if (person && person.fullName) {
-                    newSigners[index].name = person.fullName;
-                    newSigners[index].signature = person.fullName;
-                }
-            }
         }
         setFormData(prev => ({ ...prev, signers: newSigners }));
     };
@@ -289,15 +275,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD FOUNDER' : 'AÑADIR FUNDADOR'}
                 </button>
             </div>
-            <div className="expert-hint-box">
-                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                    {lang === 'en'
-                        ? 'Founders are the persons (natural or legal) who transfer the assets to constitute the foundation.'
-                        : 'Los fundadores son las personas (naturales o jurídicas) que constituyen y aportan los bienes iniciales.'
-                    }
-                </div>
-            </div>
             {formData.founders.map((f, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `FOUNDER #${i+1}` : `FUNDADOR #${i+1}`}</div>
@@ -305,7 +282,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
+                            <input className="expert-input" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
@@ -334,15 +311,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'AÑADIR PROTECTOR'}
                 </button>
             </div>
-            <div className="expert-hint-box">
-                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                    {lang === 'en'
-                        ? 'The Protector is the highest supervisory body of the foundation, responsible for guarding the interests of the beneficiaries.'
-                        : 'El Protector es el máximo órgano de control y supervisión, responsable de velar por los intereses de los beneficiarios.'
-                    }
-                </div>
-            </div>
             {formData.protectors.map((p, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `PROTECTOR #${i+1}` : `PROTECTOR #${i+1}`}</div>
@@ -350,7 +318,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={p.fullName} onChange={e => updateArrayField('protectors', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
+                            <input className="expert-input" value={p.fullName} onChange={e => updateArrayField('protectors', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
@@ -379,21 +347,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'AÑADIR MIEMBRO'}
                 </button>
             </div>
-            <div className="expert-hint-box">
-                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                    {lang === 'en'
-                        ? 'The Foundation Council (equivalent to Directors) must consist of at least three members.'
-                        : 'El Consejo de Fundación (equivalente a Directores) debe estar integrado por un mínimo de tres miembros.'
-                    }
-                </div>
-            </div>
             {formData.councilMembers.map((m, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `COUNCIL MEMBER / DIRECTOR #${i+1}` : `MIEMBRO DEL CONSEJO / DIRECTOR #${i+1}`}</div>
                     {formData.councilMembers.length > 3 && <button type="button" onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
-                        <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" list="names-global" value={m.firstName} onChange={e => updateArrayField('councilMembers', i, 'firstName', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" value={m.firstName} onChange={e => updateArrayField('councilMembers', i, 'firstName', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Middle Name' : 'Segundo nombre'}</label><input className="expert-input" value={m.secondName} onChange={e => updateArrayField('councilMembers', i, 'secondName', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Surname(s)' : 'Apellidos'}</label><input className="expert-input" value={m.lastName} onChange={e => updateArrayField('councilMembers', i, 'lastName', e.target.value)} /></div>
                         <div className="expert-field">
@@ -425,15 +384,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
                 </button>
             </div>
-            <div className="expert-hint-box">
-                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                    {lang === 'en'
-                        ? 'Dignitaries hold administrative offices: President, Secretary, Treasurer.'
-                        : 'Los dignatarios ocupan los cargos administrativos del consejo: Presidente, Secretario, Tesorero.'
-                    }
-                </div>
-            </div>
             {formData.dignitaries.map((d, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
@@ -445,7 +395,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={d.fullName} onChange={e => updateArrayField('dignitaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
+                            <input className="expert-input" value={d.fullName} onChange={e => updateArrayField('dignitaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
@@ -470,15 +420,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'AÑADIR BENEFICIARIO'}
                 </button>
             </div>
-            <div className="expert-hint-box">
-                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                    {lang === 'en'
-                        ? 'Indicate the persons who will receive the benefits of the foundation. Distribution should preferably sum 100%.'
-                        : 'Indique las personas que recibirán los beneficios de la fundación. La distribución preferiblemente debe sumar el 100%.'
-                    }
-                </div>
-            </div>
             {formData.beneficiaries.map((b, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
@@ -486,7 +427,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" list="names-global" value={b.fullName} onChange={e => updateArrayField('beneficiaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
+                            <input className="expert-input" value={b.fullName} onChange={e => updateArrayField('beneficiaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
@@ -510,115 +451,179 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    // Paso 8: Poderes (General/Especial, Apoderado details, standard checkbox scope, custom textbox)
-    const renderStep8 = () => (
-        <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Powers of Representation' : 'Paso 8: Poderes de Representación'}</h2>
-            
-            <div className="expert-hint-box">
-                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                    {lang === 'en'
-                        ? 'Select whether the foundation will grant a Power of Attorney (General or Special) to a designated representative.'
-                        : 'Seleccione si la fundación otorgará algún Poder de Representación (General o Especial) a un representante designado.'
-                    }
-                </div>
-            </div>
+    // Paso 8: Poderes (Power of Attorney - ORIGINAL EXACT FORMAT)
+    const renderStep8 = () => {
+        const availablePersons = getAvailablePersons();
+        return (
+            <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
+                <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
+                
+                {availablePersons.length > 0 && (
+                    <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '12px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: '900', color: PRIMARY, textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>
+                            {lang === 'en' ? '⚡ AUTOFILL FROM ANOTHER COMPLETED PERSON' : '⚡ AUTOCOMPLETAR DESDE PERSONA REGISTRADA'}
+                        </label>
+                        <select 
+                            className="expert-input" 
+                            style={{ padding: '10px 14px', fontSize: '13px' }}
+                            onChange={(e) => {
+                                const selected = availablePersons[e.target.value];
+                                if (selected) handleImportPOA(selected);
+                            }}
+                            defaultValue=""
+                        >
+                            <option value="">{lang === 'en' ? '-- Select a registered person to copy their data --' : '-- Seleccione una persona ya registrada para copiar sus datos --'}</option>
+                            {availablePersons.map((p, idx) => (
+                                <option key={idx} value={idx}>{p.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
-            <div className="expert-grid">
-                {/* LIST BOX (Select Dropdown) */}
-                <div className="expert-field full-width">
-                    <label>{lang === 'en' ? 'Do you wish to grant a Power of Attorney?' : '¿Otorgará algún Poder de Representación?'}</label>
-                    <select className="expert-input" value={formData.hasPowers} onChange={e => setFormData({...formData, hasPowers: e.target.value})}>
-                        <option value="no">{lang === 'en' ? 'No, do not grant powers' : 'No, no otorgar poderes'}</option>
-                        <option value="yes">{lang === 'en' ? 'Yes, grant a Power of Attorney' : 'Sí, otorgar Poder de Representación'}</option>
-                    </select>
-                </div>
-
-                {formData.hasPowers === 'yes' && (
-                    <>
-                        {/* LIST BOX (Power Type) */}
-                        <div className="expert-field full-width animate-in fade-in slide-in-from-top-2">
-                            <label>{lang === 'en' ? 'Type of Power' : 'Tipo de Poder'}</label>
-                            <select className="expert-input" value={formData.powerType} onChange={e => setFormData({...formData, powerType: e.target.value})}>
-                                <option value="general">{lang === 'en' ? 'General Power of Attorney (Broad powers)' : 'Poder General (Facultades amplias de administración)'}</option>
-                                <option value="especial">{lang === 'en' ? 'Special Power of Attorney (Restricted scope)' : 'Poder Especial (Facultades restringidas y específicas)'}</option>
-                            </select>
+                <div className="poa-original-grid">
+                    {/* LEFT COLUMN: Apoderado Details */}
+                    <div className="poa-column-card">
+                        <div className="poa-column-header">
+                            {lang === 'en' 
+                                ? 'Name, Address of the person who\'s the POA is granted and the acting form (Individual, Jointly, etc.)'
+                                : 'Nombre, Dirección del Apoderado y forma en que ejercerá el Poder (Individual, Conjunta, etc.)'
+                            }
                         </div>
-
-                        {/* TEXT BOXES (Apoderado Details) */}
-                        <div className="expert-field full-width animate-in fade-in" style={{ marginTop: '10px' }}>
-                            <span style={{ fontSize: '13px', fontWeight: '900', color: SECONDARY }}>{lang === 'en' ? 'ATTORNEY-IN-FACT / APODERADO' : 'DATOS DEL APODERADO / REPRESENTANTE'}</span>
-                        </div>
-
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Full Name of Representative' : 'Nombre Completo del Apoderado'}</label>
-                            <input className="expert-input" list="names-global" value={formData.powerHolderName} onChange={e => handlePowerHolderNameChange(e.target.value)} placeholder={lang === 'en' ? 'Type to autocomplete if already added...' : 'Escriba para autocompletar si ya existe en el formulario...'} />
-                        </div>
-
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula del Apoderado'}</label>
-                            <input className="expert-input" value={formData.powerHolderPassport} onChange={e => setFormData({...formData, powerHolderPassport: e.target.value})} />
-                        </div>
-
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Residential Address' : 'Domicilio Completo'}</label>
-                            <input className="expert-input" value={formData.powerHolderAddress} onChange={e => setFormData({...formData, powerHolderAddress: e.target.value})} />
-                        </div>
-
-                        {/* CHECK BOXES (Standard Powers Scope) */}
-                        <div className="expert-field full-width animate-in fade-in" style={{ marginTop: '20px' }}>
-                            <label style={{ fontSize: '12px', fontWeight: '800', color: SECONDARY, textTransform: 'uppercase' }}>
-                                {lang === 'en' ? 'Granted Faculties / Standard Scope' : 'Facultades Otorgadas / Alcance Estándar'}
-                            </label>
-                            <div className="expert-hint" style={{ marginBottom: '10px' }}>
-                                {lang === 'en' ? 'Check the checkboxes for powers you wish to grant:' : 'Marque las casillas de verificación para los poderes que desea otorgar:'}
+                        <div className="expert-grid" style={{ padding: '20px' }}>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'First name / Nombre' : 'First name / Nombre'}</label>
+                                <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Middle name / Segundo nombre' : 'Middle name / Segundo nombre'}</label>
+                                <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} />
+                            </div>
+                            <div className="expert-field full-width">
+                                <label>{lang === 'en' ? 'Surname(s) / Apellidos' : 'Surname(s) / Apellidos'}</label>
+                                <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} />
                             </div>
                             
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '2.5px solid #f1f5f9' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                                    <input type="checkbox" checked={formData.powerScopeBanks} onChange={e => setFormData({...formData, powerScopeBanks: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
-                                    <span>{lang === 'en' ? 'Represent the foundation before banking entities' : 'Representar a la fundación ante cualquier entidad bancaria'}</span>
-                                </label>
-                                
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                                    <input type="checkbox" checked={formData.powerScopeAccounts} onChange={e => setFormData({...formData, powerScopeAccounts: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
-                                    <span>{lang === 'en' ? 'Open, operate and close bank accounts' : 'Abrir, manejar, operar y cerrar cuentas bancarias o de inversión'}</span>
-                                </label>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Date of birth / Fecha de nacimiento' : 'Date of birth / Fecha de nacimiento'}</label>
+                                <input type="date" className="expert-input" value={formData.poaBirthDate} onChange={e => setFormData({...formData, poaBirthDate: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Marital Status / Estado civil' : 'Marital Status / Estado civil'}</label>
+                                <select className="expert-input" value={formData.poaMaritalStatus} onChange={e => setFormData({...formData, poaMaritalStatus: e.target.value})}>
+                                    <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
+                                    <option value="Single">{lang === 'en' ? 'Single / Soltero(a)' : 'Single / Soltero(a)'}</option>
+                                    <option value="Married">{lang === 'en' ? 'Married / Casado(a)' : 'Married / Casado(a)'}</option>
+                                    <option value="Divorced">{lang === 'en' ? 'Divorced / Divorciado(a)' : 'Divorced / Divorciado(a)'}</option>
+                                    <option value="Widowed">{lang === 'en' ? 'Widowed / Viudo(a)' : 'Widowed / Viudo(a)'}</option>
+                                </select>
+                            </div>
 
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                                    <input type="checkbox" checked={formData.powerScopeRealEstate} onChange={e => setFormData({...formData, powerScopeRealEstate: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
-                                    <span>{lang === 'en' ? 'Administer and dispose of real estate and personal assets' : 'Administrar, comprar, vender y gravar bienes inmuebles o muebles'}</span>
-                                </label>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Citizenship / Nacionalidad' : 'Citizenship / Nacionalidad'}</label>
+                                <input className="expert-input" value={formData.poaNationality} onChange={e => setFormData({...formData, poaNationality: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Passport / Pasaporte' : 'Passport / Pasaporte'}</label>
+                                <input className="expert-input" value={formData.poaPassport} onChange={e => setFormData({...formData, poaPassport: e.target.value})} />
+                            </div>
+                            
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'ID' : 'ID'}</label>
+                                <input className="expert-input" value={formData.poaIdCard} onChange={e => setFormData({...formData, poaIdCard: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Phone / Teléfono' : 'Phone / Teléfono'}</label>
+                                <input className="expert-input" value={formData.poaPhone} onChange={e => setFormData({...formData, poaPhone: e.target.value})} />
+                            </div>
 
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                                    <input type="checkbox" checked={formData.powerScopeContracts} onChange={e => setFormData({...formData, powerScopeContracts: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
-                                    <span>{lang === 'en' ? 'Sign agreements, contracts and obligations' : 'Firmar contratos, acuerdos, convenios y contraer obligaciones legales'}</span>
-                                </label>
+                            <div className="expert-field full-width">
+                                <label>{lang === 'en' ? 'Email' : 'Email'}</label>
+                                <input type="email" className="expert-input" value={formData.poaEmail} onChange={e => setFormData({...formData, poaEmail: e.target.value})} />
+                            </div>
 
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                                    <input type="checkbox" checked={formData.powerScopeCourts} onChange={e => setFormData({...formData, powerScopeCourts: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: PRIMARY }} />
-                                    <span>{lang === 'en' ? 'Appear before judicial, administrative, and public authorities' : 'Comparecer ante autoridades judiciales, administrativas y públicas'}</span>
-                                </label>
+                            <div className="expert-field full-width">
+                                <label>{lang === 'en' ? 'Address / Dirección' : 'Address / Dirección'}</label>
+                                <input className="expert-input" value={formData.poaAddress} onChange={e => setFormData({...formData, poaAddress: e.target.value})} />
+                            </div>
+
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'City / ciudad' : 'City / ciudad'}</label>
+                                <input className="expert-input" value={formData.poaCity} onChange={e => setFormData({...formData, poaCity: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Country / Pais' : 'Country / Pais'}</label>
+                                <input className="expert-input" value={formData.poaCountry} onChange={e => setFormData({...formData, poaCountry: e.target.value})} />
                             </div>
                         </div>
+                    </div>
 
-                        {/* TEXT BOX / TEXTAREA (Custom Power Description) */}
-                        <div className="expert-field full-width animate-in fade-in" style={{ marginTop: '15px' }}>
-                            <label>{lang === 'en' ? 'Additional Custom Powers / Specific Limitations' : 'Facultades Específicas / Limitaciones del Poder'}</label>
-                            <div className="expert-hint" style={{ marginBottom: '8px' }}>
-                                {lang === 'en'
-                                    ? 'Describe any custom powers, instructions, or specific restrictions to be included in the public deed.'
-                                    : 'Describa cualquier otra facultad específica o restricciones del poder que desee incluir en la escritura pública.'
-                                }
-                            </div>
-                            <textarea className="expert-input" rows={4} value={formData.powerDescription} onChange={e => setFormData({...formData, powerDescription: e.target.value})} placeholder={lang === 'en' ? 'Describe specific powers here...' : 'Describa las facultades específicas aquí...'} />
+                    {/* RIGHT COLUMN: Settings Questions */}
+                    <div className="poa-column-card">
+                        <div className="poa-column-header" style={{ background: '#0e7490' }}>
+                            {lang === 'en' ? 'Power of Attorney Settings' : 'Configuración de Poderes'}
                         </div>
-                    </>
-                )}
+                        <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                            {/* Question 1: Emitir poder? */}
+                            <div className="poa-question-box">
+                                <div className="poa-question-text">
+                                    <strong>Would you like to issue a Power of Attorney?</strong><br/>
+                                    <span>Quiere Usted emitir un poder?</span>
+                                </div>
+                                <div className="poa-check-row">
+                                    <label className="poa-check-label">
+                                        <input type="radio" name="poaIssue" checked={formData.poaIssue === 'YES'} onChange={() => setFormData({...formData, poaIssue: 'YES'})} className="poa-radio" />
+                                        <span>YES</span>
+                                    </label>
+                                    <label className="poa-check-label">
+                                        <input type="radio" name="poaIssue" checked={formData.poaIssue === 'NO'} onChange={() => setFormData({...formData, poaIssue: 'NO'})} className="poa-radio" />
+                                        <span>NO</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Question 2: Tipo de Poder */}
+                            <div className="poa-question-box">
+                                <div className="poa-question-text">
+                                    <strong>If Yes please select type of Power of Attorney</strong><br/>
+                                    <span>Tipo de Poder:</span>
+                                </div>
+                                <select className="expert-input" style={{ marginTop: '10px' }} value={formData.poaType} onChange={e => setFormData({...formData, poaType: e.target.value})}>
+                                    <option value="GENERAL">GENERAL</option>
+                                    <option value="SPECIAL">SPECIAL / ESPECIAL</option>
+                                </select>
+                            </div>
+
+                            {/* Question 3: Fecha de vigencia */}
+                            <div className="poa-question-box">
+                                <div className="poa-question-text">
+                                    <strong>Validity date / Fecha de vigencia:</strong>
+                                </div>
+                                <input className="expert-input" style={{ marginTop: '10px' }} value={formData.poaValidityDate} onChange={e => setFormData({...formData, poaValidityDate: e.target.value})} placeholder="e.g. Indefinida / 1 Year / 31-12-2027" />
+                            </div>
+
+                            {/* Question 4: Legalizado? */}
+                            <div className="poa-question-box">
+                                <div className="poa-question-text">
+                                    <strong>Would you require the POA to be legalized?</strong><br/>
+                                    <span>Requiere que el poder sea legalizado?</span>
+                                </div>
+                                <div className="poa-check-row">
+                                    <label className="poa-check-label">
+                                        <input type="radio" name="poaLegalized" checked={formData.poaLegalized === 'YES'} onChange={() => setFormData({...formData, poaLegalized: 'YES'})} className="poa-radio" />
+                                        <span>YES</span>
+                                    </label>
+                                    <label className="poa-check-label">
+                                        <input type="radio" name="poaLegalized" checked={formData.poaLegalized === 'NO'} onChange={() => setFormData({...formData, poaLegalized: 'NO'})} className="poa-radio" />
+                                        <span>NO</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     // Paso 9: Actividades de la fundación (foundationObjects / fines)
     const renderStep9 = () => (
@@ -715,7 +720,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     {step === 5 && `V. ${lang === 'en' ? 'Directors (Foundation Council)' : 'Directores (Consejo)'}`}
                     {step === 6 && `VI. ${lang === 'en' ? 'Dignitaries' : 'Dignatarios'}`}
                     {step === 7 && `VII. ${lang === 'en' ? 'Beneficiaries' : 'Beneficiarios'}`}
-                    {step === 8 && `VIII. ${lang === 'en' ? 'Powers of Representation' : 'Poderes de Representación'}`}
+                    {step === 8 && `VIII. ${lang === 'en' ? 'Power Of Attorney / Poderes' : 'Power Of Attorney / Poderes'}`}
                     {step === 9 && `IX. ${lang === 'en' ? 'Foundation Objects & Activities' : 'Actividades de la Fundación'}`}
                     {step === 10 && `X. ${lang === 'en' ? 'Declaration & Signatures' : 'Declaración y Firmas'}`}
                 </span>
@@ -824,6 +829,19 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-nav-next { padding: 14px 28px; background: ${PRIMARY}; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px ${PRIMARY}30; transition: 0.3s; font-size: 13px; }
                 .expert-btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 15px 30px ${PRIMARY}40; }
                 .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
+
+                /* ORIGINAL FORMAT STYLING FOR POA */
+                .poa-original-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; margin-top: 20px; }
+                .poa-column-card { background: #ffffff; border: 2.5px solid #40a2be; border-radius: 16px; overflow: hidden; }
+                .poa-column-header { background: #40a2be; color: white; padding: 15px 20px; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; }
+                .poa-question-box { background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 18px; }
+                .poa-question-text { font-size: 12px; color: #1e293b; line-height: 1.4; }
+                .poa-check-row { display: flex; gap: 20px; margin-top: 12px; }
+                .poa-check-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 800; color: #0e7490; }
+                .poa-radio { width: 18px; height: 18px; accent-color: #0e7490; cursor: pointer; }
+                @media (max-width: 768px) {
+                    .poa-original-grid { grid-template-columns: 1fr; }
+                }
             `}</style>
         </div>
     );

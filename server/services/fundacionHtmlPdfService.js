@@ -86,56 +86,134 @@ class FundacionHtmlPdfService {
       const lang = fundacionPdfI18n.normalizeLanguage(options.language || data.language);
       const t = fundacionPdfI18n.getFundacionPdfDict(lang);
 
-      // Mapeo dinámico de poderes
-      let powersHtml = '';
-      const hasPowers = data.hasPowers === 'yes' || data.hasPowers === true;
-      if (hasPowers) {
-        const typeLabel = data.powerType === 'general' ? (lang === 'es' ? 'Poder General' : 'General Power of Attorney') : (lang === 'es' ? 'Poder Especial' : 'Special Power of Attorney');
-        
-        // Mapeo de facultades estándar seleccionadas
-        const activePowers = [];
-        if (data.powerScopeBanks) activePowers.push(lang === 'es' ? 'Representar ante entidades bancarias' : 'Represent the foundation before banking entities');
-        if (data.powerScopeAccounts) activePowers.push(lang === 'es' ? 'Abrir y manejar cuentas bancarias' : 'Open and operate bank accounts');
-        if (data.powerScopeRealEstate) activePowers.push(lang === 'es' ? 'Administrar bienes inmuebles y muebles' : 'Administer real estate and personal assets');
-        if (data.powerScopeContracts) activePowers.push(lang === 'es' ? 'Firmar contratos y convenios' : 'Sign contracts and agreements');
-        if (data.powerScopeCourts) activePowers.push(lang === 'es' ? 'Comparecer ante tribunales y autoridades' : 'Appear before courts and public authorities');
+      // Render exact original POA tables
+      const poaIssueYes = data.poaIssue === 'YES';
+      const poaIssueNo = data.poaIssue === 'NO' || !data.poaIssue;
+      const poaLegalizedYes = data.poaLegalized === 'YES';
+      const poaLegalizedNo = data.poaLegalized === 'NO' || !data.poaLegalized;
+      const poaTypeLabel = String(data.poaType || 'GENERAL').toUpperCase();
 
-        powersHtml = `
-          <div class="powers-container">
-            <div class="powers-meta">
-              <div><strong>${esc(t.powerType)}:</strong> <span class="badge-blue">${esc(typeLabel)}</span></div>
-            </div>
-            <div style="margin-top: 15px;">
-              <h3>${esc(t.powerHolder)}</h3>
-              <div class="grid3" style="padding: 0; margin-top: 5px;">
-                <div><label>${esc(t.powerHolderName)}</label><div class="value">${esc(data.powerHolderName)}</div></div>
-                <div><label>${esc(t.powerHolderPassport)}</label><div class="value">${esc(data.powerHolderPassport)}</div></div>
-                <div><label>${esc(t.powerHolderAddress)}</label><div class="value">${esc(data.powerHolderAddress)}</div></div>
-              </div>
-            </div>
-            ${activePowers.length > 0 ? `
-              <div style="margin-top: 15px;">
-                <strong>${esc(t.powerScope)}:</strong>
-                <ul class="powers-list">
-                  ${activePowers.map(p => `<li>✅ ${esc(p)}</li>`).join('')}
-                </ul>
-              </div>
-            ` : ''}
-            ${data.powerDescription ? `
-              <div style="margin-top: 15px;">
-                <strong>${esc(t.powerScopeCustom)}:</strong>
-                <div class="value-block" style="white-space: pre-wrap;">${esc(data.powerDescription)}</div>
-              </div>
-            ` : ''}
+      const powersHtml = `
+        <div class="poa-section-container">
+          <div class="poa-header-title">
+            Power Of Attorney / Poderes (Optional)
           </div>
-        `;
-      } else {
-        powersHtml = `
-          <div class="no-powers-message">
-            🚫 ${lang === 'es' ? 'No se otorgan poderes de representación en este trámite.' : 'No representation powers granted in this registration.'}
+          
+          <div class="poa-body-grid">
+            <!-- Left Column: Apoderado Details -->
+            <div class="poa-col-left">
+              <table class="poa-table">
+                <thead>
+                  <tr>
+                    <th colspan="2" class="poa-table-header">
+                      Name, Address of the person who's the POA is granted and the acting form (Individual, Jointly, etc.)<br/>
+                      Nombre, Dirección del Apoderado y forma en que ejercerá el Poder (Individual, Conjunta, etc.)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="poa-label">First name / Nombre</td>
+                    <td class="poa-val">${esc(data.poaFirstName)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Middle name / Segundo nombre</td>
+                    <td class="poa-val">${esc(data.poaMiddleName)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Surname(s) / Apellidos</td>
+                    <td class="poa-val">${esc(data.poaLastName)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Date of birth/ Fecha de nacimiento</td>
+                    <td class="poa-val">${esc(fmtDate(data.poaBirthDate))}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Marital Status / Estado civil</td>
+                    <td class="poa-val">${esc(data.poaMaritalStatus)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Citizenship / Nacionalidad</td>
+                    <td class="poa-val">${esc(data.poaNationality)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Passport / Pasaporte</td>
+                    <td class="poa-val">${esc(data.poaPassport)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">ID</td>
+                    <td class="poa-val">${esc(data.poaIdCard)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Phone / Teléfono</td>
+                    <td class="poa-val">${esc(data.poaPhone)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Email</td>
+                    <td class="poa-val">${esc(data.poaEmail)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Address / Dirección</td>
+                    <td class="poa-val">${esc(data.poaAddress)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">City / ciudad</td>
+                    <td class="poa-val">${esc(data.poaCity)}</td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label">Country / Pais</td>
+                    <td class="poa-val">${esc(data.poaCountry)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Right Column: Settings & Questions -->
+            <div class="poa-col-right">
+              <table class="poa-table">
+                <tbody>
+                  <tr>
+                    <td class="poa-label-q">
+                      Would you like to issue a Power of Attorney?<br/>
+                      Quiere Usted emitir un poder?
+                    </td>
+                    <td class="poa-check-val">
+                      <span class="chk-box">${poaIssueYes ? '☑' : '☐'} YES</span>
+                      <span class="chk-box" style="margin-left: 10px;">${poaIssueNo ? '☑' : '☐'} NO</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label-q">
+                      If Yes please select type of Power of Attorney
+                    </td>
+                    <td class="poa-val" style="font-weight: bold; text-align: center;">
+                      ${esc(poaTypeLabel)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label-q">
+                      Validity date/ Fecha de vigencia:
+                    </td>
+                    <td class="poa-val">
+                      ${esc(data.poaValidityDate)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="poa-label-q">
+                      Would you require the POA to be legalized?<br/>
+                      Requiere que el poder sea legalizado?
+                    </td>
+                    <td class="poa-check-val">
+                      <span class="chk-box">${poaLegalizedYes ? '☑' : '☐'} YES</span>
+                      <span class="chk-box" style="margin-left: 10px;">${poaLegalizedNo ? '☑' : '☐'} NO</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        `;
-      }
+        </div>
+      `;
 
       const content = `
         <main class="doc-body">
@@ -208,12 +286,9 @@ class FundacionHtmlPdfService {
             </table>
           </section>
 
-          <!-- 8. PODERES -->
-          <section class="card">
-            <h2>${esc(t.sectionPowers)}</h2>
-            <div style="padding: 12px;">
-              ${powersHtml}
-            </div>
+          <!-- 8. PODERES (Original Layout) -->
+          <section class="card" style="page-break-inside: avoid;">
+            ${powersHtml}
           </section>
 
           <!-- 9. ACTIVIDADES DE LA FUNDACION -->
@@ -245,29 +320,38 @@ class FundacionHtmlPdfService {
         <html>
         <head>
           <style>
-            @page { size: A4; margin: 20mm; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #1e293b; margin: 0; padding: 0; background: #fff; }
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9px; color: #1e293b; margin: 0; padding: 0; background: #fff; }
             .doc-body { padding: 0; }
-            .first-page-title { text-align: center; margin-bottom: 25px; }
-            .first-page-title h1 { color: #0078d4; font-size: 24px; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-            .card { border: 1px solid #e2e8f0; margin-bottom: 20px; page-break-inside: avoid; border-radius: 4px; overflow: hidden; }
-            .card h2 { background: #0078d4; color: white; margin: 0; padding: 10px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-            .hint { background: #f8fafc; padding: 6px 12px; border-bottom: 1px solid #e2e8f0; font-style: italic; color: #64748b; font-size: 9px; }
-            .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 12px; }
-            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
-            label { font-weight: 700; font-size: 8.5px; color: #475569; display: block; margin-bottom: 4px; text-transform: uppercase; }
-            .value { border: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 8px; min-height: 15px; border-radius: 3px; font-size: 9.5px; color: #0f172a; }
-            .value-block { border: 1px solid #e2e8f0; background: #f8fafc; padding: 8px 12px; border-radius: 3px; font-size: 9.5px; color: #0f172a; line-height: 1.4; }
+            .first-page-title { text-align: center; margin-bottom: 20px; }
+            .first-page-title h1 { color: #0078d4; font-size: 20px; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+            .card { border: 1px solid #0078d4; margin-bottom: 15px; page-break-inside: avoid; border-radius: 4px; overflow: hidden; }
+            .card h2 { background: #0078d4; color: white; margin: 0; padding: 8px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .hint { background: #f8fafc; padding: 5px 10px; border-bottom: 1px solid #e2e8f0; font-style: italic; color: #64748b; font-size: 8px; }
+            .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px; }
+            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+            label { font-weight: 700; font-size: 8px; color: #475569; display: block; margin-bottom: 3px; text-transform: uppercase; }
+            .value { border: 1px solid #e2e8f0; background: #f8fafc; padding: 5px 8px; min-height: 12px; border-radius: 3px; font-size: 9px; color: #0f172a; }
             table { width: 100%; border-collapse: collapse; margin: 0; }
-            th, td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; }
-            th { background: #f1f5f9; font-weight: 700; font-size: 8.5px; color: #475569; text-transform: uppercase; }
-            td { font-size: 9.5px; color: #0f172a; }
-            .longtext { padding: 12px; white-space: pre-wrap; line-height: 1.5; font-size: 9.5px; color: #0f172a; }
-            .powers-container { background: #ffffff; border-radius: 4px; }
-            .badge-blue { background: #eff6ff; color: #0078d4; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 9999px; font-weight: bold; font-size: 9px; display: inline-block; }
-            .powers-list { margin: 8px 0 0 0; padding-left: 20px; list-style-type: none; }
-            .powers-list li { margin-bottom: 6px; font-size: 9.5px; }
-            .no-powers-message { color: #64748b; font-style: italic; text-align: center; padding: 15px; background: #f8fafc; border-radius: 4px; border: 1px dashed #e2e8f0; font-size: 10px; }
+            th, td { border: 1px solid #e2e8f0; padding: 5px 8px; text-align: left; }
+            th { background: #f1f5f9; font-weight: 700; font-size: 8px; color: #475569; text-transform: uppercase; }
+            td { font-size: 8.5px; color: #0f172a; }
+            .longtext { padding: 10px; white-space: pre-wrap; line-height: 1.4; font-size: 8.5px; color: #0f172a; }
+            
+            /* ORIGINAL POWER OF ATTORNEY SECTION STYLES */
+            .poa-section-container { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; width: 100%; }
+            .poa-header-title { background: #40a2be; color: white; padding: 10px 15px; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+            .poa-body-grid { display: flex; width: 100%; border-top: 1px solid #40a2be; }
+            .poa-col-left { width: 55%; border-right: 2px solid #cbd5e1; }
+            .poa-col-right { width: 45%; }
+            .poa-table { width: 100%; border-collapse: collapse; }
+            .poa-table td, .poa-table th { border: 1px solid #40a2be; padding: 6px 10px; font-size: 9px; }
+            .poa-table-header { background: #eff6ff; font-weight: bold; font-size: 8.5px; text-align: left; color: #1e3a8a; line-height: 1.3; }
+            .poa-label { background: #ffffff; width: 40%; font-weight: bold; color: #475569; }
+            .poa-label-q { background: #ffffff; width: 60%; font-weight: bold; color: #475569; line-height: 1.3; }
+            .poa-val { background: #fcfdfe; color: #0f172a; }
+            .poa-check-val { background: #fcfdfe; color: #0f172a; font-weight: bold; font-size: 9.5px; }
+            .chk-box { display: inline-flex; align-items: center; }
           </style>
         </head>
         <body>${content}</body>
