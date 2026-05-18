@@ -499,8 +499,9 @@ const ClientDashboard = () => {
                                             { key: 'Herencia o Fondo Fiduciario', label: t('fondos.sources.herencia') },
                                         ].map(f => (
                                             <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '12px', padding: '10px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, cursor: 'pointer' }}>
-                                                <input type="checkbox" checked={formData.fundsSource.includes(f.key)} onChange={() => {
-                                                    const updated = formData.fundsSource.includes(f.key) ? formData.fundsSource.filter(x => x !== f.key) : [...formData.fundsSource, f.key];
+                                                <input type="checkbox" checked={(formData.fundsSource || []).includes(f.key)} onChange={() => {
+                                                    const currentSources = formData.fundsSource || [];
+                                                    const updated = currentSources.includes(f.key) ? currentSources.filter(x => x !== f.key) : [...currentSources, f.key];
                                                     setFormData({...formData, fundsSource: updated});
                                                 }} /> {f.label}
                                             </label>

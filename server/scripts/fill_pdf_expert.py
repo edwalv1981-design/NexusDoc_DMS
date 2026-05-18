@@ -1174,7 +1174,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         input_data = json.loads(raw_input)
-        data = input_data.get("data", {})
+        data = input_data.get("data", {}) or {}
         output_path = input_data.get("output_path", "filled_temp.pdf")
         template_name = input_data.get("template_name", "referencia_maestra")
         custom_path = input_data.get("custom_template_path")
