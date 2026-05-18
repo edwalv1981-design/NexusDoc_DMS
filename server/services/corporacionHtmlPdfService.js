@@ -152,16 +152,6 @@ class CorporacionHtmlPdfService {
         </section>
 
         <section class="card">
-          <h2>${esc(t.sectionOfficers)}</h2>
-          <table>
-            <thead><tr><th>${esc(t.officerPosition)}</th><th>${esc(t.officerFullName)}</th><th>${esc(t.officerBirthDate)}</th><th>${esc(t.officerPassport)}</th><th>${esc(t.officerRegNumber)}</th></tr></thead>
-            <tbody>
-              ${buildDignitariesRows(dignitaries, fmtDate)}
-            </tbody>
-          </table>
-        </section>
-
-        <section class="card">
           <h2>${esc(t.sectionDirectors)}</h2>
           <div class="hint">${esc(t.sectionDirectorsHint)}</div>
           <table>
@@ -173,6 +163,17 @@ class CorporacionHtmlPdfService {
             <tbody>${buildDirectorsRows(directors)}</tbody>
           </table>
         </section>
+
+        <section class="card">
+          <h2>${esc(t.sectionOfficers)}</h2>
+          <table>
+            <thead><tr><th>${esc(t.officerPosition)}</th><th>${esc(t.officerFullName)}</th><th>${esc(t.officerBirthDate)}</th><th>${esc(t.officerPassport)}</th><th>${esc(t.officerRegNumber)}</th></tr></thead>
+            <tbody>
+              ${buildDignitariesRows(dignitaries, fmtDate)}
+            </tbody>
+          </table>
+        </section>
+
 
         <section class="card">
           <h2>${esc(t.sectionShareholders)}</h2>

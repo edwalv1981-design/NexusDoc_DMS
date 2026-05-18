@@ -168,27 +168,39 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const renderStep1 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <h2 className="expert-step-title"><Building size={22} color={PRIMARY} /> {getT('corporacion.steps.societyInfo', 'Información de la Sociedad')}</h2>
+            
+            <div className="expert-hint-box" style={{ marginBottom: '25px', display: 'flex', gap: '12px', alignItems: 'flex-start', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: '8px', padding: '15px' }}>
+                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '13px', color: '#1e293b', lineHeight: '1.5' }}>
+                    <strong>List the names you wish to use to incorporate your corporation in order of preference / Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia.</strong>
+                    <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#475569' }}>
+                        The name of the Company must be determined by one of the following terminations: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG. / El nombre de la Compañía debe terminar con una de las siguientes terminaciones: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.
+                    </div>
+                </div>
+            </div>
+
             <div className="expert-grid">
                 <div className="expert-field full-width">
-                    <label>{getT('corporacion.fields.nameSA', 'NOMBRE S.A.')}</label>
+                    <label>{getT('corporacion.fields.nameSA', 'NOMBRE S.A. (Opción 1 / 1st Choice)')}</label>
                     <input className="expert-input" value={formData.corpNameSA} onChange={e => setFormData({...formData, corpNameSA: e.target.value})} placeholder="NEXUS SOLUTIONS S.A." />
                 </div>
                 <div className="expert-field">
-                    <label>{getT('corporacion.fields.nameCorp', 'NOMBRE CORP.')}</label>
-                    <input className="expert-input" value={formData.corpNameCorp} onChange={e => setFormData({...formData, corpNameCorp: e.target.value})} />
+                    <label>{getT('corporacion.fields.nameCorp', 'NOMBRE CORP. (Opción 2 / 2nd Choice)')}</label>
+                    <input className="expert-input" value={formData.corpNameCorp} onChange={e => setFormData({...formData, corpNameCorp: e.target.value})} placeholder="NEXUS SOLUTIONS CORP." />
                 </div>
                 <div className="expert-field">
-                    <label>{getT('corporacion.fields.nameInc', 'NOMBRE INC.')}</label>
-                    <input className="expert-input" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} />
+                    <label>{getT('corporacion.fields.nameInc', 'NOMBRE INC. (Opción 3 / 3rd Choice)')}</label>
+                    <input className="expert-input" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} placeholder="NEXUS SOLUTIONS INC." />
                 </div>
                 <div className="expert-field full-width">
-                    <label>{t('corporacion.fields.capital')}</label>
-                    <div className="expert-hint">{t('corporacion.hints.capital')}</div>
+                    <label>Authorized Capital / Capital Social Autorizado (MÍN $10,000)</label>
+                    <div className="expert-hint">The minimum authorized capital of the company is US$10,000.00 / El capital mínimo autorizado de la sociedad es US$10,000.00.</div>
                     <input className="expert-input" value={formData.capitalSocial} onChange={e => setFormData({...formData, capitalSocial: e.target.value})} placeholder="$10,000.00" />
                 </div>
             </div>
         </div>
     );
+
 
     const renderStep2 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -196,29 +208,34 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {t('corporacion.steps.directors')}</h2>
                 <button onClick={addDirector} className="expert-btn-add"><Plus size={16} /> {t('corporacion.fields.addDirector')}</button>
             </div>
-            <div className="expert-hint-box"><Info size={16} /> {t('corporacion.hints.directors')}</div>
+            <div className="expert-hint-box">
+                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                    In Panama, a minimum of 3 directors are required for the board of directors / En Panamá se requieren mínimo 3 directores para la junta directiva.
+                </div>
+            </div>
             {formData.directors.map((d, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
-                        <div className="expert-field"><label>PRIMER NOMBRE</label><input className="expert-input" list="corp-global-names" value={d.firstName} onChange={e => updateDirector(i, 'firstName', e.target.value)} /></div>
-                        <div className="expert-field"><label>SEGUNDO NOMBRE</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(i, 'secondName', e.target.value)} /></div>
-                        <div className="expert-field"><label>APELLIDOS</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(i, 'lastName', e.target.value)} /></div>
+                        <div className="expert-field"><label>First Name / Primer nombre</label><input className="expert-input" list="corp-global-names" value={d.firstName} onChange={e => updateDirector(i, 'firstName', e.target.value)} /></div>
+                        <div className="expert-field"><label>Middle Name / Segundo nombre</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(i, 'secondName', e.target.value)} /></div>
+                        <div className="expert-field"><label>Surname(s) / Apellidos</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(i, 'lastName', e.target.value)} /></div>
                         <div className="expert-field">
-                            <label>ESTADO CIVIL</label>
+                            <label>Marital Status / Estado civil</label>
                             <select className="expert-input" value={d.maritalStatus} onChange={e => updateDirector(i, 'maritalStatus', e.target.value)}>
-                                <option value="">Seleccione...</option>
-                                <option value="Soltero(a)">Soltero(a)</option>
-                                <option value="Casado(a)">Casado(a)</option>
-                                <option value="Divorciado(a)">Divorciado(a)</option>
-                                <option value="Viudo(a)">Viudo(a)</option>
+                                <option value="">Seleccione / Select...</option>
+                                <option value="Soltero(a)">Soltero(a) / Single</option>
+                                <option value="Casado(a)">Casado(a) / Married</option>
+                                <option value="Divorciado(a)">Divorciado(a) / Divorced</option>
+                                <option value="Viudo(a)">Viudo(a) / Widowed</option>
                             </select>
                         </div>
-                        <div className="expert-field"><label>NACIONALIDAD</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} /></div>
-                        <div className="expert-field"><label>PASAPORTE/CÉDULA</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(i, 'passport', e.target.value)} /></div>
-                        <div className="expert-field"><label>FECHA DE NACIMIENTO</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>DIRECCIÓN COMPLETA</label><input className="expert-input" value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} /></div>
+                        <div className="expert-field"><label>Citizenship / Nacionalidad</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} /></div>
+                        <div className="expert-field"><label>Passport / Pasaporte / Cédula</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(i, 'passport', e.target.value)} /></div>
+                        <div className="expert-field"><label>Date of birth / Fecha de nacimiento</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>Address / Dirección completa</label><input className="expert-input" value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} /></div>
                     </div>
                 </div>
             ))}
@@ -231,21 +248,27 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <h2 className="expert-step-title"><UserCheck size={22} color={PRIMARY} /> {t('corporacion.steps.dignitaries')}</h2>
                 <button onClick={addDignitary} className="expert-btn-add"><Plus size={16} /> {t('corporacion.fields.addDignitary')}</button>
             </div>
-            <div className="expert-hint-box"><Info size={16} /> {t('corporacion.hints.dignitaries')}</div>
+            <div className="expert-hint-box">
+                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                    Dignitaries can be the directors themselves or third parties / Los dignatarios pueden ser los mismos directores o terceras personas.
+                </div>
+            </div>
             {formData.dignitaries.map((dig, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">DIGNATARIO #{i+1}</div>
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
-                        <div className="expert-field"><label>CARGO</label><input className="expert-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
-                        <div className="expert-field full-width"><label>NOMBRE COMPLETO</label><input className="expert-input" list="corp-global-names" value={dig.fullName} onChange={e => updateDignitary(i, 'fullName', e.target.value)} /></div>
-                        <div className="expert-field"><label>PASAPORTE/CÉDULA</label><input className="expert-input" value={dig.passport} onChange={e => updateDignitary(i, 'passport', e.target.value)} /></div>
-                        <div className="expert-field"><label>FECHA DE NACIMIENTO</label><input type="date" className="expert-input" value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} /></div>
+                        <div className="expert-field"><label>Position / Cargo (Presidente, Secretario, Tesorero...)</label><input className="expert-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
+                        <div className="expert-field full-width"><label>Full name / Nombre completo</label><input className="expert-input" list="corp-global-names" value={dig.fullName} onChange={e => updateDignitary(i, 'fullName', e.target.value)} /></div>
+                        <div className="expert-field"><label>Passport / Pasaporte / Cédula</label><input className="expert-input" value={dig.passport} onChange={e => updateDignitary(i, 'passport', e.target.value)} /></div>
+                        <div className="expert-field"><label>Date of birth / Fecha de nacimiento</label><input type="date" className="expert-input" value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} /></div>
                     </div>
                 </div>
             ))}
         </div>
     );
+
 
     const renderStep4 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -253,17 +276,22 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {t('corporacion.steps.shareholders')}</h2>
                 <button onClick={addShareholder} className="expert-btn-add"><Plus size={16} /> {t('corporacion.fields.addShareholder')}</button>
             </div>
-            <div className="expert-hint-box"><Info size={16} /> {t('corporacion.hints.shareholders')}</div>
+            <div className="expert-hint-box">
+                <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                    Indicate the distribution of the company's initial shares / Indicar la distribución de las acciones iniciales de la sociedad.
+                </div>
+            </div>
             {formData.shareholders.map((s, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">ACCIONISTA #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
-                        <div className="expert-field"><label>CERTIFICADO</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} /></div>
-                        <div className="expert-field"><label>VALOR USD</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} /></div>
-                        <div className="expert-field"><label>ACCIONES</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>NOMBRE COMPLETO</label><input className="expert-input" list="corp-global-names" value={s.name} onChange={e => updateShareholder(i, 'name', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>DIRECCIÓN RESIDENCIAL</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} /></div>
+                        <div className="expert-field"><label>Share Certificate Number / No. de Certificado</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} /></div>
+                        <div className="expert-field"><label>Share's value / Valor por acción (USD)</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} /></div>
+                        <div className="expert-field"><label>Number of shares / Cantidad de acciones</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>Shareholder / Accionista (Nombre completo)</label><input className="expert-input" list="corp-global-names" value={s.name} onChange={e => updateShareholder(i, 'name', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>Address / Dirección residencial</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} /></div>
                     </div>
                 </div>
             ))}
@@ -274,32 +302,37 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <h2 className="expert-step-title"><FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.finalization')}</h2>
             <div className="expert-field full-width" style={{ marginBottom: '30px' }}>
-                <label>OBJETO SOCIAL Y ACTIVIDADES</label>
-                <div className="expert-hint" style={{ marginBottom: '10px' }}>{t('corporacion.hints.activities')}</div>
+                <label>Company Activities / Actividades y Objeto Social de la Compañía</label>
+                <div className="expert-hint" style={{ marginBottom: '10px' }}>
+                    Please provide an explanation of the corporation's activities / Favor provea una explicación de la actividad de la sociedad.
+                </div>
                 <textarea className="expert-input" rows={4} value={formData.companyActivities} onChange={e => setFormData({...formData, companyActivities: e.target.value})} placeholder="Describa las actividades..." />
             </div>
 
             <div className="expert-legal-box">
-                <h3 style={{ fontSize: '16px', fontWeight: 900, marginBottom: '15px' }}>DECLARACIÓN JURADA</h3>
-                <p className="expert-legal-text">{t('corporacion.hints.declaration')}</p>
+                <h3 style={{ fontSize: '16px', fontWeight: 900, marginBottom: '15px' }}>Declaration / Declaración Jurada</h3>
+                <p className="expert-legal-text">
+                    I/We declare that the origin of funds and goods linked to the services provided by Panama Tax Lawyers and its associates derive from legitimate sources and without criminal origin / Declaro que el origen de los fondos y bienes vinculados a los servicios prestados por Panama Tax Lawyers y sus asociados derivan de fuentes legítimas y sin origen delictivo.
+                </p>
                 <button onClick={addSigner} className="expert-btn-add-white"><Plus size={16} /> {t('corporacion.fields.addSigner')}</button>
                 
                 {formData.signers.map((s, i) => (
                     <div key={i} style={{ marginTop: '20px', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                         <div className="expert-grid">
                             <div className="expert-field full-width">
-                                <label style={{ color: '#94a3b8' }}>NOMBRE DEL FIRMANTE</label>
+                                <label style={{ color: '#94a3b8' }}>Name / Nombre del Firmante</label>
                                 <input className="expert-input-legal" list="corp-global-names" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} />
                             </div>
                             <div className="expert-field full-width">
-                                <label style={{ color: '#94a3b8' }}>FIRMA (NOMBRE COMPLETO)</label>
+                                <label style={{ color: '#94a3b8' }}>Signature / Firma (Nombre completo)</label>
                                 <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder="Como aparece en su identificación..." />
                             </div>
                         </div>
                     </div>
                 ))}
                 <div className="expert-field" style={{ marginTop: '20px' }}>
-                    <label style={{ color: '#94a3b8' }}>FECHA DE DECLARACIÓN</label>
+                    <label style={{ color: '#94a3b8' }}>Date / Fecha de Declaración</label>
+
                     <input type="date" className="expert-input-legal" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                 </div>
             </div>
