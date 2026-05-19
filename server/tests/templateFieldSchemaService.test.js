@@ -50,4 +50,16 @@ describe('templateFieldSchemaService', () => {
     assert.equal(schemaSource, 'static');
     assert.equal(schema, staticSchema);
   });
+
+  it('buildDynamicSchema asigna label legible a campos AcroForm desconocidos', () => {
+    const dynamic = svc.buildDynamicSchema(
+      'cumplimiento_individual',
+      [{ name: 'txt_Razon_Social', type: 'Text' }],
+      null
+    );
+    const field = dynamic.steps.flatMap((s) => s.fields)[0];
+    assert.equal(field.key, 'txtRazonSocial');
+    assert.ok(field.label);
+    assert.match(field.label, /Razon|Social/i);
+  });
 });

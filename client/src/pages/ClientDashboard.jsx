@@ -17,6 +17,7 @@ import SignedDocuments from './SignedDocuments';
 import CorporacionForm from './CorporacionForm';
 import FundacionForm from './FundacionForm';
 import PdfSchemaWizard from '../components/PdfSchemaWizard';
+import { resolveCanonicalFormType, usesSchemaWizard, usesFondosWizard } from '../utils/formWizardRouting';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -29,8 +30,9 @@ const ClientDashboard = () => {
     const showDocuments = queryParams.get('view') === 'documents';
     const showSignedDocs = queryParams.get('view') === 'signed-docs';
     const formTypeQuery = queryParams.get('type');
+    const normalizedFormTypeQuery = formTypeQuery ? resolveCanonicalFormType(formTypeQuery) : '';
 
-    const [currentFormType, setCurrentFormType] = useState(formTypeQuery || '');
+    const [currentFormType, setCurrentFormType] = useState(normalizedFormTypeQuery || '');
 
     const PRIMARY = '#0078d4';
     const BG = '#f8fafc';
@@ -136,10 +138,6 @@ const ClientDashboard = () => {
     const isHtmlFormType = (type) =>
         type?.startsWith('Corporaci') || type === 'Fundaciones';
 
-    const usesFondosWizard = (type) => type === 'Fondos Registros contables';
-
-    const usesSchemaWizard = (type) => type === 'Cumplimiento Individual';
-
     const isFormReady = (type) => {
         if (!type) return true;
         if (isHtmlFormType(type)) return true;
@@ -150,7 +148,7 @@ const ClientDashboard = () => {
     useEffect(() => {
         fetchData();
         if (editId) fetchFormData(editId);
-        if (formTypeQuery) setCurrentFormType(formTypeQuery);
+        if (formTypeQuery) setCurrentFormType(resolveCanonicalFormType(formTypeQuery));
     }, [editId, formTypeQuery]);
 
     useEffect(() => {
@@ -184,7 +182,7 @@ const ClientDashboard = () => {
             if (response.ok) {
                 const result = await response.json();
                 if (result.data) setFormData(result.data);
-                if (result.type) setCurrentFormType(result.type);
+                if (result.type) setCurrentFormType(resolveCanonicalFormType(result.type));
             }
         } catch (e) { console.error(e); }
     };
@@ -466,7 +464,7 @@ const ClientDashboard = () => {
                           {formOptions.map((opt) => (
                             <button
                               key={opt.id}
-                              onClick={() => { setCurrentFormType(opt.id); navigate(`/dashboard?view=form&type=${opt.id}`); }}
+                              onClick={() => { setCurrentFormType(resolveCanonicalFormType(opt.id)); navigate(`/dashboard?view=form&type=${encodeURIComponent(opt.id)}`); }}
                               style={{
                                 padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px',
                                 cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #e2e8f0', background: 'white',

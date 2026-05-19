@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useT } from '../i18n';
 import API_BASE_URL from '../config';
+import { resolveCanonicalFormType } from '../utils/formWizardRouting';
 
 const PRIMARY = '#0078d4';
 const BORDER = '#e2e8f0';
@@ -21,6 +22,8 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
 
   const prefix = schema?.i18nPrefix || 'kyci';
 
+  const canonicalFormType = resolveCanonicalFormType(formType);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -28,7 +31,7 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(
-          `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(formType)}`,
+          `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(canonicalFormType)}`,
           { headers: { 'x-auth-token': token } }
         );
         if (!res.ok) throw new Error('schema');
@@ -47,7 +50,7 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
     return () => {
       cancelled = true;
     };
-  }, [formType]);
+  }, [canonicalFormType]);
 
   useEffect(() => {
     if (!initialData || !Object.keys(initialData).length) return;
@@ -56,10 +59,25 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
 
   const totalSteps = schema?.steps?.length || 0;
 
-  const labelFor = (key) => {
+  const labelFor = (field) => {
+    const key = typeof field === 'string' ? field : field.key;
+    if (field?.label) return field.label;
     const path = `${prefix}.fields.${key}`;
     const translated = t(path);
-    return translated === path ? key : translated;
+    if (translated !== path) return translated;
+    if (field?.acroName) {
+      const human = field.acroName
+        .replace(/^(txt|fld|field|cb|chk)[_\-.]*/i, '')
+        .replace(/[_\-.]+/g, ' ')
+        .trim();
+      if (human) {
+        return human
+          .split(/\s+/)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+      }
+    }
+    return key;
   };
 
   const stepTitle = useMemo(() => {
@@ -89,7 +107,7 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(formType)}/validate`,
+        `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(canonicalFormType)}/validate`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
@@ -114,7 +132,7 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(formType)}/validate`,
+        `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(canonicalFormType)}/validate`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
@@ -154,7 +172,7 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
 
   const renderField = (field) => {
     if (!fieldVisible(field, formData)) return null;
-    const label = labelFor(field.key);
+    const label = labelFor(field);
     const colStyle = field.col === 'full' ? { gridColumn: '1 / -1' } : undefined;
 
     if (field.type === 'textarea') {

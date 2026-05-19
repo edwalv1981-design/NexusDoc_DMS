@@ -16,7 +16,7 @@ const FORM_TYPE_FUNDACION = 'Fundaciones';
 
 /** formType (DB / UI) → nombre interno de plantilla / motor. */
 const PDF_TEMPLATE_BY_FORM_TYPE = Object.freeze({
-  [FORM_TYPE_FONDOS_SFAR]: 'referencia_maestra',
+  [FORM_TYPE_FONDOS_SFAR]: 'fondos',
   [FORM_TYPE_CORPORACION]: 'corporacion',
   Fundaciones: 'fundaciones',
   'Cumplimiento Individual': 'cumplimiento_individual',
@@ -32,19 +32,11 @@ const UNIQUE_CODE_PREFIX_BY_FORM_TYPE = Object.freeze({
   'Cumplimiento Entidades': 'KYCE',
 });
 
+const { resolveCanonicalFormType } = require('../../lib/formWizardRouting.cjs');
+
 function getPdfTemplateNameForForm(formType) {
-  const norm = String(formType || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  if (norm.includes('corporacion') || norm.includes('incorporation') || norm.includes('corporativo')) {
-    return 'corporacion';
-  }
-  if (norm.includes('fondos') || norm.includes('funds')) {
-    return 'referencia_maestra';
-  }
-  if (norm.includes('fundacion')) return 'fundaciones';
-  if (norm.includes('cumplimiento individual') || norm.includes('individual compliance')) return 'cumplimiento_individual';
-  if (norm.includes('cumplimiento entidades') || norm.includes('entity compliance')) return 'cumplimiento_entidades';
-  
-  return PDF_TEMPLATE_BY_FORM_TYPE[formType] || 'referencia_maestra';
+  const canonical = resolveCanonicalFormType(formType);
+  return PDF_TEMPLATE_BY_FORM_TYPE[canonical] || PDF_TEMPLATE_BY_FORM_TYPE[formType] || null;
 }
 
 function isCorporacionPdfForm(formType) {
@@ -52,7 +44,7 @@ function isCorporacionPdfForm(formType) {
 }
 
 function isFundacionPdfForm(formType) {
-  return getPdfTemplateNameForForm(formType) === 'fundaciones';
+  return resolveCanonicalFormType(formType) === FORM_TYPE_FUNDACION;
 }
 
 /**
@@ -64,13 +56,13 @@ function getPdfDownloadFilenamePrefix(formType) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
-  if (normType.includes('fondos') || normType.includes('funds')) return UNIQUE_CODE_PREFIX_BY_FORM_TYPE[FORM_TYPE_FONDOS_SFAR];
-  if (normType.includes('corporacion') || normType.includes('incorporation') || normType.includes('corporativo')) {
+  if (normType.includes('fondos')) return UNIQUE_CODE_PREFIX_BY_FORM_TYPE[FORM_TYPE_FONDOS_SFAR];
+  if (normType.includes('corporacion') || normType.includes('corporativos')) {
     return UNIQUE_CODE_PREFIX_BY_FORM_TYPE[FORM_TYPE_CORPORACION];
   }
   if (normType.includes('fundacion')) return 'PTLF';
-  if (normType.includes('cumplimiento individual') || normType.includes('individual compliance')) return 'KYCI';
-  if (normType.includes('cumplimiento entidades') || normType.includes('entity compliance')) return 'KYCE';
+  if (normType.includes('cumplimiento individual')) return 'KYCI';
+  if (normType.includes('cumplimiento entidades')) return 'KYCE';
   return 'DOC';
 }
 
@@ -80,6 +72,7 @@ module.exports = {
   FORM_TYPE_FUNDACION,
   PDF_TEMPLATE_BY_FORM_TYPE,
   UNIQUE_CODE_PREFIX_BY_FORM_TYPE,
+  resolveCanonicalFormType,
   getPdfTemplateNameForForm,
   isCorporacionPdfForm,
   isFundacionPdfForm,
