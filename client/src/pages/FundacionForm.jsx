@@ -14,7 +14,9 @@ import {
     normalizeFundacionPerson,
     normalizeFundacionDignitary,
     normalizeFundacionBeneficiary,
+    normalizeLoadedFundacionData,
     personDisplayName,
+    personHasData,
     mergePersonRecords,
     mergeRoleFields,
     snapshotFromPerson,
@@ -73,33 +75,21 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     });
 
     useEffect(() => {
-        if (initialData && Object.keys(initialData).length > 0) {
-            const cleanData = { ...initialData };
-            if (!cleanData.founders) cleanData.founders = formData.founders;
-            if (!cleanData.councilMembers) cleanData.councilMembers = formData.councilMembers;
-            if (!cleanData.protectors) cleanData.protectors = formData.protectors;
-            cleanData.founders = (cleanData.founders || []).map(normalizeFundacionPerson);
-            cleanData.protectors = (cleanData.protectors || []).map(normalizeFundacionPerson);
-            cleanData.councilMembers = (cleanData.councilMembers || []).map(normalizeFundacionPerson);
-            cleanData.dignitaries = (cleanData.dignitaries || formData.dignitaries).map((d) =>
-                normalizeFundacionDignitary(d)
-            );
-            cleanData.beneficiaries = (cleanData.beneficiaries || formData.beneficiaries).map((b) =>
-                normalizeFundacionBeneficiary(b)
-            );
+        if (!initialData || Object.keys(initialData).length === 0) return;
+        try {
+            const normalized = normalizeLoadedFundacionData(initialData, formData);
+            const cleanData = { ...initialData, ...normalized };
             if (cleanData.declarationName === undefined) cleanData.declarationName = formData.declarationName;
             if (cleanData.declarationSignature === undefined) cleanData.declarationSignature = formData.declarationSignature;
-            if (Array.isArray(cleanData.signers) && cleanData.signers[0] && !cleanData.declarationName) {
+            if (cleanData.signers[0] && !cleanData.declarationName) {
                 cleanData.declarationName = cleanData.signers[0].name || '';
                 cleanData.declarationSignature = cleanData.signers[0].signature || cleanData.signers[0].name || '';
             }
-            
-            // Garantizar inicialización segura de los campos originales de poderes
+
             if (cleanData.poaIssue === undefined) cleanData.poaIssue = formData.poaIssue;
             if (cleanData.poaType === undefined) cleanData.poaType = formData.poaType;
             if (cleanData.poaValidityDate === undefined) cleanData.poaValidityDate = formData.poaValidityDate;
             if (cleanData.poaLegalized === undefined) cleanData.poaLegalized = formData.poaLegalized;
-            
             if (cleanData.poaFirstName === undefined) cleanData.poaFirstName = formData.poaFirstName;
             if (cleanData.poaMiddleName === undefined) cleanData.poaMiddleName = formData.poaMiddleName;
             if (cleanData.poaLastName === undefined) cleanData.poaLastName = formData.poaLastName;
@@ -114,15 +104,19 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             if (cleanData.poaCity === undefined) cleanData.poaCity = formData.poaCity;
             if (cleanData.poaCountry === undefined) cleanData.poaCountry = formData.poaCountry;
 
-            setFormData(prev => ({ ...prev, ...cleanData }));
+            setFormData((prev) => ({ ...prev, ...cleanData }));
+        } catch (err) {
+            console.error('FundacionForm: failed to load saved data', err);
         }
     }, [initialData]);
 
     const mergePersonIntoRow = (arrayName, index, sourceData, allowedFields) => {
         if (!sourceData || !allowedFields?.length) return;
-        const base = formData[arrayName][index];
+        const rows = formData[arrayName];
+        if (!Array.isArray(rows) || index < 0 || index >= rows.length) return;
+        const base = rows[index];
         const merged = mergeRoleFields(base, sourceData, allowedFields);
-        const next = [...formData[arrayName]];
+        const next = [...rows];
         next[index] = merged;
         setFormData((prev) => ({ ...prev, [arrayName]: next }));
     };
@@ -195,11 +189,13 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
     const applyPersonSnapshot = (arrayName, index, snapshot) => {
         if (!snapshot?.data) return;
-        const merged = { ...formData[arrayName][index], ...snapshotFromPerson(snapshot.data) };
+        const rows = formData[arrayName];
+        if (!Array.isArray(rows) || index < 0 || index >= rows.length) return;
+        const merged = { ...rows[index], ...snapshotFromPerson(snapshot.data) };
         if (snapshot.data.percentage !== undefined) merged.percentage = snapshot.data.percentage;
-        const next = [...formData[arrayName]];
+        const next = [...rows];
         next[index] = merged;
-        setFormData(prev => ({ ...prev, [arrayName]: next }));
+        setFormData((prev) => ({ ...prev, [arrayName]: next }));
     };
 
     const PersonCopySelect = ({ excludeStep, onSelect }) => {
@@ -437,7 +433,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <div key={i} className="expert-card-legal">
                     <PersonCopySelect
                         excludeStep="protector"
-                        onSelect={(person) => applyPersonSnapshot({ kind: 'fullNameRow', arrayName: 'protectors', index: i }, person)}
+                        onSelect={(person) => applyLegacyFullNameSnapshot('protectors', i, person)}
                     />
                     <div className="expert-card-label">{lang === 'en' ? `PROTECTOR #${i+1}` : `PROTECTOR #${i+1}`}</div>
                     {formData.protectors.length > 1 && <button type="button" onClick={() => removeArrayItem('protectors', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
@@ -477,7 +473,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <div key={i} className="expert-card-legal">
                     <PersonCopySelect
                         excludeStep="director"
-                        onSelect={(person) => applyPersonSnapshot({ kind: 'splitNameRow', index: i }, person)}
+                        onSelect={(person) => applyPersonSnapshot('councilMembers', i, person)}
                     />
                     <div className="expert-card-label">{lang === 'en' ? `DIRECTOR #${i+1}` : `DIRECTOR #${i+1}`}</div>
                     {formData.councilMembers.length > 3 && <button type="button" onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
@@ -806,7 +802,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     }
                 </p>
                 
-                {formData.signers.map((s, i) => (
+                {(Array.isArray(formData.signers) ? formData.signers : [{ name: '', signature: '' }]).map((s, i) => (
                     <div key={i} className="signer-row animate-in fade-in" style={{ marginTop: '20px', padding: '25px', background: 'white', border: '2px solid #f1f5f9', borderRadius: '16px', position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <span style={{ fontSize: '11px', fontWeight: 900, color: PRIMARY, letterSpacing: '0.5px' }}>{lang === 'en' ? `SIGNER #${i+1}` : `FIRMANTE #${i+1}`}</span>

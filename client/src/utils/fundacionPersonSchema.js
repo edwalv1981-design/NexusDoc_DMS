@@ -33,6 +33,13 @@ export function emptyFundacionBeneficiary() {
   return { percentage: '', shareholder: '', birthDate: '', address: '' };
 }
 
+/** Coerce legacy saves: null, single object, or non-array → array. */
+export function ensurePersonArray(value, fallback = []) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return [value];
+  return Array.isArray(fallback) ? [...fallback] : fallback;
+}
+
 /** Migra registros legacy (fullName) al esquema de nombre dividido. */
 export function normalizeFundacionPerson(raw = {}) {
   const person = { ...emptyFundacionPerson(), ...raw };
@@ -54,7 +61,8 @@ export function normalizeFundacionPerson(raw = {}) {
 }
 
 export function normalizeFundacionDignitary(raw = {}) {
-  const d = { ...emptyFundacionDignitary(raw.role || ''), ...raw };
+  const role = raw.role || raw.position || '';
+  const d = { ...emptyFundacionDignitary(role), ...raw, role };
   if (!String(d.fullName || '').trim()) {
     d.fullName =
       String(raw.fullName || '').trim() || personDisplayName(normalizeFundacionPerson(raw));
@@ -157,16 +165,16 @@ export function buildPersonRegistry(formData, exclude = null) {
   const skip = (arrayName, index) =>
     exclude && exclude.arrayName === arrayName && exclude.index === index;
 
-  (formData.founders || []).forEach((p, i) => {
+  ensurePersonArray(formData.founders).forEach((p, i) => {
     if (!skip('founders', i)) addPerson(p);
   });
-  (formData.protectors || []).forEach((p, i) => {
+  ensurePersonArray(formData.protectors).forEach((p, i) => {
     if (!skip('protectors', i)) addPerson(p);
   });
-  (formData.councilMembers || []).forEach((p, i) => {
+  ensurePersonArray(formData.councilMembers).forEach((p, i) => {
     if (!skip('councilMembers', i)) addPerson(p);
   });
-  (formData.dignitaries || []).forEach((d, i) => {
+  ensurePersonArray(formData.dignitaries).forEach((d, i) => {
     if (!skip('dignitaries', i)) {
       const name = dignitaryDisplayName(d);
       if (!name) return;
@@ -176,7 +184,7 @@ export function buildPersonRegistry(formData, exclude = null) {
       );
     }
   });
-  (formData.beneficiaries || []).forEach((b, i) => {
+  ensurePersonArray(formData.beneficiaries).forEach((b, i) => {
     if (!skip('beneficiaries', i)) {
       const name = beneficiaryDisplayName(b);
       if (!name) return;
@@ -213,4 +221,45 @@ export function buildPersonRegistry(formData, exclude = null) {
     name: personDisplayName(data),
     data,
   }));
+}
+
+/**
+ * Normalizes API / legacy JSON before merging into FundacionForm state.
+ * Prevents runtime crashes when saved arrays are missing or malformed.
+ */
+export function normalizeLoadedFundacionData(raw = {}, defaults = {}) {
+  const clean = { ...raw };
+
+  clean.founders = ensurePersonArray(clean.founders, defaults.founders).map((p) => {
+    const row = normalizeFundacionPerson(p);
+    if (!row.fullName && p?.fullName) row.fullName = String(p.fullName);
+    return row;
+  });
+  clean.protectors = ensurePersonArray(clean.protectors, defaults.protectors).map((p) => {
+    const row = normalizeFundacionPerson(p);
+    if (!row.fullName && p?.fullName) row.fullName = String(p.fullName);
+    return row;
+  });
+  clean.councilMembers = ensurePersonArray(clean.councilMembers, defaults.councilMembers).map(
+    normalizeFundacionPerson
+  );
+  clean.dignitaries = ensurePersonArray(clean.dignitaries, defaults.dignitaries).map((d) =>
+    normalizeFundacionDignitary({ ...d, role: d?.role || d?.position })
+  );
+  clean.beneficiaries = ensurePersonArray(clean.beneficiaries, defaults.beneficiaries).map(
+    normalizeFundacionBeneficiary
+  );
+
+  if (!Array.isArray(clean.signers) || clean.signers.length === 0) {
+    clean.signers = Array.isArray(defaults.signers)
+      ? defaults.signers.map((s) => ({ name: s?.name || '', signature: s?.signature || '' }))
+      : [{ name: '', signature: '' }];
+  } else {
+    clean.signers = clean.signers.map((s) => ({
+      name: s?.name || '',
+      signature: s?.signature || s?.name || '',
+    }));
+  }
+
+  return clean;
 }

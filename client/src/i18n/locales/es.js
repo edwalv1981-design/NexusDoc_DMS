@@ -157,6 +157,8 @@ const es = {
   fundacion: {
     title: 'FUNDACIÓN DE INTERÉS PRIVADO',
     subtitle: 'Gestión de Fundaciones de Alta Precisión',
+    copyFrom: 'Copiar datos de otra persona',
+    copySelect: '— Seleccionar persona —',
     dignitary: {
       role: 'Cargo',
       fullName: 'Nombre completo',
