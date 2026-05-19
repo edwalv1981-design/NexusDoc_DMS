@@ -78,12 +78,7 @@ function usesPdfWizardForm(formType) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  return (
-    norm.includes('fondos') ||
-    norm.includes('funds') ||
-    norm.includes('cumplimiento individual') ||
-    norm.includes('cumplimiento entidades')
-  );
+  return norm.includes('fondos') || norm.includes('funds');
 }
 
 async function checkTemplateExists(formType, DocumentTemplate) {

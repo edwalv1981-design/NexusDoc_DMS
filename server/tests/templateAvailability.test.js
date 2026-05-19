@@ -26,9 +26,10 @@ describe('templateAvailability', () => {
     assert.equal(t.isInteractiveFormAvailable('Cumplimiento Entidades', map), false);
   });
 
-  it('usesPdfWizardForm identifica Fondos y Cumplimiento', () => {
+  it('usesPdfWizardForm solo para Fondos (SFAR)', () => {
     assert.equal(t.usesPdfWizardForm(stablePdfForms.FORM_TYPE_FONDOS_SFAR), true);
-    assert.equal(t.usesPdfWizardForm('Cumplimiento Individual'), true);
+    assert.equal(t.usesPdfWizardForm('Cumplimiento Individual'), false);
+    assert.equal(t.usesPdfWizardForm('Cumplimiento Entidades'), false);
     assert.equal(t.usesPdfWizardForm(stablePdfForms.FORM_TYPE_CORPORACION), false);
   });
 

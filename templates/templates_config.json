@@ -18,6 +18,38 @@
       {"keywords": ["electronico", "email"], "x_key": "x_bot", "data_key": "custodyEmail", "min_y": 600, "max_y": 720}
     ]
   },
+  "cumplimiento_individual": {
+    "file_path": "KYCI.pdf",
+    "x_default": 220,
+    "anchors": [
+      {"keywords": ["first", "primer", "nombre"], "x_key": "x_default", "data_key": "firstName", "min_y": 80, "max_y": 200},
+      {"keywords": ["second", "segundo"], "x_key": "x_default", "data_key": "secondName", "min_y": 100, "max_y": 220},
+      {"keywords": ["surname", "apellido", "last"], "x_key": "x_default", "data_key": "lastName", "min_y": 120, "max_y": 240},
+      {"keywords": ["birth", "nacimiento"], "x_key": "x_default", "data_key": "birthDate", "min_y": 150, "max_y": 280},
+      {"keywords": ["place", "lugar"], "x_key": "x_default", "data_key": "birthPlace", "min_y": 170, "max_y": 300},
+      {"keywords": ["marital", "civil"], "x_key": "x_default", "data_key": "maritalStatus", "min_y": 190, "max_y": 320},
+      {"keywords": ["citizenship", "nacionalidad"], "x_key": "x_default", "data_key": "nationality", "min_y": 210, "max_y": 340},
+      {"keywords": ["passport", "pasaporte"], "x_key": "x_default", "data_key": "passport", "min_y": 230, "max_y": 360},
+      {"keywords": ["identification", "cedula", "id"], "x_key": "x_default", "data_key": "idCard", "min_y": 250, "max_y": 380},
+      {"keywords": ["phone", "telefono"], "x_key": "x_default", "data_key": "phone", "min_y": 280, "max_y": 420},
+      {"keywords": ["email", "correo"], "x_key": "x_default", "data_key": "email", "min_y": 300, "max_y": 440},
+      {"keywords": ["address", "direccion", "domicilio"], "x_key": "x_default", "data_key": "address", "min_y": 320, "max_y": 480},
+      {"keywords": ["city", "ciudad"], "x_key": "x_default", "data_key": "city", "min_y": 360, "max_y": 500},
+      {"keywords": ["country", "pais"], "x_key": "x_default", "data_key": "country", "min_y": 380, "max_y": 520},
+      {"keywords": ["occupation", "ocupacion", "profesion"], "x_key": "x_default", "data_key": "occupation", "min_y": 400, "max_y": 540},
+      {"keywords": ["employer", "empleador"], "x_key": "x_default", "data_key": "employer", "min_y": 420, "max_y": 560},
+      {"keywords": ["pep", "politically"], "x_key": "x_default", "data_key": "pep", "min_y": 450, "max_y": 600},
+      {"keywords": ["declaration", "declaracion"], "x_key": "x_default", "data_key": "declarationName", "min_y": 650, "max_y": 780},
+      {"keywords": ["date", "fecha"], "x_key": "x_default", "data_key": "declarationDate", "min_y": 680, "max_y": 800}
+    ],
+    "funds_checkboxes": {
+      "bienes": {"x": 74.5, "y": 376.3},
+      "inversiones": {"x": 74.5, "y": 387.8},
+      "negocios": {"x": 74.5, "y": 399.3},
+      "prestamos": {"x": 74.5, "y": 410.8},
+      "herencia": {"x": 74.5, "y": 422.3}
+    }
+  },
   "corporacion": {
     "file_path": "corporacion.pdf",
     "x_top": 200,

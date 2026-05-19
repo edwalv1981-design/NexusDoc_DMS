@@ -1074,6 +1074,64 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
             y_dt = float(dig_f.get("fallback_date_y") or (page_f.rect.height * 0.893))
             page_f.insert_text((float(dig_f.get("fallback_date_x") or 180), y_dt), str(dt), fontsize=11)
 
+def fill_schema_anchor_engine(doc, data, config):
+    """Relleno por anclas para plantillas KYCI/KYCE (campos personales, no SFAR)."""
+    if not doc.page_count:
+        return
+    page1 = doc[0]
+    words = page1.get_text("words")
+    x_default = float(config.get("x_default", 220))
+
+    for entry in config.get("anchors", []):
+        data_key = entry.get("data_key")
+        if not data_key or data_key not in data or not data[data_key]:
+            continue
+        keywords = entry.get("keywords") or []
+        if not keywords:
+            continue
+        x_key = entry.get("x_key", "x_default")
+        xv = config.get(x_key, x_default) if isinstance(x_key, str) else x_key
+        min_y = float(entry.get("min_y", 0))
+        max_y = float(entry.get("max_y", 9999))
+        matched = False
+        for kw in keywords:
+            if matched:
+                break
+            for w in words:
+                if normalize(kw) in normalize(w[4]):
+                    yc = (w[1] + w[3]) / 2 + 3
+                    if min_y <= yc <= max_y:
+                        page1.insert_text((xv, yc), str(data[data_key]), fontsize=10, fontname="Helvetica")
+                        matched = True
+                        break
+
+    if data.get("pepDetails"):
+        for w in words:
+            if normalize("pep") in normalize(w[4]) or normalize("expuesta") in normalize(w[4]):
+                yc = (w[1] + w[3]) / 2 + 14
+                page1.insert_text((x_default, yc), str(data["pepDetails"])[:240], fontsize=9, fontname="Helvetica")
+                break
+
+    f_d = normalize(str(data.get("fundsSource", [])))
+    checks = config.get("funds_checkboxes") or {
+        "bienes": {"x": 74.5, "y": 376.3},
+        "inversiones": {"x": 74.5, "y": 387.8},
+        "negocios": {"x": 74.5, "y": 399.3},
+        "prestamos": {"x": 74.5, "y": 410.8},
+        "herencia": {"x": 74.5, "y": 422.3},
+    }
+    for k, pos in checks.items():
+        if k in f_d:
+            page1.insert_text((float(pos["x"]), float(pos["y"])), "X", fontsize=8, fontname="Helvetica-Bold")
+
+    if data.get("fundsOther"):
+        for w in words:
+            if "other" in normalize(w[4]) or "otra" in normalize(w[4]) or "otros" in normalize(w[4]):
+                yc = (w[1] + w[3]) / 2 + 3
+                page1.insert_text((x_default, yc), str(data["fundsOther"])[:120], fontsize=9, fontname="Helvetica")
+                break
+
+
 def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
     # RESOLUCIÓN DE RUTAS ROBUSTA (Blindaje contra entornos)
     current_dir = os.path.dirname(os.path.abspath(__file__)) # server/scripts
@@ -1109,6 +1167,10 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
     if template_name == "corporacion" or "corpNameSA" in data:
         fill_corporacion_engine(doc, data, pdf_path, root_dir)
 
+    elif template_name in ("cumplimiento_individual", "cumplimiento_entidades") or "firstName" in data:
+        schema_cfg = master_config.get(template_name) or master_config.get("cumplimiento_individual", {})
+        fill_schema_anchor_engine(doc, data, schema_cfg)
+
     # ══════════════════════════════════════════════════════════════════════════════
     # ██████  MOTOR FONDOS (SFAR) - BLINDADO ███████████████████████████████████████
     # ══════════════════════════════════════════════════════════════════════════════
@@ -1130,18 +1192,6 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         checks = {"bienes": (74.5, 376.3), "inversiones": (74.5, 387.8), "negocios": (74.5, 399.3), "prestamos": (74.5, 410.8), "herencia": (74.5, 422.3)}
         for k, pos in checks.items():
             if k in f_d: page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
-        
-        if data.get("fundsOther"):
-            spec_r = None
-            for kw in ["favor especificar", "please specify", "especificar:"]:
-                rects = page1.search_for(kw)
-                if rects:
-                    spec_r = rects[0]
-                    break
-            if spec_r:
-                page1.insert_text((74.5, spec_r.y1 + 13), str(data["fundsOther"]), fontsize=9, fontname="Helvetica")
-            else:
-                page1.insert_text((74.5, 452.0), str(data["fundsOther"]), fontsize=9, fontname="Helvetica")
         
         if data.get("custodyAddress"):
             for w in page1.get_text("words"):
@@ -1174,7 +1224,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         input_data = json.loads(raw_input)
-        data = input_data.get("data", {}) or {}
+        data = input_data.get("data", {})
         output_path = input_data.get("output_path", "filled_temp.pdf")
         template_name = input_data.get("template_name", "referencia_maestra")
         custom_path = input_data.get("custom_template_path")

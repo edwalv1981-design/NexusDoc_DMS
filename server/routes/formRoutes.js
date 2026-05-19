@@ -10,6 +10,35 @@ const stablePdfForms = require('../config/stablePdfForms');
 const userLanguageStore = require('../services/userLanguageStore');
 
 const templateAvailability = require('../utils/templateAvailability');
+const pdfFormSchemas = require('../config/pdfFormSchemas');
+
+// @route   GET api/forms/schema/:formType
+router.get('/schema/:formType', auth, (req, res) => {
+    const schema = pdfFormSchemas.getSchemaByFormType(req.params.formType);
+    if (!schema) {
+        return res.status(404).json({ msg: 'Esquema no definido para este tramite.' });
+    }
+    return res.json({
+        schema,
+        emptyState: pdfFormSchemas.emptyStateForSchema(schema),
+        templateId: schema.templateId,
+    });
+});
+
+// @route   POST api/forms/schema/:formType/validate
+router.post('/schema/:formType/validate', auth, (req, res) => {
+    const schema = pdfFormSchemas.getSchemaByFormType(req.params.formType);
+    if (!schema) {
+        return res.status(404).json({ msg: 'Esquema no definido.' });
+    }
+    const step = Number(req.body?.step) || 1;
+    const data = req.body?.data || {};
+    if (req.body?.all) {
+        return res.json(pdfFormSchemas.validateAll(schema, data));
+    }
+    return res.json(pdfFormSchemas.validateStep(schema, step, data));
+});
+
 
 // @route   GET api/forms/templates/status
 router.get('/templates/status', auth, async (req, res) => {

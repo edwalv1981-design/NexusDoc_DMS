@@ -16,6 +16,7 @@ import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
 import CorporacionForm from './CorporacionForm';
 import FundacionForm from './FundacionForm';
+import PdfSchemaWizard from '../components/PdfSchemaWizard';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -135,10 +136,9 @@ const ClientDashboard = () => {
     const isHtmlFormType = (type) =>
         type?.startsWith('Corporaci') || type === 'Fundaciones';
 
-    const usesPdfWizard = (type) =>
-        type === 'Fondos Registros contables' ||
-        type === 'Cumplimiento Individual' ||
-        type === 'Cumplimiento Entidades';
+    const usesFondosWizard = (type) => type === 'Fondos Registros contables';
+
+    const usesSchemaWizard = (type) => type === 'Cumplimiento Individual';
 
     const isFormReady = (type) => {
         if (!type) return true;
@@ -487,7 +487,18 @@ const ClientDashboard = () => {
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', color: '#64748b' }} aria-busy="true">
                         <p>{t('dashboard.syncing')}</p>
                     </div>
-                ) : usesPdfWizard(currentFormType) && isFormReady(currentFormType) ? (
+                ) : usesSchemaWizard(currentFormType) && isFormReady(currentFormType) ? (
+                    <div style={{ maxWidth: '800px' }}>
+                        <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
+                        <PdfSchemaWizard
+                            formType={currentFormType}
+                            initialData={formData}
+                            onSave={saveDynamicForm}
+                            saving={saving}
+                            onValidationError={(msg) => showToast(msg)}
+                        />
+                    </div>
+                ) : usesFondosWizard(currentFormType) && isFormReady(currentFormType) ? (
                     <div style={{ maxWidth: '800px' }}>
                         <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
