@@ -1,6 +1,11 @@
 const puppeteer = require('puppeteer');
 const fundacionLayoutGuard = require('./fundacionLayoutGuard');
 const fundacionPdfI18n = require('./fundacionPdfI18n');
+const {
+  normalizeFundacionPerson,
+  personDisplayName,
+  personHasData,
+} = require('../utils/fundacionPersonSchema');
 const fs = require('fs');
 const path = require('path');
 
@@ -39,9 +44,66 @@ function toDataUri(filePath) {
 }
 
 function getFounderRecord(data) {
-  if (data.founder && typeof data.founder === 'object') return data.founder;
+  if (data.founder && typeof data.founder === 'object') return normalizeFundacionPerson(data.founder);
   const founders = Array.isArray(data.founders) ? data.founders : [];
-  return founders[0] || {};
+  return normalizeFundacionPerson(founders[0] || {});
+}
+
+function personFieldRows(person, t) {
+  const p = normalizeFundacionPerson(person);
+  const rows = [
+    [t.poaFirstName, p.firstName],
+    [t.poaMiddleName, p.secondName],
+    [t.poaLastName, p.lastName],
+    [t.poaBirthDate, fmtDate(p.birthDate)],
+    [t.poaMaritalStatus, p.maritalStatus],
+    [t.poaNationality, p.nationality],
+    [t.poaPassport, p.passport],
+    [t.poaIdCard, p.idCard],
+    [t.poaPhone, p.phone],
+    [t.poaEmail, p.email],
+    [t.poaAddress, p.address],
+    [t.poaCity, p.city],
+    [t.poaCountry, p.country],
+  ];
+  return rows
+    .filter(([, v]) => v)
+    .map(([label, value]) => `<tr><td class="kv-label">${esc(label)}</td><td>${esc(value)}</td></tr>`)
+    .join('');
+}
+
+function buildPersonKvBlock(person, t, blockTitle) {
+  const p = normalizeFundacionPerson(person);
+  if (!personHasData(p)) return '';
+  const rows = personFieldRows(p, t);
+  if (!rows) return '';
+  return `
+    <div class="person-block">
+      <div class="person-block-title">${esc(blockTitle)}</div>
+      <table class="kv-table"><tbody>${rows}</tbody></table>
+    </div>
+  `;
+}
+
+function buildPersonStackSection(sectionTitle, people, t, emptyMsg, roleSingular, hintHtml = '') {
+  const list = (Array.isArray(people) ? people : []).map(normalizeFundacionPerson).filter(personHasData);
+  const blocks =
+    list.length > 0
+      ? list
+          .map((p, i) => {
+            const title =
+              list.length > 1 ? `${roleSingular} #${i + 1} — ${personDisplayName(p)}` : roleSingular;
+            return buildPersonKvBlock(p, t, title);
+          })
+          .join('')
+      : `<p class="empty-msg">${esc(emptyMsg)}</p>`;
+  return `
+    <section class="card person-stack-section">
+      <h2>${esc(sectionTitle)}</h2>
+      ${hintHtml}
+      ${blocks}
+    </section>
+  `;
 }
 
 function getDirectors(data) {
@@ -136,42 +198,42 @@ function buildPowersHtml(data, t) {
   const poaLegalizedYes = data.poaLegalized === 'YES';
   const poaLegalizedNo = data.poaLegalized === 'NO' || !data.poaLegalized;
   const poaTypeLabel = String(data.poaType || 'GENERAL').toUpperCase();
+  const grantee = normalizeFundacionPerson({
+    firstName: data.poaFirstName,
+    secondName: data.poaMiddleName,
+    lastName: data.poaLastName,
+    birthDate: data.poaBirthDate,
+    maritalStatus: data.poaMaritalStatus,
+    nationality: data.poaNationality,
+    passport: data.poaPassport,
+    idCard: data.poaIdCard,
+    phone: data.poaPhone,
+    email: data.poaEmail,
+    address: data.poaAddress,
+    city: data.poaCity,
+    country: data.poaCountry,
+  });
+  const granteeRows = personFieldRows(grantee, t);
 
   return `
-    <section class="card card--poa">
+    <section class="card card--poa person-stack-section">
       <h2>${esc(t.sectionPowers)}</h2>
-      <div class="poa-grid">
-        <div class="poa-col">
-          <table>
-            <thead><tr><th colspan="2">${esc(t.poaHeaderGrantee)}</th></tr></thead>
-            <tbody>
-              <tr><td>${esc(t.poaFirstName)}</td><td>${esc(data.poaFirstName)}</td></tr>
-              <tr><td>${esc(t.poaMiddleName)}</td><td>${esc(data.poaMiddleName)}</td></tr>
-              <tr><td>${esc(t.poaLastName)}</td><td>${esc(data.poaLastName)}</td></tr>
-              <tr><td>${esc(t.poaBirthDate)}</td><td>${esc(fmtDate(data.poaBirthDate))}</td></tr>
-              <tr><td>${esc(t.poaMaritalStatus)}</td><td>${esc(data.poaMaritalStatus)}</td></tr>
-              <tr><td>${esc(t.poaNationality)}</td><td>${esc(data.poaNationality)}</td></tr>
-              <tr><td>${esc(t.poaPassport)}</td><td>${esc(data.poaPassport)}</td></tr>
-              <tr><td>${esc(t.poaIdCard)}</td><td>${esc(data.poaIdCard)}</td></tr>
-              <tr><td>${esc(t.poaPhone)}</td><td>${esc(data.poaPhone)}</td></tr>
-              <tr><td>${esc(t.poaEmail)}</td><td>${esc(data.poaEmail)}</td></tr>
-              <tr><td>${esc(t.poaAddress)}</td><td>${esc(data.poaAddress)}</td></tr>
-              <tr><td>${esc(t.poaCity)}</td><td>${esc(data.poaCity)}</td></tr>
-              <tr><td>${esc(t.poaCountry)}</td><td>${esc(data.poaCountry)}</td></tr>
-            </tbody>
-          </table>
+      <div class="poa-stack">
+        <div class="person-block">
+          <div class="person-block-title">${esc(t.poaHeaderGrantee)}</div>
+          <table class="kv-table"><tbody>${granteeRows || `<tr><td colspan="2" class="empty-msg">—</td></tr>`}</tbody></table>
         </div>
-        <div class="poa-col">
-          <table>
+        <div class="person-block poa-settings-block">
+          <table class="kv-table">
             <tbody>
               <tr>
-                <td>${esc(t.poaIssueQuestion)}</td>
+                <td class="kv-label">${esc(t.poaIssueQuestion)}</td>
                 <td><span class="chk">${poaIssueYes ? '☑' : '☐'} ${esc(t.yes)}</span> <span class="chk">${poaIssueNo ? '☑' : '☐'} ${esc(t.no)}</span></td>
               </tr>
-              <tr><td>${esc(t.poaTypeQuestion)}</td><td><strong>${esc(poaTypeLabel)}</strong></td></tr>
-              <tr><td>${esc(t.poaValidityQuestion)}</td><td>${esc(data.poaValidityDate)}</td></tr>
+              <tr><td class="kv-label">${esc(t.poaTypeQuestion)}</td><td><strong>${esc(poaTypeLabel)}</strong></td></tr>
+              <tr><td class="kv-label">${esc(t.poaValidityQuestion)}</td><td>${esc(data.poaValidityDate)}</td></tr>
               <tr>
-                <td>${esc(t.poaLegalizedQuestion)}</td>
+                <td class="kv-label">${esc(t.poaLegalizedQuestion)}</td>
                 <td><span class="chk">${poaLegalizedYes ? '☑' : '☐'} ${esc(t.yes)}</span> <span class="chk">${poaLegalizedNo ? '☑' : '☐'} ${esc(t.no)}</span></td>
               </tr>
             </tbody>
@@ -215,17 +277,28 @@ class FundacionHtmlPdfService {
         (Array.isArray(data.signers) && data.signers[0]?.signature) ||
         declarationName;
 
-      const founderRows = founder.fullName
-        ? `<tr>
-            <td>1</td>
-            <td>${esc(founder.fullName)}</td>
-            <td>${esc(fmtDate(founder.birthDate))}</td>
-            <td>${esc(founder.birthPlace)}</td>
-            <td>${esc(founder.passport)}</td>
-            <td>${esc(founder.nationality)}</td>
-            <td>${esc(founder.address)}</td>
-          </tr>`
-        : `<tr><td colspan="7" style="text-align:center;font-style:italic;">${esc(t.emptyFounder)}</td></tr>`;
+      const founderSection = buildPersonStackSection(
+        t.sectionFounder,
+        personHasData(founder) ? [founder] : [],
+        t,
+        t.emptyFounder,
+        t.sectionFounder
+      );
+      const protectorsSection = buildPersonStackSection(
+        t.sectionProtectors,
+        protectors,
+        t,
+        t.emptyProtectors,
+        lang === 'en' ? 'Protector' : 'Protector'
+      );
+      const directorsSection = buildPersonStackSection(
+        t.sectionDirectors,
+        directors,
+        t,
+        t.emptyDirectors,
+        lang === 'en' ? 'Director' : 'Director',
+        `<div class="hint">${esc(t.sectionDirectorsHint)}</div>`
+      );
 
       const content = `
         <main class="doc-body">
@@ -249,60 +322,9 @@ class FundacionHtmlPdfService {
             </table>
           </section>
 
-          <section class="card">
-            <h2>${esc(t.sectionFounder)}</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>${esc(t.dirNum)}</th>
-                  <th>${esc(t.founderName)}</th>
-                  <th>${esc(t.founderBirthDate)}</th>
-                  <th>${esc(t.founderBirthPlace)}</th>
-                  <th>${esc(t.founderPassport)}</th>
-                  <th>${esc(t.founderNationality)}</th>
-                  <th>${esc(t.founderAddress)}</th>
-                </tr>
-              </thead>
-              <tbody>${founderRows}</tbody>
-            </table>
-          </section>
-
-          <section class="card">
-            <h2>${esc(t.sectionProtectors)}</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>${esc(t.dirNum)}</th>
-                  <th>${esc(t.protectorName)}</th>
-                  <th>${esc(t.protectorBirthDate)}</th>
-                  <th>${esc(t.protectorPassport)}</th>
-                  <th>${esc(t.protectorAddress)}</th>
-                </tr>
-              </thead>
-              <tbody>${buildProtectorsRows(protectors, t)}</tbody>
-            </table>
-          </section>
-
-          <section class="card">
-            <h2>${esc(t.sectionDirectors)}</h2>
-            <div class="hint">${esc(t.sectionDirectorsHint)}</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>${esc(t.dirNum)}</th>
-                  <th>${esc(t.dirFullName)}</th>
-                  <th>${esc(t.dirBirthDate)}</th>
-                  <th>${esc(t.dirMarital)}</th>
-                  <th>${esc(t.dirNationality)}</th>
-                  <th>${esc(t.dirPassport)}</th>
-                  <th>${esc(t.dirAddress)}</th>
-                  <th>${esc(t.dirCity)}</th>
-                  <th>${esc(t.dirCountry)}</th>
-                </tr>
-              </thead>
-              <tbody>${buildDirectorsRows(directors, t)}</tbody>
-            </table>
-          </section>
+          ${founderSection}
+          ${protectorsSection}
+          ${directorsSection}
 
           <section class="card">
             <h2>${esc(t.sectionDignitaries)}</h2>
@@ -385,8 +407,12 @@ class FundacionHtmlPdfService {
             th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 9px; }
             .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; }
-            .poa-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; }
-            .poa-col { padding: 0; }
+            .poa-stack { display: flex; flex-direction: column; gap: 12px; padding: 8px; }
+            .person-stack-section .person-block { margin: 8px; border: 1px solid #bae6fd; border-radius: 6px; overflow: hidden; }
+            .person-block-title { background: #ecfeff; padding: 6px 8px; font-weight: 800; font-size: 10px; }
+            .kv-table { width: 100%; }
+            .kv-table .kv-label { width: 38%; font-weight: 700; background: #f8fdff; }
+            .empty-msg { font-style: italic; color: #64748b; padding: 8px; }
             .chk { margin-right: 8px; font-weight: 700; }
             ${layoutCss}
           </style>
