@@ -55,8 +55,8 @@ const en = {
   sidebar: {
     desktop: 'DASHBOARD',
     newProcess: 'NEW PROCESS',
-    myDocs: 'MY DOCUMENTS',
-    signedDocs: 'SIGNED DOCS',
+    myDocs: 'PERSONAL DOCUMENTS',
+    signedDocs: 'MY FORMS',
     helpTutorial: 'HELP & TUTORIAL',
     logout: 'SIGN OUT',
     language: 'LANGUAGE',
@@ -87,7 +87,11 @@ const en = {
     processToLink: 'PROCESS TYPE TO LINK',
   },
   userDocs: {
+    title: 'Personal Documents',
     pdfLabel: 'PDF FILE',
+  },
+  signedDocs: {
+    title: 'My Forms',
   },
   dashboard: {
     welcome: 'Welcome, {name}',

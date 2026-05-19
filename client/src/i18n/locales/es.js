@@ -55,8 +55,8 @@ const es = {
   sidebar: {
     desktop: 'ESCRITORIO',
     newProcess: 'NUEVO TRÁMITE',
-    myDocs: 'MIS DOCUMENTOS',
-    signedDocs: 'DOC. FIRMADOS',
+    myDocs: 'DOCUMENTOS PERSONALES',
+    signedDocs: 'MIS FORMULARIOS',
     helpTutorial: 'AYUDA Y TUTORIAL',
     logout: 'SALIR',
     language: 'IDIOMA',
@@ -87,7 +87,11 @@ const es = {
     processToLink: 'TIPO DE TRÁMITE A VINCULAR',
   },
   userDocs: {
+    title: 'Documentos Personales',
     pdfLabel: 'ARCHIVO PDF',
+  },
+  signedDocs: {
+    title: 'Mis Formularios',
   },
   dashboard: {
     welcome: 'Bienvenido, {name}',
