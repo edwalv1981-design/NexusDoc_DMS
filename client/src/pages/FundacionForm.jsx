@@ -18,6 +18,7 @@ import {
     personHasData,
     snapshotFromPerson,
 } from '../utils/fundacionPersonSchema';
+import { buildPersonRegistry } from '../utils/fundacionPersonRegistry';
 
 const FundacionForm = ({ initialData, onSave, saving }) => {
     const { lang, t } = useLang();
@@ -309,7 +310,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => (
+        const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => {
+        const registry = buildPersonRegistry(formData, { arrayName, index });
+        return (
             <div key={index} className="expert-card-legal">
                 <PersonCopySelect
                     excludeStep={excludeStep}
@@ -321,15 +324,17 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <Trash2 size={16} />
                     </button>
                 )}
-                
                 <FundacionPersonFields
                     person={formData[arrayName][index]}
                     lang={lang}
                     t={t}
+                    personRegistry={registry}
+                    onApplyPerson={(fields) => applyRegistryPerson(arrayName, index, fields)}
                     onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
                 />
             </div>
-    );
+        );
+    };
 
     // Paso 3: Fundador
     const renderStep3 = () => (
@@ -443,6 +448,27 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const renderStep8 = () => (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
+
+                {getAvailablePersons('poa').length > 0 && (
+                    <div className="person-copy-box" style={{ marginBottom: '20px' }}>
+                        <label>{t('fundacion.copyFrom')}</label>
+                        <select
+                            className="expert-input"
+                            defaultValue=""
+                            onChange={(e) => {
+                                const list = getAvailablePersons('poa');
+                                const selected = list[Number(e.target.value)];
+                                if (selected) handleImportPOA(selected);
+                                e.target.value = '';
+                            }}
+                        >
+                            <option value="">{t('fundacion.copySelect')}</option>
+                            {getAvailablePersons('poa').map((p, idx) => (
+                                <option key={idx} value={idx}>{p.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 
 
                 <div className="poa-original-grid">
