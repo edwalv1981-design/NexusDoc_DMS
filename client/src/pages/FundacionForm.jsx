@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useLang } from '../i18n';
 import FundacionPersonFields from '../components/FundacionPersonFields';
-import PersonNameAutocomplete from '../components/PersonNameAutocomplete';
 import {
     emptyFundacionPerson,
     emptyFundacionDignitary,
@@ -17,13 +16,7 @@ import {
     normalizeLoadedFundacionData,
     personDisplayName,
     personHasData,
-    mergePersonRecords,
-    mergeRoleFields,
     snapshotFromPerson,
-    buildPersonRegistry,
-    FUNDACION_PERSON_FIELDS,
-    FUNDACION_DIGNITARY_FIELDS,
-    FUNDACION_BENEFICIARY_FIELDS,
 } from '../utils/fundacionPersonSchema';
 
 const FundacionForm = ({ initialData, onSave, saving }) => {
@@ -111,16 +104,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    const mergePersonIntoRow = (arrayName, index, sourceData, allowedFields) => {
-        if (!sourceData || !allowedFields?.length) return;
-        const rows = formData[arrayName];
-        if (!Array.isArray(rows) || index < 0 || index >= rows.length) return;
-        const base = rows[index];
-        const merged = mergeRoleFields(base, sourceData, allowedFields);
-        const next = [...rows];
-        next[index] = merged;
-        setFormData((prev) => ({ ...prev, [arrayName]: next }));
-    };
+
 
     const getAvailablePersons = (excludeStep) => {
         const list = [];
@@ -221,27 +205,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 </select>
             </div>
         );
-    };
-
-    const handleImportPOA = (person) => {
-        if (!person?.data) return;
-        const p = snapshotFromPerson(person.data);
-        setFormData(prev => ({
-            ...prev,
-            poaFirstName: p.firstName,
-            poaMiddleName: p.secondName,
-            poaLastName: p.lastName,
-            poaBirthDate: p.birthDate,
-            poaMaritalStatus: p.maritalStatus,
-            poaNationality: p.nationality,
-            poaPassport: p.passport,
-            poaIdCard: p.idCard,
-            poaPhone: p.phone,
-            poaEmail: p.email,
-            poaAddress: p.address,
-            poaCity: p.city,
-            poaCountry: p.country,
-        }));
     };
 
     const updateArrayField = (arrayName, index, field, value) => {
@@ -346,9 +309,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => {
-        const registry = buildPersonRegistry(formData, { arrayName, index });
-        return (
+    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => (
             <div key={index} className="expert-card-legal">
                 <PersonCopySelect
                     excludeStep={excludeStep}
@@ -360,11 +321,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <Trash2 size={16} />
                     </button>
                 )}
-                <PersonNameAutocomplete
-                    registry={registry}
-                    t={t}
-                    onSelect={(data) => mergePersonIntoRow(arrayName, index, data, FUNDACION_PERSON_FIELDS)}
-                />
+                
                 <FundacionPersonFields
                     person={formData[arrayName][index]}
                     lang={lang}
@@ -372,9 +329,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
                 />
             </div>
-        );
-    };
-
+    );
 
     // Paso 3: Fundador
     const renderStep3 = () => (
@@ -419,15 +374,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
                 </button>
             </div>
-            {formData.dignitaries.map((d, i) => {
-                const registry = buildPersonRegistry(formData, { arrayName: 'dignitaries', index: i });
-                return (
+            {formData.dignitaries.map((d, i) => (
                 <div key={i} className="expert-card-legal">
-                    <PersonNameAutocomplete
-                        registry={registry}
-                        t={t}
-                        onSelect={(data) => mergePersonIntoRow('dignitaries', i, data, FUNDACION_DIGNITARY_FIELDS)}
-                    />
+                    
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
                     {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
@@ -449,8 +398,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                     </div>
                 </div>
-                );
-            })}
+            ))}
         </div>
     );
 
@@ -463,15 +411,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'AÑADIR BENEFICIARIO'}
                 </button>
             </div>
-            {formData.beneficiaries.map((b, i) => {
-                const registry = buildPersonRegistry(formData, { arrayName: 'beneficiaries', index: i });
-                return (
+            {formData.beneficiaries.map((b, i) => (
                 <div key={i} className="expert-card-legal">
-                    <PersonNameAutocomplete
-                        registry={registry}
-                        t={t}
-                        onSelect={(data) => mergePersonIntoRow('beneficiaries', i, data, FUNDACION_BENEFICIARY_FIELDS)}
-                    />
+                    
                     <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
                     {formData.beneficiaries.length > 1 && <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
@@ -493,39 +435,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                     </div>
                 </div>
-                );
-            })}
+            ))}
         </div>
     );
 
     // Paso 8: Poderes (Power of Attorney - ORIGINAL EXACT FORMAT)
-    const renderStep8 = () => {
-        const availablePersons = getAvailablePersons('poa');
-        return (
+    const renderStep8 = () => (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
                 
-                {availablePersons.length > 0 && (
-                    <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '12px' }}>
-                        <label style={{ fontSize: '11px', fontWeight: '900', color: PRIMARY, textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>
-                            {lang === 'en' ? '⚡ AUTOFILL FROM ANOTHER COMPLETED PERSON' : '⚡ AUTOCOMPLETAR DESDE PERSONA REGISTRADA'}
-                        </label>
-                        <select 
-                            className="expert-input" 
-                            style={{ padding: '10px 14px', fontSize: '13px' }}
-                            onChange={(e) => {
-                                const selected = availablePersons[e.target.value];
-                                if (selected) handleImportPOA(selected);
-                            }}
-                            defaultValue=""
-                        >
-                            <option value="">{lang === 'en' ? '-- Select a registered person to copy their data --' : '-- Seleccione una persona ya registrada para copiar sus datos --'}</option>
-                            {availablePersons.map((p, idx) => (
-                                <option key={idx} value={idx}>{p.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
 
                 <div className="poa-original-grid">
                     {/* LEFT COLUMN: Apoderado Details */}
@@ -669,8 +587,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     </div>
                 </div>
             </div>
-        );
-    };
+    );
 
     // Paso 9: Actividades de la fundación (foundationObjects / fines)
     const renderStep9 = () => (
@@ -719,7 +636,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-grid">
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
-                                <input className="expert-input-legal" list="names-global" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <input className="expert-input-legal" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
                             </div>
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
@@ -797,23 +714,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 </div>
             </div>
 
-            {/* DATALISTS PARA AUTOCOMPLETADO */}
-            <datalist id="names-global">
-                {formData.founders.map((f, i) => {
-                const full = personDisplayName(normalizeFundacionPerson(f));
-                return full ? <option key={`f-${i}`} value={full} /> : null;
-            })}
-                {formData.councilMembers.map((m, i) => {
-                    const full = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
-                    return full && <option key={`c-${i}`} value={full} />;
-                })}
-                {formData.protectors.map((p, i) => {
-                const full = personDisplayName(normalizeFundacionPerson(p));
-                return full ? <option key={`p-${i}`} value={full} /> : null;
-            })}
-                {formData.dignitaries.map((d, i) => d.fullName && <option key={`d-${i}`} value={d.fullName} />)}
-                {formData.beneficiaries.map((b, i) => b.shareholder && <option key={`b-${i}`} value={b.shareholder} />)}
-            </datalist>
 
             <datalist id="roles-dignitaries">
                 <option value="PRESIDENTE" />

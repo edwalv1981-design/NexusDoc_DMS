@@ -177,8 +177,6 @@ const en = {
       addressPlaceholder: 'Complete residential address…',
     },
     person: {
-      autocompleteByName: 'Autocomplete by name',
-      autocompletePlaceholder: 'Type or select a name…',
       registrationNumber: 'Registration number (if company)',
       firstName: 'First name',
       secondName: 'Middle name',
@@ -196,7 +194,6 @@ const en = {
     },
     poa: {
       title: 'Power Of Attorney (Optional)',
-      autofillByName: 'Autocomplete by name',
       granteeHeader: 'Attorney-in-fact details',
       settingsHeader: 'Power of attorney settings',
       issueQuestion: 'Would you like to issue a power of attorney?',

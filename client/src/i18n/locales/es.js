@@ -177,8 +177,6 @@ const es = {
       addressPlaceholder: 'Dirección residencial completa…',
     },
     person: {
-      autocompleteByName: 'Autocompletar por nombre',
-      autocompletePlaceholder: 'Escriba o seleccione un nombre…',
       registrationNumber: 'Número de registro (si es empresa)',
       firstName: 'Nombre',
       secondName: 'Segundo nombre',
@@ -196,7 +194,6 @@ const es = {
     },
     poa: {
       title: 'Power Of Attorney / Poderes (Opcional)',
-      autofillByName: 'Autocompletar por nombre',
       granteeHeader: 'Datos del apoderado',
       settingsHeader: 'Configuración del poder',
       issueQuestion: '¿Desea emitir un poder?',
