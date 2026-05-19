@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "start:prod": "npm run db:migrate && node index.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:status": "sequelize-cli db:migrate:status",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
@@ -32,10 +33,10 @@
     "pg-hstore": "^2.3.4",
     "puppeteer": "^24.42.0",
     "resend": "^6.12.2",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "sequelize-cli": "^6.6.5"
   },
   "devDependencies": {
-    "pdf-parse": "^1.1.4",
-    "sequelize-cli": "^6.6.5"
+    "pdf-parse": "^1.1.4"
   }
 }

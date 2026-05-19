@@ -75,5 +75,6 @@ ENV PORT=5000
 # 10. Exponer puerto
 EXPOSE 5000
 
-# 11. Comando de arranque
-CMD ["node", "server/index.js"]
+# 11. Comando de arranque (migraciones antes del servidor; falla el deploy si migrate falla)
+WORKDIR /app/server
+CMD ["sh", "scripts/start-with-migrate.sh"]

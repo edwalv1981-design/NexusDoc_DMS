@@ -47,7 +47,7 @@ El proyecto usa migraciones para cambios de esquema sin depender de `sequelize.s
 - Ver estado de migraciones: `cd server && npm run db:migrate:status`
 - Revertir la ultima migracion: `cd server && npm run db:migrate:undo`
 
-En despliegue, `npm run start` ejecuta primero `db:migrate` y luego levanta el servidor. Esto permite mantener `DB_SYNC_ALTER=false` de forma permanente.
+En despliegue (Railway/Docker), `npm run start` o `server` → `start:prod` ejecutan `db:migrate` antes de levantar el API; si migrate falla, el proceso termina con error y el deploy no arranca. No se ejecuta `migrate:kyci` automáticamente. Desarrollo local: `cd server && npm start` (sin migrate automático).
 
 ## Seguridad básica
 
