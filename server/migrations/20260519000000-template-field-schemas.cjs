@@ -13,6 +13,8 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     if (await tableExists(queryInterface, 'template_field_schemas')) return;
 
+    await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+
     await queryInterface.createTable('template_field_schemas', {
       id: {
         type: Sequelize.UUID,

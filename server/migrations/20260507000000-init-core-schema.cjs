@@ -5,13 +5,22 @@ const { DataTypes } = require('sequelize');
 const USER_ROLES = ['admin', 'client'];
 const USER_STATUSES = ['pending', 'authorized', 'revoked', 'blocked'];
 
-async function tableExists(queryInterface, tableName) {
-  try {
-    await queryInterface.describeTable(tableName);
-    return true;
-  } catch (error) {
-    return false;
-  }
+/** PascalCase names in this migration → physical tables from Sequelize (underscored). */
+const PHYSICAL_TABLE = {
+  Users: 'users',
+  PendingRegistrations: 'pending_registrations',
+  FormData: 'form_data',
+  AuditLogs: 'audit_logs',
+  DocumentTemplates: 'document_templates',
+  UserDocuments: 'user_documents',
+  SignedDocuments: 'signed_documents',
+};
+
+async function tableExists(queryInterface, migrationTableName) {
+  const physical = PHYSICAL_TABLE[migrationTableName] || migrationTableName;
+  const tables = await queryInterface.showAllTables();
+  const normalized = tables.map((t) => (typeof t === 'string' ? t : t.tableName || t.name));
+  return normalized.some((t) => String(t).toLowerCase() === physical.toLowerCase());
 }
 
 async function createUsers(queryInterface, Sequelize) {
