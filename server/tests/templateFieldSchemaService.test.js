@@ -44,11 +44,20 @@ describe('templateFieldSchemaService', () => {
     assert.ok(keys.includes('email'));
   });
 
-  it('mergeSchemas usa estático si no hay campos subidos', () => {
+  it('mergeSchemas usa estático solo sin plantilla', () => {
     const staticSchema = pdfFormSchemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA;
-    const { schema, schemaSource } = svc.mergeSchemas(staticSchema, null, 0);
+    const { schema, schemaSource } = svc.mergeSchemas(staticSchema, null, 0, false);
     assert.equal(schemaSource, 'static');
     assert.equal(schema, staticSchema);
+  });
+
+  it('mergeSchemas devuelve flat_pdf si hay plantilla sin AcroForm', () => {
+    const staticSchema = pdfFormSchemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA;
+    const { schema, schemaSource, flatPdf } = svc.mergeSchemas(staticSchema, null, 0, true);
+    assert.equal(schemaSource, 'flat_pdf');
+    assert.equal(flatPdf, true);
+    assert.equal(schema.flatPdf, true);
+    assert.equal(pdfFormSchemas.listSchemaFieldKeys(schema).length, 0);
   });
 
   it('buildDynamicSchema asigna label legible a campos AcroForm desconocidos', () => {

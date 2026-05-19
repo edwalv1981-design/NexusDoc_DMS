@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { FormData, User, DocumentTemplate, AuditLog } = require('../models');
+const { FormData, User, DocumentTemplate, AuditLog, TemplateFieldSchema } = require('../models');
 const auth = require('../middleware/auth');
 const path = require('path');
 const fs = require('fs');
@@ -12,7 +12,6 @@ const userLanguageStore = require('../services/userLanguageStore');
 const templateAvailability = require('../utils/templateAvailability');
 const pdfFormSchemas = require('../config/pdfFormSchemas');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
-const { TemplateFieldSchema } = require('../models');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
 
 // @route   GET api/forms/schema/:formType
@@ -21,11 +20,13 @@ router.get('/schema/:formType', auth, async (req, res) => {
         const formType = decodeURIComponent(req.params.formType);
         const merged = await templateFieldSchemaService.getMergedSchemaResponse(
             TemplateFieldSchema,
-            formType
+            formType,
+            DocumentTemplate
         );
         if (!merged) {
             return res.status(404).json({ msg: 'Esquema no definido para este trámite.' });
         }
+        res.setHeader('Cache-Control', 'no-store');
         return res.json(merged);
     } catch (err) {
         console.error('Error schema:', err);
@@ -39,10 +40,14 @@ router.post('/schema/:formType/validate', auth, async (req, res) => {
         const formType = decodeURIComponent(req.params.formType);
         const merged = await templateFieldSchemaService.getMergedSchemaResponse(
             TemplateFieldSchema,
-            formType
+            formType,
+            DocumentTemplate
         );
         if (!merged?.schema) {
             return res.status(404).json({ msg: 'Esquema no definido.' });
+        }
+        if (merged.flatPdf) {
+            return res.json({ ok: true, errors: [] });
         }
         const step = Number(req.body?.step) || 1;
         const data = req.body?.data || {};

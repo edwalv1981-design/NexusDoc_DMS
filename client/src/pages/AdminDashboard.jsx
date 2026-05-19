@@ -157,7 +157,7 @@ const AdminDashboard = () => {
       } else {
         toast.success(t('admin.templateSaved', { type: label }));
         if (detected?.extractError) {
-          toast.error(t('admin.fieldsExtractError'));
+          toast.error(`${t('admin.fieldsExtractError')} (${detected.extractError})`);
         }
       }
       setTemplateFile(null);

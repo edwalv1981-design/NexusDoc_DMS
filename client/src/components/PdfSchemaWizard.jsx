@@ -16,6 +16,8 @@ function fieldVisible(field, data) {
 const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationError }) => {
   const t = useT();
   const [schema, setSchema] = useState(null);
+  const [flatPdf, setFlatPdf] = useState(false);
+  const [schemaMessage, setSchemaMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
@@ -32,12 +34,18 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
         const token = localStorage.getItem('token');
         const res = await fetch(
           `${API_BASE_URL}/api/forms/schema/${encodeURIComponent(canonicalFormType)}`,
-          { headers: { 'x-auth-token': token } }
+          { headers: { 'x-auth-token': token }, cache: 'no-store' }
         );
         if (!res.ok) throw new Error('schema');
         const payload = await res.json();
         if (cancelled) return;
-        setSchema(payload.schema);
+        const isFlat =
+          Boolean(payload.flatPdf) ||
+          payload.schemaSource === 'flat_pdf' ||
+          (payload.schema?.flatPdf && !(payload.schema?.steps?.length > 0));
+        setFlatPdf(isFlat);
+        setSchemaMessage(payload.message || '');
+        setSchema(isFlat ? null : payload.schema);
         const base = payload.emptyState || {};
         setFormData({ ...base, ...(initialData || {}) });
         setStep(1);
@@ -156,6 +164,24 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
     return (
       <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
         {t('dashboard.syncing')}
+      </div>
+    );
+  }
+
+  if (flatPdf) {
+    return (
+      <div
+        style={{
+          padding: 40,
+          textAlign: 'center',
+          color: '#b45309',
+          background: '#fffbeb',
+          border: '1px solid #fcd34d',
+          borderRadius: RADIUS_LG,
+        }}
+      >
+        <p style={{ fontWeight: 700, marginBottom: 8 }}>{t('kyci.flatPdfTitle')}</p>
+        <p style={{ fontSize: 14, margin: 0 }}>{schemaMessage || t('kyci.flatPdfBody')}</p>
       </div>
     );
   }

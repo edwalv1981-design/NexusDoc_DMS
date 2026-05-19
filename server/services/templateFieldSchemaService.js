@@ -2,8 +2,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { Op } = require('sequelize');
 const pdfFormSchemas = require('../config/pdfFormSchemas');
 const stablePdfForms = require('../config/stablePdfForms');
+const templateAvailability = require('../utils/templateAvailability');
 const { extractAcroFieldsFromBuffer, extractAcroFieldsFromPath } = require('../utils/pdfFieldExtraction');
 const { resolveCanonicalFormType } = require('../../lib/formWizardRouting.cjs');
 
@@ -261,8 +263,8 @@ function buildDynamicSchema(templateId, acroFields, staticSchema, labelMap = nul
   }
 
   const steps = [...stepsMap.values()].filter((s) => s.fields.length > 0);
-  if (!steps.length && staticSchema) {
-    return staticSchema;
+  if (!steps.length) {
+    return null;
   }
 
   return {
@@ -273,23 +275,63 @@ function buildDynamicSchema(templateId, acroFields, staticSchema, labelMap = nul
   };
 }
 
-function mergeSchemas(staticSchema, uploadedSchema, acroCount) {
+function buildFlatPdfNoticeSchema(staticSchema) {
+  const base = staticSchema || {
+    templateId: 'cumplimiento_individual',
+    formType: 'Cumplimiento Individual',
+    i18nPrefix: 'kyci',
+  };
+  return {
+    templateId: base.templateId,
+    formType: base.formType,
+    i18nPrefix: base.i18nPrefix || 'kyci',
+    flatPdf: true,
+    steps: [],
+  };
+}
+
+/**
+ * @param {boolean} templateAvailable Hay plantilla en disco o BD (no usar esquema KYCI estático).
+ */
+function mergeSchemas(staticSchema, uploadedSchema, acroCount, templateAvailable = false) {
   if (!staticSchema) {
-    return { schema: uploadedSchema, schemaSource: uploadedSchema ? 'uploaded' : 'static' };
-  }
-  if (!uploadedSchema || acroCount === 0) {
-    return { schema: staticSchema, schemaSource: 'static' };
+    return {
+      schema: uploadedSchema,
+      schemaSource: uploadedSchema ? 'uploaded' : 'static',
+      flatPdf: false,
+    };
   }
 
-  const staticKeys = new Set(pdfFormSchemas.listSchemaFieldKeys(staticSchema));
-  const uploadedKeys = new Set(pdfFormSchemas.listSchemaFieldKeys(uploadedSchema));
-  const sameKeys =
-    staticKeys.size === uploadedKeys.size &&
-    [...staticKeys].every((k) => uploadedKeys.has(k));
+  if (acroCount > 0 && uploadedSchema) {
+    const staticKeys = new Set(pdfFormSchemas.listSchemaFieldKeys(staticSchema));
+    const uploadedKeys = new Set(pdfFormSchemas.listSchemaFieldKeys(uploadedSchema));
+    const sameKeys =
+      staticKeys.size === uploadedKeys.size &&
+      [...staticKeys].every((k) => uploadedKeys.has(k));
+
+    return {
+      schema: uploadedSchema,
+      schemaSource: sameKeys ? 'uploaded' : 'uploaded_pdf',
+      flatPdf: false,
+    };
+  }
+
+  if (templateAvailable) {
+    return {
+      schema: buildFlatPdfNoticeSchema(staticSchema),
+      schemaSource: 'flat_pdf',
+      flatPdf: true,
+    };
+  }
+
+  if (!uploadedSchema || acroCount === 0) {
+    return { schema: staticSchema, schemaSource: 'static', flatPdf: false };
+  }
 
   return {
     schema: uploadedSchema,
-    schemaSource: sameKeys ? 'uploaded' : 'uploaded_pdf',
+    schemaSource: 'uploaded_pdf',
+    flatPdf: false,
   };
 }
 
@@ -313,15 +355,95 @@ function getDeployedPdfPath(templateName) {
   return null;
 }
 
-async function refreshAcroFieldsFromDeployedPdf(templateName) {
-  const pdfPath = getDeployedPdfPath(templateName);
-  if (!pdfPath) return [];
+function normalizeTemplateId(adminOrInternalName) {
+  return String(adminOrInternalName || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, '_');
+}
+
+/**
+ * @param {import('../models/DocumentTemplate')|null} DocumentTemplateModel
+ * @returns {Promise<{ buffer: Buffer, source: 'disk'|'db', path?: string|null }|null>}
+ */
+async function resolveTemplatePdf(DocumentTemplateModel, templateName) {
+  const resolved = resolveTemplateName(templateName);
+  const diskPath = getDeployedPdfPath(resolved);
+  if (diskPath && fs.existsSync(diskPath)) {
+    return { buffer: fs.readFileSync(diskPath), source: 'disk', path: diskPath };
+  }
+
+  if (!DocumentTemplateModel) return null;
+
+  const formTypeLabel = FORM_TYPE_BY_TEMPLATE[resolved];
+  const lookup = templateAvailability.resolveTemplateLookup(formTypeLabel || resolved);
+  const dbNames = lookup?.dbNames?.length ? lookup.dbNames : [resolved];
+
+  const row = await DocumentTemplateModel.findOne({
+    where: { name: { [Op.in]: dbNames } },
+  });
+  if (!row?.fileData) return null;
+
+  const buffer = Buffer.isBuffer(row.fileData) ? row.fileData : Buffer.from(row.fileData);
+  return { buffer, source: 'db', path: null };
+}
+
+/**
+ * @param {import('../models/DocumentTemplate')|null} DocumentTemplateModel
+ */
+async function templateExistsForForm(DocumentTemplateModel, templateName) {
+  const pdf = await resolveTemplatePdf(DocumentTemplateModel, templateName);
+  return Boolean(pdf?.buffer?.length);
+}
+
+/**
+ * @param {import('../models/DocumentTemplate')|null} DocumentTemplateModel
+ */
+async function refreshAcroFieldsFromTemplate(templateName, DocumentTemplateModel) {
+  const pdf = await resolveTemplatePdf(DocumentTemplateModel, templateName);
+  if (!pdf?.buffer?.length) {
+    return { fields: [], templateExists: false, pdfSource: null, pdfBuffer: null, extractError: null };
+  }
+
   try {
-    const result = await extractAcroFieldsFromPath(pdfPath);
-    return result.fields || [];
+    const result = await extractAcroFieldsFromBuffer(pdf.buffer);
+    return {
+      fields: result.fields || [],
+      templateExists: true,
+      pdfSource: pdf.source,
+      pdfBuffer: pdf.buffer,
+      extractError: null,
+    };
   } catch (err) {
     console.warn(`⚠️ Re-extracción AcroForm (${templateName}):`, err.message);
-    return [];
+    return {
+      fields: [],
+      templateExists: true,
+      pdfSource: pdf.source,
+      pdfBuffer: pdf.buffer,
+      extractError: err.message,
+    };
+  }
+}
+
+/** @deprecated Usar refreshAcroFieldsFromTemplate */
+async function refreshAcroFieldsFromDeployedPdf(templateName) {
+  const { fields } = await refreshAcroFieldsFromTemplate(templateName, null);
+  return fields;
+}
+
+function syncTemplatePdfToDisk(templateName, pdfBuffer) {
+  const resolved = resolveTemplateName(templateName);
+  const diskPath = getDeployedPdfPath(resolved);
+  if (!diskPath || !pdfBuffer?.length) return;
+  try {
+    const dir = path.dirname(diskPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(diskPath, pdfBuffer);
+  } catch (err) {
+    console.warn(`⚠️ No se pudo sincronizar PDF a disco (${resolved}):`, err.message);
   }
 }
 
@@ -346,7 +468,7 @@ function readJsonCache(templateName) {
 }
 
 function resolveTemplateName(adminOrInternalName) {
-  const norm = String(adminOrInternalName || '').toLowerCase();
+  const norm = normalizeTemplateId(adminOrInternalName);
   if (norm === 'referencia_maestra') return 'fondos';
   return TEMPLATE_ID_BY_ADMIN_NAME[norm] || norm;
 }
@@ -378,18 +500,21 @@ async function persistExtraction(TemplateFieldSchemaModel, templateName, pdfBuff
     }
   }
 
+  syncTemplatePdfToDisk(resolved, pdfBuffer);
+
   const fieldMapping = buildFieldMapping(acroFields, staticSchema);
   const dynamicSchema = acroFields.length
     ? buildDynamicSchema(resolved, acroFields, staticSchema)
-    : staticSchema;
-  const { schemaSource } = mergeSchemas(staticSchema, dynamicSchema, acroFields.length);
+    : null;
+  const templateAvailable = Boolean(pdfBuffer?.length);
+  const { schemaSource } = mergeSchemas(staticSchema, dynamicSchema, acroFields.length, templateAvailable);
 
   const row = {
     templateName: resolved,
     formType: formType || FORM_TYPE_BY_TEMPLATE[resolved] || null,
     acroFields,
     fieldMapping,
-    schemaSource: acroFields.length ? schemaSource : 'static',
+    schemaSource: acroFields.length ? schemaSource : templateAvailable ? 'flat_pdf' : 'static',
     extractedAt: new Date(),
   };
 
@@ -438,7 +563,11 @@ async function getStoredRecord(TemplateFieldSchemaModel, formType) {
 /**
  * @param {import('../models/TemplateFieldSchema')} TemplateFieldSchemaModel
  */
-async function getMergedSchemaResponse(TemplateFieldSchemaModel, formType) {
+async function getMergedSchemaResponse(
+  TemplateFieldSchemaModel,
+  formType,
+  DocumentTemplateModel = null
+) {
   const canonicalFormType = resolveCanonicalFormType(formType);
   const staticSchema =
     pdfFormSchemas.getSchemaByFormType(canonicalFormType) ||
@@ -451,23 +580,24 @@ async function getMergedSchemaResponse(TemplateFieldSchemaModel, formType) {
   const stored = await getStoredRecord(TemplateFieldSchemaModel, canonicalFormType);
 
   let acroFields = Array.isArray(stored?.acroFields) ? stored.acroFields : [];
-  let acroSource = 'db';
+  let acroSource = acroFields.length ? 'db' : 'none';
+  let extractError = null;
+  const templateAvailable = await templateExistsForForm(DocumentTemplateModel, resolvedTemplate);
 
-  if (!acroFields.length) {
-    acroFields = await refreshAcroFieldsFromDeployedPdf(resolvedTemplate);
-    acroSource = acroFields.length ? 'disk' : 'none';
-    if (acroFields.length && TemplateFieldSchemaModel) {
+  if (!acroFields.length && templateAvailable) {
+    const refresh = await refreshAcroFieldsFromTemplate(resolvedTemplate, DocumentTemplateModel);
+    acroFields = refresh.fields;
+    extractError = refresh.extractError;
+    acroSource = acroFields.length ? refresh.pdfSource || 'none' : refresh.pdfSource || 'none';
+    if (acroFields.length && TemplateFieldSchemaModel && refresh.pdfBuffer) {
       try {
-        const pdfPath = getDeployedPdfPath(resolvedTemplate);
-        if (pdfPath) {
-          const buffer = fs.readFileSync(pdfPath);
-          await persistExtraction(
-            TemplateFieldSchemaModel,
-            resolvedTemplate,
-            buffer,
-            canonicalFormType
-          );
-        }
+        await persistExtraction(
+          TemplateFieldSchemaModel,
+          resolvedTemplate,
+          refresh.pdfBuffer,
+          canonicalFormType
+        );
+        acroSource = refresh.pdfSource || acroSource;
       } catch (persistErr) {
         console.warn('⚠️ No se pudo persistir esquema tras re-extracción:', persistErr.message);
       }
@@ -480,23 +610,43 @@ async function getMergedSchemaResponse(TemplateFieldSchemaModel, formType) {
       ? buildDynamicSchema(resolvedTemplate, acroFields, staticSchema, labelMap)
       : null;
 
-  const { schema, schemaSource } = mergeSchemas(staticSchema, uploadedSchema, acroFields.length);
+  const { schema, schemaSource, flatPdf } = mergeSchemas(
+    staticSchema,
+    uploadedSchema,
+    acroFields.length,
+    templateAvailable
+  );
   if (!schema) {
     return null;
   }
 
+  const dynamicKeys = pdfFormSchemas.listSchemaFieldKeys(schema);
+  const staticKeys = staticSchema ? pdfFormSchemas.listSchemaFieldKeys(staticSchema) : [];
+
   return {
     schema,
     schemaSource,
+    flatPdf: Boolean(flatPdf),
     formType: canonicalFormType,
-    emptyState: pdfFormSchemas.emptyStateForSchema(schema),
+    emptyState: flatPdf ? {} : pdfFormSchemas.emptyStateForSchema(schema),
     templateId: schema.templateId,
     acroFieldCount: acroFields.length,
     acroFieldNames: acroFields.map((f) => f.name),
     acroSource,
-    staticFieldCount: staticSchema ? pdfFormSchemas.listSchemaFieldKeys(staticSchema).length : 0,
+    templateAvailable,
+    extractError,
+    staticFieldCount: staticKeys.length,
+    dynamicFieldCount: dynamicKeys.length,
+    usesStaticFallback: schemaSource === 'static',
     fieldMapping: stored?.fieldMapping || {},
-    warnings: acroFields.length === 0 && staticSchema ? ['flat_pdf_or_anchor_only'] : [],
+    message:
+      flatPdf || (templateAvailable && acroFields.length === 0)
+        ? 'PDF sin campos rellenables (AcroForm). Suba una plantilla con campos de formulario o contacte al administrador.'
+        : null,
+    warnings:
+      templateAvailable && acroFields.length === 0
+        ? ['flat_pdf_no_acroform']
+        : [],
   };
 }
 
@@ -523,6 +673,7 @@ module.exports = {
   CACHE_DIR,
   KYCI_FIELD_LABELS_ES,
   resolveTemplateName,
+  normalizeTemplateId,
   isPdfTemplateName,
   acroNameToFormKey,
   humanizeAcroName,
@@ -531,9 +682,14 @@ module.exports = {
   inferFieldType,
   buildFieldMapping,
   buildDynamicSchema,
+  buildFlatPdfNoticeSchema,
   mergeSchemas,
   getDeployedPdfPath,
+  resolveTemplatePdf,
+  templateExistsForForm,
+  refreshAcroFieldsFromTemplate,
   refreshAcroFieldsFromDeployedPdf,
+  syncTemplatePdfToDisk,
   persistExtraction,
   getMergedSchemaResponse,
   getFieldMappingForPdf,

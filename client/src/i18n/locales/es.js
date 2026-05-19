@@ -89,7 +89,7 @@ const es = {
     templateSaved: 'Plantilla guardada para {type}',
     fieldsDetected: 'Plantilla guardada. Campos detectados: {count} ({type})',
     flatPdfWarning: 'Plantilla guardada sin campos AcroForm ({type}). Se usará relleno por anclas.',
-    flatPdfHint: 'PDF plano (0 campos AcroForm). El cliente usará el esquema estático y relleno por coordenadas.',
+    flatPdfHint: 'PDF sin campos AcroForm rellenables. El cliente verá un aviso; no se mostrará el asistente KYCI estático.',
     detectedFieldsTitle: 'Campos detectados: {count}',
     schemaSource: 'Origen del esquema',
     fieldsExtractError: 'No se pudieron extraer campos del PDF; revise Python en el servidor.',
@@ -211,6 +211,9 @@ const es = {
     logoutNow: 'CERRAR SESIÓN AHORA',
   },
   kyci: {
+    flatPdfTitle: 'PDF sin campos rellenables',
+    flatPdfBody:
+      'La plantilla de Cumplimiento Individual no tiene campos de formulario (AcroForm). El administrador debe subir un PDF con campos editables.',
     steps: {
       personal: 'Datos personales',
       contact: 'Contacto y actividad',

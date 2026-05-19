@@ -89,7 +89,7 @@ const en = {
     templateSaved: 'Template saved for {type}',
     fieldsDetected: 'Template saved. Fields detected: {count} ({type})',
     flatPdfWarning: 'Template saved with no AcroForm fields ({type}). Anchor fill will be used.',
-    flatPdfHint: 'Flat PDF (0 AcroForm fields). Client will use static schema and anchor coordinates.',
+    flatPdfHint: 'PDF has no fillable AcroForm fields. The client will see a notice instead of the static KYCI wizard.',
     detectedFieldsTitle: 'Detected fields: {count}',
     schemaSource: 'Schema source',
     fieldsExtractError: 'Could not extract PDF fields; check Python on the server.',
@@ -211,6 +211,9 @@ const en = {
     logoutNow: 'SIGN OUT NOW',
   },
   kyci: {
+    flatPdfTitle: 'PDF has no fillable fields',
+    flatPdfBody:
+      'The Individual Compliance template has no AcroForm fields. An administrator must upload a PDF with editable form fields.',
     steps: {
       personal: 'Personal information',
       contact: 'Contact and occupation',
