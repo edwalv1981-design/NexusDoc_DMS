@@ -1,69 +1,63 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-// Mirror client registry helpers for unit tests (keep in sync with client/src/utils/fundacionPersonRegistry.js)
-const {
-  personDisplayName,
-  normalizeFundacionPerson,
-  FUNDACION_PERSON_FIELDS,
-} = require('../utils/fundacionPersonSchema');
+const { normalizeFundacionPerson, FUNDACION_PERSON_FIELDS } = require('../utils/fundacionPersonSchema');
 
-const personNameKey = (name) =>
-  String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
-
-function findPersonInRegistry(registry, person) {
-  const normalized = normalizeFundacionPerson(person);
-  const candidates = [
-    personDisplayName(normalized),
-    [normalized.firstName, normalized.lastName].filter(Boolean).join(' '),
-    normalized.lastName,
-    normalized.firstName,
-  ]
-    .map((s) => personNameKey(s))
-    .filter(Boolean);
-
-  for (const key of candidates) {
-    const hit = registry.find((r) => r.key === key);
-    if (hit?.data) return hit.data;
-  }
-
-  const shortKey = personNameKey(
-    [normalized.firstName, normalized.lastName].filter(Boolean).join(' ')
-  );
-  if (shortKey) {
-    const fuzzy = registry.find((r) => {
-      const data = normalizeFundacionPerson(r.data);
-      return (
-        personNameKey([data.firstName, data.lastName].filter(Boolean).join(' ')) === shortKey
-      );
-    });
-    if (fuzzy?.data) return fuzzy.data;
-  }
-
-  return null;
+function personNameKey(name) {
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-test('findPersonInRegistry matches full name and first+last', () => {
+function findMatch(registry, nameInput) {
+  const key = personNameKey(nameInput);
+  if (!key) return null;
+  const hit = registry.find((r) => r.key === key);
+  return hit?.data ?? null;
+}
+
+function pickFields(source = {}, fieldList = []) {
+  const out = {};
+  for (const key of fieldList) {
+    const value = source[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+test('findMatch matches normalized full name', () => {
   const juan = normalizeFundacionPerson({
     firstName: 'Juan',
     secondName: 'Carlos',
     lastName: 'Pérez',
     email: 'juan@test.com',
-    phone: '6000',
   });
   const registry = [
     { key: personNameKey('Juan Carlos Pérez'), name: 'Juan Carlos Pérez', data: juan },
   ];
+  const hit = findMatch(registry, 'Juan Carlos Pérez');
+  assert.equal(hit.email, 'juan@test.com');
+});
 
-  const hitFull = findPersonInRegistry(registry, {
-    firstName: 'Juan',
-    secondName: 'Carlos',
-    lastName: 'Pérez',
+test('pickFields never invents empty values', () => {
+  const picked = pickFields({ firstName: 'Ana', lastName: '', phone: '123' }, FUNDACION_PERSON_FIELDS);
+  assert.equal(picked.firstName, 'Ana');
+  assert.equal(picked.phone, '123');
+  assert.equal(picked.lastName, undefined);
+});
+
+test('beneficiary fill omits percentage from registry', () => {
+  const data = normalizeFundacionPerson({
+    firstName: 'María',
+    lastName: 'López',
+    birthDate: '1990-01-01',
+    address: 'Calle 1',
+    percentage: '99',
   });
-  assert.equal(hitFull.email, 'juan@test.com');
-
-  const hitShort = findPersonInRegistry(registry, { firstName: 'Juan', lastName: 'Pérez' });
-  assert.equal(hitShort.phone, '6000');
+  const fill = pickFields(data, ['birthDate', 'address', 'percentage']);
+  assert.equal(fill.birthDate, '1990-01-01');
+  assert.equal(fill.address, 'Calle 1');
+  assert.equal(fill.percentage, '99');
 });
 
 test('FUNDACION_PERSON_FIELDS has 13 standard fields', () => {

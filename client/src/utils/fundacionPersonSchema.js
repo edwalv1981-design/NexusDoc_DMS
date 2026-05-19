@@ -16,7 +16,13 @@ export const FUNDACION_PERSON_FIELDS = [
 ];
 
 /** Campos reducidos — paso Dignatarios. */
-export const FUNDACION_DIGNITARY_FIELDS = ['role', 'fullName', 'birthDate', 'address'];
+export const FUNDACION_DIGNITARY_FIELDS = [
+  'role',
+  'fullName',
+  'birthDate',
+  'address',
+  'registrationNumber',
+];
 
 /** Campos reducidos — paso Beneficiarios. */
 export const FUNDACION_BENEFICIARY_FIELDS = ['percentage', 'shareholder', 'birthDate', 'address'];
@@ -26,7 +32,7 @@ export function emptyFundacionPerson() {
 }
 
 export function emptyFundacionDignitary(role = '') {
-  return { role, fullName: '', birthDate: '', address: '' };
+  return { role, fullName: '', birthDate: '', address: '', registrationNumber: '' };
 }
 
 export function emptyFundacionBeneficiary() {
@@ -139,6 +145,9 @@ export function mergeRoleFields(target = {}, source = {}, allowedFields = []) {
     if (key === 'shareholder' && !String(value || '').trim()) {
       value = source.shareholder || source.fullName || nameFromParts;
     }
+    if (key === 'registrationNumber' && !String(value || '').trim()) {
+      value = source.registrationNumber;
+    }
     if (value !== undefined && value !== null && String(value).trim() !== '') {
       out[key] = value;
     }
@@ -179,7 +188,12 @@ export function buildPersonRegistry(formData, exclude = null) {
       const name = dignitaryDisplayName(d);
       if (!name) return;
       addPerson(
-        { fullName: name, birthDate: d.birthDate, address: d.address },
+        {
+          fullName: name,
+          birthDate: d.birthDate,
+          address: d.address,
+          registrationNumber: d.registrationNumber,
+        },
         { role: d.role }
       );
     }
