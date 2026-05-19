@@ -53,4 +53,26 @@ describe('corporacionPdfI18n', () => {
       assert.notEqual(es[k], en[k], `[${k}] ES === EN — falta traducción`);
     }
   });
+
+  it('ningún valor del diccionario es bilingüe (sin " / ")', () => {
+    for (const lang of ['es', 'en']) {
+      const dict = i18n.getCorporacionPdfDict(lang);
+      for (const [k, v] of Object.entries(dict)) {
+        assert.equal(
+          v.includes(' / '),
+          false,
+          `[${lang}] ${k} contiene patrón bilingüe: ${JSON.stringify(v)}`
+        );
+      }
+    }
+  });
+
+  it('ES no mezcla títulos en inglés y EN no mezcla títulos en español', () => {
+    const es = i18n.getCorporacionPdfDict('es');
+    const en = i18n.getCorporacionPdfDict('en');
+    assert.equal(es.docTitle.includes('Incorporation Form'), false);
+    assert.equal(en.docTitle.includes('Formulario de Incorporación'), false);
+    assert.equal(es.sectionName.includes('Name of the corporation'), false);
+    assert.equal(en.sectionName.includes('Nombre de la compañía'), false);
+  });
 });
