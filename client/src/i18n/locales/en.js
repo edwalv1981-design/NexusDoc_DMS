@@ -250,7 +250,13 @@ const en = {
   },
   fundacion: {
     title: 'PRIVATE INTEREST FOUNDATION',
-    subtitle: 'High-Precision Foundation Management',
+    subtitle: 'High-Precision Foundation Management System',
+    saveProgress: 'SAVE PROGRESS',
+    syncing: 'Synchronizing...',
+    previous: 'PREVIOUS',
+    nextStep: 'NEXT STEP',
+    finalizing: 'FINALIZING...',
+    registerFoundation: 'REGISTER FOUNDATION',
     dignitary: {
       role: 'Position',
       fullName: 'Full name',

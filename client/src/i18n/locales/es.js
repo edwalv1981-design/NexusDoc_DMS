@@ -250,7 +250,13 @@ const es = {
   },
   fundacion: {
     title: 'FUNDACIÓN DE INTERÉS PRIVADO',
-    subtitle: 'Gestión de Fundaciones de Alta Precisión',
+    subtitle: 'Sistema de Alta Precisión en Fundaciones',
+    saveProgress: 'GUARDAR AVANCE',
+    syncing: 'Sincronizando...',
+    previous: 'ANTERIOR',
+    nextStep: 'SIGUIENTE PASO',
+    finalizing: 'FINALIZANDO...',
+    registerFoundation: 'REGISTRAR FUNDACIÓN',
     dignitary: {
       role: 'Cargo',
       fullName: 'Nombre completo',
