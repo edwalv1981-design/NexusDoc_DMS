@@ -5,6 +5,7 @@ export const {
   resolveCanonicalFormType,
   usesSchemaWizard,
   usesFondosWizard,
+  usesDedicatedKyciForm,
   isKyciFormType,
 } = routing;
 

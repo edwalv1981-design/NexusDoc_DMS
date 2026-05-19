@@ -89,7 +89,8 @@ const es = {
     templateSaved: 'Plantilla guardada para {type}',
     fieldsDetected: 'Plantilla guardada. Campos detectados: {count} ({type})',
     flatPdfWarning: 'Plantilla guardada sin campos AcroForm ({type}). Se usará relleno por anclas.',
-    flatPdfHint: 'PDF sin campos AcroForm rellenables. El cliente verá un aviso; no se mostrará el asistente KYCI estático.',
+    flatPdfHint: 'PDF sin campos AcroForm rellenables. Solo aplica a trámites que dependen de relleno AcroForm (p. ej. Fondos).',
+    templateSavedArchive: 'Plantilla archivada para {type} (el formulario cliente usa motor HTML).',
     detectedFieldsTitle: 'Campos detectados: {count}',
     schemaSource: 'Origen del esquema',
     fieldsExtractError: 'No se pudieron extraer campos del PDF; revise Python en el servidor.',
@@ -211,6 +212,11 @@ const es = {
     logoutNow: 'CERRAR SESIÓN AHORA',
   },
   kyci: {
+    saveDraft: 'GUARDAR BORRADOR',
+    validationIncomplete: 'Complete los campos obligatorios de este paso antes de continuar.',
+    pepNo: 'No',
+    pepYes: 'Sí',
+    stepLabel: 'PASO {step}',
     flatPdfTitle: 'PDF sin campos rellenables',
     flatPdfBody:
       'La plantilla de Cumplimiento Individual no tiene campos de formulario (AcroForm). El administrador debe subir un PDF con campos editables.',

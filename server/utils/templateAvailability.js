@@ -19,12 +19,16 @@ const ADMIN_TEMPLATE_ROWS = Object.freeze([
   { id: 'fondos', formType: stablePdfForms.FORM_TYPE_FONDOS_SFAR, kind: 'pdf' },
   { id: 'corporacion', formType: stablePdfForms.FORM_TYPE_CORPORACION, kind: 'html' },
   { id: 'fundaciones', formType: stablePdfForms.FORM_TYPE_FUNDACION, kind: 'html' },
-  { id: 'cumplimiento_individual', formType: 'Cumplimiento Individual', kind: 'pdf' },
+  { id: 'cumplimiento_individual', formType: 'Cumplimiento Individual', kind: 'html' },
   { id: 'cumplimiento_entidades', formType: 'Cumplimiento Entidades', kind: 'pdf' },
 ]);
 
 function resolveTemplateLookup(formType) {
-  if (stablePdfForms.isCorporacionPdfForm(formType) || stablePdfForms.isFundacionPdfForm(formType)) {
+  if (
+    stablePdfForms.isCorporacionPdfForm(formType) ||
+    stablePdfForms.isFundacionPdfForm(formType) ||
+    stablePdfForms.isKyciHtmlForm(formType)
+  ) {
     return { htmlEngine: true, prefix: null, dbNames: [] };
   }
 
@@ -43,7 +47,7 @@ function resolveTemplateLookup(formType) {
     return { htmlEngine: false, prefix: 'SFAR', dbNames: ['referencia_maestra', 'fondos'] };
   }
   if (norm.includes('cumplimiento individual') || norm.includes('individual compliance')) {
-    return { htmlEngine: false, prefix: 'KYCI', dbNames: ['cumplimiento_individual'] };
+    return { htmlEngine: true, prefix: 'KYCI', dbNames: ['cumplimiento_individual'] };
   }
   if (norm.includes('cumplimiento entidades') || norm.includes('entity compliance')) {
     return { htmlEngine: false, prefix: 'KYCE', dbNames: ['cumplimiento_entidades'] };

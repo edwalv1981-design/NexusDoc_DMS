@@ -14,6 +14,8 @@ describe('stablePdfForms', () => {
     assert.equal(s.isCorporacionPdfForm(s.FORM_TYPE_CORPORACION), true);
     assert.equal(s.isCorporacionPdfForm(s.FORM_TYPE_FONDOS_SFAR), false);
     assert.equal(s.isFundacionPdfForm(s.FORM_TYPE_FUNDACION), true);
+    assert.equal(s.isKyciHtmlForm('Cumplimiento Individual'), true);
+    assert.equal(s.isKyciHtmlForm(s.FORM_TYPE_FONDOS_SFAR), false);
   });
 
   it('prefijos de descarga SFAR / PTLC', () => {

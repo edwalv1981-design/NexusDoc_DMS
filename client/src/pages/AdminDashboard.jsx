@@ -148,11 +148,14 @@ const AdminDashboard = () => {
       const detected = res.data?.detectedFields;
       setLastDetectedFields(detected || null);
       const count = detected?.fieldCount ?? 0;
+      const htmlArchiveTemplates = ['corporacion', 'fundaciones', 'cumplimiento_individual'];
       if (detected && !detected.extractError) {
         toast.success(
           count > 0
             ? t('admin.fieldsDetected', { count, type: label })
-            : t('admin.flatPdfWarning', { type: label })
+            : htmlArchiveTemplates.includes(templateName)
+              ? t('admin.templateSavedArchive', { type: label })
+              : t('admin.flatPdfWarning', { type: label })
         );
       } else {
         toast.success(t('admin.templateSaved', { type: label }));
@@ -463,8 +466,11 @@ const AdminDashboard = () => {
                           <p style={{ fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>
                             {t('admin.detectedFieldsTitle', { count: lastDetectedFields.fieldCount ?? 0 })}
                           </p>
-                          {(lastDetectedFields.fieldCount ?? 0) === 0 ? (
+                          {(lastDetectedFields.fieldCount ?? 0) === 0 &&
+                          !['corporacion', 'fundaciones', 'cumplimiento_individual'].includes(templateName) ? (
                             <p style={{ color: '#b91c1c', margin: 0 }}>{t('admin.flatPdfHint')}</p>
+                          ) : (lastDetectedFields.fieldCount ?? 0) === 0 ? (
+                            <p style={{ color: '#64748b', margin: 0 }}>{t('admin.templateSavedArchive', { type: templateName })}</p>
                           ) : (
                             <div style={{ maxHeight: 140, overflowY: 'auto' }}>
                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>

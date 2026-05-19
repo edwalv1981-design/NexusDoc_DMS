@@ -6,9 +6,10 @@ const t = require('../utils/templateAvailability');
 const stablePdfForms = require('../config/stablePdfForms');
 
 describe('templateAvailability', () => {
-  it('Corporación y Fundaciones usan motor HTML sin PDF obligatorio', () => {
+  it('Corporación, Fundaciones y KYCI usan motor HTML sin PDF obligatorio', () => {
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_CORPORACION), true);
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FUNDACION), true);
+    assert.equal(t.isHtmlEngineForm('Cumplimiento Individual'), true);
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FONDOS_SFAR), false);
   });
 
@@ -33,10 +34,8 @@ describe('templateAvailability', () => {
     assert.equal(t.usesPdfWizardForm(stablePdfForms.FORM_TYPE_CORPORACION), false);
   });
 
-  it('checkTemplateExists usa respaldo en base de datos', async () => {
-    const mockModel = {
-      findOne: async () => ({ fileData: Buffer.from('%PDF-1.4') }),
-    };
+  it('checkTemplateExists KYCI siempre true (motor HTML)', async () => {
+    const mockModel = { findOne: async () => null };
     const ok = await t.checkTemplateExists('Cumplimiento Individual', mockModel);
     assert.equal(ok, true);
   });

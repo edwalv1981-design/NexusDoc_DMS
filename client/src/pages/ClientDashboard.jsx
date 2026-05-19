@@ -16,6 +16,7 @@ import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
 import CorporacionForm from './CorporacionForm';
 import FundacionForm from './FundacionForm';
+import CumplimientoIndividualForm from './CumplimientoIndividualForm';
 import PdfSchemaWizard from '../components/PdfSchemaWizard';
 import { resolveCanonicalFormType, usesSchemaWizard, usesFondosWizard } from '../utils/formWizardRouting';
 
@@ -136,7 +137,7 @@ const ClientDashboard = () => {
     }, [navigate]);
 
     const isHtmlFormType = (type) =>
-        type?.startsWith('Corporaci') || type === 'Fundaciones';
+        type?.startsWith('Corporaci') || type === 'Fundaciones' || type === 'Cumplimiento Individual';
 
     const isFormReady = (type) => {
         if (!type) return true;
@@ -581,6 +582,12 @@ const ClientDashboard = () => {
                     />
                 ) : currentFormType === 'Fundaciones' ? (
                     <FundacionForm
+                        initialData={formData}
+                        onSave={saveDynamicForm}
+                        saving={saving}
+                    />
+                ) : currentFormType === 'Cumplimiento Individual' ? (
+                    <CumplimientoIndividualForm
                         initialData={formData}
                         onSave={saveDynamicForm}
                         saving={saving}

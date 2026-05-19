@@ -47,6 +47,10 @@ function isFundacionPdfForm(formType) {
   return resolveCanonicalFormType(formType) === FORM_TYPE_FUNDACION;
 }
 
+function isKyciHtmlForm(formType) {
+  return resolveCanonicalFormType(formType) === 'Cumplimiento Individual';
+}
+
 /**
  * Prefijo del nombre de archivo al descargar PDF (lógica tolerante a variantes de texto).
  */
@@ -76,5 +80,6 @@ module.exports = {
   getPdfTemplateNameForForm,
   isCorporacionPdfForm,
   isFundacionPdfForm,
+  isKyciHtmlForm,
   getPdfDownloadFilenamePrefix,
 };
