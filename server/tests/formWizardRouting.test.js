@@ -11,12 +11,13 @@ describe('formWizardRouting', () => {
     assert.equal(routing.resolveCanonicalFormType('KYCI'), 'Cumplimiento Individual');
   });
 
-  it('usesSchemaWizard solo para KYCE, no KYCI ni Fondos', () => {
+  it('usesSchemaWizard desactivado; formularios dedicados KYCI/KYCE', () => {
     assert.equal(routing.usesSchemaWizard('Cumplimiento Individual'), false);
     assert.equal(routing.usesSchemaWizard('cumplimiento_individual'), false);
-    assert.equal(routing.usesSchemaWizard('Cumplimiento Entidades'), true);
+    assert.equal(routing.usesSchemaWizard('Cumplimiento Entidades'), false);
     assert.equal(routing.usesSchemaWizard('Fondos Registros contables'), false);
     assert.equal(routing.usesDedicatedKyciForm('Cumplimiento Individual'), true);
+    assert.equal(routing.usesDedicatedKyceForm('Cumplimiento Entidades'), true);
     assert.equal(routing.usesFondosWizard('Fondos Registros contables'), true);
     assert.equal(routing.usesFondosWizard('Cumplimiento Individual'), false);
   });

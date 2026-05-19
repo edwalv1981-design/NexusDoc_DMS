@@ -69,12 +69,78 @@ const CUMPLIMIENTO_INDIVIDUAL_SCHEMA = Object.freeze({
   ]),
 });
 
+const KYCE_FUNDS_SOURCE_OPTIONS = Object.freeze([
+  { key: 'Bienes de la entidad', labelKey: 'bienes' },
+  { key: 'Inversiones Financieras', labelKey: 'inversiones' },
+  { key: 'Ingresos por negocios', labelKey: 'negocios' },
+  { key: 'Préstamos / créditos', labelKey: 'prestamos' },
+  { key: 'Aportes de socios / capital', labelKey: 'capital' },
+]);
+
+const CUMPLIMIENTO_ENTIDADES_SCHEMA = Object.freeze({
+  templateId: 'cumplimiento_entidades',
+  formType: 'Cumplimiento Entidades',
+  i18nPrefix: 'kyce',
+  steps: Object.freeze([
+    {
+      id: 'entity',
+      titleKey: 'steps.entity',
+      fields: Object.freeze([
+        { key: 'legalName', type: 'text', required: true, col: 'full' },
+        { key: 'tradeName', type: 'text', col: 'half' },
+        { key: 'entityType', type: 'text', required: true, col: 'half' },
+        { key: 'incorporationDate', type: 'date', required: true, col: 'half' },
+        { key: 'jurisdiction', type: 'text', required: true, col: 'half' },
+        { key: 'taxId', type: 'text', required: true, col: 'half' },
+        { key: 'registrationNumber', type: 'text', col: 'half' },
+        { key: 'registeredAddress', type: 'text', required: true, col: 'full' },
+      ]),
+    },
+    {
+      id: 'contact',
+      titleKey: 'steps.contact',
+      fields: Object.freeze([
+        { key: 'phone', type: 'text', required: true, col: 'half' },
+        { key: 'email', type: 'email', required: true, col: 'half' },
+        { key: 'city', type: 'text', required: true, col: 'half' },
+        { key: 'country', type: 'text', required: true, col: 'half' },
+        { key: 'businessActivity', type: 'textarea', required: true, col: 'full' },
+        { key: 'website', type: 'text', col: 'half' },
+      ]),
+    },
+    {
+      id: 'compliance',
+      titleKey: 'steps.compliance',
+      fields: Object.freeze([
+        { key: 'legalRepName', type: 'text', required: true, col: 'half' },
+        { key: 'legalRepId', type: 'text', required: true, col: 'half' },
+        { key: 'legalRepNationality', type: 'text', col: 'half' },
+        { key: 'beneficialOwners', type: 'textarea', required: true, col: 'full' },
+        { key: 'pep', type: 'select', options: ['No', 'Sí'], required: true, col: 'half' },
+        { key: 'pepDetails', type: 'textarea', col: 'full', showIf: { field: 'pep', value: 'Sí' } },
+        {
+          key: 'fundsSource',
+          type: 'checkboxGroup',
+          required: true,
+          options: KYCE_FUNDS_SOURCE_OPTIONS,
+          col: 'full',
+        },
+        { key: 'fundsOther', type: 'text', col: 'full' },
+        { key: 'declarationName', type: 'text', required: true, col: 'half' },
+        { key: 'declarationDate', type: 'date', required: true, col: 'half' },
+      ]),
+    },
+  ]),
+});
+
 const SCHEMA_BY_TEMPLATE_ID = Object.freeze({
   cumplimiento_individual: CUMPLIMIENTO_INDIVIDUAL_SCHEMA,
+  cumplimiento_entidades: CUMPLIMIENTO_ENTIDADES_SCHEMA,
 });
 
 const SCHEMA_BY_FORM_TYPE = Object.freeze({
   'Cumplimiento Individual': CUMPLIMIENTO_INDIVIDUAL_SCHEMA,
+  'Cumplimiento Entidades': CUMPLIMIENTO_ENTIDADES_SCHEMA,
 });
 
 function getSchemaByTemplateId(templateId) {
@@ -147,6 +213,8 @@ module.exports = {
   MARITAL_OPTIONS,
   FUNDS_SOURCE_OPTIONS,
   CUMPLIMIENTO_INDIVIDUAL_SCHEMA,
+  CUMPLIMIENTO_ENTIDADES_SCHEMA,
+  KYCE_FUNDS_SOURCE_OPTIONS,
   SCHEMA_BY_TEMPLATE_ID,
   SCHEMA_BY_FORM_TYPE,
   getSchemaByTemplateId,

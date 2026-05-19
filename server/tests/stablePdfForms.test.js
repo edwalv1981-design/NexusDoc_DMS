@@ -16,6 +16,9 @@ describe('stablePdfForms', () => {
     assert.equal(s.isFundacionPdfForm(s.FORM_TYPE_FUNDACION), true);
     assert.equal(s.isKyciHtmlForm('Cumplimiento Individual'), true);
     assert.equal(s.isKyciHtmlForm(s.FORM_TYPE_FONDOS_SFAR), false);
+    assert.equal(s.isKyceHtmlForm('Cumplimiento Entidades'), true);
+    assert.equal(s.isKyceHtmlForm('KYCE'), true);
+    assert.equal(s.getPdfTemplateNameForForm('KYCE'), 'cumplimiento_entidades');
   });
 
   it('prefijos de descarga SFAR / PTLC', () => {

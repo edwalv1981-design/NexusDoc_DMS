@@ -148,7 +148,7 @@ const AdminDashboard = () => {
       const detected = res.data?.detectedFields;
       setLastDetectedFields(detected || null);
       const count = detected?.fieldCount ?? 0;
-      const htmlArchiveTemplates = ['corporacion', 'fundaciones', 'cumplimiento_individual'];
+      const htmlArchiveTemplates = ['corporacion', 'fundaciones', 'cumplimiento_individual', 'cumplimiento_entidades'];
       if (detected && !detected.extractError) {
         toast.success(
           count > 0
@@ -467,7 +467,7 @@ const AdminDashboard = () => {
                             {t('admin.detectedFieldsTitle', { count: lastDetectedFields.fieldCount ?? 0 })}
                           </p>
                           {(lastDetectedFields.fieldCount ?? 0) === 0 &&
-                          !['corporacion', 'fundaciones', 'cumplimiento_individual'].includes(templateName) ? (
+                          !['corporacion', 'fundaciones', 'cumplimiento_individual', 'cumplimiento_entidades'].includes(templateName) ? (
                             <p style={{ color: '#b91c1c', margin: 0 }}>{t('admin.flatPdfHint')}</p>
                           ) : (lastDetectedFields.fieldCount ?? 0) === 0 ? (
                             <p style={{ color: '#64748b', margin: 0 }}>{t('admin.templateSavedArchive', { type: templateName })}</p>

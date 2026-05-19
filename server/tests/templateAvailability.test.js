@@ -6,10 +6,11 @@ const t = require('../utils/templateAvailability');
 const stablePdfForms = require('../config/stablePdfForms');
 
 describe('templateAvailability', () => {
-  it('Corporación, Fundaciones y KYCI usan motor HTML sin PDF obligatorio', () => {
+  it('Corporación, Fundaciones, KYCI y KYCE usan motor HTML sin PDF obligatorio', () => {
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_CORPORACION), true);
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FUNDACION), true);
     assert.equal(t.isHtmlEngineForm('Cumplimiento Individual'), true);
+    assert.equal(t.isHtmlEngineForm('Cumplimiento Entidades'), true);
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FONDOS_SFAR), false);
   });
 
@@ -24,7 +25,7 @@ describe('templateAvailability', () => {
     assert.equal(t.isInteractiveFormAvailable(stablePdfForms.FORM_TYPE_CORPORACION, map), true);
     assert.equal(t.isInteractiveFormAvailable(stablePdfForms.FORM_TYPE_FONDOS_SFAR, map), false);
     assert.equal(t.isInteractiveFormAvailable('Cumplimiento Individual', map), true);
-    assert.equal(t.isInteractiveFormAvailable('Cumplimiento Entidades', map), false);
+    assert.equal(t.isInteractiveFormAvailable('Cumplimiento Entidades', map), true);
   });
 
   it('usesPdfWizardForm solo para Fondos (SFAR)', () => {
@@ -40,9 +41,9 @@ describe('templateAvailability', () => {
     assert.equal(ok, true);
   });
 
-  it('checkTemplateExists devuelve false sin archivo ni DB', async () => {
+  it('checkTemplateExists KYCE siempre true (motor HTML)', async () => {
     const mockModel = { findOne: async () => null };
     const ok = await t.checkTemplateExists('Cumplimiento Entidades', mockModel);
-    assert.equal(ok, false);
+    assert.equal(ok, true);
   });
 });

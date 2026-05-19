@@ -6,7 +6,9 @@ export const {
   usesSchemaWizard,
   usesFondosWizard,
   usesDedicatedKyciForm,
+  usesDedicatedKyceForm,
   isKyciFormType,
+  isKyceFormType,
 } = routing;
 
 export default routing;

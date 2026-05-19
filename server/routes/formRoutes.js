@@ -7,6 +7,7 @@ const fs = require('fs');
 const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService');
 const fundacionHtmlPdfService = require('../services/fundacionHtmlPdfService');
 const kyciHtmlPdfService = require('../services/kyciHtmlPdfService');
+const kyceHtmlPdfService = require('../services/kyceHtmlPdfService');
 const userLanguageStore = require('../services/userLanguageStore');
 const stablePdfForms = require('../config/stablePdfForms');
 const pdfFormSchemas = require('../config/pdfFormSchemas');
@@ -205,6 +206,16 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             } catch (htmlErr) {
                 console.error('❌ KYCI HTML falló:', htmlErr);
                 return res.status(500).json({ msg: `ERROR KYCI HTML: ${htmlErr.message}` });
+            }
+        }
+
+        if (stablePdfForms.isKyceHtmlForm(form.formType)) {
+            try {
+                const pdfBuffer = await kyceHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
+                return sendHtmlPdf(pdfBuffer, 'KYCE');
+            } catch (htmlErr) {
+                console.error('❌ KYCE HTML falló:', htmlErr);
+                return res.status(500).json({ msg: `ERROR KYCE HTML: ${htmlErr.message}` });
             }
         }
 
