@@ -15,6 +15,7 @@ const AdminDashboard = () => {
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsTotalPages, setLogsTotalPages] = useState(1);
   const [templates, setTemplates] = useState([]);
+  const [templateStatus, setTemplateStatus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,7 +61,14 @@ const AdminDashboard = () => {
         setLogsTotalPages(res.data.totalPages ?? 1);
       } else if (activeTab === 'templates') {
         const res = await axios.get(`${API_BASE_URL}/api/admin/templates`, { headers: { 'x-auth-token': token } });
-        setTemplates(res.data);
+        const payload = res.data;
+        if (Array.isArray(payload)) {
+          setTemplates(payload);
+          setTemplateStatus([]);
+        } else {
+          setTemplates(payload.templates || []);
+          setTemplateStatus(payload.status || []);
+        }
       }
     } catch (err) { 
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
@@ -132,12 +140,13 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/admin/upload-template`, formData, {
+      const res = await axios.post(`${API_BASE_URL}/api/admin/upload-template`, formData, {
         headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
       });
-      toast.success('Plantilla subida con éxito');
+      const label = res.data?.processLabel || templateName;
+      toast.success(t('admin.templateSaved', { type: label }));
       setTemplateFile(null);
-      fetchData();
+      await fetchData();
     } catch (err) {
       toast.error('Error al subir la plantilla');
     } finally {
@@ -353,14 +362,20 @@ const AdminDashboard = () => {
                             { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
                             { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
                           ].map(type => {
-                            const customTemplate = templates.find(t => t.name === type.id);
+                            const rowStatus = templateStatus.find((s) => s.id === type.id);
+                            const isHtml = rowStatus?.kind === 'html';
+                            const isAvailable = rowStatus ? rowStatus.available : templates.some((tpl) => tpl.name === type.id);
+                            const customTemplate = templates.find((tpl) => tpl.name === type.id);
                             return (
                               <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
                                 <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{type.label}</td>
                                 <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    {customTemplate ? (
+                                    {isAvailable ? (
                                         <>
-                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>✅ Personalizada (DB)</span>
+                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
+                                              {isHtml ? t('admin.htmlEngine') : t('admin.customDb')}
+                                            </span>
+                                            {!isHtml && customTemplate && (
                                             <button 
                                                 onClick={() => handleDeleteTemplate(type.id)}
                                                 style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -368,9 +383,10 @@ const AdminDashboard = () => {
                                             >
                                                 <Trash2 size={14} />
                                             </button>
+                                            )}
                                         </>
                                     ) : (
-                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>⚠️ Sin Plantilla (Inactivo)</span>
+                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>{t('admin.noTemplate')}</span>
                                     )}
                                 </td>
                               </tr>

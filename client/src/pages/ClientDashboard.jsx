@@ -51,6 +51,8 @@ const ClientDashboard = () => {
     const [toast, setToast] = useState({ show: false, msg: '', type: 'error' });
     const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
 
+    const [templateStatus, setTemplateStatus] = useState(null);
+    const [templateStatusLoading, setTemplateStatusLoading] = useState(false);
     const [step, setStep] = useState(1);
     const EMPTY_FORM = {
         companyName: '', activities: '', country: '', beneficiaryName: '',
@@ -107,11 +109,53 @@ const ClientDashboard = () => {
         { id: 'Cumplimiento Entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
     ];
 
+    const fetchTemplateStatus = useCallback(async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        setTemplateStatusLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/forms/templates/status`, {
+                headers: { 'x-auth-token': token },
+            });
+            if (response.status === 401) {
+                localStorage.clear();
+                navigate('/');
+                return;
+            }
+            if (response.ok) {
+                setTemplateStatus(await response.json());
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setTemplateStatusLoading(false);
+        }
+    }, [navigate]);
+
+    const isHtmlFormType = (type) =>
+        type?.startsWith('Corporaci') || type === 'Fundaciones';
+
+    const usesPdfWizard = (type) =>
+        type === 'Fondos Registros contables' ||
+        type === 'Cumplimiento Individual' ||
+        type === 'Cumplimiento Entidades';
+
+    const isFormReady = (type) => {
+        if (!type) return true;
+        if (isHtmlFormType(type)) return true;
+        if (!templateStatus) return null;
+        return Boolean(templateStatus[type]);
+    };
+
     useEffect(() => {
         fetchData();
         if (editId) fetchFormData(editId);
         if (formTypeQuery) setCurrentFormType(formTypeQuery);
     }, [editId, formTypeQuery]);
+
+    useEffect(() => {
+        if (showForm) fetchTemplateStatus();
+    }, [showForm, fetchTemplateStatus]);
 
     const showToast = (msg, type = 'error') => {
         setToast({ show: true, msg, type });
@@ -439,7 +483,11 @@ const ClientDashboard = () => {
                           ))}
                         </div>
                     </div>
-                ) : currentFormType === 'Fondos Registros contables' ? (
+                ) : templateStatusLoading && currentFormType && !isHtmlFormType(currentFormType) ? (
+                    <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', color: '#64748b' }} aria-busy="true">
+                        <p>{t('dashboard.syncing')}</p>
+                    </div>
+                ) : usesPdfWizard(currentFormType) && isFormReady(currentFormType) ? (
                     <div style={{ maxWidth: '800px' }}>
                         <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>

@@ -14,6 +14,7 @@ const upload = multer({
 });
 
 const auth = require('../middleware/auth');
+const templateAvailability = require('../utils/templateAvailability');
 
 // Middleware to verify Admin role
 const isAdmin = (req, res, next) => {
@@ -213,9 +214,14 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
             description: `Admin subió plantilla ${templateName} -> Guardada como ${fileName}`
         });
 
-        res.json({ 
-            msg: `Plantilla subida exitosamente. Guardada físicamente como ${fileName} y respaldada en DB.`,
-            path: filePath 
+        const processLabel = templateAvailability.adminTemplateIdToLabel(templateName);
+
+        res.json({
+            msg: `Plantilla guardada para ${processLabel}. Archivo: ${fileName}`,
+            processLabel,
+            templateName,
+            fileName,
+            path: filePath,
         });
     } catch (err) {
         console.error('🔥 Error al subir plantilla:', err);
@@ -224,7 +230,7 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 });
 
 // @route   GET api/admin/templates
-// @desc    Get list of templates (metadata only)
+// @desc    Plantillas en DB + disponibilidad (disco / HTML)
 router.get('/templates', [auth, isAdmin], async (req, res) => {
     try {
         const templates = await DocumentTemplate.findAll({
@@ -237,9 +243,22 @@ router.get('/templates', [auth, isAdmin], async (req, res) => {
             }
             return raw;
         });
-        res.json(normalized);
+        const statusRows = await templateAvailability.getAdminTemplateStatusRows(DocumentTemplate);
+        res.json({ templates: normalized, status: statusRows });
     } catch (err) {
         res.status(500).send('Server error');
+    }
+});
+
+// @route   GET api/admin/templates/status
+// @desc    Mismo mapa de disponibilidad que usa el cliente
+router.get('/templates/status', [auth, isAdmin], async (req, res) => {
+    try {
+        const statuses = await templateAvailability.getClientTemplateStatusMap(DocumentTemplate);
+        res.json(statuses);
+    } catch (err) {
+        console.error('Error admin templates/status:', err);
+        res.status(500).json({ msg: 'Error al verificar plantillas.' });
     }
 });
 

@@ -9,69 +9,15 @@ const fundacionHtmlPdfService = require('../services/fundacionHtmlPdfService');
 const stablePdfForms = require('../config/stablePdfForms');
 const userLanguageStore = require('../services/userLanguageStore');
 
-const checkTemplateExists = async (formType) => {
-    if (stablePdfForms.isCorporacionPdfForm(formType) || stablePdfForms.isFundacionPdfForm(formType)) {
-        return true;
-    }
-    let prefix = 'SFAR';
-    let dbNames = ['referencia_maestra', 'fondos'];
-    
-    const norm = String(formType || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (norm.includes('corporacion') || norm.includes('incorporation') || norm.includes('corporativo')) {
-        prefix = 'PTLC';
-        dbNames = ['corporacion'];
-    } else if (norm.includes('fundacion')) {
-        prefix = 'PTLF';
-        dbNames = ['fundaciones'];
-    } else if (norm.includes('fondos') || norm.includes('funds')) {
-        prefix = 'SFAR';
-        dbNames = ['referencia_maestra', 'fondos'];
-    } else if (norm.includes('cumplimiento individual') || norm.includes('individual compliance')) {
-        prefix = 'KYCI';
-        dbNames = ['cumplimiento_individual'];
-    } else if (norm.includes('cumplimiento entidades') || norm.includes('entity compliance')) {
-        prefix = 'KYCE';
-        dbNames = ['cumplimiento_entidades'];
-    } else {
-        return false;
-    }
-    
-    const localPath = path.join(__dirname, `../templates/${prefix}.pdf`);
-    const legacyPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
-
-    if (fs.existsSync(localPath)) {
-        return true;
-    }
-
-    const { Op } = require('sequelize');
-    const dbTemplate = await DocumentTemplate.findOne({
-        where: {
-            name: {
-                [Op.in]: dbNames
-            }
-        }
-    });
-    
-    if (dbTemplate && dbTemplate.fileData) {
-        return true;
-    }
-
-    return false;
-};
+const templateAvailability = require('../utils/templateAvailability');
 
 // @route   GET api/forms/templates/status
 router.get('/templates/status', auth, async (req, res) => {
     try {
-        const statuses = {
-            'Corporación': await checkTemplateExists('Corporación'),
-            'Fundaciones': await checkTemplateExists('Fundaciones'),
-            'Fondos Registros contables': await checkTemplateExists('Fondos Registros contables'),
-            'Cumplimiento Individual': await checkTemplateExists('Cumplimiento Individual'),
-            'Cumplimiento Entidades': await checkTemplateExists('Cumplimiento Entidades')
-        };
+        const statuses = await templateAvailability.getClientTemplateStatusMap(DocumentTemplate);
         res.json(statuses);
     } catch (err) {
-        console.error('🔥 Error al verificar estado de plantillas:', err);
+        console.error('Error al verificar estado de plantillas:', err);
         res.status(500).json({ msg: 'Error al verificar plantillas en el servidor.' });
     }
 });
@@ -83,7 +29,7 @@ router.post('/save', auth, async (req, res) => {
     const formTypeLabel = type || 'Documento General';
 
     // Validación estricta de consistencia de plantilla antes de guardar
-    const hasTemplate = await checkTemplateExists(formTypeLabel);
+    const hasTemplate = await templateAvailability.checkTemplateExists(formTypeLabel, DocumentTemplate);
     if (!hasTemplate) {
         return res.status(400).json({ 
             status: 'error',
@@ -187,7 +133,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
         // Validación estricta de plantilla para generación de PDF
-        const hasTemplate = await checkTemplateExists(form.formType);
+        const hasTemplate = await templateAvailability.checkTemplateExists(form.formType, DocumentTemplate);
         if (!hasTemplate) {
             return res.status(400).json({ 
                 status: 'error',
