@@ -15,16 +15,22 @@ export const FUNDACION_PERSON_FIELDS = [
   'country',
 ];
 
+/** Campos reducidos — paso Dignatarios. */
+export const FUNDACION_DIGNITARY_FIELDS = ['role', 'fullName', 'birthDate', 'address'];
+
+/** Campos reducidos — paso Beneficiarios. */
+export const FUNDACION_BENEFICIARY_FIELDS = ['percentage', 'shareholder', 'birthDate', 'address'];
+
 export function emptyFundacionPerson() {
   return Object.fromEntries(FUNDACION_PERSON_FIELDS.map((k) => [k, '']));
 }
 
 export function emptyFundacionDignitary(role = '') {
-  return { role, registrationNumber: '', ...emptyFundacionPerson() };
+  return { role, fullName: '', birthDate: '', address: '' };
 }
 
 export function emptyFundacionBeneficiary() {
-  return { percentage: '', ...emptyFundacionPerson() };
+  return { percentage: '', shareholder: '', birthDate: '', address: '' };
 }
 
 /** Migra registros legacy (fullName) al esquema de nombre dividido. */
@@ -47,9 +53,43 @@ export function normalizeFundacionPerson(raw = {}) {
   return person;
 }
 
+export function normalizeFundacionDignitary(raw = {}) {
+  const d = { ...emptyFundacionDignitary(raw.role || ''), ...raw };
+  if (!String(d.fullName || '').trim()) {
+    d.fullName =
+      String(raw.fullName || '').trim() || personDisplayName(normalizeFundacionPerson(raw));
+  }
+  return pickRoleFields(d, FUNDACION_DIGNITARY_FIELDS);
+}
+
+export function normalizeFundacionBeneficiary(raw = {}) {
+  const b = { ...emptyFundacionBeneficiary(), ...raw };
+  if (!String(b.shareholder || '').trim()) {
+    b.shareholder =
+      String(raw.shareholder || raw.fullName || '').trim() ||
+      personDisplayName(normalizeFundacionPerson(raw));
+  }
+  return pickRoleFields(b, FUNDACION_BENEFICIARY_FIELDS);
+}
+
+function pickRoleFields(obj, allowed) {
+  return Object.fromEntries(allowed.map((k) => [k, obj[k] ?? '']));
+}
+
 export function personDisplayName(person) {
   return [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ').trim()
-    || String(person.fullName || '').trim();
+    || String(person.fullName || person.shareholder || '').trim();
+}
+
+export function dignitaryDisplayName(d) {
+  return String(d?.fullName || '').trim() || personDisplayName(normalizeFundacionPerson(d || {}));
+}
+
+export function beneficiaryDisplayName(b) {
+  return (
+    String(b?.shareholder || b?.fullName || '').trim() ||
+    personDisplayName(normalizeFundacionPerson(b || {}))
+  );
 }
 
 export function personNameKey(name) {
@@ -76,6 +116,29 @@ export function mergePersonRecords(target = {}, source = {}) {
 }
 
 /**
+ * Copia solo campos permitidos del rol; mapea nombre desde registros divididos o fullName.
+ */
+export function mergeRoleFields(target = {}, source = {}, allowedFields = []) {
+  const out = { ...target };
+  const normalized = normalizeFundacionPerson(source);
+  const nameFromParts = personDisplayName(normalized);
+
+  for (const key of allowedFields) {
+    let value = source[key];
+    if (key === 'fullName' && !String(value || '').trim()) {
+      value = source.fullName || nameFromParts;
+    }
+    if (key === 'shareholder' && !String(value || '').trim()) {
+      value = source.shareholder || source.fullName || nameFromParts;
+    }
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+/**
  * Registro en memoria de personas del formulario, indexado por nombre normalizado.
  * exclude: { arrayName, index } omite la fila que se está editando.
  */
@@ -84,7 +147,7 @@ export function buildPersonRegistry(formData, exclude = null) {
 
   const addPerson = (raw, extra = {}) => {
     const merged = mergePersonRecords(normalizeFundacionPerson(raw), extra);
-    const name = personDisplayName(merged);
+    const name = personDisplayName(merged) || merged.fullName || merged.shareholder;
     const key = personNameKey(name);
     if (!key) return;
     const prev = map.get(key) || {};
@@ -105,12 +168,22 @@ export function buildPersonRegistry(formData, exclude = null) {
   });
   (formData.dignitaries || []).forEach((d, i) => {
     if (!skip('dignitaries', i)) {
-      addPerson(d, { role: d.role, registrationNumber: d.registrationNumber });
+      const name = dignitaryDisplayName(d);
+      if (!name) return;
+      addPerson(
+        { fullName: name, birthDate: d.birthDate, address: d.address },
+        { role: d.role }
+      );
     }
   });
   (formData.beneficiaries || []).forEach((b, i) => {
     if (!skip('beneficiaries', i)) {
-      addPerson(b, { percentage: b.percentage });
+      const name = beneficiaryDisplayName(b);
+      if (!name) return;
+      addPerson(
+        { shareholder: name, fullName: name, birthDate: b.birthDate, address: b.address },
+        { percentage: b.percentage }
+      );
     }
   });
 

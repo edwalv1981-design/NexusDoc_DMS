@@ -157,6 +157,23 @@ const en = {
   fundacion: {
     title: 'PRIVATE INTEREST FOUNDATION',
     subtitle: 'High-Precision Foundation Management',
+    dignitary: {
+      role: 'Position',
+      fullName: 'Full name',
+      fullNamePlaceholder: 'As it appears on passport or ID…',
+      birthDate: 'Date of birth',
+      address: 'Address',
+      addressPlaceholder: 'Complete residential address…',
+    },
+    beneficiary: {
+      percentage: '% of benefit',
+      percentagePlaceholder: 'e.g. 100%',
+      shareholder: 'Shareholder',
+      shareholderPlaceholder: 'Shareholder name…',
+      birthDate: 'Date of birth',
+      address: 'Address',
+      addressPlaceholder: 'Complete residential address…',
+    },
     person: {
       autocompleteByName: 'Autocomplete by name',
       autocompletePlaceholder: 'Type or select a name…',

@@ -40,7 +40,18 @@ function normalizeFundacionPerson(raw = {}) {
 
 function personDisplayName(person) {
   return [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ').trim()
-    || String(person.fullName || '').trim();
+    || String(person.fullName || person.shareholder || '').trim();
+}
+
+function dignitaryDisplayName(d) {
+  return String(d?.fullName || '').trim() || personDisplayName(normalizeFundacionPerson(d || {}));
+}
+
+function beneficiaryDisplayName(b) {
+  return (
+    String(b?.shareholder || b?.fullName || '').trim() ||
+    personDisplayName(normalizeFundacionPerson(b || {}))
+  );
 }
 
 function personHasData(person) {
@@ -52,5 +63,7 @@ module.exports = {
   emptyFundacionPerson,
   normalizeFundacionPerson,
   personDisplayName,
+  dignitaryDisplayName,
+  beneficiaryDisplayName,
   personHasData,
 };

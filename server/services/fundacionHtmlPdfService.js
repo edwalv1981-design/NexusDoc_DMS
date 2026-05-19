@@ -4,6 +4,8 @@ const fundacionPdfI18n = require('./fundacionPdfI18n');
 const {
   normalizeFundacionPerson,
   personDisplayName,
+  dignitaryDisplayName,
+  beneficiaryDisplayName,
   personHasData,
 } = require('../utils/fundacionPersonSchema');
 const fs = require('fs');
@@ -157,18 +159,17 @@ function buildProtectorsRows(protectors, t) {
 
 function buildDignitariesRows(dignitaries, t) {
   if (!dignitaries.length) {
-    return `<tr><td colspan="5" style="text-align:center;font-style:italic;">${esc(t.emptyDignitaries)}</td></tr>`;
+    return `<tr><td colspan="4" style="text-align:center;font-style:italic;">${esc(t.emptyDignitaries)}</td></tr>`;
   }
   return dignitaries
     .map((d) => {
-      const row = normalizeFundacionPerson(d);
+      const address = d.address || normalizeFundacionPerson(d).address;
       return `
     <tr>
       <td>${esc(d.role)}</td>
-      <td>${esc(personDisplayName(row))}</td>
-      <td>${esc(fmtDate(row.birthDate))}</td>
-      <td>${esc(row.passport || row.idCard)}</td>
-      <td>${esc(d.registrationNumber)}</td>
+      <td>${esc(dignitaryDisplayName(d))}</td>
+      <td>${esc(fmtDate(d.birthDate))}</td>
+      <td>${esc(address)}</td>
     </tr>
   `;
     })
@@ -177,19 +178,17 @@ function buildDignitariesRows(dignitaries, t) {
 
 function buildBeneficiariesRows(beneficiaries, t) {
   if (!beneficiaries.length) {
-    return `<tr><td colspan="6" style="text-align:center;font-style:italic;">${esc(t.emptyBeneficiaries)}</td></tr>`;
+    return `<tr><td colspan="4" style="text-align:center;font-style:italic;">${esc(t.emptyBeneficiaries)}</td></tr>`;
   }
   return beneficiaries
-    .map((b, i) => {
-      const row = normalizeFundacionPerson(b);
+    .map((b) => {
+      const address = b.address || normalizeFundacionPerson(b).address;
       return `
     <tr>
-      <td>${i + 1}</td>
-      <td>${esc(personDisplayName(row))}</td>
-      <td>${esc(fmtDate(row.birthDate))}</td>
-      <td>${esc(row.passport || row.idCard)}</td>
       <td>${esc(b.percentage)}</td>
-      <td>${esc(row.address)}</td>
+      <td>${esc(beneficiaryDisplayName(b))}</td>
+      <td>${esc(fmtDate(b.birthDate))}</td>
+      <td>${esc(address)}</td>
     </tr>
   `;
     })
@@ -338,8 +337,7 @@ class FundacionHtmlPdfService {
                   <th>${esc(t.dignitaryRole)}</th>
                   <th>${esc(t.dignitaryName)}</th>
                   <th>${esc(t.dignitaryBirthDate)}</th>
-                  <th>${esc(t.dignitaryPassport)}</th>
-                  <th>${esc(t.dignitaryRegistrationNumber)}</th>
+                  <th>${esc(t.dignitaryAddress)}</th>
                 </tr>
               </thead>
               <tbody>${buildDignitariesRows(dignitaries, t)}</tbody>
@@ -351,11 +349,9 @@ class FundacionHtmlPdfService {
             <table>
               <thead>
                 <tr>
-                  <th>${esc(t.dirNum)}</th>
-                  <th>${esc(t.beneficiaryName)}</th>
-                  <th>${esc(t.beneficiaryBirthDate)}</th>
-                  <th>${esc(t.beneficiaryPassport)}</th>
                   <th>${esc(t.beneficiaryPercentage)}</th>
+                  <th>${esc(t.beneficiaryShareholder)}</th>
+                  <th>${esc(t.beneficiaryBirthDate)}</th>
                   <th>${esc(t.beneficiaryAddress)}</th>
                 </tr>
               </thead>
