@@ -10,7 +10,8 @@
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "test": "node run-tests.cjs",
     "test:smoke-corporacion-pdf": "node scripts/smoke-corporacion-html-pdf.js",
-    "test:smoke-corporacion-pdf-heavy": "node scripts/smoke-corporacion-html-pdf-heavy.js"
+    "test:smoke-corporacion-pdf-heavy": "node scripts/smoke-corporacion-html-pdf-heavy.js",
+    "migrate:kyci": "node scripts/migrate-kyci-form-data.js"
   },
   "keywords": [],
   "author": "",
