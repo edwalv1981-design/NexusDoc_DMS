@@ -9,7 +9,7 @@ const { connectDB, sequelize } = require('./config/db');
 
 
 const app = express();
-const PORT = 5000;
+const PORT = Number(process.env.PORT) || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
     .split(',')
