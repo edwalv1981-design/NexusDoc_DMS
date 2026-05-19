@@ -212,8 +212,6 @@ const en = {
   fundacion: {
     title: 'PRIVATE INTEREST FOUNDATION',
     subtitle: 'High-Precision Foundation Management',
-    copyFrom: 'Copy data from another person',
-    copySelect: '— Select person —',
     dignitary: {
       role: 'Position',
       fullName: 'Full name',

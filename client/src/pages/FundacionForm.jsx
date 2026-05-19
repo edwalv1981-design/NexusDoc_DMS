@@ -5,33 +5,19 @@ import {
     CheckCircle2, Info, Award, KeyRound, Globe, FileText
 } from 'lucide-react';
 import { useLang } from '../i18n';
-import FundacionPersonFields from '../components/FundacionPersonFields';
-import FundacionRegistryNameInput from '../components/FundacionRegistryNameInput';
+import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
 import {
     emptyFundacionPerson,
     emptyFundacionDignitary,
     emptyFundacionBeneficiary,
-    normalizeFundacionPerson,
     normalizeLoadedFundacionData,
-    personDisplayName,
     poaPersonFromFormData,
     POA_FORM_FIELD_MAP,
-    FUNDACION_DIGNITARY_FIELDS,
 } from '../utils/fundacionPersonSchema';
-import {
-    buildRegistry,
-    applyRoleFields,
-    pickFields,
-    findMatch,
-    findPersonInRegistry,
-    getPersonNameSuggestions,
-    snapshotPersonFields,
-} from '../utils/fundacionPersonRegistry';
-
-const BENEFICIARY_REGISTRY_FILL = ['birthDate', 'address'];
 
 const FundacionForm = ({ initialData, onSave, saving }) => {
     const { lang, t } = useLang();
+    const L = (key) => (t?.(`fundacion.person.${key}`) ?? key);
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         // Basic Info (Step 1)
@@ -115,58 +101,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    const applyRegistryPerson = (arrayName, index, fields) => {
-        const rows = formData[arrayName];
-        if (!Array.isArray(rows) || index < 0 || index >= rows.length) return;
-        const next = [...rows];
-        next[index] = { ...rows[index], ...fields };
-        setFormData((prev) => ({ ...prev, [arrayName]: next }));
-    };
-
-    const mergePersonIntoRow = (arrayName, index, source, allowedFields) => {
-        if (!source) return;
-        setFormData((prev) => {
-            const rows = prev[arrayName];
-            if (!Array.isArray(rows) || index < 0 || index >= rows.length) return prev;
-            const merged = applyRoleFields(rows[index], source, allowedFields);
-            const next = [...rows];
-            next[index] = merged;
-            return { ...prev, [arrayName]: next };
-        });
-    };
-
-    const tryApplyPoaFromTypedName = () => {
-        setFormData((prev) => {
-            const registry = buildRegistry(prev, { arrayName: 'poa' });
-            const draft = {
-                firstName: prev.poaFirstName,
-                secondName: prev.poaMiddleName,
-                lastName: prev.poaLastName,
-            };
-            const hit =
-                findPersonInRegistry(registry, draft) ||
-                findMatch(registry, personDisplayName(normalizeFundacionPerson(draft)));
-            if (!hit) return prev;
-            const p = snapshotPersonFields(hit);
-            return {
-                ...prev,
-                poaFirstName: p.firstName || prev.poaFirstName,
-                poaMiddleName: p.secondName || prev.poaMiddleName,
-                poaLastName: p.lastName || prev.poaLastName,
-                poaBirthDate: p.birthDate || prev.poaBirthDate,
-                poaMaritalStatus: p.maritalStatus || prev.poaMaritalStatus,
-                poaNationality: p.nationality || prev.poaNationality,
-                poaPassport: p.passport || prev.poaPassport,
-                poaIdCard: p.idCard || prev.poaIdCard,
-                poaPhone: p.phone || prev.poaPhone,
-                poaEmail: p.email || prev.poaEmail,
-                poaAddress: p.address || prev.poaAddress,
-                poaCity: p.city || prev.poaCity,
-                poaCountry: p.country || prev.poaCountry,
-            };
-        });
-    };
-
     const updateArrayField = (arrayName, index, field, value) => {
         const newArray = [...formData[arrayName]];
         newArray[index][field] = value;
@@ -202,10 +136,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
     // RENDER DE LOS 10 PASOS SOLICITADOS POR EL USUARIO
 
-    // Paso 1: Nombre de la fundación (colocar 3 nombres)
+    // Paso 1: Nombre de la fundaci?n (colocar 3 nombres)
     const renderStep1 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="expert-step-title"><Heart size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 1: Foundation Name' : 'Paso 1: Nombre de la Fundación'}</h2>
+            <h2 className="expert-step-title"><Heart size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 1: Foundation Name' : 'Paso 1: Nombre de la Fundaci?n'}</h2>
             
             <div className="expert-hint-box">
                 <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -218,8 +152,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     </strong>
                     <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#475569' }}>
                         {lang === 'en'
-                            ? 'Note: The name must end with the word "Foundation" or "Fundación".'
-                            : 'Nota: El nombre debe terminar obligatoriamente con la palabra "Foundation" o "Fundación".'
+                            ? 'Note: The name must end with the word "Foundation" or "Fundaci?n".'
+                            : 'Nota: El nombre debe terminar obligatoriamente con la palabra "Foundation" o "Fundaci?n".'
                         }
                     </div>
                 </div>
@@ -227,16 +161,16 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             <div className="expert-grid">
                 <div className="expert-field full-width">
-                    <label>{lang === 'en' ? 'Foundation Name - 1st Choice (Required)' : 'Opción 1 de Nombre (Requerido)'}</label>
-                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN ESPERANZA" required />
+                    <label>{lang === 'en' ? 'Foundation Name - 1st Choice (Required)' : 'Opci?n 1 de Nombre (Requerido)'}</label>
+                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACI?N ESPERANZA" required />
                 </div>
                 <div className="expert-field">
-                    <label>{lang === 'en' ? 'Foundation Name - 2nd Choice' : 'Opción 2 de Nombre'}</label>
-                    <input className="expert-input" value={formData.foundationNameOption2} onChange={e => setFormData({...formData, foundationNameOption2: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN PROGRESO" />
+                    <label>{lang === 'en' ? 'Foundation Name - 2nd Choice' : 'Opci?n 2 de Nombre'}</label>
+                    <input className="expert-input" value={formData.foundationNameOption2} onChange={e => setFormData({...formData, foundationNameOption2: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACI?N PROGRESO" />
                 </div>
                 <div className="expert-field">
-                    <label>{lang === 'en' ? 'Foundation Name - 3rd Choice' : 'Opción 3 de Nombre'}</label>
-                    <input className="expert-input" value={formData.foundationNameOption3} onChange={e => setFormData({...formData, foundationNameOption3: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN FUTURO" />
+                    <label>{lang === 'en' ? 'Foundation Name - 3rd Choice' : 'Opci?n 3 de Nombre'}</label>
+                    <input className="expert-input" value={formData.foundationNameOption3} onChange={e => setFormData({...formData, foundationNameOption3: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACI?N FUTURO" />
                 </div>
             </div>
         </div>
@@ -252,7 +186,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
                     {lang === 'en'
                         ? 'The minimum initial endowment (Capital Social) to constitute a Private Interest Foundation in Panama is US$10,000.00.'
-                        : 'El patrimonio mínimo inicial (Capital Social) para constituir una Fundación de Interés Privado en Panamá es de US$10,000.00.'
+                        : 'El patrimonio m?nimo inicial (Capital Social) para constituir una Fundaci?n de Inter?s Privado en Panam? es de US$10,000.00.'
                     }
                 </div>
             </div>
@@ -269,9 +203,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => {
-        const registry = buildRegistry(formData, { arrayName, index });
-        return (
+    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => (
         <div key={index} className="expert-card-legal">
             <div className="expert-card-label">{cardLabel}</div>
             {canRemove && (
@@ -283,13 +215,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 person={formData[arrayName][index]}
                 lang={lang}
                 t={t}
-                personRegistry={registry}
-                onApplyPerson={(fields) => applyRegistryPerson(arrayName, index, fields)}
                 onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
             />
         </div>
-        );
-    };
+    );
 
     // Paso 3: Fundador
     const renderStep3 = () => (
@@ -302,7 +231,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
+                            <input className="expert-input" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/c?dula...'} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
@@ -317,12 +246,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                             <input className="expert-input" value={f.nationality || ''} onChange={e => updateArrayField('founders', i, 'nationality', e.target.value)} />
                         </div>
                         <div className="expert-field">
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
+                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / C?dula'}</label>
                             <input className="expert-input" value={f.passport} onChange={e => updateArrayField('founders', i, 'passport', e.target.value)} />
                         </div>
                         <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
-                            <input className="expert-input" value={f.address} onChange={e => updateArrayField('founders', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
+                            <label>{lang === 'en' ? 'Residential Address' : 'Direcci?n completa'}</label>
+                            <input className="expert-input" value={f.address} onChange={e => updateArrayField('founders', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Direcci?n residencial completa...'} />
                         </div>
                     </div>
                 </div>
@@ -336,7 +265,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             <div className="expert-section-header">
                 <h2 className="expert-step-title"><Shield size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 4: Protectors' : 'Paso 4: Protectores'}</h2>
                 <button type="button" onClick={() => addArrayItem('protectors', emptyFundacionPerson())} className="expert-btn-add">
-                    <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'AÑADIR PROTECTOR'}
+                    <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'A?ADIR PROTECTOR'}
                 </button>
             </div>
             {formData.protectors.map((_, i) =>
@@ -352,13 +281,13 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    // Paso 5: Directores (Consejo de Fundación)
+    // Paso 5: Directores (Consejo de Fundaci?n)
     const renderStep5 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
-                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 5: Directors (Foundation Council)' : 'Paso 5: Directores (Consejo de Fundación)'}</h2>
+                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 5: Directors (Foundation Council)' : 'Paso 5: Directores (Consejo de Fundaci?n)'}</h2>
                 <button type="button" onClick={() => addArrayItem('councilMembers', emptyFundacionPerson())} className="expert-btn-add">
-                    <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'AÑADIR MIEMBRO'}
+                    <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'A?ADIR MIEMBRO'}
                 </button>
             </div>
             {formData.councilMembers.map((_, i) =>
@@ -390,9 +319,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                             </select>
                         </div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Nationality' : 'Nacionalidad'}</label><input className="expert-input" value={m.nationality} onChange={e => updateArrayField('councilMembers', i, 'nationality', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={m.passport} onChange={e => updateArrayField('councilMembers', i, 'passport', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / C?dula'}</label><input className="expert-input" value={m.passport} onChange={e => updateArrayField('councilMembers', i, 'passport', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={m.birthDate} onChange={e => updateArrayField('councilMembers', i, 'birthDate', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="expert-input" value={m.address} onChange={e => updateArrayField('councilMembers', i, 'address', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Direcci?n completa'}</label><input className="expert-input" value={m.address} onChange={e => updateArrayField('councilMembers', i, 'address', e.target.value)} /></div>
                     </div>
                 </div>
             ))}
@@ -405,12 +334,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             <div className="expert-section-header">
                 <h2 className="expert-step-title"><UserCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 6: Dignitaries' : 'Paso 6: Dignatarios'}</h2>
                 <button type="button" onClick={() => addArrayItem('dignitaries', emptyFundacionDignitary())} className="expert-btn-add">
-                    <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
+                    <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'A?ADIR DIGNATARIO'}
                 </button>
             </div>
-            {formData.dignitaries.map((d, i) => {
-                const registry = buildRegistry(formData, { arrayName: 'dignitaries', index: i });
-                return (
+            {formData.dignitaries.map((d, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
                     {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
@@ -421,13 +348,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="expert-field full-width">
                             <label>{t('fundacion.dignitary.fullName')}</label>
-                            <FundacionRegistryNameInput
+                            <input
+                                className="expert-input"
                                 value={d.fullName || ''}
-                                onChange={(v) => updateArrayField('dignitaries', i, 'fullName', v)}
-                                registry={registry}
-                                listId={`dignitary-name-${i}`}
+                                onChange={(e) => updateArrayField('dignitaries', i, 'fullName', e.target.value)}
                                 placeholder={t('fundacion.dignitary.fullNamePlaceholder')}
-                                onMatch={(data) => mergePersonIntoRow('dignitaries', i, data, FUNDACION_DIGNITARY_FIELDS)}
                             />
                         </div>
                         <div className="expert-field">
@@ -440,8 +365,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                     </div>
                 </div>
-                );
-            })}
+            ))}
         </div>
     );
 
@@ -451,12 +375,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             <div className="expert-section-header">
                 <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 7: Beneficiaries' : 'Paso 7: Beneficiarios'}</h2>
                 <button type="button" onClick={() => addArrayItem('beneficiaries', emptyFundacionBeneficiary())} className="expert-btn-add">
-                    <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'AÑADIR BENEFICIARIO'}
+                    <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'A?ADIR BENEFICIARIO'}
                 </button>
             </div>
-            {formData.beneficiaries.map((b, i) => {
-                const registry = buildRegistry(formData, { arrayName: 'beneficiaries', index: i });
-                return (
+            {formData.beneficiaries.map((b, i) => (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
                     {formData.beneficiaries.length > 1 && <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
@@ -467,20 +389,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="expert-field full-width">
                             <label>{t('fundacion.beneficiary.shareholder')}</label>
-                            <FundacionRegistryNameInput
+                            <input
+                                className="expert-input"
                                 value={b.shareholder || ''}
-                                onChange={(v) => updateArrayField('beneficiaries', i, 'shareholder', v)}
-                                registry={registry}
-                                listId={`beneficiary-shareholder-${i}`}
+                                onChange={(e) => updateArrayField('beneficiaries', i, 'shareholder', e.target.value)}
                                 placeholder={t('fundacion.beneficiary.shareholderPlaceholder')}
-                                onMatch={(data) => {
-                                    const fill = pickFields(data, BENEFICIARY_REGISTRY_FILL);
-                                    setFormData((prev) => {
-                                        const rows = [...prev.beneficiaries];
-                                        rows[i] = { ...rows[i], ...fill };
-                                        return { ...prev, beneficiaries: rows };
-                                    });
-                                }}
                             />
                         </div>
                         <div className="expert-field">
@@ -493,8 +406,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                     </div>
                 </div>
-                );
-            })}
+            ))}
         </div>
     );
 
@@ -504,32 +416,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    const applyPoaRegistryPerson = (fields) => {
-        setFormData((prev) => {
-            const p = normalizeFundacionPerson(fields);
-            return {
-                ...prev,
-                poaFirstName: p.firstName || prev.poaFirstName,
-                poaMiddleName: p.secondName || prev.poaMiddleName,
-                poaLastName: p.lastName || prev.poaLastName,
-                poaBirthDate: p.birthDate || prev.poaBirthDate,
-                poaMaritalStatus: p.maritalStatus || prev.poaMaritalStatus,
-                poaNationality: p.nationality || prev.poaNationality,
-                poaPassport: p.passport || prev.poaPassport,
-                poaIdCard: p.idCard || prev.poaIdCard,
-                poaPhone: p.phone || prev.poaPhone,
-                poaEmail: p.email || prev.poaEmail,
-                poaAddress: p.address || prev.poaAddress,
-                poaCity: p.city || prev.poaCity,
-                poaCountry: p.country || prev.poaCountry,
-            };
-        });
-    };
-
     // Paso 8: Poderes (Power of Attorney)
-    const renderStep8 = () => {
-        const poaRegistry = buildRegistry(formData, { arrayName: 'poa' });
-        return (
+    const renderStep8 = () => (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {t('fundacion.poa.stepTitle')}</h2>
 
@@ -541,16 +429,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                                 person={poaPersonFromFormData(formData)}
                                 lang={lang}
                                 t={t}
-                                personRegistry={poaRegistry}
-                                onApplyPerson={applyPoaRegistryPerson}
                                 onChange={updatePoaField}
-                                onNameBlur={tryApplyPoaFromTypedName}
-                                nameListId="poa-names"
                             />
                         </div>
                     </div>
 
-                    {/* Configuraci�n de poderes (debajo del apoderado) */}
+                    {/*                    {/* Configuraci?n de poderes (debajo del apoderado) */}
                     <div className="poa-column-card">
                         <div className="poa-column-header" style={{ background: '#0e7490' }}>
                             {t('fundacion.poa.settingsHeader')}
@@ -612,45 +496,44 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     </div>
                 </div>
             </div>
-        );
-    };
+    );
 
-    // Paso 9: Actividades de la fundación (foundationObjects / fines)
+    // Paso 9: Actividades de la fundaci?n (foundationObjects / fines)
     const renderStep9 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="expert-step-title"><Globe size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 9: Foundation Objects & Activities' : 'Paso 9: Actividades y Fines de la Fundación'}</h2>
+            <h2 className="expert-step-title"><Globe size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 9: Foundation Objects & Activities' : 'Paso 9: Actividades y Fines de la Fundaci?n'}</h2>
             
             <div className="expert-hint-box">
                 <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
                     {lang === 'en'
                         ? 'Describe in detail the objects and purposes of the Private Interest Foundation. (e.g. Asset Protection, Estate Planning).'
-                        : 'Describa detalladamente el objeto y fines de la Fundación de Interés Privado. (Ej. Protección familiar, planificación patrimonial, administración de bienes).'
+                        : 'Describa detalladamente el objeto y fines de la Fundaci?n de Inter?s Privado. (Ej. Protecci?n familiar, planificaci?n patrimonial, administraci?n de bienes).'
                     }
                 </div>
             </div>
 
             <div className="expert-grid">
                 <div className="expert-field full-width">
-                    <label>{lang === 'en' ? 'Foundation Objects (Text Box)' : 'Fines de la Fundación (Detallar)'}</label>
-                    <textarea className="expert-input" rows={6} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder={lang === 'en' ? 'e.g. The objectives of the foundation are estate planning, family protection, holding shares...' : 'Ej: Los fines de la fundación consisten en velar por el patrimonio familiar, la planificación sucesoria, la tenencia de activos...'} required />
+                    <label>{lang === 'en' ? 'Foundation Objects (Text Box)' : 'Fines de la Fundaci?n (Detallar)'}</label>
+                    <textarea className="expert-input" rows={6} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder={lang === 'en' ? 'e.g. The objectives of the foundation are estate planning, family protection, holding shares...' : 'Ej: Los fines de la fundaci?n consisten en velar por el patrimonio familiar, la planificaci?n sucesoria, la tenencia de activos...'} required />
                 </div>
             </div>
         </div>
     );
 
-    // Paso 10: Declaraciones (Declaración Jurada y Firmantes)
+    // Paso 10: Declaraciones (Declaraci?n Jurada y Firmantes)
     const renderStep10 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
-                <h2 className="expert-step-title"><FileCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 10: Declaration / Sworn Affidavit' : 'Paso 10: Declaración / Declaración Jurada'}</h2>
+                <h2 className="expert-step-title"><FileCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 10: Declaration / Sworn Affidavit' : 'Paso 10: Declaraci?n / Declaraci?n Jurada'}</h2>
             </div>
 
             <div className="expert-legal-box">
                 <p className="expert-legal-text">
                     {lang === 'en'
                         ? 'I/We hereby declare under penalty of perjury that all information and statements provided in this document are true, correct, and complete. All foundation assets derive from lawful activities.'
-                        : 'Declaro(amos) bajo la gravedad del juramento que toda la información y manifestaciones consignadas en este formulario son verdaderas, correctas y completas. Todos los bienes de la fundación provienen de actividades lícitas.'
+                        : 'Declaro(amos) bajo la gravedad del juramento que toda la informaci?n y manifestaciones consignadas en este formulario son verdaderas, correctas y completas. Todos los bienes de la fundaci?n provienen de actividades l?citas.'
                     }
                 </p>
                 
@@ -662,18 +545,18 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-grid">
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
-                                <input className="expert-input-legal" list="names-global" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <input className="expert-input-legal" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
                             </div>
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
-                                <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} style={{ fontFamily: 'monospace' }} />
+                                <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificaci?n...'} style={{ fontFamily: 'monospace' }} />
                             </div>
                         </div>
                     </div>
                 ))}
                 
                 <div className="expert-field" style={{ marginTop: '25px' }}>
-                    <label style={{ color: '#475569', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaración'}</label>
+                    <label style={{ color: '#475569', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaraci?n'}</label>
                     <input type="date" className="expert-input-legal" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                 </div>
             </div>
@@ -684,18 +567,18 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-container">
             <div className="expert-header">
                 <div>
-                    <h1 className="expert-title">{lang === 'en' ? 'PRIVATE INTEREST FOUNDATION' : 'FUNDACIÓN DE INTERÉS PRIVADO'}</h1>
-                    <p className="expert-subtitle">{lang === 'en' ? 'High-Precision Corporate DMS System' : 'Sistema de Alta Precisión en Fundaciones'}</p>
+                    <h1 className="expert-title">{lang === 'en' ? 'PRIVATE INTEREST FOUNDATION' : 'FUNDACI?N DE INTER?S PRIVADO'}</h1>
+                    <p className="expert-subtitle">{lang === 'en' ? 'High-Precision Corporate DMS System' : 'Sistema de Alta Precisi?n en Fundaciones'}</p>
                 </div>
                 <button type="button" onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save-master">
                     <Save size={18} /> {saving ? (lang === 'en' ? 'Synchronizing...' : 'Sincronizando...') : (lang === 'en' ? 'SAVE PROGRESS' : 'GUARDAR AVANCE')}
                 </button>
             </div>
 
-            {/* Cabecera de Paso Estándar */}
+            {/* Cabecera de Paso Est?ndar */}
             <div className="standard-step-header">
                 <span className="standard-step-title">
-                    {step === 1 && `I. ${lang === 'en' ? 'Foundation Name' : 'Nombre de la Fundación'}`}
+                    {step === 1 && `I. ${lang === 'en' ? 'Foundation Name' : 'Nombre de la Fundaci?n'}`}
                     {step === 2 && `II. ${lang === 'en' ? 'Initial Endowment' : 'Capital Social'}`}
                     {step === 3 && `III. ${lang === 'en' ? 'Founders' : 'Fundadores'}`}
                     {step === 4 && `IV. ${lang === 'en' ? 'Protectors' : 'Protectores'}`}
@@ -703,15 +586,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     {step === 6 && `VI. ${lang === 'en' ? 'Dignitaries' : 'Dignatarios'}`}
                     {step === 7 && `VII. ${lang === 'en' ? 'Beneficiaries' : 'Beneficiarios'}`}
                     {step === 8 && `VIII. ${t('fundacion.poa.navLabel')}`}
-                    {step === 9 && `IX. ${lang === 'en' ? 'Foundation Objects & Activities' : 'Actividades de la Fundación'}`}
-                    {step === 10 && `X. ${lang === 'en' ? 'Declaration & Signatures' : 'Declaración y Firmas'}`}
+                    {step === 9 && `IX. ${lang === 'en' ? 'Foundation Objects & Activities' : 'Actividades de la Fundaci?n'}`}
+                    {step === 10 && `X. ${lang === 'en' ? 'Declaration & Signatures' : 'Declaraci?n y Firmas'}`}
                 </span>
                 <span className="standard-step-badge">
                     {lang === 'en' ? `Step ${step} of 10` : `Paso ${step} de 10`}
                 </span>
             </div>
 
-            {/* Stepper Progresivo Estándar de 10 Pasos */}
+            {/* Stepper Progresivo Est?ndar de 10 Pasos */}
             <div className="standard-progress-stepper">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => (
                     <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
@@ -735,22 +618,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     {step < 10 ? (
                         <button type="button" onClick={() => setStep(prev => prev + 1)} className="expert-btn-nav-next">{lang === 'en' ? 'NEXT STEP' : 'SIGUIENTE PASO'} <ChevronRight size={18} /></button>
                     ) : (
-                        <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? (lang === 'en' ? 'FINALIZING...' : 'FINALIZANDO...') : (lang === 'en' ? 'REGISTER FOUNDATION' : 'REGISTRAR FUNDACIÓN')}</button>
+                        <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? (lang === 'en' ? 'FINALIZING...' : 'FINALIZANDO...') : (lang === 'en' ? 'REGISTER FOUNDATION' : 'REGISTRAR FUNDACI?N')}</button>
                     )}
                 </div>
             </div>
-
-            {/* DATALISTS PARA AUTOCOMPLETADO */}
-            <datalist id="names-global">
-                {getPersonNameSuggestions(buildRegistry(formData)).map((name) => (
-                    <option key={name} value={name} />
-                ))}
-            </datalist>
-            <datalist id="poa-names">
-                {getPersonNameSuggestions(buildRegistry(formData, { arrayName: 'poa' })).map((name) => (
-                    <option key={`poa-${name}`} value={name} />
-                ))}
-            </datalist>
 
             <datalist id="roles-dignitaries">
                 <option value="PRESIDENTE" />
@@ -812,7 +683,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 15px 30px ${PRIMARY}40; }
                 .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
 
-                /* ORIGINAL FORMAT STYLING FOR POA */
+                /* ORIGINAL FORMAT STYLING FOR POA ? single column stack */
                 .poa-original-grid { display: flex; flex-direction: column; gap: 24px; margin-top: 20px; }
                 .poa-column-card { background: #ffffff; border: 2.5px solid #40a2be; border-radius: 16px; overflow: hidden; }
                 .poa-column-header { background: #40a2be; color: white; padding: 15px 20px; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; }
@@ -824,8 +695,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .person-copy-box { margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
                 .person-copy-box label { font-size: 10px; font-weight: 800; color: ${PRIMARY}; text-transform: uppercase; margin-bottom: 6px; display: block; }
                 @media (max-width: 768px) {
-                    .poa-original-grid .expert-grid,
-                    .poa-original-grid .person-fields-grid { grid-template-columns: 1fr; }
+                    .poa-original-grid .expert-grid { grid-template-columns: 1fr; }
                     .poa-original-grid .full-width { grid-column: span 1; }
                 }
             `}</style>

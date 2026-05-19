@@ -1,11 +1,4 @@
-import React, { useId, useCallback } from 'react';
-import { personNameKey } from '../utils/fundacionPersonSchema';
-import {
-  findMatch,
-  findPersonInRegistry,
-  getPersonNameSuggestions,
-  snapshotPersonFields,
-} from '../utils/fundacionPersonRegistry';
+import React from 'react';
 
 export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Soltero', en: 'Single', es: 'Soltero(a)' },
@@ -14,98 +7,26 @@ export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Viudo', en: 'Widowed', es: 'Viudo(a)' },
 ];
 
-const FundacionPersonFields = ({
-  person,
-  onChange,
-  lang,
-  t,
-  personRegistry = [],
-  onApplyPerson,
-  onNameBlur,
-  nameListId,
-}) => {
+const FundacionPersonFields = ({ person, onChange, lang, t }) => {
   const L = (key) => (t?.(`fundacion.person.${key}`) ?? key);
   const set = (field, value) => onChange(field, value);
-  const generatedListId = useId();
-  const listId = nameListId || generatedListId;
-  const suggestions = getPersonNameSuggestions(personRegistry);
-  const hasSuggestions = suggestions.length > 0;
   const selectPlaceholder =
     t?.('fundacion.poa.selectPlaceholder') || (lang === 'en' ? 'Select...' : 'Seleccione...');
-
-  const tryApplyFromRegistry = useCallback(
-    (draftPerson) => {
-      if (!onApplyPerson || !personRegistry.length) return;
-      const hit = findPersonInRegistry(personRegistry, draftPerson);
-      if (hit) onApplyPerson(snapshotPersonFields(hit));
-    },
-    [onApplyPerson, personRegistry]
-  );
-
-  const tryApplyExactName = useCallback(
-    (value) => {
-      if (!onApplyPerson) return;
-      const hit = findMatch(personRegistry, value);
-      if (hit) onApplyPerson(snapshotPersonFields(hit));
-    },
-    [onApplyPerson, personRegistry]
-  );
 
   return (
     <div className="expert-grid person-fields-grid">
       <div className="expert-field">
         <label>{L('firstName')}</label>
-        <input
-          className="expert-input"
-          value={person.firstName || ''}
-          onChange={(e) => {
-            const v = e.target.value;
-            set('firstName', v);
-            if (v.includes(' ')) tryApplyExactName(v);
-          }}
-          onBlur={(e) => {
-            tryApplyFromRegistry({ ...person, firstName: e.target.value });
-            onNameBlur?.();
-          }}
-          list={hasSuggestions || nameListId ? listId : undefined}
-          autoComplete="off"
-        />
+        <input className="expert-input" value={person.firstName || ''} onChange={(e) => set('firstName', e.target.value)} autoComplete="off" />
       </div>
       <div className="expert-field">
         <label>{L('secondName')}</label>
-        <input
-          className="expert-input"
-          value={person.secondName || ''}
-          onChange={(e) => set('secondName', e.target.value)}
-          onBlur={(e) => tryApplyFromRegistry({ ...person, secondName: e.target.value })}
-          autoComplete="off"
-        />
+        <input className="expert-input" value={person.secondName || ''} onChange={(e) => set('secondName', e.target.value)} autoComplete="off" />
       </div>
       <div className="expert-field">
         <label>{L('lastName')}</label>
-        <input
-          className="expert-input"
-          value={person.lastName || ''}
-          onChange={(e) => {
-            const v = e.target.value;
-            set('lastName', v);
-            if (v.includes(' ')) tryApplyExactName(v);
-          }}
-          onBlur={(e) => {
-            tryApplyFromRegistry({ ...person, lastName: e.target.value });
-            onNameBlur?.();
-          }}
-          list={hasSuggestions || nameListId ? listId : undefined}
-          autoComplete="off"
-        />
+        <input className="expert-input" value={person.lastName || ''} onChange={(e) => set('lastName', e.target.value)} autoComplete="off" />
       </div>
-      {(hasSuggestions || nameListId) && (
-        <datalist id={listId}>
-          {suggestions.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
-      )}
       <div className="expert-field">
         <label>{L('birthDate')}</label>
         <input type="date" className="expert-input" value={person.birthDate || ''} onChange={(e) => set('birthDate', e.target.value)} />

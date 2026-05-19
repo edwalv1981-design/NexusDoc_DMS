@@ -286,7 +286,6 @@ const FondosForm = () => {
                                     className="corporate-input" 
                                     style={getErrorStyle('custodyName')} 
                                     autoComplete="name"
-                                    list="form-names-suggestions"
                                     value={formData.custodyName} 
                                     onChange={e => { 
                                         const val = e.target.value;
@@ -316,8 +315,7 @@ const FondosForm = () => {
                                     <input 
                                         className="corporate-input" 
                                         style={getErrorStyle('signerName')} 
-                                        autoComplete="name" 
-                                        list="form-names-suggestions"
+                                        autoComplete="name"
                                         value={formData.signerName} 
                                         onChange={e => { setFormData({...formData, signerName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'signerName')); }} 
                                     />
@@ -328,12 +326,6 @@ const FondosForm = () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* DATALIST PARA AUTOCOMPLETADO INTERNO DEL SISTEMA */}
-                        <datalist id="form-names-suggestions">
-                            {formData.beneficiaryName && <option value={formData.beneficiaryName} />}
-                            {formData.custodyName && <option value={formData.custodyName} />}
-                        </datalist>
 
                          {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.custodyError')}</p>}
                         <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
