@@ -56,7 +56,7 @@ const es = {
     desktop: 'ESCRITORIO',
     newProcess: 'NUEVO TRÁMITE',
     myDocs: 'DOCUMENTOS PERSONALES',
-    signedDocs: 'MIS FORMULARIOS',
+    signedDocs: 'FORMULARIOS',
     helpTutorial: 'AYUDA Y TUTORIAL',
     logout: 'SALIR',
     language: 'IDIOMA',
@@ -91,7 +91,7 @@ const es = {
     pdfLabel: 'ARCHIVO PDF',
   },
   signedDocs: {
-    title: 'Mis Formularios',
+    title: 'Formularios',
   },
   dashboard: {
     welcome: 'Bienvenido, {name}',

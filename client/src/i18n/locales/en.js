@@ -56,7 +56,7 @@ const en = {
     desktop: 'DASHBOARD',
     newProcess: 'NEW PROCESS',
     myDocs: 'PERSONAL DOCUMENTS',
-    signedDocs: 'MY FORMS',
+    signedDocs: 'FORMS',
     helpTutorial: 'HELP & TUTORIAL',
     logout: 'SIGN OUT',
     language: 'LANGUAGE',
@@ -91,7 +91,7 @@ const en = {
     pdfLabel: 'PDF FILE',
   },
   signedDocs: {
-    title: 'My Forms',
+    title: 'Forms',
   },
   dashboard: {
     welcome: 'Welcome, {name}',
