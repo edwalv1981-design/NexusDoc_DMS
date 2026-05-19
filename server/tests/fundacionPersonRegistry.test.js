@@ -66,3 +66,13 @@ test('beneficiary fill omits percentage from registry', () => {
 test('FUNDACION_PERSON_FIELDS has 13 standard fields', () => {
   assert.equal(FUNDACION_PERSON_FIELDS.length, 13);
 });
+
+test('personDisplayName avoids duplicating lastName already in secondName', () => {
+  const { personDisplayName } = require('../utils/fundacionPersonSchema');
+  const p = normalizeFundacionPerson({
+    firstName: 'Edwin',
+    secondName: 'Eduardo Alvarez Vivero',
+    lastName: 'Alvarez Vivero',
+  });
+  assert.equal(personDisplayName(p), 'Edwin Eduardo Alvarez Vivero');
+});

@@ -90,9 +90,59 @@ function pickRoleFields(obj, allowed) {
   return Object.fromEntries(allowed.map((k) => [k, obj[k] ?? '']));
 }
 
+/** Maps canonical person fields to flat POA keys on FundacionForm state. */
+export const POA_FORM_FIELD_MAP = {
+  firstName: 'poaFirstName',
+  secondName: 'poaMiddleName',
+  lastName: 'poaLastName',
+  birthDate: 'poaBirthDate',
+  maritalStatus: 'poaMaritalStatus',
+  nationality: 'poaNationality',
+  passport: 'poaPassport',
+  idCard: 'poaIdCard',
+  phone: 'poaPhone',
+  email: 'poaEmail',
+  address: 'poaAddress',
+  city: 'poaCity',
+  country: 'poaCountry',
+};
+
+export function poaPersonFromFormData(formData = {}) {
+  return normalizeFundacionPerson({
+    firstName: formData.poaFirstName,
+    secondName: formData.poaMiddleName,
+    lastName: formData.poaLastName,
+    birthDate: formData.poaBirthDate,
+    maritalStatus: formData.poaMaritalStatus,
+    nationality: formData.poaNationality,
+    passport: formData.poaPassport,
+    idCard: formData.poaIdCard,
+    phone: formData.poaPhone,
+    email: formData.poaEmail,
+    address: formData.poaAddress,
+    city: formData.poaCity,
+    country: formData.poaCountry,
+  });
+}
+
 export function personDisplayName(person) {
-  return [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ').trim()
-    || String(person.fullName || person.shareholder || '').trim();
+  const first = String(person.firstName || '').trim();
+  const second = String(person.secondName || '').trim();
+  const last = String(person.lastName || '').trim();
+
+  if (first || second || last) {
+    let name = [first, second].filter(Boolean).join(' ').trim();
+    if (last) {
+      const nameLower = name.toLowerCase();
+      const lastLower = last.toLowerCase();
+      if (!nameLower || (!nameLower.endsWith(lastLower) && !nameLower.includes(` ${lastLower}`))) {
+        name = name ? `${name} ${last}` : last;
+      }
+    }
+    if (name) return name;
+  }
+
+  return String(person.fullName || person.shareholder || '').trim();
 }
 
 export function dignitaryDisplayName(d) {

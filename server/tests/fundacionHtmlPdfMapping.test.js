@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildFundacionPdfInnerHtml } = require('../services/fundacionHtmlPdfService');
+const { getFundacionPdfDict } = require('../services/fundacionPdfI18n');
+const { FUNDACION_PERSON_FIELDS } = require('../utils/fundacionPersonSchema');
 
 const sampleData = {
   foundationNameOption1: 'FUNDACIÓN PRUEBA',
@@ -29,8 +31,9 @@ const sampleData = {
   ],
   councilMembers: [
     {
-      firstName: 'Luis',
-      lastName: 'Martínez',
+      firstName: 'Edwin',
+      secondName: 'Eduardo Alvarez Vivero',
+      lastName: 'Alvarez Vivero',
       birthDate: '1970-01-15',
       maritalStatus: 'Casado',
       nationality: 'Panamá',
@@ -38,6 +41,12 @@ const sampleData = {
       address: 'Bella Vista',
       city: 'Panamá',
       country: 'Panamá',
+    },
+    {
+      firstName: 'María',
+      lastName: 'López',
+      birthDate: '1982-04-20',
+      nationality: 'Panamá',
     },
   ],
   dignitaries: [
@@ -68,29 +77,83 @@ const sampleData = {
   declarationDate: '2026-05-19',
 };
 
+const PERSON_ROW_LABEL_KEYS = [
+  'poaFirstName',
+  'poaMiddleName',
+  'poaLastName',
+  'poaBirthDate',
+  'poaMaritalStatus',
+  'poaNationality',
+  'poaPassport',
+  'poaIdCard',
+  'poaPhone',
+  'poaEmail',
+  'poaAddress',
+  'poaCity',
+  'poaCountry',
+];
+
+function extractSection(html, sectionTitle) {
+  const re = new RegExp(
+    `<h2>${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</h2>[\\s\\S]*?</section>`,
+    'i'
+  );
+  const m = html.match(re);
+  return m ? m[0] : '';
+}
+
+function assertAllPersonLabelsInSection(sectionHtml, t, sectionName) {
+  for (const key of PERSON_ROW_LABEL_KEYS) {
+    const label = t[key];
+    assert.match(
+      sectionHtml,
+      new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `${sectionName} debe incluir etiqueta "${label}" (${key})`
+    );
+  }
+  const rowCount = (sectionHtml.match(/kv-label/g) || []).length;
+  assert.ok(rowCount >= 13, `${sectionName} debe tener al menos 13 filas kv (${rowCount})`);
+}
+
+test('FUNDACION_PERSON_FIELDS has 13 standard fields', () => {
+  assert.equal(FUNDACION_PERSON_FIELDS.length, 13);
+});
+
 test('buildFundacionPdfInnerHtml includes all major sections', () => {
   const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
   assert.match(html, /Juan/);
   assert.match(html, /Pérez/);
   assert.match(html, /Ana Gómez/);
-  assert.match(html, /Luis Martínez/);
+  assert.match(html, /Edwin Eduardo Alvarez Vivero/);
   assert.match(html, /Pedro/);
   assert.match(html, /Planificación patrimonial/);
   assert.match(html, /FUNDACIÓN PRUEBA/);
 });
 
+test('buildFundacionPdfInnerHtml renders 13 person labels per founder/protector/director', () => {
+  const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
+  const t = getFundacionPdfDict('es');
+  assertAllPersonLabelsInSection(extractSection(html, t.sectionFounder), t, 'Fundador');
+  assertAllPersonLabelsInSection(extractSection(html, t.sectionProtectors), t, 'Protectores');
+  assertAllPersonLabelsInSection(extractSection(html, t.sectionDirectors), t, 'Directores');
+});
+
+test('director header does not duplicate surname when secondName already includes it', () => {
+  const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
+  assert.doesNotMatch(html, /Edwin Eduardo Alvarez Vivero Alvarez Vivero/);
+  assert.match(html, /Director #1 — Edwin Eduardo Alvarez Vivero/);
+});
+
 test('buildFundacionPdfInnerHtml renders POA yes/no and all grantee fields', () => {
   const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
+  const t = getFundacionPdfDict('es');
   assert.match(html, /\[X\] Sí/);
   assert.match(html, /\[ \] No/);
   assert.match(html, /¿Desea emitir un poder\?/);
   assert.match(html, /¿Requiere que el poder sea legalizado\?/);
   assert.match(html, /Indefinida/);
   assert.match(html, /GENERAL/);
-  assert.match(html, /Segundo nombre/);
-  assert.match(html, /Correo electrónico/);
-  assert.match(html, /Ciudad/);
-  assert.match(html, /País/);
+  assertAllPersonLabelsInSection(extractSection(html, t.sectionPowers), t, 'Poderes');
 });
 
 test('buildFundacionPdfInnerHtml maps legacy POA aliases', () => {

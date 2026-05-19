@@ -185,7 +185,7 @@ const es = {
       maritalStatus: 'Estado civil',
       nationality: 'Nacionalidad',
       passport: 'Pasaporte',
-      idCard: 'Cédula / ID',
+      idCard: 'Cédula',
       phone: 'Teléfono',
       email: 'Correo electrónico',
       address: 'Dirección',

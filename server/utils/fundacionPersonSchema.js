@@ -35,12 +35,28 @@ function normalizeFundacionPerson(raw = {}) {
       person.firstName = parts[0];
     }
   }
+  if (raw.birthPlace && !person.city) person.city = raw.birthPlace;
   return person;
 }
 
 function personDisplayName(person) {
-  return [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ').trim()
-    || String(person.fullName || person.shareholder || '').trim();
+  const first = String(person.firstName || '').trim();
+  const second = String(person.secondName || '').trim();
+  const last = String(person.lastName || '').trim();
+
+  if (first || second || last) {
+    let name = [first, second].filter(Boolean).join(' ').trim();
+    if (last) {
+      const nameLower = name.toLowerCase();
+      const lastLower = last.toLowerCase();
+      if (!nameLower || (!nameLower.endsWith(lastLower) && !nameLower.includes(` ${lastLower}`))) {
+        name = name ? `${name} ${last}` : last;
+      }
+    }
+    if (name) return name;
+  }
+
+  return String(person.fullName || person.shareholder || '').trim();
 }
 
 function dignitaryDisplayName(d) {

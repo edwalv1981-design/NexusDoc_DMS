@@ -137,7 +137,7 @@ function poaTypeLabel(type, t) {
 function buildPersonKvBlock(person, t, blockTitle) {
   const p = normalizeFundacionPerson(person);
   if (!personHasData(p)) return '';
-  const rows = personFieldRows(p, t);
+  const rows = personFieldRows(p, t, { includeEmpty: true });
   if (!rows) return '';
   return `
     <div class="person-block">
@@ -348,21 +348,21 @@ class FundacionHtmlPdfService {
         personHasData(founder) ? [founder] : [],
         t,
         t.emptyFounder,
-        t.sectionFounder
+        t.roleFounder
       );
       const protectorsSection = buildPersonStackSection(
         t.sectionProtectors,
         protectors,
         t,
         t.emptyProtectors,
-        lang === 'en' ? 'Protector' : 'Protector'
+        t.roleProtector
       );
       const directorsSection = buildPersonStackSection(
         t.sectionDirectors,
         directors,
         t,
         t.emptyDirectors,
-        lang === 'en' ? 'Director' : 'Director',
+        t.roleDirector,
         `<div class="hint">${esc(t.sectionDirectorsHint)}</div>`
       );
 
@@ -527,21 +527,21 @@ function buildFundacionPdfInnerHtml(data = {}, options = {}) {
     personHasData(founder) ? [founder] : [],
     t,
     t.emptyFounder,
-    t.sectionFounder
+    t.roleFounder
   );
   const protectorsSection = buildPersonStackSection(
     t.sectionProtectors,
     protectors,
     t,
     t.emptyProtectors,
-    lang === 'en' ? 'Protector' : 'Protector'
+    t.roleProtector
   );
   const directorsSection = buildPersonStackSection(
     t.sectionDirectors,
     directors,
     t,
     t.emptyDirectors,
-    lang === 'en' ? 'Director' : 'Director',
+    t.roleDirector,
     ''
   );
   return `

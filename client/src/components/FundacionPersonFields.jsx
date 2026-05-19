@@ -14,12 +14,24 @@ export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Viudo', en: 'Widowed', es: 'Viudo(a)' },
 ];
 
-const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [], onApplyPerson }) => {
+const FundacionPersonFields = ({
+  person,
+  onChange,
+  lang,
+  t,
+  personRegistry = [],
+  onApplyPerson,
+  onNameBlur,
+  nameListId,
+}) => {
   const L = (key) => (t?.(`fundacion.person.${key}`) ?? key);
   const set = (field, value) => onChange(field, value);
-  const listId = useId();
+  const generatedListId = useId();
+  const listId = nameListId || generatedListId;
   const suggestions = getPersonNameSuggestions(personRegistry);
   const hasSuggestions = suggestions.length > 0;
+  const selectPlaceholder =
+    t?.('fundacion.poa.selectPlaceholder') || (lang === 'en' ? 'Select...' : 'Seleccione...');
 
   const tryApplyFromRegistry = useCallback(
     (draftPerson) => {
@@ -51,8 +63,11 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
             set('firstName', v);
             if (v.includes(' ')) tryApplyExactName(v);
           }}
-          onBlur={(e) => tryApplyFromRegistry({ ...person, firstName: e.target.value })}
-          list={hasSuggestions ? listId : undefined}
+          onBlur={(e) => {
+            tryApplyFromRegistry({ ...person, firstName: e.target.value });
+            onNameBlur?.();
+          }}
+          list={hasSuggestions || nameListId ? listId : undefined}
           autoComplete="off"
         />
       </div>
@@ -76,12 +91,15 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
             set('lastName', v);
             if (v.includes(' ')) tryApplyExactName(v);
           }}
-          onBlur={(e) => tryApplyFromRegistry({ ...person, lastName: e.target.value })}
-          list={hasSuggestions ? listId : undefined}
+          onBlur={(e) => {
+            tryApplyFromRegistry({ ...person, lastName: e.target.value });
+            onNameBlur?.();
+          }}
+          list={hasSuggestions || nameListId ? listId : undefined}
           autoComplete="off"
         />
       </div>
-      {hasSuggestions && (
+      {(hasSuggestions || nameListId) && (
         <datalist id={listId}>
           {suggestions.map((name) => (
             <option key={name} value={name} />
@@ -95,7 +113,7 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
       <div className="expert-field">
         <label>{L('maritalStatus')}</label>
         <select className="expert-input" value={person.maritalStatus || ''} onChange={(e) => set('maritalStatus', e.target.value)}>
-          <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
+          <option value="">{selectPlaceholder}</option>
           {FUNDACION_MARITAL_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{lang === 'en' ? o.en : o.es}</option>
           ))}

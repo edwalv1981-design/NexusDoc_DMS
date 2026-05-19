@@ -5,7 +5,7 @@ import {
     CheckCircle2, Info, Award, KeyRound, Globe, FileText
 } from 'lucide-react';
 import { useLang } from '../i18n';
-import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
+import FundacionPersonFields from '../components/FundacionPersonFields';
 import FundacionRegistryNameInput from '../components/FundacionRegistryNameInput';
 import {
     emptyFundacionPerson,
@@ -14,6 +14,8 @@ import {
     normalizeFundacionPerson,
     normalizeLoadedFundacionData,
     personDisplayName,
+    poaPersonFromFormData,
+    POA_FORM_FIELD_MAP,
     FUNDACION_DIGNITARY_FIELDS,
 } from '../utils/fundacionPersonSchema';
 import {
@@ -496,11 +498,37 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
+    const updatePoaField = (field, value) => {
+        const key = POA_FORM_FIELD_MAP[field];
+        if (!key) return;
+        setFormData((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const applyPoaRegistryPerson = (fields) => {
+        setFormData((prev) => {
+            const p = normalizeFundacionPerson(fields);
+            return {
+                ...prev,
+                poaFirstName: p.firstName || prev.poaFirstName,
+                poaMiddleName: p.secondName || prev.poaMiddleName,
+                poaLastName: p.lastName || prev.poaLastName,
+                poaBirthDate: p.birthDate || prev.poaBirthDate,
+                poaMaritalStatus: p.maritalStatus || prev.poaMaritalStatus,
+                poaNationality: p.nationality || prev.poaNationality,
+                poaPassport: p.passport || prev.poaPassport,
+                poaIdCard: p.idCard || prev.poaIdCard,
+                poaPhone: p.phone || prev.poaPhone,
+                poaEmail: p.email || prev.poaEmail,
+                poaAddress: p.address || prev.poaAddress,
+                poaCity: p.city || prev.poaCity,
+                poaCountry: p.country || prev.poaCountry,
+            };
+        });
+    };
+
     // Paso 8: Poderes (Power of Attorney)
     const renderStep8 = () => {
         const poaRegistry = buildRegistry(formData, { arrayName: 'poa' });
-        const poaNameList = getPersonNameSuggestions(poaRegistry);
-        const L = (key) => t(`fundacion.person.${key}`);
         return (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {t('fundacion.poa.stepTitle')}</h2>
@@ -508,70 +536,17 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <div className="poa-original-grid">
                     <div className="poa-column-card">
                         <div className="poa-column-header">{t('fundacion.poa.granteeHeader')}</div>
-                        <div className="expert-grid" style={{ padding: '20px' }}>
-                            <div className="expert-field">
-                                <label>{L('firstName')}</label>
-                                <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
-                            </div>
-                            <div className="expert-field">
-                                <label>{L('secondName')}</label>
-                                <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} onBlur={tryApplyPoaFromTypedName} />
-                            </div>
-                            <div className="expert-field full-width">
-                                <label>{L('lastName')}</label>
-                                <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
-                            </div>
-                            
-                            <div className="expert-field">
-                                <label>{L('birthDate')}</label>
-                                <input type="date" className="expert-input" value={formData.poaBirthDate} onChange={e => setFormData({...formData, poaBirthDate: e.target.value})} />
-                            </div>
-                            <div className="expert-field">
-                                <label>{L('maritalStatus')}</label>
-                                <select className="expert-input" value={formData.poaMaritalStatus} onChange={e => setFormData({...formData, poaMaritalStatus: e.target.value})}>
-                                    <option value="">{t('fundacion.poa.selectPlaceholder')}</option>
-                                    {FUNDACION_MARITAL_OPTIONS.map((o) => (
-                                        <option key={o.value} value={o.value}>{lang === 'en' ? o.en : o.es}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="expert-field">
-                                <label>{L('nationality')}</label>
-                                <input className="expert-input" value={formData.poaNationality} onChange={e => setFormData({...formData, poaNationality: e.target.value})} />
-                            </div>
-                            <div className="expert-field">
-                                <label>{L('passport')}</label>
-                                <input className="expert-input" value={formData.poaPassport} onChange={e => setFormData({...formData, poaPassport: e.target.value})} />
-                            </div>
-                            
-                            <div className="expert-field">
-                                <label>{L('idCard')}</label>
-                                <input className="expert-input" value={formData.poaIdCard} onChange={e => setFormData({...formData, poaIdCard: e.target.value})} />
-                            </div>
-                            <div className="expert-field">
-                                <label>{L('phone')}</label>
-                                <input className="expert-input" value={formData.poaPhone} onChange={e => setFormData({...formData, poaPhone: e.target.value})} />
-                            </div>
-
-                            <div className="expert-field full-width">
-                                <label>{L('email')}</label>
-                                <input type="email" className="expert-input" value={formData.poaEmail} onChange={e => setFormData({...formData, poaEmail: e.target.value})} />
-                            </div>
-
-                            <div className="expert-field full-width">
-                                <label>{L('address')}</label>
-                                <input className="expert-input" value={formData.poaAddress} onChange={e => setFormData({...formData, poaAddress: e.target.value})} />
-                            </div>
-
-                            <div className="expert-field">
-                                <label>{L('city')}</label>
-                                <input className="expert-input" value={formData.poaCity} onChange={e => setFormData({...formData, poaCity: e.target.value})} />
-                            </div>
-                            <div className="expert-field">
-                                <label>{L('country')}</label>
-                                <input className="expert-input" value={formData.poaCountry} onChange={e => setFormData({...formData, poaCountry: e.target.value})} />
-                            </div>
+                        <div style={{ padding: '20px' }}>
+                            <FundacionPersonFields
+                                person={poaPersonFromFormData(formData)}
+                                lang={lang}
+                                t={t}
+                                personRegistry={poaRegistry}
+                                onApplyPerson={applyPoaRegistryPerson}
+                                onChange={updatePoaField}
+                                onNameBlur={tryApplyPoaFromTypedName}
+                                nameListId="poa-names"
+                            />
                         </div>
                     </div>
 
