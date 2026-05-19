@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     ChevronLeft, ChevronRight, Check, Save, 
@@ -6,6 +6,10 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import API_BASE_URL from '../config';
+import {
+    mergeBeneficiaryIntoCustody,
+    CUSTODY_PREFILL_TARGETS,
+} from '../utils/fondosBeneficiaryCustody';
 
 const FondosForm = () => {
     const navigate = useNavigate();
@@ -39,10 +43,37 @@ const FondosForm = () => {
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
     const [validationErrors, setValidationErrors] = useState([]);
+    const custodyTouchedRef = useRef({});
 
     useEffect(() => {
         if (editId) fetchExistingData();
     }, [editId]);
+
+    const applyBeneficiaryToCustody = useCallback((onlyEmpty = false) => {
+        setFormData((prev) =>
+            mergeBeneficiaryIntoCustody(prev, {
+                touched: custodyTouchedRef.current,
+                onlyEmpty,
+            })
+        );
+    }, []);
+
+    useEffect(() => {
+        if (step !== 3) return;
+        applyBeneficiaryToCustody(true);
+    }, [step, applyBeneficiaryToCustody]);
+
+    useEffect(() => {
+        if (step !== 3) return;
+        applyBeneficiaryToCustody(false);
+    }, [step, formData.beneficiaryName, formData.address, applyBeneficiaryToCustody]);
+
+    const setCustodyField = (field, value) => {
+        if (CUSTODY_PREFILL_TARGETS.includes(field)) {
+            custodyTouchedRef.current[field] = true;
+        }
+        setFormData((prev) => ({ ...prev, [field]: value }));
+    };
 
     const validateStep = () => {
         let errors = [];
@@ -51,6 +82,9 @@ const FondosForm = () => {
             if (!formData.activities) errors.push('activities');
             if (!formData.country) errors.push('country');
             if (!formData.beneficiaryName) errors.push('beneficiaryName');
+            if (!formData.birthDate) errors.push('birthDate');
+            if (!formData.birthPlace) errors.push('birthPlace');
+            if (!formData.address) errors.push('address');
         }
         if (step === 2) {
             if (formData.fundsSource.length === 0) errors.push('fundsSource');
@@ -80,10 +114,18 @@ const FondosForm = () => {
     };
 
     const handleNext = () => {
-        if (validateStep()) {
-            setStep(step + 1);
-            window.scrollTo(0, 0);
+        if (!validateStep()) return;
+        const nextStep = step + 1;
+        if (nextStep === 3) {
+            setFormData((prev) =>
+                mergeBeneficiaryIntoCustody(prev, {
+                    touched: custodyTouchedRef.current,
+                    onlyEmpty: true,
+                })
+            );
         }
+        setStep(nextStep);
+        window.scrollTo(0, 0);
     };
 
     const handleBack = () => {
@@ -163,6 +205,20 @@ const FondosForm = () => {
                                     <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="name" value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
                                 </div>
                             </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fondos.birthDate')}</label>
+                                    <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="bday" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>{t('fondos.birthPlace')}</label>
+                                    <input className="corporate-input" style={getErrorStyle('birthPlace')} value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); }} />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>{t('fondos.address')}</label>
+                                <input className="corporate-input" style={getErrorStyle('address')} autoComplete="street-address" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); }} />
+                            </div>
                         </div>
                         {validationErrors.length > 0 && (
                             <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '10px', marginTop: '20px', border: '1px solid #fee2e2' }}>
@@ -234,7 +290,7 @@ const FondosForm = () => {
                                     value={formData.custodyName} 
                                     onChange={e => { 
                                         const val = e.target.value;
-                                        setFormData({...formData, custodyName: val}); 
+                                        setCustodyField('custodyName', val);
                                         if (val) setValidationErrors(prev => prev.filter(err => err !== 'custodyName'));
                                     }} 
                                 />
@@ -252,7 +308,7 @@ const FondosForm = () => {
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
-                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="street-address" value={formData.custodyAddress} onChange={e => { setFormData({...formData, custodyAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
+                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="street-address" value={formData.custodyAddress} onChange={e => { setCustodyField('custodyAddress', e.target.value); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>

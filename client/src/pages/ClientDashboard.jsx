@@ -1,21 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+    mergeBeneficiaryIntoCustody,
+    CUSTODY_PREFILL_TARGETS,
+} from '../utils/fondosBeneficiaryCustody';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
     Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, BookOpen, UploadCloud
 } from 'lucide-react';
 import API_BASE_URL from '../config';
-
-import { useT } from '../i18n';
+import { getFormTypeLabel } from '../formTypes';
+import { useLang, useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
 import CorporacionForm from './CorporacionForm';
-import FundacionForm from './FundacionForm';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { lang } = useLang();
     const t = useT();
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
@@ -37,7 +41,6 @@ const ClientDashboard = () => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [templateStatuses, setTemplateStatuses] = useState({});
     
     // FILTROS Y BÚSQUEDA
     const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +48,7 @@ const ClientDashboard = () => {
 
     // SISTEMA DE NOTIFICACIONES UX-UI
     const [toast, setToast] = useState({ show: false, msg: '', type: 'error' });
-    const [modal, setModal] = useState({ show: false, title: '', msg: '', onConfirm: null, type: 'info' });
+    const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
 
     const [step, setStep] = useState(1);
     const EMPTY_FORM = {
@@ -55,13 +58,52 @@ const ClientDashboard = () => {
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
     };
     const [formData, setFormData] = useState(EMPTY_FORM);
+    const custodyTouchedRef = useRef({});
+
+    const applyBeneficiaryToCustody = useCallback((onlyEmpty = false) => {
+        setFormData((prev) =>
+            mergeBeneficiaryIntoCustody(prev, {
+                touched: custodyTouchedRef.current,
+                onlyEmpty,
+            })
+        );
+    }, []);
+
+    useEffect(() => {
+        if (currentFormType !== 'Fondos Registros contables' || step !== 3) return;
+        applyBeneficiaryToCustody(true);
+    }, [currentFormType, step, applyBeneficiaryToCustody]);
+
+    useEffect(() => {
+        if (currentFormType !== 'Fondos Registros contables' || step !== 3) return;
+        applyBeneficiaryToCustody(false);
+    }, [currentFormType, step, formData.beneficiaryName, formData.address, applyBeneficiaryToCustody]);
+
+    const setCustodyField = (field, value) => {
+        if (CUSTODY_PREFILL_TARGETS.includes(field)) {
+            custodyTouchedRef.current[field] = true;
+        }
+        setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const goToFondosStep = (nextStep) => {
+        if (nextStep === 3) {
+            setFormData((prev) =>
+                mergeBeneficiaryIntoCustody(prev, {
+                    touched: custodyTouchedRef.current,
+                    onlyEmpty: true,
+                })
+            );
+        }
+        setStep(nextStep);
+    };
 
     const formOptions = [
-        { id: 'Fondos Registros contables', label: t('formType.Fondos Registros contables'), icon: <ClipboardList size={24} />, color: '#6366f1' },
-        { id: 'Corporación', label: t('formType.Corporación'), icon: <Building size={24} />, color: '#10b981' },
-        { id: 'Fundaciones', label: t('formType.Fundaciones'), icon: <Heart size={24} />, color: '#ef4444' },
-        { id: 'Cumplimiento Individual', label: t('formType.Cumplimiento Individual'), icon: <UserIcon size={24} />, color: '#f59e0b' },
-        { id: 'Cumplimiento Entidades', label: t('formType.Cumplimiento Entidades'), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
+        { id: 'Fondos Registros contables', label: getFormTypeLabel('Fondos Registros contables', lang), icon: <ClipboardList size={24} />, color: '#6366f1' },
+        { id: 'Corporación', label: getFormTypeLabel('Corporación', lang), icon: <Building size={24} />, color: '#10b981' },
+        { id: 'Fundaciones', label: getFormTypeLabel('Fundaciones', lang), icon: <Heart size={24} />, color: '#ef4444' },
+        { id: 'Cumplimiento Individual', label: getFormTypeLabel('Cumplimiento Individual', lang), icon: <UserIcon size={24} />, color: '#f59e0b' },
+        { id: 'Cumplimiento Entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
     ];
 
     useEffect(() => {
@@ -79,15 +121,13 @@ const ClientDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return navigate('/');
-            const [userRes, docsRes, statusRes] = await Promise.all([
+            const [userRes, docsRes] = await Promise.all([
                 fetch(`${API_BASE_URL}/api/auth/me`, { headers: { 'x-auth-token': token } }),
-                fetch(`${API_BASE_URL}/api/forms/my-forms`, { headers: { 'x-auth-token': token } }),
-                fetch(`${API_BASE_URL}/api/forms/templates/status`, { headers: { 'x-auth-token': token } })
+                fetch(`${API_BASE_URL}/api/forms/my-forms`, { headers: { 'x-auth-token': token } })
             ]);
             if (userRes.status === 401 || docsRes.status === 401) { localStorage.clear(); return navigate('/'); }
             if (userRes.ok) setUser(await userRes.json());
             if (docsRes.ok) setDocuments(await docsRes.json());
-            if (statusRes.ok) setTemplateStatuses(await statusRes.json());
         } catch (error) { console.error(error); } finally { setLoading(false); }
     };
 
@@ -174,10 +214,8 @@ const ClientDashboard = () => {
     const confirmDelete = (id) => {
         setModal({
             show: true,
-            title: t('modal.confirmDelete'),
-            msg: t('modal.deleteWarning'),
-            onConfirm: () => handleDelete(id),
-            type: 'danger'
+            msg: t('modal.confirmDelete'),
+            onConfirm: () => handleDelete(id)
         });
     };
 
@@ -197,12 +235,6 @@ const ClientDashboard = () => {
         const id = doc.id;
         const token = localStorage.getItem('token');
         const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
-
-        // Validación estricta de plantilla en frontend
-        if (templateStatuses[doc.type] === false) {
-            showToast(`No se puede generar/descargar PDF para "${doc.type}" porque no hay una plantilla base cargada por el administrador. Por favor, cargue la plantilla base en el panel de administración antes de continuar.`, 'error');
-            return;
-        }
 
         showToast(t('toast.generatingFile'), 'success');
 
@@ -255,47 +287,16 @@ const ClientDashboard = () => {
     return (
         <div style={{ minHeight: '100vh', background: BG, display: 'flex', fontFamily: "'Inter', sans-serif", color: TEXT, position: 'relative' }}>
             
-            {/* MODAL DE CONFIRMACIÓN UX-UI (REDISEÑO EXPERTO) */}
+            {/* MODAL DE CONFIRMACIÓN UX-UI */}
             {modal.show && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, animation: 'fadeIn 0.2s ease-out' }}>
-                    <div style={{ background: 'white', padding: '0', borderRadius: '24px', maxWidth: '420px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
-                        <div style={{ padding: '35px 30px 25px', textAlign: 'center' }}>
-                            <div style={{ 
-                                width: '64px', height: '64px', background: modal.type === 'danger' ? '#fef2f2' : '#f0f9ff', 
-                                color: modal.type === 'danger' ? '#dc2626' : PRIMARY, borderRadius: '20px', 
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-                                border: `1px solid ${modal.type === 'danger' ? '#fee2e2' : '#e0f2fe'}`
-                            }}>
-                                {modal.type === 'danger' ? <ShieldAlert size={32} /> : <Info size={32} />}
-                            </div>
-                            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px', color: '#1e293b', letterSpacing: '-0.5px' }}>
-                                {modal.title || t('modal.confirmAction')}
-                            </h3>
-                            <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '0', lineHeight: 1.6 }}>
-                                {modal.msg}
-                            </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: 0, borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                            <button 
-                                onClick={() => setModal({ ...modal, show: false })} 
-                                style={{ flex: 1, padding: '20px', background: 'transparent', border: 'none', borderRight: '1px solid #f1f5f9', color: '#64748b', fontWeight: 700, cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                {t('modal.cancel')}
-                            </button>
-                            <button 
-                                onClick={modal.onConfirm} 
-                                style={{ 
-                                    flex: 1, padding: '20px', background: 'transparent', border: 'none', 
-                                    color: modal.type === 'danger' ? '#dc2626' : PRIMARY, fontWeight: 800, 
-                                    cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' 
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = modal.type === 'danger' ? '#fef2f2' : '#f0f9ff'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                {t(modal.type === 'danger' ? 'modal.delete' : 'common.confirm')}
-                            </button>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                    <div style={{ background: 'white', padding: '30px', borderRadius: RADIUS_LG, maxWidth: '400px', width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
+                        <div style={{ color: PRIMARY, marginBottom: '15px' }}><Info size={32} /></div>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '15px', color: '#1e293b' }}>{t('modal.confirmAction')}</h3>
+                        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '25px', lineHeight: 1.5 }}>{modal.msg}</p>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={() => setModal({ ...modal, show: false })} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>{t('modal.cancel')}</button>
+                            <button onClick={modal.onConfirm} style={{ flex: 1, padding: '10px', background: '#dc2626', color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>{t('modal.delete')}</button>
                         </div>
                     </div>
                 </div>
@@ -352,7 +353,7 @@ const ClientDashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                                     <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: RADIUS, padding: '12px 18px', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }}>
                                         <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.9, marginBottom: '3px' }}>{t('dashboard.assignedProcess')}</div>
-                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm ? t(`formType.${user.initialForm}`) : t('dashboard.notAssigned')}</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm ? getFormTypeLabel(user.initialForm, lang) : t('dashboard.notAssigned')}</div>
                                     </div>
                                     {user?.initialForm && (
                                         <button 
@@ -394,7 +395,7 @@ const ClientDashboard = () => {
                                 <div key={doc.id} style={{ display: 'flex', alignItems: 'center', padding: '15px 25px', borderBottom: `1px solid ${BORDER}` }}>
                                     <FileText size={16} color={PRIMARY} style={{ marginRight: 15 }} />
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 700, fontSize: '13px' }}>{t(`formType.${doc.type}`)}</div>
+                                        <div style={{ fontWeight: 700, fontSize: '13px' }}>{getFormTypeLabel(doc.type, lang)}</div>
                                         {/* FECHA Y HORA EXACTA (INGENIERO PROTOCOL) */}
                                         <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 2 }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {new Date(doc.date).toLocaleDateString()}</span>
@@ -440,24 +441,9 @@ const ClientDashboard = () => {
                           ))}
                         </div>
                     </div>
-                ) : templateStatuses[currentFormType] === false ? (
-                    <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
-                        <div style={{ width: '80px', height: '80px', background: '#fef2f2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#dc2626' }}>
-                            <ShieldAlert size={40} />
-                        </div>
-                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#dc2626', marginBottom: '15px' }}>Plantilla Base No Disponible</h2>
-                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '30px', maxWidth: '500px', margin: '0 auto 30px' }}>
-                            La plantilla base para el trámite <strong>"{t(`formType.${currentFormType}`)}"</strong> ha sido eliminada o no está cargada. Por favor, cargue la plantilla base en el panel de administración antes de continuar para mantener la consistencia legal y de datos.
-                        </p>
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            <button onClick={() => { setCurrentFormType(''); navigate('/dashboard?view=form'); }} style={{ padding: '12px 25px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
-                                {t('dashboard.chooseAnother')}
-                            </button>
-                        </div>
-                    </div>
                 ) : currentFormType === 'Fondos Registros contables' ? (
                     <div style={{ maxWidth: '800px' }}>
-                        <h1 style={{ marginBottom: '25px' }}>{t(`formType.${currentFormType}`)}</h1>
+                        <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '10px', fontWeight: 800, color: PRIMARY, letterSpacing: '1px' }}>{t('dashboard.recordState')}</span>
@@ -471,20 +457,17 @@ const ClientDashboard = () => {
                             {step === 1 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.companyName')}</label><input className="input-expert" autoComplete="organization" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" autoComplete="country-name" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.companyName')}</label><input className="input-expert" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></div>
                                     </div>
                                     <div className="field-group"><label>{t('fondos.activities')}</label><textarea className="input-expert" rows={2} value={formData.activities} onChange={e => setFormData({...formData, activities: e.target.value})} required /></div>
-                                    <div className="field-group"><label>{t('fondos.beneficiaryName')}</label><input className="input-expert" autoComplete="name" value={formData.beneficiaryName} onChange={e => { 
-                                        const val = e.target.value;
-                                        setFormData({...formData, beneficiaryName: val}); 
-                                    }} required /></div>
+                                    <div className="field-group"><label>{t('fondos.beneficiaryName')}</label><input className="input-expert" value={formData.beneficiaryName} onChange={e => setFormData({...formData, beneficiaryName: e.target.value})} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" autoComplete="bday" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" autoComplete="country-name" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} required /></div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.address')}</label><input className="input-expert" autoComplete="street-address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required /></div>
-                                    <button type="button" onClick={() => validateStep(1) && setStep(2)} style={{ padding: '12px 30px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, alignSelf: 'flex-end', cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
+                                    <div className="field-group"><label>{t('fondos.address')}</label><input className="input-expert" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required /></div>
+                                    <button type="button" onClick={() => validateStep(1) && goToFondosStep(2)} style={{ padding: '12px 30px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, alignSelf: 'flex-end', cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
                                 </div>
                             )}
                             {step === 2 && (
@@ -499,9 +482,8 @@ const ClientDashboard = () => {
                                             { key: 'Herencia o Fondo Fiduciario', label: t('fondos.sources.herencia') },
                                         ].map(f => (
                                             <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '12px', padding: '10px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, cursor: 'pointer' }}>
-                                                <input type="checkbox" checked={(formData.fundsSource || []).includes(f.key)} onChange={() => {
-                                                    const currentSources = formData.fundsSource || [];
-                                                    const updated = currentSources.includes(f.key) ? currentSources.filter(x => x !== f.key) : [...currentSources, f.key];
+                                                <input type="checkbox" checked={formData.fundsSource.includes(f.key)} onChange={() => {
+                                                    const updated = formData.fundsSource.includes(f.key) ? formData.fundsSource.filter(x => x !== f.key) : [...formData.fundsSource, f.key];
                                                     setFormData({...formData, fundsSource: updated});
                                                 }} /> {f.label}
                                             </label>
@@ -509,52 +491,25 @@ const ClientDashboard = () => {
                                     </div>
                                     <div className="field-group"><label>{t('fondos.fundsOther')}</label><input className="input-expert" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} placeholder={t('fondos.fundsOtherPlaceholder')} /></div>
                                     <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                                        <button type="button" onClick={() => setStep(1)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>
-                                        <button type="button" onClick={() => validateStep(2) && setStep(3)} style={{ flex: 1, padding: '12px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
+                                        <button type="button" onClick={() => goToFondosStep(1)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>
+                                        <button type="button" onClick={() => validateStep(2) && goToFondosStep(3)} style={{ flex: 1, padding: '12px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
                                     </div>
                                 </div>
                             )}
                             {step === 3 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group">
-                                            <label>{t('fondos.custodyName')}</label>
-                                            <input 
-                                                className="input-expert" 
-                                                autoComplete="name"
-                                                list="dashboard-names-suggestions"
-                                                value={formData.custodyName} 
-                                                onChange={e => {
-                                                    setFormData({...formData, custodyName: e.target.value});
-                                                }} 
-                                                required 
-                                            />
-                                        </div>
-                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" autoComplete="tel" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.custodyName')}</label><input className="input-expert" value={formData.custodyName} onChange={e => setCustodyField('custodyName', e.target.value)} required /></div>
+                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')})} required /></div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" autoComplete="email" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
-                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" autoComplete="street-address" value={formData.custodyAddress} onChange={e => setFormData({...formData, custodyAddress: e.target.value})} required /></div>
+                                    <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
+                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" value={formData.custodyAddress} onChange={e => setCustodyField('custodyAddress', e.target.value)} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group">
-                                            <label>{t('fondos.signerName')}</label>
-                                            <input 
-                                                className="input-expert" 
-                                                autoComplete="name" 
-                                                list="dashboard-names-suggestions"
-                                                value={formData.signerName} 
-                                                onChange={e => setFormData({...formData, signerName: e.target.value})} 
-                                                required 
-                                            />
-                                        </div>
+                                        <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" value={formData.signerName} onChange={e => setFormData({...formData, signerName: e.target.value})} required /></div>
                                         <div className="field-group"><label>{t('fondos.date')}</label><input type="date" className="input-expert" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
                                     </div>
-
-                                    <datalist id="dashboard-names-suggestions">
-                                        {formData.beneficiaryName && <option value={formData.beneficiaryName} />}
-                                        {formData.custodyName && <option value={formData.custodyName} />}
-                                    </datalist>
                                     <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                                        <button type="button" onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>
+                                        <button type="button" onClick={() => goToFondosStep(2)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>
                                         <button type="submit" disabled={saving} style={{ flex: 1, padding: '12px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px', opacity: saving ? 0.7 : 1 }}>
                                             {saving ? t('common.saving') : t('common.finishSave')}
                                         </button>
@@ -569,12 +524,6 @@ const ClientDashboard = () => {
                         onSave={saveDynamicForm} 
                         saving={saving} 
                     />
-                ) : currentFormType === 'Fundaciones' ? (
-                    <FundacionForm 
-                        initialData={formData} 
-                        onSave={saveDynamicForm} 
-                        saving={saving} 
-                    />
                 ) : (
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
@@ -582,7 +531,7 @@ const ClientDashboard = () => {
                         </div>
                         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '15px' }}>{t('dashboard.formInDev')}</h2>
                         <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '30px', maxWidth: '400px', margin: '0 auto 30px' }}>
-                            {t('dashboard.formInDevBody', { type: t(`formType.${currentFormType}`) })}
+                            {t('dashboard.formInDevBody', { type: getFormTypeLabel(currentFormType, lang) })}
                         </p>
                         <button onClick={() => { setCurrentFormType(''); navigate('/dashboard?view=form'); }} style={{ padding: '12px 25px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
                             {t('dashboard.chooseAnother')}
@@ -592,8 +541,6 @@ const ClientDashboard = () => {
             </main>
             <style>{`
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
                 .field-group { display: flex; flex-direction: column; gap: 4px; } 
                 .field-group label { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.5px; } 
                 .input-expert { width: 100%; padding: 10px 14px; border: 1.5px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 13px; } 
