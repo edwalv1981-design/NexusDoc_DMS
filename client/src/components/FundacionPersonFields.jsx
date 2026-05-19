@@ -30,7 +30,7 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
     [onApplyPerson, personRegistry]
   );
 
-  const tryApplyFromValue = useCallback(
+  const tryApplyExactName = useCallback(
     (value) => {
       if (!onApplyPerson) return;
       const hit = findMatch(personRegistry, value);
@@ -38,8 +38,6 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
     },
     [onApplyPerson, personRegistry]
   );
-
-  const onNameBlur = () => tryApplyFromRegistry(person);
 
   return (
     <div className="expert-grid person-fields-grid">
@@ -49,10 +47,11 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
           className="expert-input"
           value={person.firstName || ''}
           onChange={(e) => {
-            set('firstName', e.target.value);
-            tryApplyFromValue(e.target.value);
+            const v = e.target.value;
+            set('firstName', v);
+            if (v.includes(' ')) tryApplyExactName(v);
           }}
-          onBlur={onNameBlur}
+          onBlur={(e) => tryApplyFromRegistry({ ...person, firstName: e.target.value })}
           list={hasSuggestions ? listId : undefined}
           autoComplete="off"
         />
@@ -63,7 +62,7 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
           className="expert-input"
           value={person.secondName || ''}
           onChange={(e) => set('secondName', e.target.value)}
-          onBlur={onNameBlur}
+          onBlur={(e) => tryApplyFromRegistry({ ...person, secondName: e.target.value })}
           autoComplete="off"
         />
       </div>
@@ -73,10 +72,11 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
           className="expert-input"
           value={person.lastName || ''}
           onChange={(e) => {
-            set('lastName', e.target.value);
-            tryApplyFromValue(e.target.value);
+            const v = e.target.value;
+            set('lastName', v);
+            if (v.includes(' ')) tryApplyExactName(v);
           }}
-          onBlur={onNameBlur}
+          onBlur={(e) => tryApplyFromRegistry({ ...person, lastName: e.target.value })}
           list={hasSuggestions ? listId : undefined}
           autoComplete="off"
         />

@@ -14,8 +14,6 @@ import {
     normalizeFundacionPerson,
     normalizeLoadedFundacionData,
     personDisplayName,
-    personHasData,
-    snapshotFromPerson,
     FUNDACION_DIGNITARY_FIELDS,
 } from '../utils/fundacionPersonSchema';
 import {
@@ -115,84 +113,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    const getAvailablePersons = (excludeStep) => {
-        const list = [];
-        const pushPerson = (roleLabel, person, extra = {}) => {
-            const p = normalizeFundacionPerson({ ...person, ...extra });
-            if (!personHasData(p) && !person.fullName) return;
-            const name = personDisplayName(p) || person.fullName;
-            if (!name) return;
-            list.push({ label: `${roleLabel} — ${name}`, data: snapshotFromPerson(p) });
-        };
-        if (excludeStep !== 'founder') {
-            pushPerson(lang === 'en' ? 'Founder' : 'Fundador', formData.founders[0] || {});
-        }
-        if (excludeStep !== 'protector') {
-            formData.protectors.forEach((p, idx) => {
-                pushPerson(`${lang === 'en' ? 'Protector' : 'Protector'} #${idx + 1}`, p);
-            });
-        }
-        if (excludeStep !== 'director') {
-            formData.councilMembers.forEach((m, idx) => {
-                pushPerson(`${lang === 'en' ? 'Director' : 'Director'} #${idx + 1}`, m);
-            });
-        }
-        if (excludeStep !== 'dignitary') {
-            formData.dignitaries.forEach((d, idx) => {
-                if (d.fullName) {
-                    list.push({
-                        label: `${lang === 'en' ? 'Dignitary' : 'Dignatario'} #${idx + 1} — ${d.fullName}`,
-                        data: snapshotFromPerson(normalizeFundacionPerson(d)),
-                    });
-                }
-            });
-        }
-        if (excludeStep !== 'beneficiary') {
-            formData.beneficiaries.forEach((b, idx) => {
-                const name = String(b.shareholder || b.fullName || '').trim();
-                if (name) {
-                    list.push({
-                        label: `${lang === 'en' ? 'Beneficiary' : 'Beneficiario'} #${idx + 1} — ${name}`,
-                        data: { ...snapshotFromPerson(normalizeFundacionPerson(b)), percentage: b.percentage },
-                    });
-                }
-            });
-        }
-        const poaName = [formData.poaFirstName, formData.poaMiddleName, formData.poaLastName].filter(Boolean).join(' ');
-        if (excludeStep !== 'poa' && poaName) {
-            list.push({
-                label: `${lang === 'en' ? 'Attorney-in-fact' : 'Apoderado'} — ${poaName}`,
-                data: snapshotFromPerson({
-                    firstName: formData.poaFirstName,
-                    secondName: formData.poaMiddleName,
-                    lastName: formData.poaLastName,
-                    birthDate: formData.poaBirthDate,
-                    maritalStatus: formData.poaMaritalStatus,
-                    nationality: formData.poaNationality,
-                    passport: formData.poaPassport,
-                    idCard: formData.poaIdCard,
-                    phone: formData.poaPhone,
-                    email: formData.poaEmail,
-                    address: formData.poaAddress,
-                    city: formData.poaCity,
-                    country: formData.poaCountry,
-                }),
-            });
-        }
-        return list;
-    };
-
-    const applyPersonSnapshot = (arrayName, index, snapshot) => {
-        if (!snapshot?.data) return;
-        const rows = formData[arrayName];
-        if (!Array.isArray(rows) || index < 0 || index >= rows.length) return;
-        const merged = { ...rows[index], ...snapshotFromPerson(snapshot.data) };
-        if (snapshot.data.percentage !== undefined) merged.percentage = snapshot.data.percentage;
-        const next = [...rows];
-        next[index] = merged;
-        setFormData((prev) => ({ ...prev, [arrayName]: next }));
-    };
-
     const applyRegistryPerson = (arrayName, index, fields) => {
         const rows = formData[arrayName];
         if (!Array.isArray(rows) || index < 0 || index >= rows.length) return;
@@ -202,91 +122,47 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     };
 
     const mergePersonIntoRow = (arrayName, index, source, allowedFields) => {
-        const rows = formData[arrayName];
-        if (!Array.isArray(rows) || index < 0 || index >= rows.length || !source) return;
-        const merged = applyRoleFields(rows[index], source, allowedFields);
-        const next = [...rows];
-        next[index] = merged;
-        setFormData((prev) => ({ ...prev, [arrayName]: next }));
-    };
-
-    const applyPoaFromRegistry = (source) => {
         if (!source) return;
-        const p = snapshotPersonFields(source);
-        setFormData((prev) => ({
-            ...prev,
-            poaFirstName: p.firstName || prev.poaFirstName,
-            poaMiddleName: p.secondName || prev.poaMiddleName,
-            poaLastName: p.lastName || prev.poaLastName,
-            poaBirthDate: p.birthDate || prev.poaBirthDate,
-            poaMaritalStatus: p.maritalStatus || prev.poaMaritalStatus,
-            poaNationality: p.nationality || prev.poaNationality,
-            poaPassport: p.passport || prev.poaPassport,
-            poaIdCard: p.idCard || prev.poaIdCard,
-            poaPhone: p.phone || prev.poaPhone,
-            poaEmail: p.email || prev.poaEmail,
-            poaAddress: p.address || prev.poaAddress,
-            poaCity: p.city || prev.poaCity,
-            poaCountry: p.country || prev.poaCountry,
-        }));
+        setFormData((prev) => {
+            const rows = prev[arrayName];
+            if (!Array.isArray(rows) || index < 0 || index >= rows.length) return prev;
+            const merged = applyRoleFields(rows[index], source, allowedFields);
+            const next = [...rows];
+            next[index] = merged;
+            return { ...prev, [arrayName]: next };
+        });
     };
 
     const tryApplyPoaFromTypedName = () => {
-        const registry = buildRegistry(formData, { arrayName: 'poa' });
-        const draft = {
-            firstName: formData.poaFirstName,
-            secondName: formData.poaMiddleName,
-            lastName: formData.poaLastName,
-        };
-        const hit =
-            findPersonInRegistry(registry, draft) ||
-            findMatch(registry, personDisplayName(normalizeFundacionPerson(draft)));
-        if (hit) applyPoaFromRegistry(hit);
-    };
-
-    const handleImportPOA = (person) => {
-        if (!person?.data) return;
-        const p = snapshotFromPerson(person.data);
-        setFormData((prev) => ({
-            ...prev,
-            poaFirstName: p.firstName || prev.poaFirstName,
-            poaMiddleName: p.secondName || prev.poaMiddleName,
-            poaLastName: p.lastName || prev.poaLastName,
-            poaBirthDate: p.birthDate || prev.poaBirthDate,
-            poaMaritalStatus: p.maritalStatus || prev.poaMaritalStatus,
-            poaNationality: p.nationality || prev.poaNationality,
-            poaPassport: p.passport || prev.poaPassport,
-            poaIdCard: p.idCard || prev.poaIdCard,
-            poaPhone: p.phone || prev.poaPhone,
-            poaEmail: p.email || prev.poaEmail,
-            poaAddress: p.address || prev.poaAddress,
-            poaCity: p.city || prev.poaCity,
-            poaCountry: p.country || prev.poaCountry,
-        }));
-    };
-
-    const PersonCopySelect = ({ excludeStep, onSelect }) => {
-        const persons = getAvailablePersons(excludeStep);
-        if (!persons.length) return null;
-        return (
-            <div className="person-copy-box">
-                <label>{t('fundacion.copyFrom')}</label>
-                <select
-                    className="expert-input"
-                    defaultValue=""
-                    onChange={(e) => {
-                        const picked = persons[Number(e.target.value)];
-                        if (picked) onSelect(picked);
-                        e.target.value = '';
-                    }}
-                >
-                    <option value="">{t('fundacion.copySelect')}</option>
-                    {persons.map((p, idx) => (
-                        <option key={idx} value={idx}>{p.label}</option>
-                    ))}
-                </select>
-            </div>
-        );
+        setFormData((prev) => {
+            const registry = buildRegistry(prev, { arrayName: 'poa' });
+            const draft = {
+                firstName: prev.poaFirstName,
+                secondName: prev.poaMiddleName,
+                lastName: prev.poaLastName,
+            };
+            const hit =
+                findPersonInRegistry(registry, draft) ||
+                findMatch(registry, personDisplayName(normalizeFundacionPerson(draft)));
+            if (!hit) return prev;
+            const p = snapshotPersonFields(hit);
+            return {
+                ...prev,
+                poaFirstName: p.firstName || prev.poaFirstName,
+                poaMiddleName: p.secondName || prev.poaMiddleName,
+                poaLastName: p.lastName || prev.poaLastName,
+                poaBirthDate: p.birthDate || prev.poaBirthDate,
+                poaMaritalStatus: p.maritalStatus || prev.poaMaritalStatus,
+                poaNationality: p.nationality || prev.poaNationality,
+                poaPassport: p.passport || prev.poaPassport,
+                poaIdCard: p.idCard || prev.poaIdCard,
+                poaPhone: p.phone || prev.poaPhone,
+                poaEmail: p.email || prev.poaEmail,
+                poaAddress: p.address || prev.poaAddress,
+                poaCity: p.city || prev.poaCity,
+                poaCountry: p.country || prev.poaCountry,
+            };
+        });
     };
 
     const updateArrayField = (arrayName, index, field, value) => {
@@ -395,10 +271,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         const registry = buildRegistry(formData, { arrayName, index });
         return (
         <div key={index} className="expert-card-legal">
-            <PersonCopySelect
-                excludeStep={excludeStep}
-                onSelect={(person) => applyPersonSnapshot(arrayName, index, person)}
-            />
             <div className="expert-card-label">{cardLabel}</div>
             {canRemove && (
                 <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove">
@@ -415,21 +287,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             />
         </div>
         );
-    };
-
-    const applyLegacyFullNameSnapshot = (arrayName, index, snapshot) => {
-        if (!snapshot?.data) return;
-        const p = snapshotFromPerson(snapshot.data);
-        const next = [...formData[arrayName]];
-        next[index] = {
-            ...next[index],
-            fullName: personDisplayName(p) || next[index].fullName,
-            birthDate: p.birthDate,
-            passport: p.passport || p.idCard,
-            address: p.address,
-            percentage: snapshot.data.percentage ?? next[index].percentage,
-        };
-        setFormData(prev => ({ ...prev, [arrayName]: next }));
     };
 
     // Paso 3: Fundador
@@ -512,6 +369,31 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     3
                 )
             )}
+            {false && formData.councilMembers.map((m, i) => (
+                <div key={i} className="expert-card-legal">
+                    <div className="expert-card-label">{lang === 'en' ? `DIRECTOR #${i+1}` : `DIRECTOR #${i+1}`}</div>
+                    {formData.councilMembers.length > 3 && <button type="button" onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    <div className="expert-grid">
+                        <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" value={m.firstName} onChange={e => updateArrayField('councilMembers', i, 'firstName', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Middle Name' : 'Segundo nombre'}</label><input className="expert-input" value={m.secondName} onChange={e => updateArrayField('councilMembers', i, 'secondName', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Surname(s)' : 'Apellidos'}</label><input className="expert-input" value={m.lastName} onChange={e => updateArrayField('councilMembers', i, 'lastName', e.target.value)} /></div>
+                        <div className="expert-field">
+                            <label>{lang === 'en' ? 'Marital Status' : 'Estado civil'}</label>
+                            <select className="expert-input" value={m.maritalStatus} onChange={e => updateArrayField('councilMembers', i, 'maritalStatus', e.target.value)}>
+                                <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
+                                <option value="Soltero">{lang === 'en' ? 'Single' : 'Soltero(a)'}</option>
+                                <option value="Casado">{lang === 'en' ? 'Married' : 'Casado(a)'}</option>
+                                <option value="Divorciado">{lang === 'en' ? 'Divorced' : 'Divorciado(a)'}</option>
+                                <option value="Viudo">{lang === 'en' ? 'Widowed' : 'Viudo(a)'}</option>
+                            </select>
+                        </div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Nationality' : 'Nacionalidad'}</label><input className="expert-input" value={m.nationality} onChange={e => updateArrayField('councilMembers', i, 'nationality', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={m.passport} onChange={e => updateArrayField('councilMembers', i, 'passport', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={m.birthDate} onChange={e => updateArrayField('councilMembers', i, 'birthDate', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="expert-input" value={m.address} onChange={e => updateArrayField('councilMembers', i, 'address', e.target.value)} /></div>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 
@@ -524,7 +406,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
                 </button>
             </div>
-            {formData.dignitaries.map((d, i) => (
+            {formData.dignitaries.map((d, i) => {
+                const registry = buildRegistry(formData, { arrayName: 'dignitaries', index: i });
+                return (
                 <div key={i} className="expert-card-legal">
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
                     {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
@@ -538,9 +422,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                             <FundacionRegistryNameInput
                                 value={d.fullName || ''}
                                 onChange={(v) => updateArrayField('dignitaries', i, 'fullName', v)}
-                                registry={buildRegistry(formData, { arrayName: 'dignitaries', index: i })}
-                                onMatch={(data) => mergePersonIntoRow('dignitaries', i, data, FUNDACION_DIGNITARY_FIELDS)}
+                                registry={registry}
+                                listId={`dignitary-name-${i}`}
                                 placeholder={t('fundacion.dignitary.fullNamePlaceholder')}
+                                onMatch={(data) => mergePersonIntoRow('dignitaries', i, data, FUNDACION_DIGNITARY_FIELDS)}
                             />
                         </div>
                         <div className="expert-field">
@@ -550,10 +435,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-field full-width">
                             <label>{t('fundacion.dignitary.address')}</label>
                             <input className="expert-input" value={d.address || ''} onChange={e => updateArrayField('dignitaries', i, 'address', e.target.value)} placeholder={t('fundacion.dignitary.addressPlaceholder')} />
-                        </div>
-                        <div className="expert-field full-width">
-                            <label>{t('fundacion.person.registrationNumber')}</label>
-                            <input className="expert-input" value={d.registrationNumber || ''} onChange={e => updateArrayField('dignitaries', i, 'registrationNumber', e.target.value)} />
                         </div>
                     </div>
                 </div>
@@ -588,11 +469,16 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                                 value={b.shareholder || ''}
                                 onChange={(v) => updateArrayField('beneficiaries', i, 'shareholder', v)}
                                 registry={registry}
+                                listId={`beneficiary-shareholder-${i}`}
+                                placeholder={t('fundacion.beneficiary.shareholderPlaceholder')}
                                 onMatch={(data) => {
                                     const fill = pickFields(data, BENEFICIARY_REGISTRY_FILL);
-                                    if (Object.keys(fill).length) applyRegistryPerson('beneficiaries', i, fill);
+                                    setFormData((prev) => {
+                                        const rows = [...prev.beneficiaries];
+                                        rows[i] = { ...rows[i], ...fill };
+                                        return { ...prev, beneficiaries: rows };
+                                    });
                                 }}
-                                placeholder={t('fundacion.beneficiary.shareholderPlaceholder')}
                             />
                         </div>
                         <div className="expert-field">
@@ -612,31 +498,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
     // Paso 8: Poderes (Power of Attorney - ORIGINAL EXACT FORMAT)
     const renderStep8 = () => {
-        const availablePersons = getAvailablePersons('poa');
+        const poaRegistry = buildRegistry(formData, { arrayName: 'poa' });
+        const poaNameList = getPersonNameSuggestions(poaRegistry);
         return (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
-                
-                {getAvailablePersons('poa').length > 0 && (
-                    <div className="person-copy-box" style={{ marginBottom: '20px' }}>
-                        <label>{t('fundacion.copyFrom')}</label>
-                        <select
-                            className="expert-input"
-                            defaultValue=""
-                            onChange={(e) => {
-                                const list = getAvailablePersons('poa');
-                                const selected = list[Number(e.target.value)];
-                                if (selected) handleImportPOA(selected);
-                                e.target.value = '';
-                            }}
-                        >
-                            <option value="">{t('fundacion.copySelect')}</option>
-                            {getAvailablePersons('poa').map((p, idx) => (
-                                <option key={idx} value={idx}>{p.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
 
                 <div className="poa-original-grid">
                     {/* LEFT COLUMN: Apoderado Details */}
@@ -650,15 +516,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-grid" style={{ padding: '20px' }}>
                             <div className="expert-field">
                                 <label>{lang === 'en' ? 'First name / Nombre' : 'First name / Nombre'}</label>
-                                <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={getPersonNameSuggestions(buildRegistry(formData, { arrayName: 'poa' })).length ? 'poa-names' : undefined} autoComplete="off" />
+                                <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
                             </div>
                             <div className="expert-field">
                                 <label>{lang === 'en' ? 'Middle name / Segundo nombre' : 'Middle name / Segundo nombre'}</label>
-                                <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} />
+                                <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} onBlur={tryApplyPoaFromTypedName} />
                             </div>
                             <div className="expert-field full-width">
                                 <label>{lang === 'en' ? 'Surname(s) / Apellidos' : 'Surname(s) / Apellidos'}</label>
-                                <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={getPersonNameSuggestions(buildRegistry(formData, { arrayName: 'poa' })).length ? 'poa-names' : undefined} autoComplete="off" />
+                                <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
                             </div>
                             
                             <div className="expert-field">
@@ -909,21 +775,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
 
             {/* DATALISTS PARA AUTOCOMPLETADO */}
+            <datalist id="names-global">
+                {getPersonNameSuggestions(buildRegistry(formData)).map((name) => (
+                    <option key={name} value={name} />
+                ))}
+            </datalist>
             <datalist id="poa-names">
                 {getPersonNameSuggestions(buildRegistry(formData, { arrayName: 'poa' })).map((name) => (
                     <option key={`poa-${name}`} value={name} />
                 ))}
-            </datalist>
-
-            <datalist id="names-global">
-                {formData.founders.map((f, i) => f.fullName && <option key={`f-${i}`} value={f.fullName} />)}
-                {formData.councilMembers.map((m, i) => {
-                    const full = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
-                    return full && <option key={`c-${i}`} value={full} />;
-                })}
-                {formData.protectors.map((p, i) => p.fullName && <option key={`p-${i}`} value={p.fullName} />)}
-                {formData.dignitaries.map((d, i) => d.fullName && <option key={`d-${i}`} value={d.fullName} />)}
-                {formData.beneficiaries.map((b, i) => b.shareholder && <option key={`b-${i}`} value={b.shareholder} />)}
             </datalist>
 
             <datalist id="roles-dignitaries">

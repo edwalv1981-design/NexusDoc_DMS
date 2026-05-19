@@ -106,8 +106,14 @@ export function beneficiaryDisplayName(b) {
   );
 }
 
+/** Normaliza para coincidencia: minúsculas, espacios, sin acentos. */
 export function personNameKey(name) {
-  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
 }
 
 export function personHasData(person) {

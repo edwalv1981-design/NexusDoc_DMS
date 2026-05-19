@@ -54,6 +54,15 @@ function beneficiaryDisplayName(b) {
   );
 }
 
+function personNameKey(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 function personHasData(person) {
   return Boolean(personDisplayName(person));
 }
@@ -63,6 +72,7 @@ module.exports = {
   emptyFundacionPerson,
   normalizeFundacionPerson,
   personDisplayName,
+  personNameKey,
   dignitaryDisplayName,
   beneficiaryDisplayName,
   personHasData,

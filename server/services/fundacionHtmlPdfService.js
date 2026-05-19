@@ -119,21 +119,22 @@ function buildDirectorsRows(members, t) {
     return `<tr><td colspan="9" style="text-align:center;font-style:italic;">${esc(t.emptyDirectors)}</td></tr>`;
   }
   return members
-    .map(
-      (m, i) => `
+    .map((m, i) => {
+      const row = normalizeFundacionPerson(m);
+      return `
     <tr>
       <td>${i + 1}</td>
-      <td>${esc([m.firstName, m.secondName, m.lastName].filter(Boolean).join(' '))}</td>
-      <td>${esc(fmtDate(m.birthDate))}</td>
-      <td>${esc(m.maritalStatus)}</td>
-      <td>${esc(m.nationality)}</td>
-      <td>${esc(m.passport)}</td>
-      <td>${esc(m.address)}</td>
-      <td>${esc(m.city)}</td>
-      <td>${esc(m.country)}</td>
+      <td>${esc(personDisplayName(row))}</td>
+      <td>${esc(fmtDate(row.birthDate))}</td>
+      <td>${esc(row.maritalStatus)}</td>
+      <td>${esc(row.nationality)}</td>
+      <td>${esc(row.passport || row.idCard)}</td>
+      <td>${esc(row.address)}</td>
+      <td>${esc(row.city)}</td>
+      <td>${esc(row.country)}</td>
     </tr>
-  `
-    )
+  `;
+    })
     .join('');
 }
 
@@ -447,4 +448,52 @@ class FundacionHtmlPdfService {
   }
 }
 
-module.exports = new FundacionHtmlPdfService();
+/** Builds inner HTML for tests (no Puppeteer). */
+function buildFundacionPdfInnerHtml(data = {}, options = {}) {
+  fundacionPdfI18n.assertFundacionPdfI18nParity();
+  const founder = getFounderRecord(data);
+  const directors = getDirectors(data).map(normalizeFundacionPerson).filter(personHasData);
+  const protectors = (Array.isArray(data.protectors) ? data.protectors : [])
+    .map(normalizeFundacionPerson)
+    .filter(personHasData);
+  const beneficiaries = Array.isArray(data.beneficiaries) ? data.beneficiaries : [];
+  const dignitaries = Array.isArray(data.dignitaries) ? data.dignitaries : [];
+  const lang = fundacionPdfI18n.normalizeLanguage(options.language || data.language);
+  const t = fundacionPdfI18n.getFundacionPdfDict(lang);
+  const founderSection = buildPersonStackSection(
+    t.sectionFounder,
+    personHasData(founder) ? [founder] : [],
+    t,
+    t.emptyFounder,
+    t.sectionFounder
+  );
+  const protectorsSection = buildPersonStackSection(
+    t.sectionProtectors,
+    protectors,
+    t,
+    t.emptyProtectors,
+    lang === 'en' ? 'Protector' : 'Protector'
+  );
+  const directorsSection = buildPersonStackSection(
+    t.sectionDirectors,
+    directors,
+    t,
+    t.emptyDirectors,
+    lang === 'en' ? 'Director' : 'Director',
+    ''
+  );
+  return `
+    ${founderSection}
+    ${protectorsSection}
+    ${directorsSection}
+    ${buildDignitariesRows(dignitaries, t)}
+    ${buildBeneficiariesRows(beneficiaries, t)}
+    ${buildPowersHtml(data, t)}
+    ${esc(data.foundationObjects)}
+    ${esc(data.foundationNameOption1)}
+  `;
+}
+
+const service = new FundacionHtmlPdfService();
+module.exports = service;
+module.exports.buildFundacionPdfInnerHtml = buildFundacionPdfInnerHtml;

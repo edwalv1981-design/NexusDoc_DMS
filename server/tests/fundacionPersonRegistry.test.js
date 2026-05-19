@@ -1,11 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { normalizeFundacionPerson, FUNDACION_PERSON_FIELDS } = require('../utils/fundacionPersonSchema');
-
-function personNameKey(name) {
-  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
-}
+const { normalizeFundacionPerson, FUNDACION_PERSON_FIELDS, personNameKey } = require('../utils/fundacionPersonSchema');
 
 function findMatch(registry, nameInput) {
   const key = personNameKey(nameInput);
@@ -37,6 +33,13 @@ test('findMatch matches normalized full name', () => {
   ];
   const hit = findMatch(registry, 'Juan Carlos Pérez');
   assert.equal(hit.email, 'juan@test.com');
+});
+
+test('findMatch ignores accent differences', () => {
+  const person = normalizeFundacionPerson({ firstName: 'José', lastName: 'Muñoz', phone: '555' });
+  const registry = [{ key: personNameKey('Jose Munoz'), name: 'Jose Munoz', data: person }];
+  const hit = findMatch(registry, 'José Muñoz');
+  assert.equal(hit.phone, '555');
 });
 
 test('pickFields never invents empty values', () => {

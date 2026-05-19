@@ -36,13 +36,14 @@ const FundacionRegistryNameInput = ({
         type={type}
         className={className}
         value={value || ''}
-        onChange={(e) => {
-          onChange(e.target.value);
-          tryApply(e.target.value);
-        }}
+        onChange={(e) => onChange(e.target.value)}
         onBlur={(e) => {
           onBlur?.(e);
           tryApply(e.target.value);
+        }}
+        onInput={(e) => {
+          const v = e.target.value;
+          if (v.includes(' ')) tryApply(v);
         }}
         list={hasSuggestions ? listId : undefined}
         autoComplete="off"
