@@ -21,6 +21,7 @@ import {
     mergeRoleFields,
     snapshotFromPerson,
     buildPersonRegistry,
+    FUNDACION_PERSON_FIELDS,
     FUNDACION_DIGNITARY_FIELDS,
     FUNDACION_BENEFICIARY_FIELDS,
 } from '../utils/fundacionPersonSchema';
@@ -345,78 +346,41 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => (
-        <div key={index} className="expert-card-legal">
-            <PersonCopySelect
-                excludeStep={excludeStep}
-                onSelect={(person) => applyPersonSnapshot(arrayName, index, person)}
-            />
-            <div className="expert-card-label">{cardLabel}</div>
-            {canRemove && (
-                <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove">
-                    <Trash2 size={16} />
-                </button>
-            )}
-            <FundacionPersonFields
-                person={formData[arrayName][index]}
-                lang={lang}
-                t={t}
-                onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
-            />
-        </div>
-    );
-
-    const applyLegacyFullNameSnapshot = (arrayName, index, snapshot) => {
-        if (!snapshot?.data) return;
-        const p = snapshotFromPerson(snapshot.data);
-        const next = [...formData[arrayName]];
-        next[index] = {
-            ...next[index],
-            fullName: personDisplayName(p) || next[index].fullName,
-            birthDate: p.birthDate,
-            passport: p.passport || p.idCard,
-            address: p.address,
-            percentage: snapshot.data.percentage ?? next[index].percentage,
-        };
-        setFormData(prev => ({ ...prev, [arrayName]: next }));
+    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => {
+        const registry = buildPersonRegistry(formData, { arrayName, index });
+        return (
+            <div key={index} className="expert-card-legal">
+                <PersonCopySelect
+                    excludeStep={excludeStep}
+                    onSelect={(person) => applyPersonSnapshot(arrayName, index, person)}
+                />
+                <div className="expert-card-label">{cardLabel}</div>
+                {canRemove && (
+                    <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove">
+                        <Trash2 size={16} />
+                    </button>
+                )}
+                <PersonNameAutocomplete
+                    registry={registry}
+                    t={t}
+                    onSelect={(data) => mergePersonIntoRow(arrayName, index, data, FUNDACION_PERSON_FIELDS)}
+                />
+                <FundacionPersonFields
+                    person={formData[arrayName][index]}
+                    lang={lang}
+                    t={t}
+                    onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
+                />
+            </div>
+        );
     };
+
 
     // Paso 3: Fundador
     const renderStep3 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founder' : 'Paso 3: Fundador'}</h2>
             {formData.founders.map((_, i) => renderPersonCard('founders', i, lang === 'en' ? 'FOUNDER' : 'FUNDADOR', 'founder', false, 1))}
-            {false && formData.founders.map((f, i) => (
-                <div key={i} className="expert-card-legal">
-                    <div className="expert-card-label">{lang === 'en' ? 'FOUNDER' : 'FUNDADOR'}</div>
-                    <div className="expert-grid">
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" value={f.fullName} onChange={e => updateArrayField('founders', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
-                            <input type="date" className="expert-input" value={f.birthDate} onChange={e => updateArrayField('founders', i, 'birthDate', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Place of birth' : 'Lugar de nacimiento'}</label>
-                            <input className="expert-input" value={f.birthPlace || ''} onChange={e => updateArrayField('founders', i, 'birthPlace', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Nationality' : 'Nacionalidad'}</label>
-                            <input className="expert-input" value={f.nationality || ''} onChange={e => updateArrayField('founders', i, 'nationality', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="expert-input" value={f.passport} onChange={e => updateArrayField('founders', i, 'passport', e.target.value)} />
-                        </div>
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
-                            <input className="expert-input" value={f.address} onChange={e => updateArrayField('founders', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
-                        </div>
-                    </div>
-                </div>
-            ))}
         </div>
     );
 
@@ -429,34 +393,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'AÑADIR PROTECTOR'}
                 </button>
             </div>
-            {formData.protectors.map((p, i) => (
-                <div key={i} className="expert-card-legal">
-                    <PersonCopySelect
-                        excludeStep="protector"
-                        onSelect={(person) => applyLegacyFullNameSnapshot('protectors', i, person)}
-                    />
-                    <div className="expert-card-label">{lang === 'en' ? `PROTECTOR #${i+1}` : `PROTECTOR #${i+1}`}</div>
-                    {formData.protectors.length > 1 && <button type="button" onClick={() => removeArrayItem('protectors', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
-                    <div className="expert-grid">
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" value={p.fullName} onChange={e => updateArrayField('protectors', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
-                            <input type="date" className="expert-input" value={p.birthDate} onChange={e => updateArrayField('protectors', i, 'birthDate', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="expert-input" value={p.passport} onChange={e => updateArrayField('protectors', i, 'passport', e.target.value)} />
-                        </div>
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
-                            <input className="expert-input" value={p.address} onChange={e => updateArrayField('protectors', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
-                        </div>
-                    </div>
-                </div>
-            ))}
+            {formData.protectors.map((_, i) => renderPersonCard('protectors', i, lang === 'en' ? `PROTECTOR #${i + 1}` : `PROTECTOR #${i + 1}`, 'protector', formData.protectors.length > 1, 1))}
         </div>
     );
 
@@ -469,35 +406,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'AÑADIR MIEMBRO'}
                 </button>
             </div>
-            {formData.councilMembers.map((m, i) => (
-                <div key={i} className="expert-card-legal">
-                    <PersonCopySelect
-                        excludeStep="director"
-                        onSelect={(person) => applyPersonSnapshot('councilMembers', i, person)}
-                    />
-                    <div className="expert-card-label">{lang === 'en' ? `DIRECTOR #${i+1}` : `DIRECTOR #${i+1}`}</div>
-                    {formData.councilMembers.length > 3 && <button type="button" onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
-                    <div className="expert-grid">
-                        <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" value={m.firstName} onChange={e => updateArrayField('councilMembers', i, 'firstName', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Middle Name' : 'Segundo nombre'}</label><input className="expert-input" value={m.secondName} onChange={e => updateArrayField('councilMembers', i, 'secondName', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Surname(s)' : 'Apellidos'}</label><input className="expert-input" value={m.lastName} onChange={e => updateArrayField('councilMembers', i, 'lastName', e.target.value)} /></div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Marital Status' : 'Estado civil'}</label>
-                            <select className="expert-input" value={m.maritalStatus} onChange={e => updateArrayField('councilMembers', i, 'maritalStatus', e.target.value)}>
-                                <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
-                                <option value="Soltero">{lang === 'en' ? 'Single' : 'Soltero(a)'}</option>
-                                <option value="Casado">{lang === 'en' ? 'Married' : 'Casado(a)'}</option>
-                                <option value="Divorciado">{lang === 'en' ? 'Divorced' : 'Divorciado(a)'}</option>
-                                <option value="Viudo">{lang === 'en' ? 'Widowed' : 'Viudo(a)'}</option>
-                            </select>
-                        </div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Nationality' : 'Nacionalidad'}</label><input className="expert-input" value={m.nationality} onChange={e => updateArrayField('councilMembers', i, 'nationality', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={m.passport} onChange={e => updateArrayField('councilMembers', i, 'passport', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={m.birthDate} onChange={e => updateArrayField('councilMembers', i, 'birthDate', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="expert-input" value={m.address} onChange={e => updateArrayField('councilMembers', i, 'address', e.target.value)} /></div>
-                    </div>
-                </div>
-            ))}
+            {formData.councilMembers.map((_, i) => renderPersonCard('councilMembers', i, lang === 'en' ? `DIRECTOR #${i + 1}` : `DIRECTOR #${i + 1}`, 'director', formData.councilMembers.length > 3, 3))}
         </div>
     );
 
@@ -890,12 +799,18 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             {/* DATALISTS PARA AUTOCOMPLETADO */}
             <datalist id="names-global">
-                {formData.founders.map((f, i) => f.fullName && <option key={`f-${i}`} value={f.fullName} />)}
+                {formData.founders.map((f, i) => {
+                const full = personDisplayName(normalizeFundacionPerson(f));
+                return full ? <option key={`f-${i}`} value={full} /> : null;
+            })}
                 {formData.councilMembers.map((m, i) => {
                     const full = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
                     return full && <option key={`c-${i}`} value={full} />;
                 })}
-                {formData.protectors.map((p, i) => p.fullName && <option key={`p-${i}`} value={p.fullName} />)}
+                {formData.protectors.map((p, i) => {
+                const full = personDisplayName(normalizeFundacionPerson(p));
+                return full ? <option key={`p-${i}`} value={full} /> : null;
+            })}
                 {formData.dignitaries.map((d, i) => d.fullName && <option key={`d-${i}`} value={d.fullName} />)}
                 {formData.beneficiaries.map((b, i) => b.shareholder && <option key={`b-${i}`} value={b.shareholder} />)}
             </datalist>
