@@ -6,12 +6,16 @@ import {
 } from 'lucide-react';
 import { useLang } from '../i18n';
 import FundacionPersonFields from '../components/FundacionPersonFields';
+import PersonNameAutocomplete from '../components/PersonNameAutocomplete';
 import {
     emptyFundacionPerson,
+    emptyFundacionDignitary,
+    emptyFundacionBeneficiary,
     normalizeFundacionPerson,
     personDisplayName,
-    personHasData,
+    mergePersonRecords,
     snapshotFromPerson,
+    buildPersonRegistry,
 } from '../utils/fundacionPersonSchema';
 
 const FundacionForm = ({ initialData, onSave, saving }) => {
@@ -29,11 +33,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         protectors: [emptyFundacionPerson()],
         councilMembers: [emptyFundacionPerson(), emptyFundacionPerson(), emptyFundacionPerson()],
         dignitaries: [
-            { role: 'PRESIDENTE', fullName: '', birthDate: '', passport: '' },
-            { role: 'SECRETARIO', fullName: '', birthDate: '', passport: '' },
-            { role: 'TESORERO', fullName: '', birthDate: '', passport: '' }
+            emptyFundacionDignitary('PRESIDENTE'),
+            emptyFundacionDignitary('SECRETARIO'),
+            emptyFundacionDignitary('TESORERO'),
         ],
-        beneficiaries: [{ fullName: '', birthDate: '', passport: '', address: '', percentage: '' }],
+        beneficiaries: [emptyFundacionBeneficiary()],
         
         // Original POA Fields (Step 8)
         poaIssue: 'NO', // 'YES', 'NO'
@@ -72,8 +76,17 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             cleanData.founders = (cleanData.founders || []).map(normalizeFundacionPerson);
             cleanData.protectors = (cleanData.protectors || []).map(normalizeFundacionPerson);
             cleanData.councilMembers = (cleanData.councilMembers || []).map(normalizeFundacionPerson);
-            if (!cleanData.dignitaries) cleanData.dignitaries = formData.dignitaries;
-            if (!cleanData.beneficiaries) cleanData.beneficiaries = formData.beneficiaries;
+            cleanData.dignitaries = (cleanData.dignitaries || formData.dignitaries).map((d) => ({
+                ...emptyFundacionDignitary(d.role || ''),
+                ...normalizeFundacionPerson(d),
+                role: d.role || '',
+                registrationNumber: d.registrationNumber || '',
+            }));
+            cleanData.beneficiaries = (cleanData.beneficiaries || formData.beneficiaries).map((b) => ({
+                ...emptyFundacionBeneficiary(),
+                ...normalizeFundacionPerson(b),
+                percentage: b.percentage || '',
+            }));
             if (cleanData.declarationName === undefined) cleanData.declarationName = formData.declarationName;
             if (cleanData.declarationSignature === undefined) cleanData.declarationSignature = formData.declarationSignature;
             if (Array.isArray(cleanData.signers) && cleanData.signers[0] && !cleanData.declarationName) {
@@ -105,114 +118,44 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    const getAvailablePersons = (excludeStep) => {
-        const list = [];
-        const pushPerson = (roleLabel, person, extra = {}) => {
-            const p = normalizeFundacionPerson({ ...person, ...extra });
-            if (!personHasData(p) && !person.fullName) return;
-            const name = personDisplayName(p) || person.fullName;
-            if (!name) return;
-            list.push({ label: `${roleLabel} — ${name}`, data: snapshotFromPerson(p) });
-        };
-        if (excludeStep !== 'founder') pushPerson(lang === 'en' ? 'Founder' : 'Fundador', formData.founders[0] || {});
-        if (excludeStep !== 'protector') {
-            formData.protectors.forEach((p, idx) => pushPerson(`${lang === 'en' ? 'Protector' : 'Protector'} #${idx + 1}`, p));
+    const mergePersonIntoRow = (arrayName, index, sourceData) => {
+        if (!sourceData) return;
+        const base = formData[arrayName][index];
+        const merged = mergePersonRecords(base, snapshotFromPerson(sourceData));
+        if (sourceData.percentage !== undefined && String(sourceData.percentage).trim() !== '') {
+            merged.percentage = sourceData.percentage;
         }
-        if (excludeStep !== 'director') {
-            formData.councilMembers.forEach((m, idx) => pushPerson(`${lang === 'en' ? 'Director' : 'Director'} #${idx + 1}`, m));
+        if (sourceData.role !== undefined && String(sourceData.role).trim() !== '') {
+            merged.role = sourceData.role;
         }
-        if (excludeStep !== 'dignitary') {
-            formData.dignitaries.forEach((d, idx) => {
-                if (d.fullName) list.push({ label: `${lang === 'en' ? 'Dignitary' : 'Dignatario'} #${idx + 1} — ${d.fullName}`, data: snapshotFromPerson(normalizeFundacionPerson(d)) });
-            });
+        if (sourceData.registrationNumber !== undefined && String(sourceData.registrationNumber).trim() !== '') {
+            merged.registrationNumber = sourceData.registrationNumber;
         }
-        if (excludeStep !== 'beneficiary') {
-            formData.beneficiaries.forEach((b, idx) => {
-                if (b.fullName) list.push({ label: `${lang === 'en' ? 'Beneficiary' : 'Beneficiario'} #${idx + 1} — ${b.fullName}`, data: { ...snapshotFromPerson(normalizeFundacionPerson(b)), percentage: b.percentage } });
-            });
-        }
-        const poaName = [formData.poaFirstName, formData.poaMiddleName, formData.poaLastName].filter(Boolean).join(' ');
-        if (excludeStep !== 'poa' && poaName) {
-            list.push({
-                label: `${lang === 'en' ? 'Attorney-in-fact' : 'Apoderado'} — ${poaName}`,
-                data: snapshotFromPerson({
-                    firstName: formData.poaFirstName, secondName: formData.poaMiddleName, lastName: formData.poaLastName,
-                    birthDate: formData.poaBirthDate, maritalStatus: formData.poaMaritalStatus, nationality: formData.poaNationality,
-                    passport: formData.poaPassport, idCard: formData.poaIdCard, phone: formData.poaPhone, email: formData.poaEmail,
-                    address: formData.poaAddress, city: formData.poaCity, country: formData.poaCountry,
-                }),
-            });
-        }
-        return list;
-    };
-
-    const applyPersonSnapshot = (arrayName, index, snapshot) => {
-        if (!snapshot?.data) return;
-        const merged = { ...formData[arrayName][index], ...snapshotFromPerson(snapshot.data) };
-        if (snapshot.data.percentage !== undefined) merged.percentage = snapshot.data.percentage;
         const next = [...formData[arrayName]];
         next[index] = merged;
-        setFormData(prev => ({ ...prev, [arrayName]: next }));
+        setFormData((prev) => ({ ...prev, [arrayName]: next }));
     };
 
-    const applyLegacyFullNameSnapshot = (arrayName, index, snapshot) => {
-        if (!snapshot?.data) return;
-        const p = snapshotFromPerson(snapshot.data);
-        const next = [...formData[arrayName]];
-        next[index] = {
-            ...next[index],
-            fullName: personDisplayName(p) || next[index].fullName,
-            birthDate: p.birthDate,
-            passport: p.passport || p.idCard,
-            address: p.address,
-            percentage: snapshot.data.percentage ?? next[index].percentage,
-        };
-        setFormData(prev => ({ ...prev, [arrayName]: next }));
-    };
-
-    const PersonCopySelect = ({ excludeStep, onSelect }) => {
-        const persons = getAvailablePersons(excludeStep);
-        if (!persons.length) return null;
-        return (
-            <div className="person-copy-box">
-                <label>{t('fundacion.copyFrom')}</label>
-                <select
-                    className="expert-input"
-                    defaultValue=""
-                    onChange={(e) => {
-                        const picked = persons[Number(e.target.value)];
-                        if (picked) onSelect(picked);
-                        e.target.value = '';
-                    }}
-                >
-                    <option value="">{t('fundacion.copySelect')}</option>
-                    {persons.map((p, idx) => (
-                        <option key={idx} value={idx}>{p.label}</option>
-                    ))}
-                </select>
-            </div>
+    const handleImportPOA = (sourceData) => {
+        if (!sourceData) return;
+        const p = snapshotFromPerson(sourceData);
+        setFormData((prev) =>
+            mergePersonRecords(prev, {
+                poaFirstName: p.firstName,
+                poaMiddleName: p.secondName,
+                poaLastName: p.lastName,
+                poaBirthDate: p.birthDate,
+                poaMaritalStatus: p.maritalStatus,
+                poaNationality: p.nationality,
+                poaPassport: p.passport,
+                poaIdCard: p.idCard,
+                poaPhone: p.phone,
+                poaEmail: p.email,
+                poaAddress: p.address,
+                poaCity: p.city,
+                poaCountry: p.country,
+            })
         );
-    };
-
-    const handleImportPOA = (person) => {
-        if (!person?.data) return;
-        const p = snapshotFromPerson(person.data);
-        setFormData(prev => ({
-            ...prev,
-            poaFirstName: p.firstName,
-            poaMiddleName: p.secondName,
-            poaLastName: p.lastName,
-            poaBirthDate: p.birthDate,
-            poaMaritalStatus: p.maritalStatus,
-            poaNationality: p.nationality,
-            poaPassport: p.passport,
-            poaIdCard: p.idCard,
-            poaPhone: p.phone,
-            poaEmail: p.email,
-            poaAddress: p.address,
-            poaCity: p.city,
-            poaCountry: p.country,
-        }));
     };
 
     const updateArrayField = (arrayName, index, field, value) => {
@@ -317,20 +260,38 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => (
-        <div key={index} className="expert-card-legal">
-            <PersonCopySelect excludeStep={excludeStep} onSelect={(person) => applyPersonSnapshot(arrayName, index, person)} />
-            <div className="expert-card-label">{cardLabel}</div>
-            {canRemove && <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove"><Trash2 size={16} /></button>}
-            <FundacionPersonFields person={formData[arrayName][index]} lang={lang} t={t} onChange={(field, value) => updateArrayField(arrayName, index, field, value)} />
-        </div>
-    );
+    const renderPersonCard = (arrayName, index, cardLabel, canRemove, minItems) => {
+        const registry = buildPersonRegistry(formData, { arrayName, index });
+        return (
+            <div key={index} className="expert-card-legal">
+                <div className="expert-card-label">{cardLabel}</div>
+                {canRemove && (
+                    <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove">
+                        <Trash2 size={16} />
+                    </button>
+                )}
+                <div className="expert-grid">
+                    <PersonNameAutocomplete
+                        registry={registry}
+                        t={t}
+                        onSelect={(data) => mergePersonIntoRow(arrayName, index, data)}
+                    />
+                    <FundacionPersonFields
+                        person={formData[arrayName][index]}
+                        lang={lang}
+                        t={t}
+                        onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
+                    />
+                </div>
+            </div>
+        );
+    };
 
     // Paso 3: Fundador
     const renderStep3 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founder' : 'Paso 3: Fundador'}</h2>
-            {formData.founders.map((_, i) => renderPersonCard('founders', i, lang === 'en' ? 'FOUNDER' : 'FUNDADOR', 'founder', false, 1))}
+            {formData.founders.map((_, i) => renderPersonCard('founders', i, lang === 'en' ? 'FOUNDER' : 'FUNDADOR', false, 1))}
         </div>
     );
 
@@ -343,11 +304,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'AÑADIR PROTECTOR'}
                 </button>
             </div>
-            {formData.protectors.map((_, i) => renderPersonCard('protectors', i, `${lang === 'en' ? 'PROTECTOR' : 'PROTECTOR'} #${i + 1}`, 'protector', formData.protectors.length > 1, 1))}
+            {formData.protectors.map((_, i) => renderPersonCard('protectors', i, lang === 'en' ? `PROTECTOR #${i + 1}` : `PROTECTOR #${i + 1}`, formData.protectors.length > 1, 1))}
         </div>
     );
 
-    // Paso 5: Directores (Consejo de Fundación)
+    // Paso 5: Directores
     const renderStep5 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
@@ -356,7 +317,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'AÑADIR MIEMBRO'}
                 </button>
             </div>
-            {formData.councilMembers.map((_, i) => renderPersonCard('councilMembers', i, `${lang === 'en' ? 'DIRECTOR' : 'DIRECTOR'} #${i + 1}`, 'director', formData.councilMembers.length > 3, 3))}
+            {formData.councilMembers.map((_, i) => renderPersonCard('councilMembers', i, lang === 'en' ? `DIRECTOR #${i + 1}` : `DIRECTOR #${i + 1}`, formData.councilMembers.length > 3, 3))}
         </div>
     );
 
@@ -365,38 +326,33 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
                 <h2 className="expert-step-title"><UserCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 6: Dignitaries' : 'Paso 6: Dignatarios'}</h2>
-                <button type="button" onClick={() => addArrayItem('dignitaries', { role: '', fullName: '', birthDate: '', passport: '' })} className="expert-btn-add">
+                <button type="button" onClick={() => addArrayItem('dignitaries', emptyFundacionDignitary())} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
                 </button>
             </div>
-            {formData.dignitaries.map((d, i) => (
-                <div key={i} className="expert-card-legal">
-                    <PersonCopySelect
-                        excludeStep="dignitary"
-                        onSelect={(person) => applyLegacyFullNameSnapshot('dignitaries', i, person)}
-                    />
-                    <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
-                    {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
-                    <div className="expert-grid">
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Position / Role' : 'Cargo'}</label>
-                            <input className="expert-input" list="roles-dignitaries" value={d.role} onChange={e => updateArrayField('dignitaries', i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" />
-                        </div>
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" value={d.fullName} onChange={e => updateArrayField('dignitaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="expert-input" value={d.passport} onChange={e => updateArrayField('dignitaries', i, 'passport', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
-                            <input type="date" className="expert-input" value={d.birthDate} onChange={e => updateArrayField('dignitaries', i, 'birthDate', e.target.value)} />
+            {formData.dignitaries.map((d, i) => {
+                const registry = buildPersonRegistry(formData, { arrayName: 'dignitaries', index: i });
+                return (
+                    <div key={i} className="expert-card-legal">
+                        <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i + 1}` : `DIGNATARIO #${i + 1}`}</div>
+                        {formData.dignitaries.length > 3 && (
+                            <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>
+                        )}
+                        <div className="expert-grid">
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? 'Position / Role' : 'Cargo'}</label>
+                                <input className="expert-input" list="roles-dignitaries" value={d.role} onChange={e => updateArrayField('dignitaries', i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" />
+                            </div>
+                            <PersonNameAutocomplete registry={registry} t={t} onSelect={(data) => mergePersonIntoRow('dignitaries', i, data)} />
+                            <FundacionPersonFields person={d} lang={lang} t={t} onChange={(field, value) => updateArrayField('dignitaries', i, field, value)} />
+                            <div className="expert-field full-width">
+                                <label>{t('fundacion.person.registrationNumber')}</label>
+                                <input className="expert-input" value={d.registrationNumber || ''} onChange={e => updateArrayField('dignitaries', i, 'registrationNumber', e.target.value)} placeholder={lang === 'en' ? 'If company / Si es empresa' : 'Si es empresa'} />
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 
@@ -405,71 +361,44 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
                 <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 7: Beneficiaries' : 'Paso 7: Beneficiarios'}</h2>
-                <button type="button" onClick={() => addArrayItem('beneficiaries', { fullName: '', birthDate: '', passport: '', address: '', percentage: '' })} className="expert-btn-add">
+                <button type="button" onClick={() => addArrayItem('beneficiaries', emptyFundacionBeneficiary())} className="expert-btn-add">
                     <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'AÑADIR BENEFICIARIO'}
                 </button>
             </div>
-            {formData.beneficiaries.map((b, i) => (
-                <div key={i} className="expert-card-legal">
-                    <PersonCopySelect
-                        excludeStep="beneficiary"
-                        onSelect={(person) => applyLegacyFullNameSnapshot('beneficiaries', i, person)}
-                    />
-                    <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
-                    {formData.beneficiaries.length > 1 && <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
-                    <div className="expert-grid">
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="expert-input" value={b.fullName} onChange={e => updateArrayField('beneficiaries', i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'As it appears on Passport/ID...' : 'Como aparece en el pasaporte/cédula...'} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="expert-input" value={b.passport} onChange={e => updateArrayField('beneficiaries', i, 'passport', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? '% of Benefit' : '% de Beneficio'}</label>
-                            <input className="expert-input" placeholder="Ej: 100%" value={b.percentage} onChange={e => updateArrayField('beneficiaries', i, 'percentage', e.target.value)} />
-                        </div>
-                        <div className="expert-field">
-                            <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
-                            <input type="date" className="expert-input" value={b.birthDate} onChange={e => updateArrayField('beneficiaries', i, 'birthDate', e.target.value)} />
-                        </div>
-                        <div className="expert-field full-width">
-                            <label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label>
-                            <input className="expert-input" value={b.address} onChange={e => updateArrayField('beneficiaries', i, 'address', e.target.value)} placeholder={lang === 'en' ? 'Complete residential address...' : 'Dirección residencial completa...'} />
+            {formData.beneficiaries.map((b, i) => {
+                const registry = buildPersonRegistry(formData, { arrayName: 'beneficiaries', index: i });
+                return (
+                    <div key={i} className="expert-card-legal">
+                        <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i + 1}` : `BENEFICIARIO #${i + 1}`}</div>
+                        {formData.beneficiaries.length > 1 && (
+                            <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>
+                        )}
+                        <div className="expert-grid">
+                            <PersonNameAutocomplete registry={registry} t={t} onSelect={(data) => mergePersonIntoRow('beneficiaries', i, data)} />
+                            <FundacionPersonFields person={b} lang={lang} t={t} onChange={(field, value) => updateArrayField('beneficiaries', i, field, value)} />
+                            <div className="expert-field">
+                                <label>{lang === 'en' ? '% of Benefit' : '% de Beneficio'}</label>
+                                <input className="expert-input" placeholder="Ej: 100%" value={b.percentage || ''} onChange={e => updateArrayField('beneficiaries', i, 'percentage', e.target.value)} />
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 
     // Paso 8: Poderes (Power of Attorney - ORIGINAL EXACT FORMAT)
-    const renderStep8 = () => {
-        const availablePersons = getAvailablePersons('poa');
-        return (
+    const renderStep8 = () => (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
                 
-                {availablePersons.length > 0 && (
-                    <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '12px' }}>
-                        <label style={{ fontSize: '11px', fontWeight: '900', color: PRIMARY, textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>
-                            {lang === 'en' ? '⚡ AUTOFILL FROM ANOTHER COMPLETED PERSON' : '⚡ AUTOCOMPLETAR DESDE PERSONA REGISTRADA'}
-                        </label>
-                        <select 
-                            className="expert-input" 
-                            style={{ padding: '10px 14px', fontSize: '13px' }}
-                            onChange={(e) => {
-                                const selected = availablePersons[e.target.value];
-                                if (selected) handleImportPOA(selected);
-                            }}
-                            defaultValue=""
-                        >
-                            <option value="">{lang === 'en' ? '-- Select a registered person to copy their data --' : '-- Seleccione una persona ya registrada para copiar sus datos --'}</option>
-                            {availablePersons.map((p, idx) => (
-                                <option key={idx} value={idx}>{p.label}</option>
-                            ))}
-                        </select>
+                {buildPersonRegistry(formData, { arrayName: 'poa' }).length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                        <PersonNameAutocomplete
+                            registry={buildPersonRegistry(formData, { arrayName: 'poa' })}
+                            t={t}
+                            onSelect={handleImportPOA}
+                        />
                     </div>
                 )}
 
@@ -564,11 +493,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                                 </div>
                                 <div className="poa-check-row">
                                     <label className="poa-check-label">
-                                        <input type="checkbox" checked={formData.poaIssue === 'YES'} onChange={() => setFormData({...formData, poaIssue: 'YES'})} className="poa-checkbox" />
+                                        <input type="radio" name="poaIssue" checked={formData.poaIssue === 'YES'} onChange={() => setFormData({...formData, poaIssue: 'YES'})} className="poa-radio" />
                                         <span>YES</span>
                                     </label>
                                     <label className="poa-check-label">
-                                        <input type="checkbox" checked={formData.poaIssue === 'NO'} onChange={() => setFormData({...formData, poaIssue: 'NO'})} className="poa-checkbox" />
+                                        <input type="radio" name="poaIssue" checked={formData.poaIssue === 'NO'} onChange={() => setFormData({...formData, poaIssue: 'NO'})} className="poa-radio" />
                                         <span>NO</span>
                                     </label>
                                 </div>
@@ -602,11 +531,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                                 </div>
                                 <div className="poa-check-row">
                                     <label className="poa-check-label">
-                                        <input type="checkbox" checked={formData.poaLegalized === 'YES'} onChange={() => setFormData({...formData, poaLegalized: 'YES'})} className="poa-checkbox" />
+                                        <input type="radio" name="poaLegalized" checked={formData.poaLegalized === 'YES'} onChange={() => setFormData({...formData, poaLegalized: 'YES'})} className="poa-radio" />
                                         <span>YES</span>
                                     </label>
                                     <label className="poa-check-label">
-                                        <input type="checkbox" checked={formData.poaLegalized === 'NO'} onChange={() => setFormData({...formData, poaLegalized: 'NO'})} className="poa-checkbox" />
+                                        <input type="radio" name="poaLegalized" checked={formData.poaLegalized === 'NO'} onChange={() => setFormData({...formData, poaLegalized: 'NO'})} className="poa-radio" />
                                         <span>NO</span>
                                     </label>
                                 </div>
@@ -616,7 +545,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 </div>
             </div>
         );
-    };
 
     // Paso 9: Actividades de la fundación (foundationObjects / fines)
     const renderStep9 = () => (
@@ -744,15 +672,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
 
             {/* DATALISTS PARA AUTOCOMPLETADO */}
-            <datalist id="names-global">
-                {formData.founders.map((f, i) => f.fullName && <option key={`f-${i}`} value={f.fullName} />)}
-                {formData.councilMembers.map((m, i) => {
-                    const full = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
-                    return full && <option key={`c-${i}`} value={full} />;
-                })}
-                {formData.protectors.map((p, i) => p.fullName && <option key={`p-${i}`} value={p.fullName} />)}
-                {formData.dignitaries.map((d, i) => d.fullName && <option key={`d-${i}`} value={d.fullName} />)}
-                {formData.beneficiaries.map((b, i) => b.fullName && <option key={`b-${i}`} value={b.fullName} />)}
+                        <datalist id="names-global">
+                {buildPersonRegistry(formData).map((entry) => (
+                    <option key={entry.key} value={entry.name} />
+                ))}
             </datalist>
 
             <datalist id="roles-dignitaries">
@@ -816,9 +739,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
 
                 /* ORIGINAL FORMAT STYLING FOR POA */
-                .poa-original-grid { display: flex; flex-direction: column; gap: 24px; margin-top: 20px; }
-                .person-fields-stack { display: flex; flex-direction: column; gap: 14px; }
-                .poa-checkbox { width: 18px; height: 18px; accent-color: #0e7490; cursor: pointer; }
+                .poa-original-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; margin-top: 20px; }
                 .poa-column-card { background: #ffffff; border: 2.5px solid #40a2be; border-radius: 16px; overflow: hidden; }
                 .poa-column-header { background: #40a2be; color: white; padding: 15px 20px; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; }
                 .poa-question-box { background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 18px; }
@@ -826,8 +747,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .poa-check-row { display: flex; gap: 20px; margin-top: 12px; }
                 .poa-check-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 800; color: #0e7490; }
                 .poa-radio { width: 18px; height: 18px; accent-color: #0e7490; cursor: pointer; }
-                .person-copy-box { margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
-                .person-copy-box label { font-size: 10px; font-weight: 800; color: ${PRIMARY}; text-transform: uppercase; margin-bottom: 6px; display: block; }
+                .person-name-autocomplete { margin-bottom: 8px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
+                .person-name-autocomplete label { font-size: 10px; font-weight: 800; color: ${PRIMARY}; text-transform: uppercase; margin-bottom: 6px; display: block; }
                 @media (max-width: 768px) {
                     .poa-original-grid { grid-template-columns: 1fr; }
                 }

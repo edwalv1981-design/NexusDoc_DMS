@@ -157,9 +157,10 @@ const es = {
   fundacion: {
     title: 'FUNDACIÓN DE INTERÉS PRIVADO',
     subtitle: 'Gestión de Fundaciones de Alta Precisión',
-    copyFrom: 'Usar datos de…',
-    copySelect: '— Seleccione una persona —',
     person: {
+      autocompleteByName: 'Autocompletar por nombre',
+      autocompletePlaceholder: 'Escriba o seleccione un nombre…',
+      registrationNumber: 'Número de registro (si es empresa)',
       firstName: 'Nombre',
       secondName: 'Segundo nombre',
       lastName: 'Apellidos',
@@ -176,7 +177,7 @@ const es = {
     },
     poa: {
       title: 'Power Of Attorney / Poderes (Opcional)',
-      autofill: 'Autocompletar desde persona registrada',
+      autofillByName: 'Autocompletar por nombre',
       granteeHeader: 'Datos del apoderado',
       settingsHeader: 'Configuración del poder',
       issueQuestion: '¿Desea emitir un poder?',

@@ -140,35 +140,38 @@ function buildProtectorsRows(protectors, t) {
     return `<tr><td colspan="5" style="text-align:center;font-style:italic;">${esc(t.emptyProtectors)}</td></tr>`;
   }
   return protectors
-    .map(
-      (p, i) => `
+    .map((p, i) => {
+      const row = normalizeFundacionPerson(p);
+      return `
     <tr>
       <td>${i + 1}</td>
-      <td>${esc(p.fullName)}</td>
-      <td>${esc(fmtDate(p.birthDate))}</td>
-      <td>${esc(p.passport)}</td>
-      <td>${esc(p.address)}</td>
+      <td>${esc(personDisplayName(row))}</td>
+      <td>${esc(fmtDate(row.birthDate))}</td>
+      <td>${esc(row.passport || row.idCard)}</td>
+      <td>${esc(row.address)}</td>
     </tr>
-  `
-    )
+  `;
+    })
     .join('');
 }
 
 function buildDignitariesRows(dignitaries, t) {
   if (!dignitaries.length) {
-    return `<tr><td colspan="4" style="text-align:center;font-style:italic;">${esc(t.emptyDignitaries)}</td></tr>`;
+    return `<tr><td colspan="5" style="text-align:center;font-style:italic;">${esc(t.emptyDignitaries)}</td></tr>`;
   }
   return dignitaries
-    .map(
-      (d) => `
+    .map((d) => {
+      const row = normalizeFundacionPerson(d);
+      return `
     <tr>
       <td>${esc(d.role)}</td>
-      <td>${esc(d.fullName)}</td>
-      <td>${esc(fmtDate(d.birthDate))}</td>
-      <td>${esc(d.passport)}</td>
+      <td>${esc(personDisplayName(row))}</td>
+      <td>${esc(fmtDate(row.birthDate))}</td>
+      <td>${esc(row.passport || row.idCard)}</td>
+      <td>${esc(d.registrationNumber)}</td>
     </tr>
-  `
-    )
+  `;
+    })
     .join('');
 }
 
@@ -177,18 +180,19 @@ function buildBeneficiariesRows(beneficiaries, t) {
     return `<tr><td colspan="6" style="text-align:center;font-style:italic;">${esc(t.emptyBeneficiaries)}</td></tr>`;
   }
   return beneficiaries
-    .map(
-      (b, i) => `
+    .map((b, i) => {
+      const row = normalizeFundacionPerson(b);
+      return `
     <tr>
       <td>${i + 1}</td>
-      <td>${esc(b.fullName)}</td>
-      <td>${esc(fmtDate(b.birthDate))}</td>
-      <td>${esc(b.passport)}</td>
+      <td>${esc(personDisplayName(row))}</td>
+      <td>${esc(fmtDate(row.birthDate))}</td>
+      <td>${esc(row.passport || row.idCard)}</td>
       <td>${esc(b.percentage)}</td>
-      <td>${esc(b.address)}</td>
+      <td>${esc(row.address)}</td>
     </tr>
-  `
-    )
+  `;
+    })
     .join('');
 }
 
@@ -335,6 +339,7 @@ class FundacionHtmlPdfService {
                   <th>${esc(t.dignitaryName)}</th>
                   <th>${esc(t.dignitaryBirthDate)}</th>
                   <th>${esc(t.dignitaryPassport)}</th>
+                  <th>${esc(t.dignitaryRegistrationNumber)}</th>
                 </tr>
               </thead>
               <tbody>${buildDignitariesRows(dignitaries, t)}</tbody>

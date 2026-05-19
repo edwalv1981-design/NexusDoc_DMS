@@ -12,7 +12,7 @@ const FundacionPersonFields = ({ person, onChange, lang, t }) => {
   const set = (field, value) => onChange(field, value);
 
   return (
-    <div className="person-fields-stack">
+    <div className="expert-grid person-fields-grid">
       <div className="expert-field">
         <label>{L('firstName')}</label>
         <input className="expert-input" value={person.firstName || ''} onChange={(e) => set('firstName', e.target.value)} />
@@ -58,7 +58,7 @@ const FundacionPersonFields = ({ person, onChange, lang, t }) => {
         <label>{L('email')}</label>
         <input type="email" className="expert-input" value={person.email || ''} onChange={(e) => set('email', e.target.value)} />
       </div>
-      <div className="expert-field">
+      <div className="expert-field full-width">
         <label>{L('address')}</label>
         <input className="expert-input" value={person.address || ''} onChange={(e) => set('address', e.target.value)} />
       </div>

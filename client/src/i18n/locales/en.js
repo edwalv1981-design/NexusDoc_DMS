@@ -157,9 +157,10 @@ const en = {
   fundacion: {
     title: 'PRIVATE INTEREST FOUNDATION',
     subtitle: 'High-Precision Foundation Management',
-    copyFrom: 'Use data from…',
-    copySelect: '— Select a person —',
     person: {
+      autocompleteByName: 'Autocomplete by name',
+      autocompletePlaceholder: 'Type or select a name…',
+      registrationNumber: 'Registration number (if company)',
       firstName: 'First name',
       secondName: 'Middle name',
       lastName: 'Surname(s)',
@@ -176,7 +177,7 @@ const en = {
     },
     poa: {
       title: 'Power Of Attorney (Optional)',
-      autofill: 'Autofill from a registered person',
+      autofillByName: 'Autocomplete by name',
       granteeHeader: 'Attorney-in-fact details',
       settingsHeader: 'Power of attorney settings',
       issueQuestion: 'Would you like to issue a power of attorney?',
