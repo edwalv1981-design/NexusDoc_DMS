@@ -402,15 +402,15 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-container">
             <div className="expert-header">
                 <div>
-                    <h1 className="expert-title">{lang === 'en' ? 'INCORPORATION' : 'INCORPORACIÃ“N'}</h1>
-                    <p className="expert-subtitle">{lang === 'en' ? 'High-Precision Corporate DMS System' : 'Sistema de Alta Precisión Corporativa'}</p>
+                    <h1 className="expert-title">{t('corporacion.title')}</h1>
+                    <p className="expert-subtitle">{t('corporacion.subtitle')}</p>
                 </div>
                 <button onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save-master">
                     <Save size={18} /> {saving ? t('corporacion.syncing') : t('corporacion.saveProgress')}
                 </button>
             </div>
 
-            {/* Cabecera de Paso EstÃ¡ndar */}
+            {/* Cabecera de Paso Estándar */}
             <div className="standard-step-header">
                 <span className="standard-step-title">
                     {step === 1 && `I. ${t('corporacion.steps.societyInfo') || 'Información de la Sociedad'}`}
@@ -424,7 +424,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </span>
             </div>
 
-            {/* Stepper Progresivo EstÃ¡ndar */}
+            {/* Stepper Progresivo Estándar */}
             <div className="standard-progress-stepper">
                 {[1, 2, 3, 4, 5].map(s => (
                     <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
