@@ -87,6 +87,12 @@ const es = {
     noTemplate: 'Sin Plantilla (Inactivo)',
     uploadReplace: 'Subir/Reemplazar Plantilla',
     processToLink: 'TIPO DE TRÁMITE A VINCULAR',
+    searchLogs: 'Buscar...',
+    prevPage: 'Anterior',
+    nextPage: 'Siguiente',
+    pageOf: 'Página {page} de {total}',
+    totalRecords: '{count} registros',
+    noLogs: 'No hay registros en la bitácora',
   },
   userDocs: {
     title: 'Documentos Personales',

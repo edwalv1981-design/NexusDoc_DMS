@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const { User, AuditLog, DocumentTemplate } = require('../models');
 const { sendTemporaryPassword } = require('../services/emailService');
 const multer = require('multer');
@@ -116,15 +117,49 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
 });
 
 // @route   GET api/admin/logs
-// @desc    Get all audit logs
+// @desc    Paginated audit logs (all dates by default; optional q, dateFrom, dateTo)
 router.get('/logs', [auth, isAdmin], async (req, res) => {
     try {
-        const logs = await AuditLog.findAll({ 
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 15));
+        const q = (req.query.q || '').trim();
+        const { dateFrom, dateTo } = req.query;
+
+        const where = {};
+        if (q) {
+            where[Op.or] = [
+                { action: { [Op.iLike]: `%${q}%` } },
+                { description: { [Op.iLike]: `%${q}%` } }
+            ];
+        }
+        if (dateFrom || dateTo) {
+            where.createdAt = {};
+            if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+            if (dateTo) {
+                const end = new Date(dateTo);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt[Op.lte] = end;
+            }
+        }
+
+        const { count, rows } = await AuditLog.findAndCountAll({
+            where,
             include: [{ model: User, attributes: ['name', 'email'] }],
-            order: [['createdAt', 'DESC']] 
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset: (page - 1) * limit,
+            distinct: true
         });
-        res.json(logs);
+
+        res.json({
+            logs: rows,
+            total: count,
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(count / limit))
+        });
     } catch (err) {
+        console.error('Error fetching audit logs:', err);
         res.status(500).send('Server error');
     }
 });

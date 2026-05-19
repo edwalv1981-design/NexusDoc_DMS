@@ -87,6 +87,12 @@ const en = {
     noTemplate: 'No Template (Inactive)',
     uploadReplace: 'Upload/Replace Template',
     processToLink: 'PROCESS TYPE TO LINK',
+    searchLogs: 'Search...',
+    prevPage: 'Previous',
+    nextPage: 'Next',
+    pageOf: 'Page {page} of {total}',
+    totalRecords: '{count} records',
+    noLogs: 'No audit log entries',
   },
   userDocs: {
     title: 'Personal Documents',
