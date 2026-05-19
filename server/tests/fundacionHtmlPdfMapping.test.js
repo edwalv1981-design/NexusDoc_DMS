@@ -51,8 +51,18 @@ const sampleData = {
   poaValidityDate: 'Indefinida',
   poaLegalized: 'NO',
   poaFirstName: 'Pedro',
+  poaMiddleName: 'Luis',
   poaLastName: 'Ramos',
+  poaBirthDate: '1985-06-15',
+  poaMaritalStatus: 'Casado',
+  poaNationality: 'Panamá',
+  poaPassport: 'PA111',
+  poaIdCard: '8-888-888',
+  poaPhone: '+507 6000-0000',
   poaEmail: 'pedro@test.com',
+  poaAddress: 'Calle 80',
+  poaCity: 'Panamá',
+  poaCountry: 'Panamá',
   foundationObjects: 'Planificación patrimonial familiar.',
   declarationName: 'Juan Carlos Pérez',
   declarationDate: '2026-05-19',
@@ -67,6 +77,38 @@ test('buildFundacionPdfInnerHtml includes all major sections', () => {
   assert.match(html, /Pedro/);
   assert.match(html, /Planificación patrimonial/);
   assert.match(html, /FUNDACIÓN PRUEBA/);
+});
+
+test('buildFundacionPdfInnerHtml renders POA yes/no and all grantee fields', () => {
+  const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
+  assert.match(html, /\[X\] Sí/);
+  assert.match(html, /\[ \] No/);
+  assert.match(html, /¿Desea emitir un poder\?/);
+  assert.match(html, /¿Requiere que el poder sea legalizado\?/);
+  assert.match(html, /Indefinida/);
+  assert.match(html, /GENERAL/);
+  assert.match(html, /Segundo nombre/);
+  assert.match(html, /Correo electrónico/);
+  assert.match(html, /Ciudad/);
+  assert.match(html, /País/);
+});
+
+test('buildFundacionPdfInnerHtml maps legacy POA aliases', () => {
+  const html = buildFundacionPdfInnerHtml(
+    {
+      issuePower: 'yes',
+      powerType: 'special',
+      validityDate: '1 año',
+      legalize: 'no',
+      poaFirstName: 'Ana',
+      poaLastName: 'López',
+    },
+    { language: 'es' }
+  );
+  assert.match(html, /\[X\] Sí/);
+  assert.match(html, /SPECIAL|ESPECIAL/);
+  assert.match(html, /1 año/);
+  assert.match(html, /Ana/);
 });
 
 test('buildFundacionPdfInnerHtml maps legacy fullName founder', () => {

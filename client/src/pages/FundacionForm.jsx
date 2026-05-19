@@ -5,7 +5,7 @@ import {
     CheckCircle2, Info, Award, KeyRound, Globe, FileText
 } from 'lucide-react';
 import { useLang } from '../i18n';
-import FundacionPersonFields from '../components/FundacionPersonFields';
+import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
 import FundacionRegistryNameInput from '../components/FundacionRegistryNameInput';
 import {
     emptyFundacionPerson,
@@ -496,86 +496,80 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         </div>
     );
 
-    // Paso 8: Poderes (Power of Attorney - ORIGINAL EXACT FORMAT)
+    // Paso 8: Poderes (Power of Attorney)
     const renderStep8 = () => {
         const poaRegistry = buildRegistry(formData, { arrayName: 'poa' });
         const poaNameList = getPersonNameSuggestions(poaRegistry);
+        const L = (key) => t(`fundacion.person.${key}`);
         return (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
-                <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
+                <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {t('fundacion.poa.stepTitle')}</h2>
 
                 <div className="poa-original-grid">
-                    {/* LEFT COLUMN: Apoderado Details */}
                     <div className="poa-column-card">
-                        <div className="poa-column-header">
-                            {lang === 'en' 
-                                ? 'Name, Address of the person who\'s the POA is granted and the acting form (Individual, Jointly, etc.)'
-                                : 'Nombre, Dirección del Apoderado y forma en que ejercerá el Poder (Individual, Conjunta, etc.)'
-                            }
-                        </div>
+                        <div className="poa-column-header">{t('fundacion.poa.granteeHeader')}</div>
                         <div className="expert-grid" style={{ padding: '20px' }}>
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'First name / Nombre' : 'First name / Nombre'}</label>
+                                <label>{L('firstName')}</label>
                                 <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
                             </div>
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Middle name / Segundo nombre' : 'Middle name / Segundo nombre'}</label>
+                                <label>{L('secondName')}</label>
                                 <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} onBlur={tryApplyPoaFromTypedName} />
                             </div>
                             <div className="expert-field full-width">
-                                <label>{lang === 'en' ? 'Surname(s) / Apellidos' : 'Surname(s) / Apellidos'}</label>
+                                <label>{L('lastName')}</label>
                                 <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
                             </div>
                             
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Date of birth / Fecha de nacimiento' : 'Date of birth / Fecha de nacimiento'}</label>
+                                <label>{L('birthDate')}</label>
                                 <input type="date" className="expert-input" value={formData.poaBirthDate} onChange={e => setFormData({...formData, poaBirthDate: e.target.value})} />
                             </div>
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Marital Status / Estado civil' : 'Marital Status / Estado civil'}</label>
+                                <label>{L('maritalStatus')}</label>
                                 <select className="expert-input" value={formData.poaMaritalStatus} onChange={e => setFormData({...formData, poaMaritalStatus: e.target.value})}>
-                                    <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
-                                    <option value="Single">{lang === 'en' ? 'Single / Soltero(a)' : 'Single / Soltero(a)'}</option>
-                                    <option value="Married">{lang === 'en' ? 'Married / Casado(a)' : 'Married / Casado(a)'}</option>
-                                    <option value="Divorced">{lang === 'en' ? 'Divorced / Divorciado(a)' : 'Divorced / Divorciado(a)'}</option>
-                                    <option value="Widowed">{lang === 'en' ? 'Widowed / Viudo(a)' : 'Widowed / Viudo(a)'}</option>
+                                    <option value="">{t('fundacion.poa.selectPlaceholder')}</option>
+                                    {FUNDACION_MARITAL_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{lang === 'en' ? o.en : o.es}</option>
+                                    ))}
                                 </select>
                             </div>
 
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Citizenship / Nacionalidad' : 'Citizenship / Nacionalidad'}</label>
+                                <label>{L('nationality')}</label>
                                 <input className="expert-input" value={formData.poaNationality} onChange={e => setFormData({...formData, poaNationality: e.target.value})} />
                             </div>
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Passport / Pasaporte' : 'Passport / Pasaporte'}</label>
+                                <label>{L('passport')}</label>
                                 <input className="expert-input" value={formData.poaPassport} onChange={e => setFormData({...formData, poaPassport: e.target.value})} />
                             </div>
                             
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'ID' : 'ID'}</label>
+                                <label>{L('idCard')}</label>
                                 <input className="expert-input" value={formData.poaIdCard} onChange={e => setFormData({...formData, poaIdCard: e.target.value})} />
                             </div>
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Phone / Teléfono' : 'Phone / Teléfono'}</label>
+                                <label>{L('phone')}</label>
                                 <input className="expert-input" value={formData.poaPhone} onChange={e => setFormData({...formData, poaPhone: e.target.value})} />
                             </div>
 
                             <div className="expert-field full-width">
-                                <label>{lang === 'en' ? 'Email' : 'Email'}</label>
+                                <label>{L('email')}</label>
                                 <input type="email" className="expert-input" value={formData.poaEmail} onChange={e => setFormData({...formData, poaEmail: e.target.value})} />
                             </div>
 
                             <div className="expert-field full-width">
-                                <label>{lang === 'en' ? 'Address / Dirección' : 'Address / Dirección'}</label>
+                                <label>{L('address')}</label>
                                 <input className="expert-input" value={formData.poaAddress} onChange={e => setFormData({...formData, poaAddress: e.target.value})} />
                             </div>
 
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'City / ciudad' : 'City / ciudad'}</label>
+                                <label>{L('city')}</label>
                                 <input className="expert-input" value={formData.poaCity} onChange={e => setFormData({...formData, poaCity: e.target.value})} />
                             </div>
                             <div className="expert-field">
-                                <label>{lang === 'en' ? 'Country / Pais' : 'Country / Pais'}</label>
+                                <label>{L('country')}</label>
                                 <input className="expert-input" value={formData.poaCountry} onChange={e => setFormData({...formData, poaCountry: e.target.value})} />
                             </div>
                         </div>
@@ -584,23 +578,22 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     {/* RIGHT COLUMN: Settings Questions */}
                     <div className="poa-column-card">
                         <div className="poa-column-header" style={{ background: '#0e7490' }}>
-                            {lang === 'en' ? 'Power of Attorney Settings' : 'Configuración de Poderes'}
+                            {t('fundacion.poa.settingsHeader')}
                         </div>
                         <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             {/* Question 1: Emitir poder? */}
                             <div className="poa-question-box">
                                 <div className="poa-question-text">
-                                    <strong>Would you like to issue a Power of Attorney?</strong><br/>
-                                    <span>Quiere Usted emitir un poder?</span>
+                                    <strong>{t('fundacion.poa.issueQuestion')}</strong>
                                 </div>
                                 <div className="poa-check-row">
                                     <label className="poa-check-label">
                                         <input type="radio" name="poaIssue" checked={formData.poaIssue === 'YES'} onChange={() => setFormData({...formData, poaIssue: 'YES'})} className="poa-radio" />
-                                        <span>YES</span>
+                                        <span>{t('fundacion.poa.yes')}</span>
                                     </label>
                                     <label className="poa-check-label">
                                         <input type="radio" name="poaIssue" checked={formData.poaIssue === 'NO'} onChange={() => setFormData({...formData, poaIssue: 'NO'})} className="poa-radio" />
-                                        <span>NO</span>
+                                        <span>{t('fundacion.poa.no')}</span>
                                     </label>
                                 </div>
                             </div>
@@ -608,37 +601,35 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                             {/* Question 2: Tipo de Poder */}
                             <div className="poa-question-box">
                                 <div className="poa-question-text">
-                                    <strong>If Yes please select type of Power of Attorney</strong><br/>
-                                    <span>Tipo de Poder:</span>
+                                    <strong>{t('fundacion.poa.typeQuestion')}</strong>
                                 </div>
                                 <select className="expert-input" style={{ marginTop: '10px' }} value={formData.poaType} onChange={e => setFormData({...formData, poaType: e.target.value})}>
-                                    <option value="GENERAL">GENERAL</option>
-                                    <option value="SPECIAL">SPECIAL / ESPECIAL</option>
+                                    <option value="GENERAL">{t('fundacion.poa.typeGeneral')}</option>
+                                    <option value="SPECIAL">{t('fundacion.poa.typeSpecial')}</option>
                                 </select>
                             </div>
 
                             {/* Question 3: Fecha de vigencia */}
                             <div className="poa-question-box">
                                 <div className="poa-question-text">
-                                    <strong>Validity date / Fecha de vigencia:</strong>
+                                    <strong>{t('fundacion.poa.validityQuestion')}</strong>
                                 </div>
-                                <input className="expert-input" style={{ marginTop: '10px' }} value={formData.poaValidityDate} onChange={e => setFormData({...formData, poaValidityDate: e.target.value})} placeholder="e.g. Indefinida / 1 Year / 31-12-2027" />
+                                <input className="expert-input" style={{ marginTop: '10px' }} value={formData.poaValidityDate} onChange={e => setFormData({...formData, poaValidityDate: e.target.value})} placeholder={t('fundacion.poa.validityPlaceholder')} />
                             </div>
 
                             {/* Question 4: Legalizado? */}
                             <div className="poa-question-box">
                                 <div className="poa-question-text">
-                                    <strong>Would you require the POA to be legalized?</strong><br/>
-                                    <span>Requiere que el poder sea legalizado?</span>
+                                    <strong>{t('fundacion.poa.legalizedQuestion')}</strong>
                                 </div>
                                 <div className="poa-check-row">
                                     <label className="poa-check-label">
                                         <input type="radio" name="poaLegalized" checked={formData.poaLegalized === 'YES'} onChange={() => setFormData({...formData, poaLegalized: 'YES'})} className="poa-radio" />
-                                        <span>YES</span>
+                                        <span>{t('fundacion.poa.yes')}</span>
                                     </label>
                                     <label className="poa-check-label">
                                         <input type="radio" name="poaLegalized" checked={formData.poaLegalized === 'NO'} onChange={() => setFormData({...formData, poaLegalized: 'NO'})} className="poa-radio" />
-                                        <span>NO</span>
+                                        <span>{t('fundacion.poa.no')}</span>
                                     </label>
                                 </div>
                             </div>
@@ -736,7 +727,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     {step === 5 && `V. ${lang === 'en' ? 'Directors (Foundation Council)' : 'Directores (Consejo)'}`}
                     {step === 6 && `VI. ${lang === 'en' ? 'Dignitaries' : 'Dignatarios'}`}
                     {step === 7 && `VII. ${lang === 'en' ? 'Beneficiaries' : 'Beneficiarios'}`}
-                    {step === 8 && `VIII. ${lang === 'en' ? 'Power Of Attorney / Poderes' : 'Power Of Attorney / Poderes'}`}
+                    {step === 8 && `VIII. ${t('fundacion.poa.navLabel')}`}
                     {step === 9 && `IX. ${lang === 'en' ? 'Foundation Objects & Activities' : 'Actividades de la Fundación'}`}
                     {step === 10 && `X. ${lang === 'en' ? 'Declaration & Signatures' : 'Declaración y Firmas'}`}
                 </span>

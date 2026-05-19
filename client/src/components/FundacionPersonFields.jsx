@@ -7,7 +7,7 @@ import {
   snapshotPersonFields,
 } from '../utils/fundacionPersonRegistry';
 
-const MARITAL_OPTIONS = [
+export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Soltero', en: 'Single', es: 'Soltero(a)' },
   { value: 'Casado', en: 'Married', es: 'Casado(a)' },
   { value: 'Divorciado', en: 'Divorced', es: 'Divorciado(a)' },
@@ -96,7 +96,7 @@ const FundacionPersonFields = ({ person, onChange, lang, t, personRegistry = [],
         <label>{L('maritalStatus')}</label>
         <select className="expert-input" value={person.maritalStatus || ''} onChange={(e) => set('maritalStatus', e.target.value)}>
           <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
-          {MARITAL_OPTIONS.map((o) => (
+          {FUNDACION_MARITAL_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{lang === 'en' ? o.en : o.es}</option>
           ))}
         </select>

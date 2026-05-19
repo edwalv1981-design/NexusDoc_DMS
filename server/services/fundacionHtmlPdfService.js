@@ -51,7 +51,7 @@ function getFounderRecord(data) {
   return normalizeFundacionPerson(founders[0] || {});
 }
 
-function personFieldRows(person, t) {
+function personFieldRows(person, t, { includeEmpty = false } = {}) {
   const p = normalizeFundacionPerson(person);
   const rows = [
     [t.poaFirstName, p.firstName],
@@ -68,10 +68,70 @@ function personFieldRows(person, t) {
     [t.poaCity, p.city],
     [t.poaCountry, p.country],
   ];
-  return rows
-    .filter(([, v]) => v)
-    .map(([label, value]) => `<tr><td class="kv-label">${esc(label)}</td><td>${esc(value)}</td></tr>`)
+  const visible = includeEmpty ? rows : rows.filter(([, v]) => v);
+  return visible
+    .map(([label, value]) => {
+      const display = value || (includeEmpty ? '—' : '');
+      return `<tr><td class="kv-label">${esc(label)}</td><td>${esc(display)}</td></tr>`;
+    })
     .join('');
+}
+
+function normalizeYesNoFlag(value) {
+  if (value === true || value === 1) return 'YES';
+  if (value === false || value === 0) return 'NO';
+  const s = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (['YES', 'SI', 'Y', 'S', 'TRUE'].includes(s)) return 'YES';
+  if (['NO', 'N', 'FALSE'].includes(s)) return 'NO';
+  return '';
+}
+
+/** Maps form JSON / legacy aliases to canonical poa* keys used by the form. */
+function normalizeFundacionPoaData(data = {}) {
+  const nested = data.poa && typeof data.poa === 'object' ? data.poa : {};
+  const pick = (...keys) => {
+    for (const key of keys) {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') return data[key];
+      if (nested[key] !== undefined && nested[key] !== null && nested[key] !== '') return nested[key];
+    }
+    return undefined;
+  };
+
+  return {
+    poaIssue: normalizeYesNoFlag(pick('poaIssue', 'issuePower', 'emitirPoder', 'issue_poa')),
+    poaType: String(pick('poaType', 'powerType', 'tipoPoder', 'tipo_poder') || 'GENERAL').toUpperCase(),
+    poaValidityDate: pick('poaValidityDate', 'validityDate', 'fechaVigencia', 'vigencia') || '',
+    poaLegalized: normalizeYesNoFlag(pick('poaLegalized', 'legalize', 'legalized', 'legalizacion')),
+    poaFirstName: pick('poaFirstName', 'firstName') || '',
+    poaMiddleName: pick('poaMiddleName', 'middleName', 'secondName') || '',
+    poaLastName: pick('poaLastName', 'lastName') || '',
+    poaBirthDate: pick('poaBirthDate', 'birthDate') || '',
+    poaMaritalStatus: pick('poaMaritalStatus', 'maritalStatus') || '',
+    poaNationality: pick('poaNationality', 'nationality') || '',
+    poaPassport: pick('poaPassport', 'passport') || '',
+    poaIdCard: pick('poaIdCard', 'idCard') || '',
+    poaPhone: pick('poaPhone', 'phone') || '',
+    poaEmail: pick('poaEmail', 'email') || '',
+    poaAddress: pick('poaAddress', 'address') || '',
+    poaCity: pick('poaCity', 'city') || '',
+    poaCountry: pick('poaCountry', 'country') || '',
+  };
+}
+
+function formatYesNoChecks(yesSelected, noSelected, t) {
+  const yesMark = yesSelected ? 'X' : ' ';
+  const noMark = noSelected ? 'X' : ' ';
+  return `<span class="chk">[${yesMark}] ${esc(t.yes)}</span> <span class="chk">[${noMark}] ${esc(t.no)}</span>`;
+}
+
+function poaTypeLabel(type, t) {
+  const normalized = String(type || 'GENERAL').toUpperCase();
+  if (normalized === 'SPECIAL') return t.poaTypeSpecial || 'SPECIAL';
+  return t.poaTypeGeneral || 'GENERAL';
 }
 
 function buildPersonKvBlock(person, t, blockTitle) {
@@ -197,27 +257,28 @@ function buildBeneficiariesRows(beneficiaries, t) {
 }
 
 function buildPowersHtml(data, t) {
-  const poaIssueYes = data.poaIssue === 'YES';
-  const poaIssueNo = data.poaIssue === 'NO' || !data.poaIssue;
-  const poaLegalizedYes = data.poaLegalized === 'YES';
-  const poaLegalizedNo = data.poaLegalized === 'NO' || !data.poaLegalized;
-  const poaTypeLabel = String(data.poaType || 'GENERAL').toUpperCase();
+  const poa = normalizeFundacionPoaData(data);
+  const poaIssueYes = poa.poaIssue === 'YES';
+  const poaIssueNo = poa.poaIssue === 'NO' || !poa.poaIssue;
+  const poaLegalizedYes = poa.poaLegalized === 'YES';
+  const poaLegalizedNo = poa.poaLegalized === 'NO' || !poa.poaLegalized;
+  const typeLabel = poaTypeLabel(poa.poaType, t);
   const grantee = normalizeFundacionPerson({
-    firstName: data.poaFirstName,
-    secondName: data.poaMiddleName,
-    lastName: data.poaLastName,
-    birthDate: data.poaBirthDate,
-    maritalStatus: data.poaMaritalStatus,
-    nationality: data.poaNationality,
-    passport: data.poaPassport,
-    idCard: data.poaIdCard,
-    phone: data.poaPhone,
-    email: data.poaEmail,
-    address: data.poaAddress,
-    city: data.poaCity,
-    country: data.poaCountry,
+    firstName: poa.poaFirstName,
+    secondName: poa.poaMiddleName,
+    lastName: poa.poaLastName,
+    birthDate: poa.poaBirthDate,
+    maritalStatus: poa.poaMaritalStatus,
+    nationality: poa.poaNationality,
+    passport: poa.poaPassport,
+    idCard: poa.poaIdCard,
+    phone: poa.poaPhone,
+    email: poa.poaEmail,
+    address: poa.poaAddress,
+    city: poa.poaCity,
+    country: poa.poaCountry,
   });
-  const granteeRows = personFieldRows(grantee, t);
+  const granteeRows = personFieldRows(grantee, t, { includeEmpty: true });
 
   return `
     <section class="card card--poa person-stack-section">
@@ -225,20 +286,21 @@ function buildPowersHtml(data, t) {
       <div class="poa-stack">
         <div class="person-block">
           <div class="person-block-title">${esc(t.poaHeaderGrantee)}</div>
-          <table class="kv-table"><tbody>${granteeRows || `<tr><td colspan="2" class="empty-msg">—</td></tr>`}</tbody></table>
+          <table class="kv-table"><tbody>${granteeRows}</tbody></table>
         </div>
         <div class="person-block poa-settings-block">
+          <div class="person-block-title">${esc(t.poaSettingsHeader)}</div>
           <table class="kv-table">
             <tbody>
               <tr>
                 <td class="kv-label">${esc(t.poaIssueQuestion)}</td>
-                <td><span class="chk">${poaIssueYes ? '☑' : '☐'} ${esc(t.yes)}</span> <span class="chk">${poaIssueNo ? '☑' : '☐'} ${esc(t.no)}</span></td>
+                <td>${formatYesNoChecks(poaIssueYes, poaIssueNo, t)}</td>
               </tr>
-              <tr><td class="kv-label">${esc(t.poaTypeQuestion)}</td><td><strong>${esc(poaTypeLabel)}</strong></td></tr>
-              <tr><td class="kv-label">${esc(t.poaValidityQuestion)}</td><td>${esc(data.poaValidityDate)}</td></tr>
+              <tr><td class="kv-label">${esc(t.poaTypeQuestion)}</td><td><strong>${esc(typeLabel)}</strong></td></tr>
+              <tr><td class="kv-label">${esc(t.poaValidityQuestion)}</td><td>${esc(poa.poaValidityDate)}</td></tr>
               <tr>
                 <td class="kv-label">${esc(t.poaLegalizedQuestion)}</td>
-                <td><span class="chk">${poaLegalizedYes ? '☑' : '☐'} ${esc(t.yes)}</span> <span class="chk">${poaLegalizedNo ? '☑' : '☐'} ${esc(t.no)}</span></td>
+                <td>${formatYesNoChecks(poaLegalizedYes, poaLegalizedNo, t)}</td>
               </tr>
             </tbody>
           </table>

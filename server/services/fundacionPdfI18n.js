@@ -53,6 +53,9 @@ const ES = Object.freeze({
   sectionPowers: 'Poderes (Opcional)',
   poaHeaderGrantee:
     'Nombre, dirección del apoderado y forma en que ejercerá el poder (individual, conjunta, etc.)',
+  poaSettingsHeader: 'Configuración de Poderes',
+  poaTypeGeneral: 'GENERAL',
+  poaTypeSpecial: 'ESPECIAL',
   poaFirstName: 'Nombre',
   poaMiddleName: 'Segundo nombre',
   poaLastName: 'Apellidos',
@@ -135,6 +138,9 @@ const EN = Object.freeze({
   sectionPowers: 'Power of Attorney (Optional)',
   poaHeaderGrantee:
     'Name, address of the attorney-in-fact and manner of acting (individual, jointly, etc.)',
+  poaSettingsHeader: 'Power of Attorney Settings',
+  poaTypeGeneral: 'GENERAL',
+  poaTypeSpecial: 'SPECIAL',
   poaFirstName: 'First name',
   poaMiddleName: 'Middle name',
   poaLastName: 'Surname(s)',
