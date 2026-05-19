@@ -191,6 +191,29 @@ const PdfSchemaWizard = ({ formType, initialData, onSave, saving, onValidationEr
       );
     }
 
+    if (field.type === 'radio') {
+      return (
+        <div key={field.key} className="field-group" style={{ gridColumn: '1 / -1' }}>
+          <label>{label}</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {(field.options || ['No', 'Sí']).map((opt) => (
+              <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <input
+                  type="radio"
+                  name={field.key}
+                  value={opt}
+                  checked={(formData[field.key] ?? '') === opt}
+                  onChange={() => updateField(field.key, opt)}
+                  required={field.required}
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     if (field.type === 'checkboxGroup') {
       return (
         <div key={field.key} className="field-group" style={{ gridColumn: '1 / -1' }}>

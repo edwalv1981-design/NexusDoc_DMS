@@ -1074,6 +1074,72 @@ def fill_corporacion_engine(doc, data, pdf_path, root_dir):
             y_dt = float(dig_f.get("fallback_date_y") or (page_f.rect.height * 0.893))
             page_f.insert_text((float(dig_f.get("fallback_date_x") or 180), y_dt), str(dt), fontsize=11)
 
+def _resolve_form_value(data, form_key, field_mapping):
+    if form_key in data and data[form_key] not in (None, ""):
+        return data[form_key]
+    mapped = (field_mapping or {}).get(form_key)
+    if mapped and mapped in data and data[mapped] not in (None, ""):
+        return data[mapped]
+    return None
+
+
+def _widget_form_key(widget_name, data, field_mapping):
+    if not widget_name:
+        return None
+    if widget_name in data:
+        return widget_name
+    inv = {v: k for k, v in (field_mapping or {}).items()}
+    if widget_name in inv:
+        return inv[widget_name]
+    wn = widget_name.lower()
+    for k in data:
+        if k.lower() == wn:
+            return k
+    for fk, acro in (field_mapping or {}).items():
+        if acro and str(acro).lower() == wn:
+            return fk
+    return None
+
+
+def fill_acroform_engine(doc, data, field_mapping=None):
+    """Rellena widgets AcroForm cuando la plantilla tiene campos nombrados."""
+    filled = 0
+    for page_index in range(doc.page_count):
+        page = doc[page_index]
+        widgets = page.widgets()
+        if not widgets:
+            continue
+        for widget in widgets:
+            acro = widget.field_name
+            if not acro:
+                continue
+            form_key = _widget_form_key(acro, data, field_mapping)
+            if not form_key:
+                continue
+            val = _resolve_form_value(data, form_key, field_mapping)
+            if val is None or val == "":
+                continue
+            try:
+                wtype = widget.field_type
+            except Exception:
+                wtype = None
+            try:
+                if wtype == fitz.PDF_WIDGET_TYPE_CHECKBOX:
+                    widget.field_value = True if str(val).lower() in ("1", "true", "yes", "si", "sí", "x") else False
+                elif wtype == fitz.PDF_WIDGET_TYPE_RADIOBUTTON:
+                    widget.field_value = str(val)
+                else:
+                    if isinstance(val, (list, tuple, dict)):
+                        widget.field_value = ", ".join(str(x) for x in val) if isinstance(val, (list, tuple)) else str(val)
+                    else:
+                        widget.field_value = str(val)
+                widget.update()
+                filled += 1
+            except Exception:
+                continue
+    return filled
+
+
 def fill_schema_anchor_engine(doc, data, config):
     """Relleno por anclas para plantillas KYCI/KYCE (campos personales, no SFAR)."""
     if not doc.page_count:
@@ -1132,7 +1198,7 @@ def fill_schema_anchor_engine(doc, data, config):
                 break
 
 
-def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None):
+def fill_pdf_universal_engine(data, output_path, template_name, master_config, custom_template_path=None, field_mapping=None):
     # RESOLUCIÓN DE RUTAS ROBUSTA (Blindaje contra entornos)
     current_dir = os.path.dirname(os.path.abspath(__file__)) # server/scripts
     server_dir = os.path.dirname(current_dir) # server
@@ -1161,6 +1227,8 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
     
     doc = fitz.open(pdf_path)
 
+    acro_filled = fill_acroform_engine(doc, data, field_mapping)
+
     # ══════════════════════════════════════════════════════════════════════════════
     # ██████  MOTOR CORPORACIÓN (anclas + columnas dinámicas) ██████████████████████
     # ══════════════════════════════════════════════════════════════════════════════
@@ -1168,8 +1236,9 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         fill_corporacion_engine(doc, data, pdf_path, root_dir)
 
     elif template_name in ("cumplimiento_individual", "cumplimiento_entidades") or "firstName" in data:
-        schema_cfg = master_config.get(template_name) or master_config.get("cumplimiento_individual", {})
-        fill_schema_anchor_engine(doc, data, schema_cfg)
+        if acro_filled == 0:
+            schema_cfg = master_config.get(template_name) or master_config.get("cumplimiento_individual", {})
+            fill_schema_anchor_engine(doc, data, schema_cfg)
 
     # ══════════════════════════════════════════════════════════════════════════════
     # ██████  MOTOR FONDOS (SFAR) - BLINDADO ███████████████████████████████████████
@@ -1228,6 +1297,7 @@ if __name__ == "__main__":
         output_path = input_data.get("output_path", "filled_temp.pdf")
         template_name = input_data.get("template_name", "referencia_maestra")
         custom_path = input_data.get("custom_template_path")
+        field_mapping = input_data.get("field_mapping") or {}
 
         # Cargar config de templates (Resolución de ruta blindada)
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1239,7 +1309,7 @@ if __name__ == "__main__":
             with open(config_path, 'r', encoding='utf-8') as f:
                 master_conf = json.load(f)
 
-        fill_pdf_universal_engine(data, output_path, template_name, master_conf, custom_path)
+        fill_pdf_universal_engine(data, output_path, template_name, master_conf, custom_path, field_mapping)
         print(output_path)
     except Exception as e:
         import traceback

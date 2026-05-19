@@ -4,6 +4,7 @@ const FormData = require('./FormData');
 const PendingRegistration = require('./PendingRegistration');
 
 const DocumentTemplate = require('./DocumentTemplate');
+const TemplateFieldSchema = require('./TemplateFieldSchema');
 const UserDocument = require('./UserDocument');
 const SignedDocument = require('./SignedDocument');
 
@@ -26,6 +27,7 @@ module.exports = {
   FormData,
   PendingRegistration,
   DocumentTemplate,
+  TemplateFieldSchema,
   UserDocument,
   SignedDocument
 };

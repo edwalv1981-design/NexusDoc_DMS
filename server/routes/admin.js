@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { User, AuditLog, DocumentTemplate } = require('../models');
+const { User, AuditLog, DocumentTemplate, TemplateFieldSchema } = require('../models');
+const templateFieldSchemaService = require('../services/templateFieldSchemaService');
 const { sendTemporaryPassword } = require('../services/emailService');
 const multer = require('multer');
 const fs = require('fs');
@@ -208,10 +209,32 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
             });
         }
 
+        let fieldExtraction = null;
+        if (templateFieldSchemaService.isPdfTemplateName(templateName)) {
+            try {
+                fieldExtraction = await templateFieldSchemaService.persistExtraction(
+                    TemplateFieldSchema,
+                    templateName,
+                    req.file.buffer,
+                    null
+                );
+            } catch (extractErr) {
+                console.error('⚠️ Extracción de campos PDF:', extractErr);
+                fieldExtraction = {
+                    fieldCount: 0,
+                    fieldNames: [],
+                    flatPdf: true,
+                    extractError: extractErr.message,
+                };
+            }
+        }
+
         await AuditLog.create({
             userId: req.user.id,
             action: 'TEMPLATE_UPLOAD',
-            description: `Admin subió plantilla ${templateName} -> Guardada como ${fileName}`
+            description: `Admin subió plantilla ${templateName} -> Guardada como ${fileName}${
+                fieldExtraction ? ` (${fieldExtraction.fieldCount} campos AcroForm)` : ''
+            }`
         });
 
         const processLabel = templateAvailability.adminTemplateIdToLabel(templateName);
@@ -222,6 +245,7 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
             templateName,
             fileName,
             path: filePath,
+            detectedFields: fieldExtraction,
         });
     } catch (err) {
         console.error('🔥 Error al subir plantilla:', err);
@@ -299,6 +323,12 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
 
         if (count === 0 && !fs.existsSync(filePath)) {
             return res.status(404).json({ msg: 'Plantilla no encontrada' });
+        }
+
+        try {
+            await templateFieldSchemaService.deleteSchemaForTemplate(TemplateFieldSchema, name);
+        } catch (schemaErr) {
+            console.warn('⚠️ No se pudo borrar esquema de campos:', schemaErr.message);
         }
 
         await AuditLog.create({

@@ -22,6 +22,7 @@ const AdminDashboard = () => {
   const [templateFile, setTemplateFile] = useState(null);
   const [templateName, setTemplateName] = useState('fondos');
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
+  const [lastDetectedFields, setLastDetectedFields] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
@@ -144,7 +145,21 @@ const AdminDashboard = () => {
         headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
       });
       const label = res.data?.processLabel || templateName;
-      toast.success(t('admin.templateSaved', { type: label }));
+      const detected = res.data?.detectedFields;
+      setLastDetectedFields(detected || null);
+      const count = detected?.fieldCount ?? 0;
+      if (detected && !detected.extractError) {
+        toast.success(
+          count > 0
+            ? t('admin.fieldsDetected', { count, type: label })
+            : t('admin.flatPdfWarning', { type: label })
+        );
+      } else {
+        toast.success(t('admin.templateSaved', { type: label }));
+        if (detected?.extractError) {
+          toast.error(t('admin.fieldsExtractError'));
+        }
+      }
       setTemplateFile(null);
       await fetchData();
     } catch (err) {
@@ -434,6 +449,49 @@ const AdminDashboard = () => {
                       <p style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>
                         {templates.some(t => t.name === templateName) ? 'Esta acción sobreescribirá el archivo actual en la base de datos.' : 'Se inyectará un nuevo archivo en el sistema maestro.'}
                       </p>
+                      {lastDetectedFields && (
+                        <div
+                          style={{
+                            marginTop: 16,
+                            padding: 12,
+                            background: 'white',
+                            borderRadius: RADIUS,
+                            border: `1px solid ${BORDER}`,
+                            fontSize: 11,
+                          }}
+                        >
+                          <p style={{ fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>
+                            {t('admin.detectedFieldsTitle', { count: lastDetectedFields.fieldCount ?? 0 })}
+                          </p>
+                          {(lastDetectedFields.fieldCount ?? 0) === 0 ? (
+                            <p style={{ color: '#b91c1c', margin: 0 }}>{t('admin.flatPdfHint')}</p>
+                          ) : (
+                            <div style={{ maxHeight: 140, overflowY: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+                                <thead>
+                                  <tr style={{ color: '#64748b', textAlign: 'left' }}>
+                                    <th style={{ padding: '4px 6px' }}>#</th>
+                                    <th style={{ padding: '4px 6px' }}>AcroForm</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(lastDetectedFields.fieldNames || []).map((name, idx) => (
+                                    <tr key={name} style={{ borderTop: `1px solid ${BORDER}` }}>
+                                      <td style={{ padding: '4px 6px', color: '#94a3b8' }}>{idx + 1}</td>
+                                      <td style={{ padding: '4px 6px', fontFamily: 'monospace' }}>{name}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                          {lastDetectedFields.schemaSource && (
+                            <p style={{ marginTop: 8, color: '#64748b', fontSize: 10 }}>
+                              {t('admin.schemaSource')}: {lastDetectedFields.schemaSource}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </form>
                   </div>
                 </div>
