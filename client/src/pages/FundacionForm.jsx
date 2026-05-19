@@ -536,21 +536,74 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 <div className="poa-original-grid">
                     <div className="poa-column-card">
                         <div className="poa-column-header">{t('fundacion.poa.granteeHeader')}</div>
-                        <div style={{ padding: '20px' }}>
-                            <FundacionPersonFields
-                                person={poaPersonFromFormData(formData)}
-                                lang={lang}
-                                t={t}
-                                personRegistry={poaRegistry}
-                                onApplyPerson={applyPoaRegistryPerson}
-                                onChange={updatePoaField}
-                                onNameBlur={tryApplyPoaFromTypedName}
-                                nameListId="poa-names"
-                            />
+                        <div className="expert-grid" style={{ padding: '20px' }}>
+                            <div className="expert-field">
+                                <label>{L('firstName')}</label>
+                                <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
+                            </div>
+                            <div className="expert-field">
+                                <label>{L('secondName')}</label>
+                                <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} onBlur={tryApplyPoaFromTypedName} />
+                            </div>
+                            <div className="expert-field full-width">
+                                <label>{L('lastName')}</label>
+                                <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} onBlur={tryApplyPoaFromTypedName} list={poaNameList.length ? 'poa-names' : undefined} autoComplete="off" />
+                            </div>
+                            
+                            <div className="expert-field">
+                                <label>{L('birthDate')}</label>
+                                <input type="date" className="expert-input" value={formData.poaBirthDate} onChange={e => setFormData({...formData, poaBirthDate: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{L('maritalStatus')}</label>
+                                <select className="expert-input" value={formData.poaMaritalStatus} onChange={e => setFormData({...formData, poaMaritalStatus: e.target.value})}>
+                                    <option value="">{t('fundacion.poa.selectPlaceholder')}</option>
+                                    {FUNDACION_MARITAL_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{lang === 'en' ? o.en : o.es}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="expert-field">
+                                <label>{L('nationality')}</label>
+                                <input className="expert-input" value={formData.poaNationality} onChange={e => setFormData({...formData, poaNationality: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{L('passport')}</label>
+                                <input className="expert-input" value={formData.poaPassport} onChange={e => setFormData({...formData, poaPassport: e.target.value})} />
+                            </div>
+                            
+                            <div className="expert-field">
+                                <label>{L('idCard')}</label>
+                                <input className="expert-input" value={formData.poaIdCard} onChange={e => setFormData({...formData, poaIdCard: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{L('phone')}</label>
+                                <input className="expert-input" value={formData.poaPhone} onChange={e => setFormData({...formData, poaPhone: e.target.value})} />
+                            </div>
+
+                            <div className="expert-field full-width">
+                                <label>{L('email')}</label>
+                                <input type="email" className="expert-input" value={formData.poaEmail} onChange={e => setFormData({...formData, poaEmail: e.target.value})} />
+                            </div>
+
+                            <div className="expert-field full-width">
+                                <label>{L('address')}</label>
+                                <input className="expert-input" value={formData.poaAddress} onChange={e => setFormData({...formData, poaAddress: e.target.value})} />
+                            </div>
+
+                            <div className="expert-field">
+                                <label>{L('city')}</label>
+                                <input className="expert-input" value={formData.poaCity} onChange={e => setFormData({...formData, poaCity: e.target.value})} />
+                            </div>
+                            <div className="expert-field">
+                                <label>{L('country')}</label>
+                                <input className="expert-input" value={formData.poaCountry} onChange={e => setFormData({...formData, poaCountry: e.target.value})} />
+                            </div>
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Settings Questions */}
+                    {/* Configuración de poderes (debajo del apoderado) */}
                     <div className="poa-column-card">
                         <div className="poa-column-header" style={{ background: '#0e7490' }}>
                             {t('fundacion.poa.settingsHeader')}
@@ -812,8 +865,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 15px 30px ${PRIMARY}40; }
                 .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
 
-                /* ORIGINAL FORMAT STYLING FOR POA */
-                .poa-original-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; margin-top: 20px; }
+                /* ORIGINAL FORMAT STYLING FOR POA — single column stack */
+                .poa-original-grid { display: flex; flex-direction: column; gap: 24px; margin-top: 20px; }
                 .poa-column-card { background: #ffffff; border: 2.5px solid #40a2be; border-radius: 16px; overflow: hidden; }
                 .poa-column-header { background: #40a2be; color: white; padding: 15px 20px; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; }
                 .poa-question-box { background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 18px; }
@@ -824,7 +877,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .person-copy-box { margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
                 .person-copy-box label { font-size: 10px; font-weight: 800; color: ${PRIMARY}; text-transform: uppercase; margin-bottom: 6px; display: block; }
                 @media (max-width: 768px) {
-                    .poa-original-grid { grid-template-columns: 1fr; }
+                    .poa-original-grid .expert-grid { grid-template-columns: 1fr; }
+                    .poa-original-grid .full-width { grid-column: span 1; }
                 }
             `}</style>
         </div>
