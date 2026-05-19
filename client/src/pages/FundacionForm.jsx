@@ -17,7 +17,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         initialPatrimony: '10000', 
         
         // Dynamic Arrays (Steps 3, 4, 5, 6, 7)
-        founders: [{ fullName: '', birthDate: '', passport: '', address: '' }],
+        founders: [{
+            fullName: '', birthDate: '', birthPlace: '', passport: '', address: '',
+            nationality: '', maritalStatus: '', phone: '', email: '', city: '', country: ''
+        }],
         protectors: [{ fullName: '', birthDate: '', passport: '', address: '' }],
         councilMembers: [
             { firstName: '', secondName: '', lastName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', address: '', city: '', country: '' },
@@ -53,7 +56,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         // Fines/Actividades (Step 9)
         foundationObjects: '',
 
-        // Finalization/Declaraciones (Step 10)
+        declarationName: '',
+        declarationSignature: '',
         signers: [{ signature: '', name: '' }],
         declarationDate: new Date().toISOString().split('T')[0]
     });
@@ -66,7 +70,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             if (!cleanData.protectors) cleanData.protectors = formData.protectors;
             if (!cleanData.dignitaries) cleanData.dignitaries = formData.dignitaries;
             if (!cleanData.beneficiaries) cleanData.beneficiaries = formData.beneficiaries;
-            if (!cleanData.signers) cleanData.signers = formData.signers;
+            if (cleanData.declarationName === undefined) cleanData.declarationName = formData.declarationName;
+            if (cleanData.declarationSignature === undefined) cleanData.declarationSignature = formData.declarationSignature;
+            if (Array.isArray(cleanData.signers) && cleanData.signers[0] && !cleanData.declarationName) {
+                cleanData.declarationName = cleanData.signers[0].name || '';
+                cleanData.declarationSignature = cleanData.signers[0].signature || cleanData.signers[0].name || '';
+            }
             
             // Garantizar inicialización segura de los campos originales de poderes
             if (cleanData.poaIssue === undefined) cleanData.poaIssue = formData.poaIssue;
@@ -92,26 +101,127 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         }
     }, [initialData]);
 
-    // Generar listado dinámico de personas en el formulario para autocompletar o importar
-    const getAvailablePersons = () => {
+    const getAvailablePersons = (excludeStep) => {
         const list = [];
-        formData.founders.forEach((f, idx) => {
-            if (f.fullName) list.push({ label: `${lang === 'en' ? 'Founder' : 'Fundador'} - ${f.fullName}`, data: { ...f, type: 'fullName' } });
-        });
-        formData.councilMembers.forEach((m, idx) => {
-            const name = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
-            if (name) list.push({ label: `${lang === 'en' ? 'Council' : 'Consejo'} - ${name}`, data: { ...m, type: 'splitName' } });
-        });
-        formData.protectors.forEach((p, idx) => {
-            if (p.fullName) list.push({ label: `${lang === 'en' ? 'Protector' : 'Protector'} - ${p.fullName}`, data: { ...p, type: 'fullName' } });
-        });
-        formData.dignitaries.forEach((d, idx) => {
-            if (d.fullName) list.push({ label: `${lang === 'en' ? 'Dignitary' : 'Dignatario'} (${d.role}) - ${d.fullName}`, data: { ...d, type: 'fullName' } });
-        });
-        formData.beneficiaries.forEach((b, idx) => {
-            if (b.fullName) list.push({ label: `${lang === 'en' ? 'Beneficiary' : 'Beneficiario'} - ${b.fullName}`, data: { ...b, type: 'fullName' } });
-        });
+        const push = (label, data) => {
+            if (!data) return;
+            list.push({ label, data });
+        };
+        if (excludeStep !== 'founder') {
+            const f = formData.founders[0];
+            if (f?.fullName) push(`${lang === 'en' ? 'Founder' : 'Fundador'} — ${f.fullName}`, { ...f, type: 'fullName' });
+        }
+        if (excludeStep !== 'protector') {
+            formData.protectors.forEach((p, idx) => {
+                if (p.fullName) push(`${lang === 'en' ? 'Protector' : 'Protector'} #${idx + 1} — ${p.fullName}`, { ...p, type: 'fullName' });
+            });
+        }
+        if (excludeStep !== 'director') {
+            formData.councilMembers.forEach((m, idx) => {
+                const name = [m.firstName, m.secondName, m.lastName].filter(Boolean).join(' ');
+                if (name) push(`${lang === 'en' ? 'Director' : 'Director'} #${idx + 1} — ${name}`, { ...m, type: 'splitName' });
+            });
+        }
+        if (excludeStep !== 'dignitary') {
+            formData.dignitaries.forEach((d, idx) => {
+                if (d.fullName) push(`${lang === 'en' ? 'Dignitary' : 'Dignatario'} #${idx + 1} — ${d.fullName}`, { ...d, type: 'fullName' });
+            });
+        }
+        if (excludeStep !== 'beneficiary') {
+            formData.beneficiaries.forEach((b, idx) => {
+                if (b.fullName) push(`${lang === 'en' ? 'Beneficiary' : 'Beneficiario'} #${idx + 1} — ${b.fullName}`, { ...b, type: 'fullName' });
+            });
+        }
         return list;
+    };
+
+    const applyPersonSnapshot = (target, snapshot) => {
+        if (!snapshot?.data) return;
+        const info = snapshot.data;
+        if (target.kind === 'fullNameRow') {
+            const next = [...formData[target.arrayName]];
+            next[target.index] = {
+                ...next[target.index],
+                fullName: info.fullName || next[target.index].fullName,
+                birthDate: info.birthDate || '',
+                birthPlace: info.birthPlace || '',
+                passport: info.passport || '',
+                address: info.address || '',
+                nationality: info.nationality || '',
+                maritalStatus: info.maritalStatus || '',
+                phone: info.phone || '',
+                email: info.email || '',
+                city: info.city || '',
+                country: info.country || '',
+                percentage: info.percentage ?? next[target.index].percentage,
+            };
+            setFormData(prev => ({ ...prev, [target.arrayName]: next }));
+            return;
+        }
+        if (target.kind === 'splitNameRow') {
+            if (info.type === 'splitName') {
+                const next = [...formData.councilMembers];
+                next[target.index] = {
+                    ...next[target.index],
+                    firstName: info.firstName || '',
+                    secondName: info.secondName || '',
+                    lastName: info.lastName || '',
+                    birthDate: info.birthDate || '',
+                    maritalStatus: info.maritalStatus || '',
+                    nationality: info.nationality || '',
+                    passport: info.passport || '',
+                    address: info.address || '',
+                    city: info.city || '',
+                    country: info.country || '',
+                    phone: info.phone || '',
+                    email: info.email || '',
+                };
+                setFormData(prev => ({ ...prev, councilMembers: next }));
+            } else if (info.fullName) {
+                const parts = String(info.fullName).trim().split(/\s+/);
+                const next = [...formData.councilMembers];
+                next[target.index] = {
+                    ...next[target.index],
+                    firstName: parts[0] || '',
+                    secondName: parts.length > 2 ? parts.slice(1, -1).join(' ') : '',
+                    lastName: parts.length > 1 ? parts[parts.length - 1] : '',
+                    birthDate: info.birthDate || '',
+                    maritalStatus: info.maritalStatus || '',
+                    nationality: info.nationality || '',
+                    passport: info.passport || '',
+                    address: info.address || '',
+                    city: info.city || '',
+                    country: info.country || '',
+                    phone: info.phone || '',
+                    email: info.email || '',
+                };
+                setFormData(prev => ({ ...prev, councilMembers: next }));
+            }
+        }
+    };
+
+    const PersonCopySelect = ({ excludeStep, onSelect }) => {
+        const persons = getAvailablePersons(excludeStep);
+        if (!persons.length) return null;
+        return (
+            <div className="person-copy-box">
+                <label>{lang === 'en' ? 'Use data from…' : 'Usar datos de…'}</label>
+                <select
+                    className="expert-input"
+                    defaultValue=""
+                    onChange={(e) => {
+                        const picked = persons[Number(e.target.value)];
+                        if (picked) onSelect(picked);
+                        e.target.value = '';
+                    }}
+                >
+                    <option value="">{lang === 'en' ? '— Select a person —' : '— Seleccione una persona —'}</option>
+                    {persons.map((p, idx) => (
+                        <option key={idx} value={idx}>{p.label}</option>
+                    ))}
+                </select>
+            </div>
+        );
     };
 
     // Función inteligente de importación para Apoderado
@@ -148,6 +258,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         update.poaCity = info.city || '';
         update.poaCountry = info.country || '';
         update.poaMaritalStatus = info.maritalStatus || '';
+        update.poaPhone = info.phone || '';
+        update.poaEmail = info.email || '';
 
         setFormData(update);
     };
@@ -174,24 +286,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     };
 
     const updateSigner = (index, field, value) => {
-        const newSigners = [...formData.signers];
-        newSigners[index][field] = value;
+        if (index !== 0) return;
         if (field === 'name') {
-            newSigners[index].signature = value;
+            setFormData(prev => ({ ...prev, declarationName: value, declarationSignature: value, signers: [{ name: value, signature: value }] }));
+        } else {
+            setFormData(prev => ({ ...prev, declarationSignature: value, signers: [{ name: prev.declarationName, signature: value }] }));
         }
-        setFormData(prev => ({ ...prev, signers: newSigners }));
-    };
-
-    const addSigner = () => {
-        setFormData(prev => ({ ...prev, signers: [...prev.signers, { signature: '', name: '' }] }));
-    };
-
-    const removeSigner = (index) => {
-        if (formData.signers.length <= 1) return;
-        setFormData(prev => ({
-            ...prev,
-            signers: prev.signers.filter((_, i) => i !== index)
-        }));
     };
 
     const PRIMARY = '#0078d4';
@@ -269,16 +369,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     // Paso 3: Fundadores
     const renderStep3 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
-            <div className="expert-section-header">
-                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founders' : 'Paso 3: Fundadores'}</h2>
-                <button type="button" onClick={() => addArrayItem('founders', { fullName: '', birthDate: '', passport: '', address: '' })} className="expert-btn-add">
-                    <Plus size={16} /> {lang === 'en' ? 'ADD FOUNDER' : 'AÑADIR FUNDADOR'}
-                </button>
-            </div>
+            <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founder' : 'Paso 3: Fundador'}</h2>
             {formData.founders.map((f, i) => (
                 <div key={i} className="expert-card-legal">
-                    <div className="expert-card-label">{lang === 'en' ? `FOUNDER #${i+1}` : `FUNDADOR #${i+1}`}</div>
-                    {formData.founders.length > 1 && <button type="button" onClick={() => removeArrayItem('founders', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+                    <div className="expert-card-label">{lang === 'en' ? 'FOUNDER' : 'FUNDADOR'}</div>
                     <div className="expert-grid">
                         <div className="expert-field full-width">
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
@@ -287,6 +381,14 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label>
                             <input type="date" className="expert-input" value={f.birthDate} onChange={e => updateArrayField('founders', i, 'birthDate', e.target.value)} />
+                        </div>
+                        <div className="expert-field">
+                            <label>{lang === 'en' ? 'Place of birth' : 'Lugar de nacimiento'}</label>
+                            <input className="expert-input" value={f.birthPlace || ''} onChange={e => updateArrayField('founders', i, 'birthPlace', e.target.value)} />
+                        </div>
+                        <div className="expert-field">
+                            <label>{lang === 'en' ? 'Nationality' : 'Nacionalidad'}</label>
+                            <input className="expert-input" value={f.nationality || ''} onChange={e => updateArrayField('founders', i, 'nationality', e.target.value)} />
                         </div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
@@ -313,6 +415,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
             {formData.protectors.map((p, i) => (
                 <div key={i} className="expert-card-legal">
+                    <PersonCopySelect
+                        excludeStep="protector"
+                        onSelect={(person) => applyPersonSnapshot({ kind: 'fullNameRow', arrayName: 'protectors', index: i }, person)}
+                    />
                     <div className="expert-card-label">{lang === 'en' ? `PROTECTOR #${i+1}` : `PROTECTOR #${i+1}`}</div>
                     {formData.protectors.length > 1 && <button type="button" onClick={() => removeArrayItem('protectors', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
@@ -349,7 +455,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
             {formData.councilMembers.map((m, i) => (
                 <div key={i} className="expert-card-legal">
-                    <div className="expert-card-label">{lang === 'en' ? `COUNCIL MEMBER / DIRECTOR #${i+1}` : `MIEMBRO DEL CONSEJO / DIRECTOR #${i+1}`}</div>
+                    <PersonCopySelect
+                        excludeStep="director"
+                        onSelect={(person) => applyPersonSnapshot({ kind: 'splitNameRow', index: i }, person)}
+                    />
+                    <div className="expert-card-label">{lang === 'en' ? `DIRECTOR #${i+1}` : `DIRECTOR #${i+1}`}</div>
                     {formData.councilMembers.length > 3 && <button type="button" onClick={() => removeArrayItem('councilMembers', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" value={m.firstName} onChange={e => updateArrayField('councilMembers', i, 'firstName', e.target.value)} /></div>
@@ -386,6 +496,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
             {formData.dignitaries.map((d, i) => (
                 <div key={i} className="expert-card-legal">
+                    <PersonCopySelect
+                        excludeStep="dignitary"
+                        onSelect={(person) => applyPersonSnapshot({ kind: 'fullNameRow', arrayName: 'dignitaries', index: i }, person)}
+                    />
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
                     {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
@@ -422,6 +536,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
             {formData.beneficiaries.map((b, i) => (
                 <div key={i} className="expert-card-legal">
+                    <PersonCopySelect
+                        excludeStep="beneficiary"
+                        onSelect={(person) => applyPersonSnapshot({ kind: 'fullNameRow', arrayName: 'beneficiaries', index: i }, person)}
+                    />
                     <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
                     {formData.beneficiaries.length > 1 && <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
@@ -453,7 +571,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
     // Paso 8: Poderes (Power of Attorney - ORIGINAL EXACT FORMAT)
     const renderStep8 = () => {
-        const availablePersons = getAvailablePersons();
+        const availablePersons = getAvailablePersons('poa');
         return (
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
                 <h2 className="expert-step-title"><KeyRound size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 8: Power Of Attorney / Poderes (Optional)' : 'Paso 8: Power Of Attorney / Poderes (Opcional)'}</h2>
@@ -654,9 +772,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <div className="expert-section-header">
                 <h2 className="expert-step-title"><FileCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 10: Declaration / Sworn Affidavit' : 'Paso 10: Declaración / Declaración Jurada'}</h2>
-                <button type="button" onClick={addSigner} className="expert-btn-add">
-                    <Plus size={16} /> {lang === 'en' ? 'ADD SIGNER' : 'AÑADIR FIRMANTE'}
-                </button>
             </div>
 
             <div className="expert-legal-box">
@@ -671,11 +786,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <div key={i} className="signer-row animate-in fade-in" style={{ marginTop: '20px', padding: '25px', background: 'white', border: '2px solid #f1f5f9', borderRadius: '16px', position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <span style={{ fontSize: '11px', fontWeight: 900, color: PRIMARY, letterSpacing: '0.5px' }}>{lang === 'en' ? `SIGNER #${i+1}` : `FIRMANTE #${i+1}`}</span>
-                            {formData.signers.length > 1 && (
-                                <button type="button" onClick={() => removeSigner(i)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <Trash2 size={13} /> {lang === 'en' ? 'REMOVE' : 'ELIMINAR'}
-                                </button>
-                            )}
                         </div>
                         <div className="expert-grid">
                             <div className="expert-field full-width">
@@ -839,6 +949,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .poa-check-row { display: flex; gap: 20px; margin-top: 12px; }
                 .poa-check-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 800; color: #0e7490; }
                 .poa-radio { width: 18px; height: 18px; accent-color: #0e7490; cursor: pointer; }
+                .person-copy-box { margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
+                .person-copy-box label { font-size: 10px; font-weight: 800; color: ${PRIMARY}; text-transform: uppercase; margin-bottom: 6px; display: block; }
                 @media (max-width: 768px) {
                     .poa-original-grid { grid-template-columns: 1fr; }
                 }

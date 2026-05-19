@@ -5,7 +5,12 @@ const fs = require('fs');
 const path = require('path');
 
 function esc(v) {
-  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function fmtDate(v) {
@@ -18,351 +23,397 @@ function fmtDate(v) {
   return s;
 }
 
-function buildFoundersRows(founders) {
-  if (!founders || founders.length === 0) return '<tr><td colspan="5" style="text-align:center;font-style:italic;">No founders declared / Sin fundadores declarados</td></tr>';
-  return founders.map((f, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td>${esc(f.fullName)}</td>
-      <td>${esc(fmtDate(f.birthDate))}</td>
-      <td>${esc(f.passport)}</td>
-      <td>${esc(f.address)}</td>
-    </tr>
-  `).join('');
+function toDataUri(filePath) {
+  const ext = String(path.extname(filePath) || '').toLowerCase();
+  const mimeMap = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+  };
+  const mime = mimeMap[ext];
+  if (!mime) return '';
+  const b64 = fs.readFileSync(filePath).toString('base64');
+  return `data:${mime};base64,${b64}`;
 }
 
-function buildCouncilRows(members) {
-  if (!members || members.length === 0) return '<tr><td colspan="6" style="text-align:center;font-style:italic;">No council members declared / Sin miembros del consejo declarados</td></tr>';
-  return members.map((m, i) => `
+function getFounderRecord(data) {
+  if (data.founder && typeof data.founder === 'object') return data.founder;
+  const founders = Array.isArray(data.founders) ? data.founders : [];
+  return founders[0] || {};
+}
+
+function getDirectors(data) {
+  if (Array.isArray(data.councilMembers) && data.councilMembers.length) return data.councilMembers;
+  if (Array.isArray(data.directors) && data.directors.length) return data.directors;
+  return [];
+}
+
+function buildDirectorsRows(members, t) {
+  if (!members.length) {
+    return `<tr><td colspan="9" style="text-align:center;font-style:italic;">${esc(t.emptyDirectors)}</td></tr>`;
+  }
+  return members
+    .map(
+      (m, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${esc([m.firstName, m.secondName, m.lastName].filter(Boolean).join(' '))}</td>
       <td>${esc(fmtDate(m.birthDate))}</td>
-      <td>${esc(m.passport)}</td>
+      <td>${esc(m.maritalStatus)}</td>
       <td>${esc(m.nationality)}</td>
+      <td>${esc(m.passport)}</td>
       <td>${esc(m.address)}</td>
+      <td>${esc(m.city)}</td>
+      <td>${esc(m.country)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
-function buildProtectorsRows(protectors) {
-  if (!protectors || protectors.length === 0) return '<tr><td colspan="4" style="text-align:center;font-style:italic;">No protectors declared / Sin protectores declarados</td></tr>';
-  return protectors.map((p, i) => `
+function buildProtectorsRows(protectors, t) {
+  if (!protectors.length) {
+    return `<tr><td colspan="5" style="text-align:center;font-style:italic;">${esc(t.emptyProtectors)}</td></tr>`;
+  }
+  return protectors
+    .map(
+      (p, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${esc(p.fullName)}</td>
       <td>${esc(fmtDate(p.birthDate))}</td>
       <td>${esc(p.passport)}</td>
+      <td>${esc(p.address)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
-function buildBeneficiariesRows(beneficiaries) {
-  if (!beneficiaries || beneficiaries.length === 0) return '<tr><td colspan="6" style="text-align:center;font-style:italic;">No beneficiaries declared / Sin beneficiarios declarados</td></tr>';
-  return beneficiaries.map((b, i) => `
+function buildDignitariesRows(dignitaries, t) {
+  if (!dignitaries.length) {
+    return `<tr><td colspan="4" style="text-align:center;font-style:italic;">${esc(t.emptyDignitaries)}</td></tr>`;
+  }
+  return dignitaries
+    .map(
+      (d) => `
+    <tr>
+      <td>${esc(d.role)}</td>
+      <td>${esc(d.fullName)}</td>
+      <td>${esc(fmtDate(d.birthDate))}</td>
+      <td>${esc(d.passport)}</td>
+    </tr>
+  `
+    )
+    .join('');
+}
+
+function buildBeneficiariesRows(beneficiaries, t) {
+  if (!beneficiaries.length) {
+    return `<tr><td colspan="6" style="text-align:center;font-style:italic;">${esc(t.emptyBeneficiaries)}</td></tr>`;
+  }
+  return beneficiaries
+    .map(
+      (b, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${esc(b.fullName)}</td>
       <td>${esc(fmtDate(b.birthDate))}</td>
       <td>${esc(b.passport)}</td>
-      <td>${esc(b.percentage)}%</td>
+      <td>${esc(b.percentage)}</td>
       <td>${esc(b.address)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
+}
+
+function buildPowersHtml(data, t) {
+  const poaIssueYes = data.poaIssue === 'YES';
+  const poaIssueNo = data.poaIssue === 'NO' || !data.poaIssue;
+  const poaLegalizedYes = data.poaLegalized === 'YES';
+  const poaLegalizedNo = data.poaLegalized === 'NO' || !data.poaLegalized;
+  const poaTypeLabel = String(data.poaType || 'GENERAL').toUpperCase();
+
+  return `
+    <section class="card card--poa">
+      <h2>${esc(t.sectionPowers)}</h2>
+      <div class="poa-grid">
+        <div class="poa-col">
+          <table>
+            <thead><tr><th colspan="2">${esc(t.poaHeaderGrantee)}</th></tr></thead>
+            <tbody>
+              <tr><td>${esc(t.poaFirstName)}</td><td>${esc(data.poaFirstName)}</td></tr>
+              <tr><td>${esc(t.poaMiddleName)}</td><td>${esc(data.poaMiddleName)}</td></tr>
+              <tr><td>${esc(t.poaLastName)}</td><td>${esc(data.poaLastName)}</td></tr>
+              <tr><td>${esc(t.poaBirthDate)}</td><td>${esc(fmtDate(data.poaBirthDate))}</td></tr>
+              <tr><td>${esc(t.poaMaritalStatus)}</td><td>${esc(data.poaMaritalStatus)}</td></tr>
+              <tr><td>${esc(t.poaNationality)}</td><td>${esc(data.poaNationality)}</td></tr>
+              <tr><td>${esc(t.poaPassport)}</td><td>${esc(data.poaPassport)}</td></tr>
+              <tr><td>${esc(t.poaIdCard)}</td><td>${esc(data.poaIdCard)}</td></tr>
+              <tr><td>${esc(t.poaPhone)}</td><td>${esc(data.poaPhone)}</td></tr>
+              <tr><td>${esc(t.poaEmail)}</td><td>${esc(data.poaEmail)}</td></tr>
+              <tr><td>${esc(t.poaAddress)}</td><td>${esc(data.poaAddress)}</td></tr>
+              <tr><td>${esc(t.poaCity)}</td><td>${esc(data.poaCity)}</td></tr>
+              <tr><td>${esc(t.poaCountry)}</td><td>${esc(data.poaCountry)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="poa-col">
+          <table>
+            <tbody>
+              <tr>
+                <td>${esc(t.poaIssueQuestion)}</td>
+                <td><span class="chk">${poaIssueYes ? '☑' : '☐'} ${esc(t.yes)}</span> <span class="chk">${poaIssueNo ? '☑' : '☐'} ${esc(t.no)}</span></td>
+              </tr>
+              <tr><td>${esc(t.poaTypeQuestion)}</td><td><strong>${esc(poaTypeLabel)}</strong></td></tr>
+              <tr><td>${esc(t.poaValidityQuestion)}</td><td>${esc(data.poaValidityDate)}</td></tr>
+              <tr>
+                <td>${esc(t.poaLegalizedQuestion)}</td>
+                <td><span class="chk">${poaLegalizedYes ? '☑' : '☐'} ${esc(t.yes)}</span> <span class="chk">${poaLegalizedNo ? '☑' : '☐'} ${esc(t.no)}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 class FundacionHtmlPdfService {
   async generatePdf(data = {}, options = {}) {
+    fundacionPdfI18n.assertFundacionPdfI18nParity();
     let browser = null;
     try {
       const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
-      const founders = Array.isArray(data.founders) ? data.founders : [];
-      const council = Array.isArray(data.councilMembers) ? data.councilMembers : [];
+      let logoDataUri = '';
+      const logoPath = path.join(rootDir, 'templates', 'logo_empresa.png');
+      if (fs.existsSync(logoPath)) logoDataUri = toDataUri(logoPath);
+
+      const founder = getFounderRecord(data);
+      const directors = getDirectors(data);
       const protectors = Array.isArray(data.protectors) ? data.protectors : [];
       const beneficiaries = Array.isArray(data.beneficiaries) ? data.beneficiaries : [];
       const dignitaries = Array.isArray(data.dignitaries) ? data.dignitaries : [];
-      const signers = Array.isArray(data.signers) ? data.signers : [];
 
       const lang = fundacionPdfI18n.normalizeLanguage(options.language || data.language);
       const t = fundacionPdfI18n.getFundacionPdfDict(lang);
 
-      // Render exact original POA tables
-      const poaIssueYes = data.poaIssue === 'YES';
-      const poaIssueNo = data.poaIssue === 'NO' || !data.poaIssue;
-      const poaLegalizedYes = data.poaLegalized === 'YES';
-      const poaLegalizedNo = data.poaLegalized === 'NO' || !data.poaLegalized;
-      const poaTypeLabel = String(data.poaType || 'GENERAL').toUpperCase();
+      const plan = fundacionLayoutGuard.analyzeFormData(data);
+      const layoutCss = fundacionLayoutGuard.getAdaptiveCss(plan);
+      const bodyGuardClass = fundacionLayoutGuard.bodyClassForPlan(plan);
+      const pageMarginCss = fundacionLayoutGuard.getPrintPageMarginCss(fundacionLayoutGuard.LAYOUT);
 
-      const powersHtml = `
-        <div class="poa-section-container">
-          <div class="poa-header-title">
-            Power Of Attorney / Poderes (Optional)
-          </div>
-          
-          <div class="poa-body-grid">
-            <!-- Left Column: Apoderado Details -->
-            <div class="poa-col-left">
-              <table class="poa-table">
-                <thead>
-                  <tr>
-                    <th colspan="2" class="poa-table-header">
-                      Name, Address of the person who's the POA is granted and the acting form (Individual, Jointly, etc.)<br/>
-                      Nombre, Dirección del Apoderado y forma en que ejercerá el Poder (Individual, Conjunta, etc.)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="poa-label">First name / Nombre</td>
-                    <td class="poa-val">${esc(data.poaFirstName)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Middle name / Segundo nombre</td>
-                    <td class="poa-val">${esc(data.poaMiddleName)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Surname(s) / Apellidos</td>
-                    <td class="poa-val">${esc(data.poaLastName)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Date of birth/ Fecha de nacimiento</td>
-                    <td class="poa-val">${esc(fmtDate(data.poaBirthDate))}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Marital Status / Estado civil</td>
-                    <td class="poa-val">${esc(data.poaMaritalStatus)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Citizenship / Nacionalidad</td>
-                    <td class="poa-val">${esc(data.poaNationality)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Passport / Pasaporte</td>
-                    <td class="poa-val">${esc(data.poaPassport)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">ID</td>
-                    <td class="poa-val">${esc(data.poaIdCard)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Phone / Teléfono</td>
-                    <td class="poa-val">${esc(data.poaPhone)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Email</td>
-                    <td class="poa-val">${esc(data.poaEmail)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Address / Dirección</td>
-                    <td class="poa-val">${esc(data.poaAddress)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">City / ciudad</td>
-                    <td class="poa-val">${esc(data.poaCity)}</td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label">Country / Pais</td>
-                    <td class="poa-val">${esc(data.poaCountry)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+      const declarationName =
+        data.declarationName ||
+        (Array.isArray(data.signers) && data.signers[0]?.name) ||
+        '';
+      const declarationSignature =
+        data.declarationSignature ||
+        (Array.isArray(data.signers) && data.signers[0]?.signature) ||
+        declarationName;
 
-            <!-- Right Column: Settings & Questions -->
-            <div class="poa-col-right">
-              <table class="poa-table">
-                <tbody>
-                  <tr>
-                    <td class="poa-label-q">
-                      Would you like to issue a Power of Attorney?<br/>
-                      Quiere Usted emitir un poder?
-                    </td>
-                    <td class="poa-check-val">
-                      <span class="chk-box">${poaIssueYes ? '☑' : '☐'} YES</span>
-                      <span class="chk-box" style="margin-left: 10px;">${poaIssueNo ? '☑' : '☐'} NO</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label-q">
-                      If Yes please select type of Power of Attorney
-                    </td>
-                    <td class="poa-val" style="font-weight: bold; text-align: center;">
-                      ${esc(poaTypeLabel)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label-q">
-                      Validity date/ Fecha de vigencia:
-                    </td>
-                    <td class="poa-val">
-                      ${esc(data.poaValidityDate)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="poa-label-q">
-                      Would you require the POA to be legalized?<br/>
-                      Requiere que el poder sea legalizado?
-                    </td>
-                    <td class="poa-check-val">
-                      <span class="chk-box">${poaLegalizedYes ? '☑' : '☐'} YES</span>
-                      <span class="chk-box" style="margin-left: 10px;">${poaLegalizedNo ? '☑' : '☐'} NO</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      `;
+      const founderRows = founder.fullName
+        ? `<tr>
+            <td>1</td>
+            <td>${esc(founder.fullName)}</td>
+            <td>${esc(fmtDate(founder.birthDate))}</td>
+            <td>${esc(founder.birthPlace)}</td>
+            <td>${esc(founder.passport)}</td>
+            <td>${esc(founder.nationality)}</td>
+            <td>${esc(founder.address)}</td>
+          </tr>`
+        : `<tr><td colspan="7" style="text-align:center;font-style:italic;">${esc(t.emptyFounder)}</td></tr>`;
 
       const content = `
         <main class="doc-body">
-          <!-- 1. NOMBRE DE LA FUNDACION -->
           <section class="card">
             <div class="first-page-title"><h1>${esc(t.docTitle)}</h1></div>
             <h2>${esc(t.sectionName)}</h2>
             <div class="hint">${esc(t.sectionNameHint)}</div>
             <div class="grid3">
-              <div><label>${esc(t.choice1)}</label><div class="value">${esc(data.foundationNameOption1)}</div></div>
-              <div><label>${esc(t.choice2)}</label><div class="value">${esc(data.foundationNameOption2)}</div></div>
-              <div><label>${esc(t.choice3)}</label><div class="value">${esc(data.foundationNameOption3)}</div></div>
+              <div><label>${esc(t.choice1)}</label><div class="value">${esc(data.foundationNameOption1)}</div>
+              <div><label>${esc(t.choice2)}</label><div class="value">${esc(data.foundationNameOption2)}</div>
+              <div><label>${esc(t.choice3)}</label><div class="value">${esc(data.foundationNameOption3)}</div>
             </div>
           </section>
 
-          <!-- 2. CAPITAL SOCIAL -->
           <section class="card">
             <h2>${esc(t.sectionCapital)}</h2>
             <div class="hint">${esc(t.sectionCapitalHint)}</div>
-            <div class="grid2">
-              <div><label>${esc(t.capitalMin)}</label><div class="value">10,000 USD</div></div>
-              <div><label>${esc(t.capitalAuth)}</label><div class="value">${esc(data.initialPatrimony)} USD</div></div>
-            </div>
-          </section>
-
-          <!-- 3. FUNDADORES -->
-          <section class="card">
-            <h2>${esc(t.sectionFounders)}</h2>
-            <table>
-              <thead><tr><th>#</th><th>${esc(t.founderName)}</th><th>${esc(t.founderBirthDate)}</th><th>${esc(t.founderPassport)}</th><th>${esc(t.founderAddress)}</th></tr></thead>
-              <tbody>${buildFoundersRows(founders)}</tbody>
+            <table class="capital-table">
+              <thead><tr><th>${esc(t.capitalMin)}</th><th>${esc(t.capitalAuth)}</th></tr></thead>
+              <tbody><tr><td>10,000 USD</td><td>${esc(data.initialPatrimony)} USD</td></tr></tbody>
             </table>
           </section>
 
-          <!-- 4. PROTECTORES -->
+          <section class="card">
+            <h2>${esc(t.sectionFounder)}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>${esc(t.dirNum)}</th>
+                  <th>${esc(t.founderName)}</th>
+                  <th>${esc(t.founderBirthDate)}</th>
+                  <th>${esc(t.founderBirthPlace)}</th>
+                  <th>${esc(t.founderPassport)}</th>
+                  <th>${esc(t.founderNationality)}</th>
+                  <th>${esc(t.founderAddress)}</th>
+                </tr>
+              </thead>
+              <tbody>${founderRows}</tbody>
+            </table>
+          </section>
+
           <section class="card">
             <h2>${esc(t.sectionProtectors)}</h2>
             <table>
-              <thead><tr><th>#</th><th>${esc(t.protectorName)}</th><th>F. Nacimiento / D.O.B</th><th>${esc(t.protectorPassport)}</th></tr></thead>
-              <tbody>${buildProtectorsRows(protectors)}</tbody>
+              <thead>
+                <tr>
+                  <th>${esc(t.dirNum)}</th>
+                  <th>${esc(t.protectorName)}</th>
+                  <th>${esc(t.protectorBirthDate)}</th>
+                  <th>${esc(t.protectorPassport)}</th>
+                  <th>${esc(t.protectorAddress)}</th>
+                </tr>
+              </thead>
+              <tbody>${buildProtectorsRows(protectors, t)}</tbody>
             </table>
           </section>
 
-          <!-- 5. DIRECTORES -->
           <section class="card">
-            <h2>${esc(t.sectionCouncil)}</h2>
+            <h2>${esc(t.sectionDirectors)}</h2>
+            <div class="hint">${esc(t.sectionDirectorsHint)}</div>
             <table>
-              <thead><tr><th>#</th><th>${esc(t.councilFullName)}</th><th>${esc(t.councilBirthDate)}</th><th>${esc(t.councilPassport)}</th><th>Nacionalidad</th><th>Dirección</th></tr></thead>
-              <tbody>${buildCouncilRows(council)}</tbody>
+              <thead>
+                <tr>
+                  <th>${esc(t.dirNum)}</th>
+                  <th>${esc(t.dirFullName)}</th>
+                  <th>${esc(t.dirBirthDate)}</th>
+                  <th>${esc(t.dirMarital)}</th>
+                  <th>${esc(t.dirNationality)}</th>
+                  <th>${esc(t.dirPassport)}</th>
+                  <th>${esc(t.dirAddress)}</th>
+                  <th>${esc(t.dirCity)}</th>
+                  <th>${esc(t.dirCountry)}</th>
+                </tr>
+              </thead>
+              <tbody>${buildDirectorsRows(directors, t)}</tbody>
             </table>
           </section>
 
-          <!-- 6. DIGNATARIOS -->
           <section class="card">
-            <h2>Dignatarios / Dignitaries</h2>
+            <h2>${esc(t.sectionDignitaries)}</h2>
             <table>
-              <thead><tr><th>Cargo / Role</th><th>Nombre Completo / Full Name</th><th>Pasaporte / Passport</th></tr></thead>
-              <tbody>
-                ${dignitaries.length > 0 ? dignitaries.map(d => `<tr><td>${esc(d.role)}</td><td>${esc(d.fullName)}</td><td>${esc(d.passport)}</td></tr>`).join('') : '<tr><td colspan="3" style="text-align:center;font-style:italic;">No dignitaries declared / Sin dignatarios declarados</td></tr>'}
-              </tbody>
+              <thead>
+                <tr>
+                  <th>${esc(t.dignitaryRole)}</th>
+                  <th>${esc(t.dignitaryName)}</th>
+                  <th>${esc(t.dignitaryBirthDate)}</th>
+                  <th>${esc(t.dignitaryPassport)}</th>
+                </tr>
+              </thead>
+              <tbody>${buildDignitariesRows(dignitaries, t)}</tbody>
             </table>
           </section>
 
-          <!-- 7. BENEFICIARIOS -->
           <section class="card">
             <h2>${esc(t.sectionBeneficiaries)}</h2>
             <table>
-              <thead><tr><th>#</th><th>${esc(t.beneficiaryName)}</th><th>F. Nacimiento / D.O.B</th><th>Pasaporte / ID</th><th>${esc(t.beneficiaryPercentage)}</th><th>Dirección</th></tr></thead>
-              <tbody>${buildBeneficiariesRows(beneficiaries)}</tbody>
+              <thead>
+                <tr>
+                  <th>${esc(t.dirNum)}</th>
+                  <th>${esc(t.beneficiaryName)}</th>
+                  <th>${esc(t.beneficiaryBirthDate)}</th>
+                  <th>${esc(t.beneficiaryPassport)}</th>
+                  <th>${esc(t.beneficiaryPercentage)}</th>
+                  <th>${esc(t.beneficiaryAddress)}</th>
+                </tr>
+              </thead>
+              <tbody>${buildBeneficiariesRows(beneficiaries, t)}</tbody>
             </table>
           </section>
 
-          <!-- 8. PODERES (Original Layout) -->
-          <section class="card" style="page-break-inside: avoid;">
-            ${powersHtml}
-          </section>
+          ${buildPowersHtml(data, t)}
 
-          <!-- 9. ACTIVIDADES DE LA FUNDACION -->
-          <section class="card">
-            <h2>${esc(t.sectionActivities)}</h2>
-            <div class="hint">${esc(t.sectionActivitiesHint)}</div>
-            <div class="longtext">${esc(data.foundationObjects)}</div>
-          </section>
+          <section class="tail-block">
+            <section class="card card--activities">
+              <h2>${esc(t.sectionActivities)}</h2>
+              <div class="hint">${esc(t.sectionActivitiesHint)}</div>
+              <div class="longtext">${esc(data.foundationObjects)}</div>
+            </section>
 
-          <!-- 10. DECLARACIONES -->
-          <section class="card">
-            <h2>${esc(t.sectionDeclaration)}</h2>
-            <div class="hint">${esc(t.sectionDeclarationHint)}</div>
-            <div style="padding: 12px;">
-              ${signers.map(s => `
-                <div style="margin-bottom: 15px; border-bottom: 1px dashed #f1f5f9; padding-bottom: 10px;">
-                  <label>${esc(t.declarationSignature)}</label><div class="value" style="font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 11px; color: #0078d4;">${esc(s.signature)}</div>
-                  <label style="margin-top:5px;">${esc(t.declarationName)}</label><div class="value">${esc(s.name)}</div>
-                </div>
-              `).join('')}
-              <label>${esc(t.declarationDate)}</label><div class="value">${esc(fmtDate(data.declarationDate))}</div>
-            </div>
+            <section class="card">
+              <h2>${esc(t.sectionDeclaration)}</h2>
+              <div class="hint">${esc(t.sectionDeclarationHint)}</div>
+              <div class="grid2">
+                <div><label>${esc(t.declarationSignature)}</label><div class="value">${esc(declarationSignature)}</div></div>
+                <div><label>${esc(t.declarationName)}</label><div class="value">${esc(declarationName)}</div></div>
+                <div><label>${esc(t.declarationDate)}</label><div class="value">${esc(fmtDate(data.declarationDate))}</div></div>
+              </div>
+            </section>
           </section>
         </main>
       `;
 
       const html = `
         <!doctype html>
-        <html>
+        <html lang="${lang}">
         <head>
+          <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: 15mm; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9px; color: #1e293b; margin: 0; padding: 0; background: #fff; }
-            .doc-body { padding: 0; }
-            .first-page-title { text-align: center; margin-bottom: 20px; }
-            .first-page-title h1 { color: #0078d4; font-size: 20px; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-            .card { border: 1px solid #0078d4; margin-bottom: 15px; page-break-inside: avoid; border-radius: 4px; overflow: hidden; }
-            .card h2 { background: #0078d4; color: white; margin: 0; padding: 8px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-            .hint { background: #f8fafc; padding: 5px 10px; border-bottom: 1px solid #e2e8f0; font-style: italic; color: #64748b; font-size: 8px; }
-            .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px; }
-            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-            label { font-weight: 700; font-size: 8px; color: #475569; display: block; margin-bottom: 3px; text-transform: uppercase; }
-            .value { border: 1px solid #e2e8f0; background: #f8fafc; padding: 5px 8px; min-height: 12px; border-radius: 3px; font-size: 9px; color: #0f172a; }
-            table { width: 100%; border-collapse: collapse; margin: 0; }
-            th, td { border: 1px solid #e2e8f0; padding: 5px 8px; text-align: left; }
-            th { background: #f1f5f9; font-weight: 700; font-size: 8px; color: #475569; text-transform: uppercase; }
-            td { font-size: 8.5px; color: #0f172a; }
-            .longtext { padding: 10px; white-space: pre-wrap; line-height: 1.4; font-size: 8.5px; color: #0f172a; }
-            
-            /* ORIGINAL POWER OF ATTORNEY SECTION STYLES */
-            .poa-section-container { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; width: 100%; }
-            .poa-header-title { background: #40a2be; color: white; padding: 10px 15px; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-            .poa-body-grid { display: flex; width: 100%; border-top: 1px solid #40a2be; }
-            .poa-col-left { width: 55%; border-right: 2px solid #cbd5e1; }
-            .poa-col-right { width: 45%; }
-            .poa-table { width: 100%; border-collapse: collapse; }
-            .poa-table td, .poa-table th { border: 1px solid #40a2be; padding: 6px 10px; font-size: 9px; }
-            .poa-table-header { background: #eff6ff; font-weight: bold; font-size: 8.5px; text-align: left; color: #1e3a8a; line-height: 1.3; }
-            .poa-label { background: #ffffff; width: 40%; font-weight: bold; color: #475569; }
-            .poa-label-q { background: #ffffff; width: 60%; font-weight: bold; color: #475569; line-height: 1.3; }
-            .poa-val { background: #fcfdfe; color: #0f172a; }
-            .poa-check-val { background: #fcfdfe; color: #0f172a; font-weight: bold; font-size: 9.5px; }
-            .chk-box { display: inline-flex; align-items: center; }
+            @page { size: A4; margin: ${pageMarginCss}; }
+            html, body { margin: 0; padding: 0; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
+            .doc-body { padding: 0; margin: 0; box-sizing: border-box; }
+            .first-page-title { text-align: center; margin: 0 0 6px 0; }
+            .first-page-title h1 { margin: 0; color: #0369a1; font-size: 20px; line-height: 1.02; font-weight: 800; }
+            .card { border: 1px solid #7dd3fc; margin: 8px 0; page-break-inside: auto; break-inside: auto; }
+            .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
+            .hint { padding: 4px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.25; }
+            .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
+            .grid3 { grid-template-columns: 1fr 1fr 1fr; }
+            .grid2 { grid-template-columns: 1fr 1fr; }
+            label { display: block; font-weight: 700; color: #334155; margin-bottom: 2px; }
+            .value { min-height: 18px; border: 1px solid #bae6fd; padding: 4px; background: #f8fdff; word-break: break-word; }
+            .capital-table td { text-align: center; font-weight: 700; font-size: 11px; padding: 8px; }
+            .tail-block { page-break-inside: avoid; break-inside: avoid; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            thead { display: table-header-group; }
+            th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+            th { background: #ecfeff; font-size: 9px; }
+            .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; }
+            .poa-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; }
+            .poa-col { padding: 0; }
+            .chk { margin-right: 8px; font-weight: 700; }
+            ${layoutCss}
           </style>
         </head>
-        <body>${content}</body>
+        <body class="${bodyGuardClass}">${content}</body>
         </html>
       `;
 
-      browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
       const page = await browser.newPage();
-      await page.setContent(html);
-      const pdfBytes = await page.pdf({ format: 'A4', printBackground: true });
-      return Buffer.from(pdfBytes);
+      await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await fundacionLayoutGuard.refineAfterRender(page);
+      const chromePdf = fundacionLayoutGuard.getFundacionPuppeteerPdfChromeOptions(logoDataUri);
+      const { margin: _m, ...chromePdfRest } = chromePdf;
+      const pdfBytes = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        preferCSSPageSize: true,
+        scale: 1,
+        margin: { top: '0', right: '0', bottom: '0', left: '0' },
+        ...chromePdfRest,
+      });
+      return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {
       if (browser) await browser.close();
     }
