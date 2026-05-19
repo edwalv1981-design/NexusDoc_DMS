@@ -15,6 +15,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
 import CorporacionForm from './CorporacionForm';
+import FundacionForm from './FundacionForm';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -523,6 +524,12 @@ const ClientDashboard = () => {
                         initialData={formData} 
                         onSave={saveDynamicForm} 
                         saving={saving} 
+                    />
+                ) : currentFormType === 'Fundaciones' ? (
+                    <FundacionForm
+                        initialData={formData}
+                        onSave={saveDynamicForm}
+                        saving={saving}
                     />
                 ) : (
                     <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
