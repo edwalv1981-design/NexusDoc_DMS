@@ -6,7 +6,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
-    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, BookOpen, IdCard, FileStack
+    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, IdCard, FileStack
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 import { getFormTypeLabel } from '../formTypes';
@@ -329,9 +329,6 @@ const ClientDashboard = () => {
                     </div>
                     <div onClick={() => { navigate('/dashboard?view=signed-docs'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showSignedDocs ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '5px' }}>
                         <FileStack size={15} /> <span>{t('sidebar.signedDocs')}</span>
-                    </div>
-                    <div onClick={() => navigate('/tutorial')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
-                        <BookOpen size={15} /> <span>{t('sidebar.helpTutorial')}</span>
                     </div>
                 </nav>
                 <LanguageSwitcher variant="sidebar" />

@@ -51,7 +51,7 @@ const SignedDocuments = () => {
         const res = await axios.put(`${API_BASE_URL}/api/signed-docs/update/${editingDocId}`, formData, {
           headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
         });
-        toast.success(`Actualizado: ${res.data.status}`);
+        toast.success(t('signedDocs.docUpdated', { status: res.data.status }));
       } else {
         const res = await axios.post(`${API_BASE_URL}/api/signed-docs/upload`, formData, {
           headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
@@ -79,7 +79,7 @@ const SignedDocuments = () => {
       toast.success(t('userDocs.docDeleted'));
       fetchDocuments();
     } catch (err) {
-      toast.error('Error al eliminar');
+      toast.error(t('signedDocs.errorDelete'));
     }
   };
 
@@ -175,7 +175,7 @@ const SignedDocuments = () => {
                     <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
                     <th style={{ padding: '12px 15px' }}>{t('signedDocs.fileHeader')}</th>
                     <th style={{ padding: '12px 15px' }}>{t('signedDocs.statusHeader')}</th>
-                    <th style={{ padding: '12px 15px', textAlign: 'right' }}>{t('admin.audit').split(' ')[0]}</th>
+                    <th style={{ padding: '12px 15px', textAlign: 'right' }}>{t('common.actions')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -199,7 +199,7 @@ const SignedDocuments = () => {
                             )}
                         </td>
                         <td style={{ padding: '12px 15px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#f1f5f9', color: '#0f172a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Descargar">
+                            <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#f1f5f9', color: '#0f172a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.downloadShort')}>
                                 <Download size={14} />
                             </button>
                             <button onClick={() => setEditingDocId(doc.id)} style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, color: '#0f172a', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.edit')}>

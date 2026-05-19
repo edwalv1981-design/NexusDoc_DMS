@@ -177,7 +177,7 @@ const UserDocuments = () => {
                     <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
                     <th style={{ padding: '12px 15px' }}>{t('userDocs.fileName')}</th>
                     <th style={{ padding: '12px 15px' }}>{t('userDocs.uploadDate')}</th>
-                    <th style={{ padding: '12px 15px', textAlign: 'right' }}>{t('admin.audit').split(' ')[0]}</th>
+                    <th style={{ padding: '12px 15px', textAlign: 'right' }}>{t('common.actions')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -192,7 +192,7 @@ const UserDocuments = () => {
                             {new Date(doc.updatedAt).toLocaleDateString()}
                         </td>
                         <td style={{ padding: '12px 15px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#dcfce7', color: '#16a34a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Descargar">
+                            <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#dcfce7', color: '#16a34a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.downloadShort')}>
                                 <Download size={14} />
                             </button>
                             <button onClick={() => setEditingDocId(doc.id)} style={{ background: '#fef3c7', color: '#d97706', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.edit')}>
