@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Building, Users, UserCheck, Briefcase, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
-    CheckCircle2, Info, Shield, Award
+    CheckCircle2, Info, Award
 } from 'lucide-react';
 import { useLang } from '../i18n';
+import FundacionRegistryNameInput from '../components/FundacionRegistryNameInput';
+import {
+    buildCorporacionPersonRegistry,
+    findPersonInRegistry,
+    pickCorporacionDirectorFields,
+    pickCorporacionDignitaryFields,
+    pickCorporacionShareholderPersonFields,
+    pickCorporacionSignerFields,
+    normalizeLoadedCorporacionData,
+} from '../utils/corporacionPersonRegistry';
 
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const { lang, t } = useLang();
@@ -39,41 +49,64 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
     useEffect(() => {
         if (initialData && Object.keys(initialData).length > 0) {
-            const cleanData = { ...initialData };
-            if (!cleanData.directors) cleanData.directors = formData.directors;
-            if (!cleanData.dignitaries) cleanData.dignitaries = formData.dignitaries;
-            if (!cleanData.shareholders) cleanData.shareholders = formData.shareholders;
-            if (!cleanData.signers) cleanData.signers = formData.signers;
+            const cleanData = normalizeLoadedCorporacionData(initialData, formData);
             setFormData(prev => ({ ...prev, ...cleanData }));
         }
     }, [initialData]);
 
+    const registryForRow = useCallback(
+        (arrayName, index) => buildCorporacionPersonRegistry(formData, { arrayName, index }),
+        [formData]
+    );
 
-    const findPersonData = (name) => {
-        if (!name || name.trim().length < 3) return null;
-        const searchName = name.toLowerCase().trim();
+    const applyDirectorAt = useCallback((index, source) => {
+        if (!source) return;
+        const patch = pickCorporacionDirectorFields(source);
+        setFormData(prev => {
+            const directors = [...prev.directors];
+            directors[index] = { ...directors[index], ...patch };
+            return { ...prev, directors };
+        });
+    }, []);
 
-        for (const d of formData.directors) {
-            const full = [d.firstName, d.secondName, d.lastName].filter(p => p && p.trim()).join(' ');
-            if (full.toLowerCase().trim() === searchName) {
-                return { birthDate: d.birthDate, passport: d.passport, address: d.address };
-            }
-        }
+    const applyDignitaryAt = useCallback((index, source) => {
+        if (!source) return;
+        const patch = pickCorporacionDignitaryFields(source);
+        setFormData(prev => {
+            const dignitaries = [...prev.dignitaries];
+            dignitaries[index] = { ...dignitaries[index], ...patch };
+            return { ...prev, dignitaries };
+        });
+    }, []);
 
-        for (const d of formData.dignitaries) {
-            if (d.fullName && d.fullName.toLowerCase().trim() === searchName) {
-                return { birthDate: d.birthDate, passport: d.passport };
-            }
-        }
+    const applyShareholderAt = useCallback((index, source) => {
+        if (!source) return;
+        const patch = pickCorporacionShareholderPersonFields(source);
+        setFormData(prev => {
+            const shareholders = [...prev.shareholders];
+            shareholders[index] = { ...shareholders[index], ...patch };
+            return { ...prev, shareholders };
+        });
+    }, []);
 
-        for (const s of formData.shareholders) {
-            if (s.name && s.name.toLowerCase().trim() === searchName) {
-                return { address: s.address };
-            }
-        }
+    const applySignerAt = useCallback((index, source) => {
+        if (!source) return;
+        const patch = pickCorporacionSignerFields(source);
+        setFormData(prev => {
+            const signers = [...prev.signers];
+            signers[index] = { ...signers[index], ...patch };
+            return { ...prev, signers };
+        });
+    }, []);
 
-        return null;
-    };
+    const tryApplyDirectorFromDraft = useCallback(
+        (index, draft) => {
+            const reg = registryForRow('directors', index);
+            const hit = findPersonInRegistry(reg, draft);
+            if (hit) applyDirectorAt(index, hit);
+        },
+        [registryForRow, applyDirectorAt]
+    );
 
     const addDignitary = () => {
         setFormData(prev => ({
@@ -90,13 +123,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const updateDignitary = (index, field, value) => {
         const newDigs = [...formData.dignitaries];
         newDigs[index][field] = value;
-        if (field === 'fullName' && value.length > 3) {
-            const person = findPersonData(value);
-            if (person) {
-                if (person.birthDate) newDigs[index].birthDate = person.birthDate;
-                if (person.passport) newDigs[index].passport = person.passport;
-            }
-        }
         setFormData(prev => ({ ...prev, dignitaries: newDigs }));
     };
 
@@ -134,12 +160,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const updateShareholder = (index, field, value) => {
         const newShareholders = [...formData.shareholders];
         newShareholders[index][field] = value;
-        if (field === 'name' && value.length > 3) {
-            const person = findPersonData(value);
-            if (person && person.address) {
-                newShareholders[index].address = person.address;
-            }
-        }
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
     };
 
@@ -236,9 +256,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
-                        <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" list="corp-global-names" value={d.firstName} onChange={e => updateDirector(i, 'firstName', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'First Name' : 'Primer nombre'}</label><input className="expert-input" value={d.firstName} onChange={e => { updateDirector(i, 'firstName', e.target.value); if (e.target.value.includes(' ')) tryApplyDirectorFromDraft(i, { ...d, firstName: e.target.value }); }} onBlur={() => tryApplyDirectorFromDraft(i, d)} autoComplete="off" /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Middle Name' : 'Segundo nombre'}</label><input className="expert-input" value={d.secondName} onChange={e => updateDirector(i, 'secondName', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Surname(s)' : 'Apellidos'}</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(i, 'lastName', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Surname(s)' : 'Apellidos'}</label><input className="expert-input" value={d.lastName} onChange={e => updateDirector(i, 'lastName', e.target.value)} onBlur={() => tryApplyDirectorFromDraft(i, d)} autoComplete="off" /></div>
                         <div className="expert-field">
                             <label>{lang === 'en' ? 'Marital Status' : 'Estado civil'}</label>
                             <select className="expert-input" value={d.maritalStatus} onChange={e => updateDirector(i, 'maritalStatus', e.target.value)}>
@@ -280,7 +300,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
                     <div className="expert-grid">
                         <div className="expert-field"><label>{lang === 'en' ? 'Position / Role (President, Secretary, Treasurer...)' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="expert-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
-                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label><input className="expert-input" list="corp-global-names" value={dig.fullName} onChange={e => updateDignitary(i, 'fullName', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label><FundacionRegistryNameInput value={dig.fullName} onChange={(v) => updateDignitary(i, 'fullName', v)} registry={registryForRow('dignitaries', i)} onMatch={(hit) => applyDignitaryAt(i, hit)} className="expert-input" /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={dig.passport} onChange={e => updateDignitary(i, 'passport', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} /></div>
                     </div>
@@ -313,7 +333,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-field"><label>{lang === 'en' ? 'Share Certificate Number' : 'No. de Certificado'}</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? "Share's value (USD)" : 'Valor por acción (USD)'}</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Number of shares' : 'Cantidad de acciones'}</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Shareholder (Full name)' : 'Accionista (Nombre completo)'}</label><input className="expert-input" list="corp-global-names" value={s.name} onChange={e => updateShareholder(i, 'name', e.target.value)} /></div>
+                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Shareholder (Full name)' : 'Accionista (Nombre completo)'}</label><FundacionRegistryNameInput value={s.name} onChange={(v) => updateShareholder(i, 'name', v)} registry={registryForRow('shareholders', i)} onMatch={(hit) => applyShareholderAt(i, hit)} className="expert-input" /></div>
                         <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección residencial'}</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} /></div>
                     </div>
                 </div>
@@ -360,7 +380,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-grid">
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
-                                <input className="expert-input-legal" list="corp-global-names" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <FundacionRegistryNameInput value={s.name} onChange={(v) => updateSigner(i, 'name', v)} registry={registryForRow('signers', i)} onMatch={(hit) => applySignerAt(i, hit)} className="expert-input-legal" placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
                             </div>
                             <div className="expert-field full-width">
                                 <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
@@ -382,15 +402,15 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-container">
             <div className="expert-header">
                 <div>
-                    <h1 className="expert-title">{lang === 'en' ? 'INCORPORATION' : 'INCORPORACIÓN'}</h1>
+                    <h1 className="expert-title">{lang === 'en' ? 'INCORPORATION' : 'INCORPORACIÃ“N'}</h1>
                     <p className="expert-subtitle">{lang === 'en' ? 'High-Precision Corporate DMS System' : 'Sistema de Alta Precisión Corporativa'}</p>
                 </div>
                 <button onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save-master">
-                    <Save size={18} /> {saving ? (lang === 'en' ? 'Synchronizing...' : 'Sincronizando...') : (lang === 'en' ? 'SAVE PROGRESS' : 'GUARDAR AVANCE')}
+                    <Save size={18} /> {saving ? t('corporacion.syncing') : t('corporacion.saveProgress')}
                 </button>
             </div>
 
-            {/* Cabecera de Paso Estándar */}
+            {/* Cabecera de Paso EstÃ¡ndar */}
             <div className="standard-step-header">
                 <span className="standard-step-title">
                     {step === 1 && `I. ${t('corporacion.steps.societyInfo') || 'Información de la Sociedad'}`}
@@ -404,7 +424,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </span>
             </div>
 
-            {/* Stepper Progresivo Estándar */}
+            {/* Stepper Progresivo EstÃ¡ndar */}
             <div className="standard-progress-stepper">
                 {[1, 2, 3, 4, 5].map(s => (
                     <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
@@ -419,22 +439,15 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 {step === 5 && renderStep5()}
 
                 <div className="expert-nav-footer">
-                    <button onClick={() => setStep(prev => prev - 1)} disabled={step === 1} className="expert-btn-nav-prev"><ChevronLeft size={18} /> {lang === 'en' ? 'PREVIOUS' : 'ANTERIOR'}</button>
+                    <button onClick={() => setStep(prev => prev - 1)} disabled={step === 1} className="expert-btn-nav-prev"><ChevronLeft size={18} /> {t('corporacion.previous')}</button>
                     {step < 5 ? (
-                        <button onClick={() => setStep(prev => prev + 1)} className="expert-btn-nav-next">{lang === 'en' ? 'NEXT STEP' : 'SIGUIENTE PASO'} <ChevronRight size={18} /></button>
+                        <button onClick={() => setStep(prev => prev + 1)} className="expert-btn-nav-next">{t('corporacion.nextStep')} <ChevronRight size={18} /></button>
                     ) : (
-                        <button onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? (lang === 'en' ? 'FINALIZING...' : 'FINALIZANDO...') : (lang === 'en' ? 'REGISTER CORPORATION' : 'REGISTRAR SOCIEDAD')}</button>
+                        <button onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? t('corporacion.finalizing') : t('corporacion.registerCorp')}</button>
                     )}
                 </div>
             </div>
 
-            <datalist id="corp-global-names">
-                {formData.directors.map((d, i) => {
-                    const full = [d.firstName, d.secondName, d.lastName].filter(Boolean).join(' ');
-                    return full && <option key={`d-${i}`} value={full} />;
-                })}
-                {formData.dignitaries.map((d, i) => d.fullName && <option key={`dig-${i}`} value={d.fullName} />)}
-            </datalist>
 
 
             <style>{`
@@ -497,3 +510,4 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 };
 
 export default CorporacionForm;
+
