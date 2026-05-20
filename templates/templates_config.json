@@ -50,6 +50,38 @@
       "herencia": {"x": 74.5, "y": 422.3}
     }
   },
+  "cumplimiento_entidades": {
+    "file_path": "KYCE.pdf",
+    "x_default": 220,
+    "anchors": [
+      {"keywords": ["legal", "razon", "company"], "x_key": "x_default", "data_key": "legalName", "min_y": 80, "max_y": 200},
+      {"keywords": ["trade", "comercial"], "x_key": "x_default", "data_key": "tradeName", "min_y": 100, "max_y": 220},
+      {"keywords": ["type", "tipo"], "x_key": "x_default", "data_key": "entityType", "min_y": 120, "max_y": 240},
+      {"keywords": ["incorporation", "constitucion"], "x_key": "x_default", "data_key": "incorporationDate", "min_y": 140, "max_y": 260},
+      {"keywords": ["jurisdiction", "jurisdiccion"], "x_key": "x_default", "data_key": "jurisdiction", "min_y": 160, "max_y": 280},
+      {"keywords": ["tax", "ruc", "nit", "fiscal"], "x_key": "x_default", "data_key": "taxId", "min_y": 180, "max_y": 300},
+      {"keywords": ["registration", "registro"], "x_key": "x_default", "data_key": "registrationNumber", "min_y": 200, "max_y": 320},
+      {"keywords": ["registered", "domicilio", "address"], "x_key": "x_default", "data_key": "registeredAddress", "min_y": 220, "max_y": 360},
+      {"keywords": ["phone", "telefono"], "x_key": "x_default", "data_key": "phone", "min_y": 280, "max_y": 420},
+      {"keywords": ["email", "correo"], "x_key": "x_default", "data_key": "email", "min_y": 300, "max_y": 440},
+      {"keywords": ["city", "ciudad"], "x_key": "x_default", "data_key": "city", "min_y": 360, "max_y": 500},
+      {"keywords": ["country", "pais"], "x_key": "x_default", "data_key": "country", "min_y": 380, "max_y": 520},
+      {"keywords": ["activity", "objeto", "negocio"], "x_key": "x_default", "data_key": "businessActivity", "min_y": 400, "max_y": 540},
+      {"keywords": ["website", "web"], "x_key": "x_default", "data_key": "website", "min_y": 420, "max_y": 560},
+      {"keywords": ["representative", "representante"], "x_key": "x_default", "data_key": "legalRepName", "min_y": 480, "max_y": 620},
+      {"keywords": ["beneficial", "beneficiario"], "x_key": "x_default", "data_key": "beneficialOwners", "min_y": 520, "max_y": 660},
+      {"keywords": ["pep", "politically"], "x_key": "x_default", "data_key": "pep", "min_y": 560, "max_y": 700},
+      {"keywords": ["declaration", "declaracion"], "x_key": "x_default", "data_key": "declarationName", "min_y": 650, "max_y": 780},
+      {"keywords": ["date", "fecha"], "x_key": "x_default", "data_key": "declarationDate", "min_y": 680, "max_y": 800}
+    ],
+    "funds_checkboxes": {
+      "bienes": {"x": 74.5, "y": 376.3},
+      "inversiones": {"x": 74.5, "y": 387.8},
+      "negocios": {"x": 74.5, "y": 399.3},
+      "prestamos": {"x": 74.5, "y": 410.8},
+      "capital": {"x": 74.5, "y": 422.3}
+    }
+  },
   "corporacion": {
     "file_path": "corporacion.pdf",
     "x_top": 200,

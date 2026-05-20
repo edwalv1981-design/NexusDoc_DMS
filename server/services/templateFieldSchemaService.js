@@ -52,6 +52,34 @@ const KYCI_FIELD_LABELS_ES = Object.freeze({
   declarationDate: 'FECHA DE DECLARACIÓN',
 });
 
+/** Etiquetas humanas KYCE (es) alineadas con client i18n. */
+const KYCE_FIELD_LABELS_ES = Object.freeze({
+  legalName: 'RAZÓN SOCIAL',
+  tradeName: 'NOMBRE COMERCIAL',
+  entityType: 'TIPO DE ENTIDAD',
+  incorporationDate: 'FECHA DE CONSTITUCIÓN',
+  jurisdiction: 'JURISDICCIÓN',
+  taxId: 'RUC / NIT / ID FISCAL',
+  registrationNumber: 'NÚMERO DE REGISTRO',
+  registeredAddress: 'DOMICILIO SOCIAL',
+  phone: 'TELÉFONO',
+  email: 'CORREO ELECTRÓNICO',
+  city: 'CIUDAD',
+  country: 'PAÍS DE OPERACIÓN',
+  businessActivity: 'OBJETO SOCIAL / ACTIVIDAD',
+  website: 'SITIO WEB',
+  legalRepName: 'REPRESENTANTE LEGAL — NOMBRE',
+  legalRepId: 'REPRESENTANTE LEGAL — DOCUMENTO',
+  legalRepNationality: 'REPRESENTANTE LEGAL — NACIONALIDAD',
+  beneficialOwners: 'BENEFICIARIOS FINALES',
+  pep: 'PEP (PERSONA O ENTIDAD EXPUESTA)',
+  pepDetails: 'DETALLE PEP (si aplica)',
+  fundsSource: 'ORIGEN DE FONDOS / PATRIMONIO',
+  fundsOther: 'OTRAS FUENTES (ESPECIFIQUE)',
+  declarationName: 'NOMBRE EN DECLARACIÓN',
+  declarationDate: 'FECHA DE DECLARACIÓN',
+});
+
 let templatesConfigCache = null;
 
 function loadTemplatesConfig() {
@@ -107,6 +135,7 @@ function resolveFieldLabel(formKey, acroName, staticField, labelMap) {
   if (labelMap?.[formKey]) return labelMap[formKey];
   if (labelMap?.[acroName]) return labelMap[acroName];
   if (KYCI_FIELD_LABELS_ES[formKey]) return KYCI_FIELD_LABELS_ES[formKey];
+  if (KYCE_FIELD_LABELS_ES[formKey]) return KYCE_FIELD_LABELS_ES[formKey];
   if (staticField?.label) return staticField.label;
   const fromAcro = humanizeAcroName(acroName);
   if (fromAcro) return fromAcro;
@@ -114,9 +143,29 @@ function resolveFieldLabel(formKey, acroName, staticField, labelMap) {
 }
 
 const STEP_GROUPS = Object.freeze([
-  { id: 'personal', titleKey: 'steps.personal', pattern: /first|second|last|surname|apellido|birth|marital|national|passport|cedula|identification|nombre/i },
-  { id: 'contact', titleKey: 'steps.contact', pattern: /phone|telefono|email|correo|address|direccion|domicilio|city|ciudad|country|pais|occupation|ocupacion|employer|empleador/i },
-  { id: 'compliance', titleKey: 'steps.compliance', pattern: /pep|funds|fondo|source|declaration|declaracion|checkbox|check/i },
+  {
+    id: 'entity',
+    titleKey: 'steps.entity',
+    pattern:
+      /legal|trade|entity|incorporation|jurisdiction|tax|registration|registered|razon|entidad|constitucion|fiscal|domicilio/i,
+  },
+  {
+    id: 'personal',
+    titleKey: 'steps.personal',
+    pattern: /first|second|last|surname|apellido|birth|marital|national|passport|cedula|identification|nombre/i,
+  },
+  {
+    id: 'contact',
+    titleKey: 'steps.contact',
+    pattern:
+      /phone|telefono|email|correo|address|direccion|domicilio|city|ciudad|country|pais|occupation|ocupacion|employer|empleador|website|web|business|actividad|objeto/i,
+  },
+  {
+    id: 'compliance',
+    titleKey: 'steps.compliance',
+    pattern:
+      /pep|funds|fondo|source|declaration|declaracion|checkbox|check|legalrep|beneficial|representante|beneficiario/i,
+  },
 ]);
 
 function normalizeKey(text) {

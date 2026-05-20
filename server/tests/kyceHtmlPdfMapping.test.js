@@ -35,7 +35,9 @@ describe('kyceHtmlPdfMapping', () => {
   it('incluye secciones y datos de entidad en HTML', () => {
     const t = getKycePdfDict('es');
     const html = buildKycePdfInnerHtml(sampleData, { language: 'es' });
+    assert.match(html, /PTL_KYC/);
     assert.match(html, new RegExp(escRegex(t.sectionEntity)));
+    assert.match(html, new RegExp(escRegex(t.sectionCompliance)));
     assert.match(html, new RegExp(escRegex(t.sectionContact)));
     assert.match(html, new RegExp(escRegex(t.sectionRepresentatives)));
     assert.match(html, /Inversiones Globales/);

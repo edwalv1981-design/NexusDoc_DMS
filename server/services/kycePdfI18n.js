@@ -1,11 +1,12 @@
 'use strict';
 
 const ES = Object.freeze({
-  docTitle: 'Formulario de Cumplimiento — Persona Jurídica',
-  docSubtitle: 'PTL / KYC — Entity Compliance',
+  docTitle: 'PTL_KYC — Formulario de Cumplimiento — Personas Jurídicas',
+  docSubtitle: 'Compliance Form — Entities',
   sectionEntity: 'I. Datos de la entidad',
   sectionContact: 'II. Contacto y actividad',
-  sectionRepresentatives: 'III. Representantes, beneficiarios y cumplimiento',
+  sectionRepresentatives: 'III. Representantes y beneficiarios finales',
+  sectionCompliance: 'IV. Cumplimiento, PEP y origen de fondos',
   sectionDeclaration: 'Declaración',
   legalName: 'Razón social',
   tradeName: 'Nombre comercial',
@@ -41,11 +42,12 @@ const ES = Object.freeze({
 });
 
 const EN = Object.freeze({
-  docTitle: 'Compliance Form — Legal Entity',
-  docSubtitle: 'PTL / KYC — Entity Compliance',
+  docTitle: 'PTL_KYC — Compliance Form — Entities',
+  docSubtitle: 'Formulario de Cumplimiento — Personas Jurídicas',
   sectionEntity: 'I. Entity information',
   sectionContact: 'II. Contact and business activity',
-  sectionRepresentatives: 'III. Representatives, beneficial owners and compliance',
+  sectionRepresentatives: 'III. Representatives and beneficial owners',
+  sectionCompliance: 'IV. Compliance, PEP and source of funds',
   sectionDeclaration: 'Declaration',
   legalName: 'Legal name',
   tradeName: 'Trade name',
@@ -89,9 +91,22 @@ function getKycePdfDict(lang) {
   return normalizeLanguage(lang) === 'en' ? EN : ES;
 }
 
+function assertKycePdfI18nParity() {
+  const esKeys = Object.keys(ES).sort();
+  const enKeys = Object.keys(EN).sort();
+  if (esKeys.length !== enKeys.length || esKeys.some((k, i) => k !== enKeys[i])) {
+    const missingInEn = esKeys.filter((k) => !enKeys.includes(k));
+    const missingInEs = enKeys.filter((k) => !esKeys.includes(k));
+    throw new Error(
+      `kycePdfI18n: diccionarios desalineados. Faltan en EN: [${missingInEn.join(',')}], faltan en ES: [${missingInEs.join(',')}]`
+    );
+  }
+}
+
 module.exports = {
   ES,
   EN,
   normalizeLanguage,
   getKycePdfDict,
+  assertKycePdfI18nParity,
 };

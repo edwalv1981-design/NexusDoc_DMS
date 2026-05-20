@@ -13,7 +13,7 @@ describe('ClientDashboard KYCI routing', () => {
   it('usa formulario dedicado CumplimientoIndividualForm para KYCI', () => {
     assert.match(src, /import CumplimientoIndividualForm from '\.\/CumplimientoIndividualForm'/);
     assert.match(src, /<CumplimientoIndividualForm/);
-    assert.match(src, /currentFormType === 'Cumplimiento Individual'/);
+    assert.match(src, /isKyciFormType\(currentFormType\)/);
   });
 
   it('no enruta Cumplimiento Individual a PdfSchemaWizard', () => {

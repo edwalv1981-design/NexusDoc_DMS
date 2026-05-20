@@ -1,9 +1,10 @@
-'use strict';
+﻿'use strict';
 
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
-const { getKyciPdfDict, normalizeLanguage } = require('./kyciPdfI18n');
+const { getKyciPdfDict, normalizeLanguage, assertKyciPdfI18nParity } = require('./kyciPdfI18n');
+const { assertKycPdfFieldRegistryParity } = require('../config/kycPdfFieldRegistry');
 
 const FUNDS_SOURCE_KEYS = Object.freeze([
   { key: 'Bienes personales', labelKey: 'fundsBienes' },
@@ -48,7 +49,7 @@ function toDataUri(filePath) {
 }
 
 function kvRow(label, value) {
-  return `<tr><td class="kv-label">${esc(label)}</td><td>${esc(value || '—')}</td></tr>`;
+  return `<tr><td class="kv-label">${esc(label)}</td><td>${esc(value || 'ÔÇö')}</td></tr>`;
 }
 
 function buildFundsChecksHtml(data, t) {
@@ -88,7 +89,7 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
 
   const pepDisplay =
     pepYes && data.pepDetails
-      ? `${t.yes} — ${data.pepDetails}`
+      ? `${t.yes} ÔÇö ${data.pepDetails}`
       : pepYes
         ? t.yes
         : t.no;
@@ -161,7 +162,7 @@ class KyciHtmlPdfService {
     .logo-wrap { text-align: right; margin-bottom: 8px; }
     .logo { max-height: 48px; max-width: 160px; }
     .doc-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #0891b2; padding-bottom: 10px; }
-    .doc-header h1 { margin: 0 0 4px; font-size: 16px; color: #0e7490; }
+    .doc-header h1 { margin: 0 0 4px; font-size: 14px; color: #0e7490; }
     .subtitle { margin: 0; font-size: 10px; color: #64748b; }
     .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; }
     .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 10px; font-size: 12px; }

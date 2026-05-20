@@ -3,7 +3,8 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
-const { getKycePdfDict, normalizeLanguage } = require('./kycePdfI18n');
+const { getKycePdfDict, normalizeLanguage, assertKycePdfI18nParity } = require('./kycePdfI18n');
+const { assertKycPdfFieldRegistryParity } = require('../config/kycPdfFieldRegistry');
 
 const FUNDS_SOURCE_KEYS = Object.freeze([
   { key: 'Bienes de la entidad', labelKey: 'fundsBienes' },
@@ -60,6 +61,8 @@ function buildFundsChecksHtml(data, t) {
 }
 
 function buildKycePdfInnerHtml(data = {}, options = {}) {
+  assertKycePdfI18nParity();
+  assertKycPdfFieldRegistryParity();
   const lang = normalizeLanguage(options.language || data.language);
   const t = getKycePdfDict(lang);
   const pepYes = String(data.pep || '').trim().toLowerCase().startsWith('s');
@@ -115,7 +118,16 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
           ${kvRow(t.legalRepId, data.legalRepId)}
           ${kvRow(t.legalRepNationality, data.legalRepNationality)}
           ${kvRow(t.beneficialOwners, data.beneficialOwners)}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>${esc(t.sectionCompliance)}</h2>
+      <table class="kv-table">
+        <tbody>
           ${kvRow(t.pep, pepDisplay)}
+          ${pepYes ? kvRow(t.pepDetails, data.pepDetails) : ''}
           ${kvRow(t.fundsOther, data.fundsOther)}
         </tbody>
       </table>
@@ -163,7 +175,7 @@ class KyceHtmlPdfService {
     .logo-wrap { text-align: right; margin-bottom: 8px; }
     .logo { max-height: 48px; max-width: 160px; }
     .doc-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #1d4ed8; padding-bottom: 10px; }
-    .doc-header h1 { margin: 0 0 4px; font-size: 16px; color: #1e40af; }
+    .doc-header h1 { margin: 0 0 4px; font-size: 14px; color: #1e40af; }
     .subtitle { margin: 0; font-size: 10px; color: #64748b; }
     .card { border: 1px solid #93c5fd; margin: 10px 0; page-break-inside: avoid; }
     .card h2 { margin: 0; background: #1d4ed8; color: #fff; padding: 6px 10px; font-size: 12px; }

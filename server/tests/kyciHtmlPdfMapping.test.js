@@ -33,6 +33,7 @@ describe('kyciHtmlPdfMapping', () => {
   it('incluye secciones y datos personales en HTML', () => {
     const t = getKyciPdfDict('es');
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
+    assert.match(html, /PTL_KYC/);
     assert.match(html, new RegExp(escRegex(t.sectionPersonal)));
     assert.match(html, new RegExp(escRegex(t.sectionContact)));
     assert.match(html, new RegExp(escRegex(t.sectionCompliance)));

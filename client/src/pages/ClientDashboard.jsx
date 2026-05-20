@@ -19,7 +19,13 @@ import FundacionForm from './FundacionForm';
 import CumplimientoIndividualForm from './CumplimientoIndividualForm';
 import CumplimientoEntidadesForm from './CumplimientoEntidadesForm';
 import PdfSchemaWizard from '../components/PdfSchemaWizard';
-import { resolveCanonicalFormType, usesSchemaWizard, usesFondosWizard } from '../utils/formWizardRouting';
+import {
+  resolveCanonicalFormType,
+  usesSchemaWizard,
+  usesFondosWizard,
+  isKyciFormType,
+  isKyceFormType,
+} from '../utils/formWizardRouting';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -587,13 +593,13 @@ const ClientDashboard = () => {
                         onSave={saveDynamicForm}
                         saving={saving}
                     />
-                ) : currentFormType === 'Cumplimiento Individual' ? (
+                ) : isKyciFormType(currentFormType) ? (
                     <CumplimientoIndividualForm
                         initialData={formData}
                         onSave={saveDynamicForm}
                         saving={saving}
                     />
-                ) : currentFormType === 'Cumplimiento Entidades' ? (
+                ) : isKyceFormType(currentFormType) ? (
                     <CumplimientoEntidadesForm
                         initialData={formData}
                         onSave={saveDynamicForm}

@@ -1,8 +1,8 @@
 'use strict';
 
 const ES = Object.freeze({
-  docTitle: 'Formulario de Cumplimiento — Persona Natural',
-  docSubtitle: 'PTL / KYC — Individual Compliance',
+  docTitle: 'PTL_KYC — Formulario de Cumplimiento — Personas Naturales',
+  docSubtitle: 'Compliance Form — Individuals',
   sectionPersonal: 'I. Datos personales',
   sectionContact: 'II. Contacto y actividad',
   sectionCompliance: 'III. Cumplimiento, PEP y origen de fondos',
@@ -39,8 +39,8 @@ const ES = Object.freeze({
 });
 
 const EN = Object.freeze({
-  docTitle: 'Compliance Form — Individual',
-  docSubtitle: 'PTL / KYC — Individual Compliance',
+  docTitle: 'PTL_KYC — Compliance Form — Individuals',
+  docSubtitle: 'Formulario de Cumplimiento — Personas Naturales',
   sectionPersonal: 'I. Personal information',
   sectionContact: 'II. Contact and occupation',
   sectionCompliance: 'III. Compliance, PEP and source of funds',
@@ -85,9 +85,22 @@ function getKyciPdfDict(lang) {
   return normalizeLanguage(lang) === 'en' ? EN : ES;
 }
 
+function assertKyciPdfI18nParity() {
+  const esKeys = Object.keys(ES).sort();
+  const enKeys = Object.keys(EN).sort();
+  if (esKeys.length !== enKeys.length || esKeys.some((k, i) => k !== enKeys[i])) {
+    const missingInEn = esKeys.filter((k) => !enKeys.includes(k));
+    const missingInEs = enKeys.filter((k) => !esKeys.includes(k));
+    throw new Error(
+      `kyciPdfI18n: diccionarios desalineados. Faltan en EN: [${missingInEn.join(',')}], faltan en ES: [${missingInEs.join(',')}]`
+    );
+  }
+}
+
 module.exports = {
   ES,
   EN,
   normalizeLanguage,
   getKyciPdfDict,
+  assertKyciPdfI18nParity,
 };

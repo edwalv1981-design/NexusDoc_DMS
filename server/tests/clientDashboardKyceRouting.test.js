@@ -13,7 +13,7 @@ describe('ClientDashboard KYCE routing', () => {
   it('usa formulario dedicado CumplimientoEntidadesForm para KYCE', () => {
     assert.match(src, /import CumplimientoEntidadesForm from '\.\/CumplimientoEntidadesForm'/);
     assert.match(src, /<CumplimientoEntidadesForm/);
-    assert.match(src, /currentFormType === 'Cumplimiento Entidades'/);
+    assert.match(src, /isKyceFormType\(currentFormType\)/);
   });
 
   it('no enruta Cumplimiento Entidades a PdfSchemaWizard', () => {
