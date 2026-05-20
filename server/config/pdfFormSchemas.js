@@ -52,7 +52,7 @@ const CUMPLIMIENTO_INDIVIDUAL_SCHEMA = Object.freeze({
       id: 'compliance',
       titleKey: 'steps.compliance',
       fields: Object.freeze([
-        { key: 'pep', type: 'select', options: ['No', 'Sí'], required: true, col: 'half' },
+        { key: 'pep', type: 'radio', options: ['No', 'Sí'], required: true, col: 'full' },
         { key: 'pepDetails', type: 'textarea', col: 'full', showIf: { field: 'pep', value: 'Sí' } },
         {
           key: 'fundsSource',
@@ -116,7 +116,7 @@ const CUMPLIMIENTO_ENTIDADES_SCHEMA = Object.freeze({
         { key: 'legalRepId', type: 'text', required: true, col: 'half' },
         { key: 'legalRepNationality', type: 'text', col: 'half' },
         { key: 'beneficialOwners', type: 'textarea', required: true, col: 'full' },
-        { key: 'pep', type: 'select', options: ['No', 'Sí'], required: true, col: 'half' },
+        { key: 'pep', type: 'radio', options: ['No', 'Sí'], required: true, col: 'full' },
         { key: 'pepDetails', type: 'textarea', col: 'full', showIf: { field: 'pep', value: 'Sí' } },
         {
           key: 'fundsSource',

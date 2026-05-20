@@ -217,6 +217,19 @@ const es = {
     pepNo: 'No',
     pepYes: 'Sí',
     stepLabel: 'PASO {step}',
+    hints: {
+      personal:
+        'Complete los datos personales tal como figuran en su pasaporte o documento de identidad oficial (PTL_KYC — Personas Naturales).',
+      contact: 'Indique datos de contacto vigentes y su ocupación o actividad económica principal.',
+      compliance:
+        'Declare si es persona expuesta políticamente (PEP) y seleccione una o más fuentes del origen de sus fondos o patrimonio.',
+      pep:
+        'Persona que desempeña o desempeñó funciones públicas destacadas, o familiar / asociado cercano de la misma.',
+      fundsSource:
+        'Marque todas las opciones que apliquen. Puede seleccionar más de una fuente.',
+      declaration:
+        'La declaración debe coincidir con el nombre del firmante autorizado en el formulario.',
+    },
     flatPdfTitle: 'PDF sin campos rellenables',
     flatPdfBody:
       'La plantilla de Cumplimiento Individual no tiene campos de formulario (AcroForm). El administrador debe subir un PDF con campos editables.',
@@ -265,6 +278,19 @@ const es = {
     pepYes: 'Sí',
     stepLabel: 'PASO {step}',
     beneficialOwnersHint: 'Nombre, % participación y documento de cada beneficiario final (≥25%)',
+    hints: {
+      entity:
+        'Datos de constitución y registro de la entidad según documentos societarios vigentes (PTL_KYC — Personas Jurídicas).',
+      contact: 'Información de contacto y descripción de la actividad principal de la entidad.',
+      compliance:
+        'Identifique representantes, beneficiarios finales, PEP y origen de fondos de la entidad.',
+      pep:
+        'Indique si la entidad, sus directores, representantes o beneficiarios finales son personas o entidades expuestas políticamente.',
+      fundsSource:
+        'Seleccione todas las fuentes que apliquen al patrimonio o fondos de la entidad.',
+      beneficialOwners:
+        'Liste cada beneficiario final con participación igual o superior al 25%, incluyendo nombre, porcentaje y documento.',
+    },
     steps: {
       entity: 'Datos de la entidad',
       contact: 'Contacto y actividad',

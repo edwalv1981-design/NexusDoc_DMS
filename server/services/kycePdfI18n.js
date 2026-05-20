@@ -8,6 +8,13 @@ const ES = Object.freeze({
   sectionRepresentatives: 'III. Representantes y beneficiarios finales',
   sectionCompliance: 'IV. Cumplimiento, PEP y origen de fondos',
   sectionDeclaration: 'Declaración',
+  sectionEntityGuide:
+    'Datos de constitución y registro de la entidad según documentos societarios vigentes.',
+  sectionContactGuide: 'Información de contacto y descripción de la actividad principal de la entidad.',
+  sectionRepresentativesGuide:
+    'Identifique al representante legal y a los beneficiarios finales con participación igual o superior al 25%.',
+  sectionComplianceGuide:
+    'Indique si la entidad o sus controladores son PEP y seleccione el origen de fondos o patrimonio aplicable.',
   legalName: 'Razón social',
   tradeName: 'Nombre comercial',
   entityType: 'Tipo de entidad',
@@ -49,6 +56,13 @@ const EN = Object.freeze({
   sectionRepresentatives: 'III. Representatives and beneficial owners',
   sectionCompliance: 'IV. Compliance, PEP and source of funds',
   sectionDeclaration: 'Declaration',
+  sectionEntityGuide:
+    'Entity incorporation and registration details as shown on current corporate documents.',
+  sectionContactGuide: 'Contact information and description of the entity’s main business activity.',
+  sectionRepresentativesGuide:
+    'Identify the legal representative and beneficial owners with 25% or more ownership or control.',
+  sectionComplianceGuide:
+    'State whether the entity or its controllers are PEPs and check all applicable sources of funds or wealth.',
   legalName: 'Legal name',
   tradeName: 'Trade name',
   entityType: 'Entity type',

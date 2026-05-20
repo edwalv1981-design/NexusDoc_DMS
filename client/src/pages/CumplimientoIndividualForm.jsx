@@ -9,6 +9,13 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useT } from '../i18n';
+import {
+  KYC_PRIMARY,
+  KycHintBox,
+  KycPepQuestion,
+  KycFundsSourceGroup,
+  kycFormSharedStyles,
+} from '../components/KycFormShared';
 
 const MARITAL_OPTIONS = ['Soltero(a)', 'Casado(a)', 'Divorciado(a)', 'Viudo(a)', 'Unión libre'];
 
@@ -62,7 +69,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
     }
   }, [initialData]);
 
-  const PRIMARY = '#0078d4';
+  const PRIMARY = KYC_PRIMARY;
   const SECONDARY = '#1e293b';
   const TOTAL_STEPS = 3;
 
@@ -123,11 +130,20 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
     });
   };
 
+  const setPep = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      pep: value,
+      pepDetails: value === 'No' ? '' : prev.pepDetails,
+    }));
+  };
+
   const renderStep1 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
         <User size={22} color={PRIMARY} /> {t('kyci.steps.personal')}
       </h2>
+      <KycHintBox>{t('kyci.hints.personal')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
         <div className="expert-group"><label>{L('firstName')}</label><input className="expert-input" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required /></div>
         <div className="expert-group"><label>{L('secondName')}</label><input className="expert-input" value={formData.secondName} onChange={(e) => setFormData({ ...formData, secondName: e.target.value })} /></div>
@@ -154,6 +170,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
         <Phone size={22} color={PRIMARY} /> {t('kyci.steps.contact')}
       </h2>
+      <KycHintBox>{t('kyci.hints.contact')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
         <div className="expert-group"><label>{L('phone')}</label><input className="expert-input" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required /></div>
         <div className="expert-group"><label>{L('email')}</label><input type="email" className="expert-input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required /></div>
@@ -171,28 +188,30 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
         <ShieldCheck size={22} color={PRIMARY} /> {t('kyci.steps.compliance')}
       </h2>
+      <KycHintBox>{t('kyci.hints.compliance')}</KycHintBox>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <div className="expert-group"><label>{L('pep')}</label>
-          <select className="expert-input" value={formData.pep} onChange={(e) => setFormData({ ...formData, pep: e.target.value, pepDetails: e.target.value === 'No' ? '' : formData.pepDetails })}>
-            <option value="No">{t('kyci.pepNo')}</option>
-            <option value="Sí">{t('kyci.pepYes')}</option>
-          </select>
-        </div>
-        {formData.pep === 'Sí' && (
-          <div className="expert-group"><label>{L('pepDetails')}</label><textarea className="expert-input" rows={3} value={formData.pepDetails} onChange={(e) => setFormData({ ...formData, pepDetails: e.target.value })} required /></div>
-        )}
-        <div>
-          <label style={{ fontSize: '10px', fontWeight: 800, color: '#475569', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>{L('fundsSource')}</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {FUNDS_OPTIONS.map((f) => (
-              <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '12px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={formData.fundsSource.includes(f.key)} onChange={() => toggleFunds(f.key)} />
-                {t(`kyci.sources.${f.labelKey}`)}
-              </label>
-            ))}
-          </div>
-        </div>
+        <KycPepQuestion
+          label={L('pep')}
+          hint={t('kyci.hints.pep')}
+          pep={formData.pep}
+          pepDetails={formData.pepDetails}
+          onPepChange={setPep}
+          onDetailsChange={(value) => setFormData({ ...formData, pepDetails: value })}
+          detailsLabel={L('pepDetails')}
+          pepNoLabel={t('kyci.pepNo')}
+          pepYesLabel={t('kyci.pepYes')}
+        />
+        <KycFundsSourceGroup
+          label={L('fundsSource')}
+          instructions={t('kyci.hints.fundsSource')}
+          options={FUNDS_OPTIONS}
+          fundsSource={formData.fundsSource}
+          onToggle={toggleFunds}
+          getOptionLabel={(opt) => t(`kyci.sources.${opt.labelKey}`)}
+          primary={PRIMARY}
+        />
         <div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" value={formData.fundsOther} onChange={(e) => setFormData({ ...formData, fundsOther: e.target.value })} /></div>
+        <KycHintBox>{t('kyci.hints.declaration')}</KycHintBox>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" value={formData.declarationName} onChange={(e) => setFormData({ ...formData, declarationName: e.target.value })} required /></div>
           <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" value={formData.declarationDate} onChange={(e) => setFormData({ ...formData, declarationDate: e.target.value })} required /></div>
@@ -242,18 +261,10 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
         </div>
       </div>
 
-      <style>{`
-        .expert-input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 13px; font-weight: 500; }
-        .expert-input:focus { border-color: ${PRIMARY}; box-shadow: 0 0 0 4px ${PRIMARY}15; }
-        .expert-group { display: flex; flex-direction: column; gap: 6px; }
-        .expert-group label { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 0.5px; }
-        .expert-btn-primary { padding: 12px 25px; background: ${PRIMARY}; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-        .expert-btn-nav { padding: 12px 25px; background: #f1f5f9; color: #475569; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-        .expert-btn-save { padding: 10px 20px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; }
-        .expert-btn-finish { padding: 12px 25px; background: #16a34a; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-      `}</style>
+      <style>{kycFormSharedStyles(PRIMARY)}</style>
     </div>
   );
 };
 
 export default CumplimientoIndividualForm;
+

@@ -7,6 +7,11 @@ const ES = Object.freeze({
   sectionContact: 'II. Contacto y actividad',
   sectionCompliance: 'III. Cumplimiento, PEP y origen de fondos',
   sectionDeclaration: 'Declaración',
+  sectionPersonalGuide:
+    'Complete los datos personales tal como figuran en su pasaporte o documento de identidad oficial.',
+  sectionContactGuide: 'Indique datos de contacto vigentes y su ocupación o actividad económica principal.',
+  sectionComplianceGuide:
+    'Declare si es persona expuesta políticamente (PEP) y marque todas las fuentes que apliquen al origen de sus fondos o patrimonio.',
   firstName: 'Nombre',
   secondName: 'Segundo nombre',
   lastName: 'Apellidos',
@@ -45,6 +50,11 @@ const EN = Object.freeze({
   sectionContact: 'II. Contact and occupation',
   sectionCompliance: 'III. Compliance, PEP and source of funds',
   sectionDeclaration: 'Declaration',
+  sectionPersonalGuide:
+    'Enter personal details exactly as shown on your passport or official ID document.',
+  sectionContactGuide: 'Provide current contact details and your main occupation or economic activity.',
+  sectionComplianceGuide:
+    'State whether you are a politically exposed person (PEP) and check all applicable sources of funds or wealth.',
   firstName: 'First name',
   secondName: 'Middle name',
   lastName: 'Surname(s)',

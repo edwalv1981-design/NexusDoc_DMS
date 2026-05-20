@@ -217,6 +217,17 @@ const en = {
     pepNo: 'No',
     pepYes: 'Yes',
     stepLabel: 'STEP {step}',
+    hints: {
+      personal:
+        'Enter personal details exactly as shown on your passport or official ID (PTL_KYC — Individuals).',
+      contact: 'Provide current contact details and your main occupation or economic activity.',
+      compliance:
+        'State whether you are a politically exposed person (PEP) and select one or more sources of funds or wealth.',
+      pep:
+        'A person who holds or held prominent public office, or a close family member or associate of such a person.',
+      fundsSource: 'Check all options that apply. You may select more than one source.',
+      declaration: 'The declaration name must match the authorized signatory on this form.',
+    },
     flatPdfTitle: 'PDF has no fillable fields',
     flatPdfBody:
       'The Individual Compliance template has no AcroForm fields. An administrator must upload a PDF with editable form fields.',
@@ -265,6 +276,18 @@ const en = {
     pepYes: 'Yes',
     stepLabel: 'STEP {step}',
     beneficialOwnersHint: 'Name, ownership % and ID for each beneficial owner (≥25%)',
+    hints: {
+      entity:
+        'Entity incorporation and registration details per current corporate documents (PTL_KYC — Entities).',
+      contact: 'Contact information and description of the entity’s main business activity.',
+      compliance:
+        'Identify representatives, beneficial owners, PEP status, and source of funds for the entity.',
+      pep:
+        'Indicate whether the entity, its directors, representatives, or beneficial owners are politically exposed.',
+      fundsSource: 'Select all sources that apply to the entity’s funds or wealth.',
+      beneficialOwners:
+        'List each beneficial owner with 25% or more ownership, including name, percentage, and ID.',
+    },
     steps: {
       entity: 'Entity information',
       contact: 'Contact and business activity',

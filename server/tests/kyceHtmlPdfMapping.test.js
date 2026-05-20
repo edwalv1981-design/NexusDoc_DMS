@@ -51,6 +51,19 @@ describe('kyceHtmlPdfMapping', () => {
     assert.match(html, /\[ \].*Pr.stamos/s);
   });
 
+  it('PEP se renderiza como casillas Sí/No', () => {
+    const t = getKycePdfDict('es');
+    const htmlNo = buildKycePdfInnerHtml({ ...sampleData, pep: 'No' }, { language: 'es' });
+    assert.match(htmlNo, new RegExp(`\\[ \\] ${escRegex(t.yes)}`));
+    assert.match(htmlNo, new RegExp(`\\[X\\] ${escRegex(t.no)}`));
+    const htmlYes = buildKycePdfInnerHtml(
+      { ...sampleData, pep: 'Sí', pepDetails: 'Director estatal' },
+      { language: 'es' }
+    );
+    assert.match(htmlYes, new RegExp(`\\[X\\] ${escRegex(t.yes)}`));
+    assert.match(htmlYes, /Director estatal/);
+  });
+
   it('genera etiquetas en inglés', () => {
     const t = getKycePdfDict('en');
     const html = buildKycePdfInnerHtml(sampleData, { language: 'en' });

@@ -5,33 +5,21 @@ const fs = require('fs');
 const path = require('path');
 const { getKyciPdfDict, normalizeLanguage, assertKyciPdfI18nParity } = require('./kyciPdfI18n');
 const { assertKycPdfFieldRegistryParity } = require('../config/kycPdfFieldRegistry');
+const { FUNDS_SOURCE_OPTIONS } = require('../config/pdfFormSchemas');
+const {
+  esc,
+  fmtDate,
+  kvRow,
+  formatYesNoChecks,
+  buildFundsChecksHtml,
+  isPepYes,
+  sectionGuideHtml,
+} = require('../utils/kycHtmlPdfShared');
 
-const FUNDS_SOURCE_KEYS = Object.freeze([
-  { key: 'Bienes personales', labelKey: 'fundsBienes' },
-  { key: 'Inversiones Financieras', labelKey: 'fundsInversiones' },
-  { key: 'Negocios', labelKey: 'fundsNegocios' },
-  { key: 'Prestamos', labelKey: 'fundsPrestamos' },
-  { key: 'Herencia o Fondo Fiduciario', labelKey: 'fundsHerencia' },
-]);
-
-function esc(v) {
-  return String(v ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function fmtDate(v) {
-  if (!v) return '';
-  const s = String(v);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const [y, m, d] = s.split('-');
-    return `${d}/${m}/${y}`;
-  }
-  return s;
-}
+const FUNDS_SOURCE_KEYS = FUNDS_SOURCE_OPTIONS.map((o) => ({
+  key: o.key,
+  labelKey: `funds${o.labelKey.charAt(0).toUpperCase()}${o.labelKey.slice(1)}`,
+}));
 
 function toDataUri(filePath) {
   const ext = String(path.extname(filePath) || '').toLowerCase();
@@ -48,22 +36,12 @@ function toDataUri(filePath) {
   return `data:${mime};base64,${b64}`;
 }
 
-function kvRow(label, value) {
-  return `<tr><td class="kv-label">${esc(label)}</td><td>${esc(value || 'ÔÇö')}</td></tr>`;
-}
-
-function buildFundsChecksHtml(data, t) {
-  const selected = Array.isArray(data.fundsSource) ? data.fundsSource : [];
-  return FUNDS_SOURCE_KEYS.map(({ key, labelKey }) => {
-    const mark = selected.includes(key) ? 'X' : ' ';
-    return `<div class="chk-line"><span class="chk">[${mark}]</span> ${esc(t[labelKey] || key)}</div>`;
-  }).join('');
-}
-
 function buildKyciPdfInnerHtml(data = {}, options = {}) {
+  assertKyciPdfI18nParity();
+  assertKycPdfFieldRegistryParity();
   const lang = normalizeLanguage(options.language || data.language);
   const t = getKyciPdfDict(lang);
-  const pepYes = String(data.pep || '').trim().toLowerCase().startsWith('s');
+  const pepYes = isPepYes(data.pep);
 
   const personalRows = [
     kvRow(t.firstName, data.firstName),
@@ -87,12 +65,11 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
     kvRow(t.employer, data.employer),
   ].join('');
 
-  const pepDisplay =
-    pepYes && data.pepDetails
-      ? `${t.yes} ÔÇö ${data.pepDetails}`
-      : pepYes
-        ? t.yes
-        : t.no;
+  const complianceRows = [
+    kvRow(t.pep, formatYesNoChecks(pepYes, !pepYes, t)),
+    pepYes ? kvRow(t.pepDetails, data.pepDetails) : '',
+    kvRow(t.fundsOther, data.fundsOther),
+  ].join('');
 
   return `
     <header class="doc-header">
@@ -102,25 +79,23 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
 
     <section class="card">
       <h2>${esc(t.sectionPersonal)}</h2>
+      ${sectionGuideHtml(t.sectionPersonalGuide)}
       <table class="kv-table"><tbody>${personalRows}</tbody></table>
     </section>
 
     <section class="card">
       <h2>${esc(t.sectionContact)}</h2>
+      ${sectionGuideHtml(t.sectionContactGuide)}
       <table class="kv-table"><tbody>${contactRows}</tbody></table>
     </section>
 
     <section class="card">
       <h2>${esc(t.sectionCompliance)}</h2>
-      <table class="kv-table">
-        <tbody>
-          ${kvRow(t.pep, pepDisplay)}
-          ${kvRow(t.fundsOther, data.fundsOther)}
-        </tbody>
-      </table>
+      ${sectionGuideHtml(t.sectionComplianceGuide)}
+      <table class="kv-table"><tbody>${complianceRows}</tbody></table>
       <div class="funds-block">
         <div class="funds-title">${esc(t.fundsSource)}</div>
-        ${buildFundsChecksHtml(data, t)}
+        ${buildFundsChecksHtml(FUNDS_SOURCE_KEYS, data, t)}
       </div>
     </section>
 
@@ -166,6 +141,7 @@ class KyciHtmlPdfService {
     .subtitle { margin: 0; font-size: 10px; color: #64748b; }
     .card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; }
     .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 10px; font-size: 12px; }
+    .section-guide { margin: 0; padding: 8px 10px; font-size: 10px; color: #475569; background: #f0f9ff; border-bottom: 1px solid #bae6fd; }
     .kv-table { width: 100%; border-collapse: collapse; }
     .kv-table td { border: 1px solid #bae6fd; padding: 5px 8px; vertical-align: top; }
     .kv-label { width: 38%; font-weight: 700; background: #f0f9ff; color: #334155; }
