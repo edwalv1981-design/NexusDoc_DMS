@@ -167,10 +167,10 @@ if (!JWT_SECRET) {
     console.error('❌ JWT_SECRET no está definido. Solo /health responde; configure la variable en Railway.');
     startListening('sin JWT_SECRET');
 } else {
+    // Escuchar antes de cargar rutas: si un require falla, /health sigue respondiendo.
+    startListening('API + bootstrap en segundo plano');
     verifySharedLib();
     registerApiAndFrontend();
-    // Escuchar de inmediato: Railway hace healthcheck al puerto antes de que bootstrap() termine.
-    startListening('API + bootstrap en segundo plano');
     bootstrap()
         .then(() => {
             apiReady = true;

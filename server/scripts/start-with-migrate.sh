@@ -9,7 +9,9 @@ cd "$(dirname "$0")/.."
 
 echo "[start] NODE_ENV=${NODE_ENV}"
 echo "[start] Running Sequelize migrations (production)..."
-node scripts/run-migrate-prod.cjs
+if ! node scripts/run-migrate-prod.cjs; then
+  echo "[start] WARN: db:migrate falló; arrancando API igualmente (revisar DATABASE_URL y SequelizeMeta)."
+fi
 
-echo "[start] Migrations OK. Starting server..."
+echo "[start] Starting server..."
 exec node index.js
