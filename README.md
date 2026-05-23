@@ -34,6 +34,18 @@ La app actualmente resuelve API de forma dinámica en `client/src/config.js`:
 
 `VITE_API_URL` puede existir en Railway, pero hoy no es requerida por el código actual.
 
+## URL pública (Railway)
+
+Dominio correcto del servicio en producción (con **doc** en el nombre):
+
+- **https://nexusdocdms-production.up.railway.app**
+
+No uses `nexusducms-production` (falta la **o** de *doc*); ese hostname no corresponde a este proyecto y puede devolver 502 o error de DNS.
+
+Variable opcional para documentación / enlaces en correos:
+
+- `PUBLIC_DOMAIN=nexusdocdms-production.up.railway.app` (sin `https://`)
+
 ## Valores sugeridos para Railway
 
 - `CORS_ORIGINS=https://nexusdocdms-production.up.railway.app,http://localhost:5173`
@@ -47,7 +59,20 @@ El proyecto usa migraciones para cambios de esquema sin depender de `sequelize.s
 - Ver estado de migraciones: `cd server && npm run db:migrate:status`
 - Revertir la ultima migracion: `cd server && npm run db:migrate:undo`
 
-En despliegue (Railway/Docker), `npm run start` o `server` → `start:prod` ejecutan `db:migrate` antes de levantar el API; si migrate falla, el proceso termina con error y el deploy no arranca. No se ejecuta `migrate:kyci` automáticamente. Desarrollo local: `cd server && npm start` (sin migrate automático).
+En despliegue (Railway/Docker), el arranque usa `server/scripts/start-with-migrate.sh` (definido en `Dockerfile`, `railway.toml` y `server` → `npm start`). El servidor hace **listen en `PORT` de inmediato** (`/` y `/health` responden antes del bootstrap). Las migraciones Sequelize se intentan al inicio; si fallan, el API arranca igualmente (revisar logs). Desarrollo local sin migrate: `cd server && npm run start:dev`.
+
+### Logs esperados en un deploy correcto
+
+```
+[start] NODE_ENV=production
+[start] Running Sequelize migrations (production)...
+[start] Starting server...
+[start] NexusDoc API NODE_ENV=production PORT=8080 DATABASE_URL=set JWT_SECRET=set
+🚀 SERVIDOR WEB ACTIVO EN PUERTO: 8080 (health + bootstrap en segundo plano)
+💎 Bootstrap completado.
+```
+
+Si ves solo `server@1.0.0 start` → `node index.js` sin `start-with-migrate.sh`, Railway no está usando el `Dockerfile`/`railway.toml` actual: haz redeploy desde `main` o fija **Builder = Dockerfile** en el servicio.
 
 ## Seguridad básica
 

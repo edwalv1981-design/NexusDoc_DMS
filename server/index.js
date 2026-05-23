@@ -1,9 +1,8 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+
 require('dotenv').config();
-const { connectDB, sequelize } = require('./config/db');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -19,6 +18,8 @@ console.log(
 
 let apiReady = false;
 
+// Health probes before auth, DB, or route requires (Railway / load balancers).
+app.get('/', (req, res) => res.send('OK - NexusDoc DMS'));
 app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 
 app.get('/ready', (req, res) => {
@@ -35,6 +36,8 @@ function verifySharedLib() {
 }
 
 function registerApiAndFrontend() {
+    const cors = require('cors');
+
     app.use(cors({
         origin: (origin, callback) => {
             if (!origin) return callback(null, true);
@@ -66,9 +69,9 @@ function registerApiAndFrontend() {
     app.use('/templates', express.static(path.join(__dirname, '../templates')));
 
     const distPath = path.join(__dirname, '../client/dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { index: false }));
 
-    app.get(/.*/, (req, res) => {
+    app.get(/^\/(?!health$|ready$).+/, (req, res) => {
         if (req.path.startsWith('/api')) {
             return res.status(404).json({ msg: 'API Route not found' });
         }
@@ -83,7 +86,7 @@ function registerApiAndFrontend() {
 /**
  * Asegura columna users.language de forma idempotente y resiliente al casing del tableName.
  */
-async function ensureUserLanguageColumn() {
+async function ensureUserLanguageColumn(sequelize) {
     try {
         const [rows] = await sequelize.query(
             `SELECT table_name FROM information_schema.tables
@@ -107,6 +110,7 @@ async function ensureUserLanguageColumn() {
 }
 
 async function bootstrap() {
+    const { connectDB, sequelize } = require('./config/db');
     await connectDB();
 
     const allowSchemaAlter = process.env.DB_SYNC_ALTER === 'true';
@@ -117,7 +121,7 @@ async function bootstrap() {
         console.log('✅ Modo migraciones activo: sequelize.sync deshabilitado (DB_SYNC_ALTER=false).');
     }
 
-    await ensureUserLanguageColumn();
+    await ensureUserLanguageColumn(sequelize);
 
     const { User } = require('./models');
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
@@ -163,14 +167,21 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Listen immediately so Railway health checks pass while bootstrap runs.
+startListening('health + bootstrap en segundo plano');
+
 if (!JWT_SECRET) {
-    console.error('❌ JWT_SECRET no está definido. Solo /health responde; configure la variable en Railway.');
-    startListening('sin JWT_SECRET');
-} else {
-    // Escuchar antes de cargar rutas: si un require falla, /health sigue respondiendo.
-    startListening('API + bootstrap en segundo plano');
-    verifySharedLib();
-    registerApiAndFrontend();
+    console.error('❌ JWT_SECRET no está definido. / y /health responden; configure la variable en Railway.');
+}
+
+setImmediate(() => {
+    try {
+        verifySharedLib();
+        registerApiAndFrontend();
+    } catch (err) {
+        console.error('⚠️ Falló carga de rutas/API (modo degradado, /health sigue activo):', err.message);
+    }
+
     bootstrap()
         .then(() => {
             apiReady = true;
@@ -180,4 +191,4 @@ if (!JWT_SECRET) {
             apiReady = true;
             console.error('⚠️ ALERTA TÉCNICA al iniciar (modo degradado):', error.message);
         });
-}
+});

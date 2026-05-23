@@ -70,10 +70,10 @@ RUN cd client && npm run build
 
 # 9. Variables de entorno por defecto
 ENV NODE_ENV=production
-ENV PORT=5000
+# Railway asigna PORT (p. ej. 8080); no fijar PORT aquí.
 
-# 10. Exponer puerto
-EXPOSE 5000
+# 10. Exponer puerto (documentación; el runtime usa $PORT)
+EXPOSE 8080
 
 # 11. Comando de arranque (migraciones antes del servidor; falla el deploy si migrate falla)
 WORKDIR /app/server

@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "start:prod": "node scripts/run-migrate-prod.cjs && node index.js",
+    "start": "sh scripts/start-with-migrate.sh",
+    "start:dev": "node index.js",
+    "start:prod": "sh scripts/start-with-migrate.sh",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:prod": "node scripts/run-migrate-prod.cjs",
     "db:migrate:status": "sequelize-cli db:migrate:status",
