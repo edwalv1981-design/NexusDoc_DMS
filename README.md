@@ -2,6 +2,8 @@
 
 Esta guía deja documentadas las variables para despliegue en Railway y para entorno local.
 
+**Post-deploy:** tras cada deploy en Railway, ejecuta el [checklist automático de smoke](docs/DEPLOY-CHECKLIST.md) (`npm run check:deploy:prod`).
+
 ## Backend (`server`)
 
 Configura estas variables en Railway (servicio `NexusDoc_DMS`) o en `server/.env` local.

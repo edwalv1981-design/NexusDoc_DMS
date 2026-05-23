@@ -15,6 +15,18 @@ const templateFieldSchemaService = require('../services/templateFieldSchemaServi
 const templateAvailability = require('../utils/templateAvailability');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
 
+// @route   GET api/forms/templates/status
+// @desc    Disponibilidad de plantillas para el dashboard cliente
+router.get('/templates/status', auth, async (req, res) => {
+    try {
+        const statuses = await templateAvailability.getClientTemplateStatusMap(DocumentTemplate);
+        res.json(statuses);
+    } catch (err) {
+        console.error('Error forms templates/status:', err);
+        res.status(500).json({ msg: 'Error al verificar plantillas.' });
+    }
+});
+
 // @route   GET api/forms/schema/:formType
 router.get('/schema/:formType', auth, async (req, res) => {
     try {

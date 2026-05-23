@@ -9,6 +9,11 @@
     "test:server": "cd server && npm test",
     "test:server:smoke-pdf": "cd server && npm run test:smoke-corporacion-pdf",
     "test:server:smoke-pdf-heavy": "cd server && npm run test:smoke-corporacion-pdf-heavy",
-    "migrate:kyci": "node server/scripts/migrate-kyci-form-data.js"
+    "migrate:kyci": "node server/scripts/migrate-kyci-form-data.js",
+    "check:deploy": "node scripts/deploy-smoke-check.mjs",
+    "check:deploy:prod": "cross-env SMOKE_BASE_URL=https://nexusdocdms-production.up.railway.app node scripts/deploy-smoke-check.mjs"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }
