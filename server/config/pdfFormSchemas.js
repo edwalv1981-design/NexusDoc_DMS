@@ -5,15 +5,10 @@
  * Claves `data_key` deben coincidir con `templates_config.json` y el estado del formulario cliente.
  */
 
-const MARITAL_OPTIONS = Object.freeze(['Soltero(a)', 'Casado(a)', 'Divorciado(a)', 'Viudo(a)', 'Unión libre']);
-
-const FUNDS_SOURCE_OPTIONS = Object.freeze([
-  { key: 'Bienes personales', labelKey: 'bienes' },
-  { key: 'Inversiones Financieras', labelKey: 'inversiones' },
-  { key: 'Negocios', labelKey: 'negocios' },
-  { key: 'Prestamos', labelKey: 'prestamos' },
-  { key: 'Herencia o Fondo Fiduciario', labelKey: 'herencia' },
-]);
+const {
+  MARITAL_STATUS_OPTIONS: MARITAL_OPTIONS,
+  FUNDS_SOURCE_OPTIONS,
+} = require('../../lib/kyciMasterSpec.cjs');
 
 const CUMPLIMIENTO_INDIVIDUAL_SCHEMA = Object.freeze({
   templateId: 'cumplimiento_individual',
@@ -62,6 +57,12 @@ const CUMPLIMIENTO_INDIVIDUAL_SCHEMA = Object.freeze({
           col: 'full',
         },
         { key: 'fundsOther', type: 'text', col: 'full' },
+      ]),
+    },
+    {
+      id: 'declaration',
+      titleKey: 'steps.declaration',
+      fields: Object.freeze([
         { key: 'declarationName', type: 'text', required: true, col: 'half' },
         { key: 'declarationDate', type: 'date', required: true, col: 'half' },
       ]),

@@ -1,8 +1,14 @@
+/**
+ * Cumplimiento Individual (KYCI / PTL_KYC Individuals).
+ * Campos y pasos: lib/kyciMasterSpec.cjs — 4 secciones del PDF maestro.
+ * I Datos personales | II Contacto | III PEP y fondos | IV Declaración
+ */
 import React, { useState, useEffect } from 'react';
 import {
   User,
   Phone,
   ShieldCheck,
+  FileCheck,
   ChevronRight,
   ChevronLeft,
   Save,
@@ -16,16 +22,9 @@ import {
   KycFundsSourceGroup,
   kycFormSharedStyles,
 } from '../components/KycFormShared';
+import { FUNDS_SOURCE_OPTIONS, MARITAL_STATUS_OPTIONS } from '../utils/kyciMasterSpec';
 
-const MARITAL_OPTIONS = ['Soltero(a)', 'Casado(a)', 'Divorciado(a)', 'Viudo(a)', 'Unión libre'];
-
-const FUNDS_OPTIONS = [
-  { key: 'Bienes personales', labelKey: 'bienes' },
-  { key: 'Inversiones Financieras', labelKey: 'inversiones' },
-  { key: 'Negocios', labelKey: 'negocios' },
-  { key: 'Prestamos', labelKey: 'prestamos' },
-  { key: 'Herencia o Fondo Fiduciario', labelKey: 'herencia' },
-];
+const FUNDS_OPTIONS = FUNDS_SOURCE_OPTIONS;
 
 const emptyKyciState = () => ({
   firstName: '',
@@ -71,7 +70,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
 
   const PRIMARY = KYC_PRIMARY;
   const SECONDARY = '#1e293b';
-  const TOTAL_STEPS = 3;
+  const TOTAL_STEPS = 4;
 
   const validateStep = (s) => {
     const req = (v) => v !== undefined && v !== null && String(v).trim() !== '';
@@ -99,13 +98,10 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       const pepOk =
         formData.pep === 'No' ||
         (formData.pep === 'Sí' && req(formData.pepDetails));
-      return (
-        req(formData.pep) &&
-        pepOk &&
-        formData.fundsSource.length > 0 &&
-        req(formData.declarationName) &&
-        req(formData.declarationDate)
-      );
+      return req(formData.pep) && pepOk && formData.fundsSource.length > 0;
+    }
+    if (s === 4) {
+      return req(formData.declarationName) && req(formData.declarationDate);
     }
     return true;
   };
@@ -153,7 +149,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
         <div className="expert-group"><label>{L('maritalStatus')}</label>
           <select className="expert-input" value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}>
             <option value="">—</option>
-            {MARITAL_OPTIONS.map((o) => (
+            {MARITAL_STATUS_OPTIONS.map((o) => (
               <option key={o} value={o}>{o}</option>
             ))}
           </select>
@@ -211,11 +207,19 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
           primary={PRIMARY}
         />
         <div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" value={formData.fundsOther} onChange={(e) => setFormData({ ...formData, fundsOther: e.target.value })} /></div>
-        <KycHintBox>{t('kyci.hints.declaration')}</KycHintBox>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-          <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" value={formData.declarationName} onChange={(e) => setFormData({ ...formData, declarationName: e.target.value })} required /></div>
-          <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" value={formData.declarationDate} onChange={(e) => setFormData({ ...formData, declarationDate: e.target.value })} required /></div>
-        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <FileCheck size={22} color={PRIMARY} /> {t('kyci.steps.declaration')}
+      </h2>
+      <KycHintBox>{t('kyci.hints.declaration')}</KycHintBox>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+        <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" value={formData.declarationName} onChange={(e) => setFormData({ ...formData, declarationName: e.target.value })} required /></div>
+        <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" value={formData.declarationDate} onChange={(e) => setFormData({ ...formData, declarationDate: e.target.value })} required /></div>
       </div>
     </div>
   );
@@ -230,7 +234,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: '40px' }}>
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div key={s} style={{ flex: 1, position: 'relative' }}>
             <div style={{ height: '5px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '10px', transition: 'all 0.3s' }} />
             <div style={{ position: 'absolute', top: '-25px', left: 0, fontSize: '10px', fontWeight: 800, color: step >= s ? PRIMARY : '#94a3b8' }}>
@@ -244,6 +248,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
+        {step === 4 && renderStep4()}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #f1f5f9' }}>
           <button type="button" onClick={() => setStep((prev) => prev - 1)} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}>
@@ -254,7 +259,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
               {t('common.continue')} <ChevronRight size={18} />
             </button>
           ) : (
-            <button type="button" onClick={() => validateStep(3) && onSave(formData, true)} disabled={saving} className="expert-btn-finish">
+            <button type="button" onClick={() => validateStep(4) && onSave(formData, true)} disabled={saving} className="expert-btn-finish">
               <CheckCircle2 size={18} /> {saving ? t('common.saving') : t('common.finishSave')}
             </button>
           )}
@@ -267,4 +272,3 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
 };
 
 export default CumplimientoIndividualForm;
-

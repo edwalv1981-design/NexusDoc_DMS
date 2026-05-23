@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const { getKyciPdfDict, normalizeLanguage, assertKyciPdfI18nParity } = require('./kyciPdfI18n');
-const { assertKycPdfFieldRegistryParity } = require('../config/kycPdfFieldRegistry');
+const { assertKycPdfFieldRegistryParity, assertKyciMasterSpecParity } = require('../config/kycPdfFieldRegistry');
 const { FUNDS_SOURCE_OPTIONS } = require('../config/pdfFormSchemas');
 const {
   esc,
@@ -39,6 +39,7 @@ function toDataUri(filePath) {
 function buildKyciPdfInnerHtml(data = {}, options = {}) {
   assertKyciPdfI18nParity();
   assertKycPdfFieldRegistryParity();
+  assertKyciMasterSpecParity();
   const lang = normalizeLanguage(options.language || data.language);
   const t = getKyciPdfDict(lang);
   const pepYes = isPepYes(data.pep);
@@ -101,6 +102,7 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
 
     <section class="card declaration">
       <h2>${esc(t.sectionDeclaration)}</h2>
+      ${sectionGuideHtml(t.sectionDeclarationGuide)}
       <table class="kv-table">
         <tbody>
           ${kvRow(t.declarationName, data.declarationName)}

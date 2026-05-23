@@ -1,49 +1,19 @@
 'use strict';
 
 /**
- * Secciones y claves de datos KYCI/KYCE — fuente única para formulario, PDF HTML y tests.
- * Alineado con pdfFormSchemas y templates_config.json (PTL_KYC Individuals / Entities).
+ * Secciones y claves KYCI/KYCE — alineado con lib/kyciMasterSpec.cjs y pdfFormSchemas.
  */
 
 const pdfFormSchemas = require('./pdfFormSchemas');
+const kyciMaster = require('../../lib/kyciMasterSpec.cjs');
 
-const KYCI_PDF_SECTIONS = Object.freeze([
-  {
-    sectionKey: 'sectionPersonal',
-    fields: Object.freeze([
-      'firstName',
-      'secondName',
-      'lastName',
-      'birthDate',
-      'birthPlace',
-      'maritalStatus',
-      'nationality',
-      'passport',
-      'idCard',
-    ]),
-  },
-  {
-    sectionKey: 'sectionContact',
-    fields: Object.freeze([
-      'phone',
-      'email',
-      'address',
-      'city',
-      'country',
-      'occupation',
-      'employer',
-    ]),
-  },
-  {
-    sectionKey: 'sectionCompliance',
-    fields: Object.freeze(['pep', 'pepDetails', 'fundsOther']),
-    fundsSource: true,
-  },
-  {
-    sectionKey: 'sectionDeclaration',
-    fields: Object.freeze(['declarationName', 'declarationDate']),
-  },
-]);
+const KYCI_PDF_SECTIONS = Object.freeze(
+  kyciMaster.SECTIONS.map((s) => ({
+    sectionKey: s.sectionKey,
+    fields: s.fieldKeys,
+    ...(s.fundsSource ? { fundsSource: true } : {}),
+  }))
+);
 
 const KYCE_PDF_SECTIONS = Object.freeze([
   {
@@ -78,12 +48,6 @@ const KYCE_PDF_SECTIONS = Object.freeze([
   },
 ]);
 
-const DATE_FIELD_KEYS = new Set([
-  'birthDate',
-  'declarationDate',
-  'incorporationDate',
-]);
-
 function flattenSectionFields(sections) {
   const keys = [];
   for (const section of sections) {
@@ -93,8 +57,9 @@ function flattenSectionFields(sections) {
   return keys;
 }
 
-const KYCI_ALL_FIELD_KEYS = Object.freeze(flattenSectionFields(KYCI_PDF_SECTIONS));
+const KYCI_ALL_FIELD_KEYS = Object.freeze(kyciMaster.KYCI_ALL_FIELD_KEYS);
 const KYCE_ALL_FIELD_KEYS = Object.freeze(flattenSectionFields(KYCE_PDF_SECTIONS));
+const DATE_FIELD_KEYS = kyciMaster.DATE_FIELD_KEYS;
 
 function assertRegistryMatchesSchema(schema, registryKeys, label) {
   const schemaKeys = pdfFormSchemas.listSchemaFieldKeys(schema).sort();
@@ -121,6 +86,14 @@ function assertKycPdfFieldRegistryParity() {
   );
 }
 
+function assertKyciMasterSpecParity() {
+  const masterKeys = [...kyciMaster.KYCI_ALL_FIELD_KEYS].sort();
+  const regKeys = [...KYCI_ALL_FIELD_KEYS].sort();
+  if (masterKeys.length !== regKeys.length || masterKeys.some((k, i) => k !== regKeys[i])) {
+    throw new Error('KYCI: kycPdfFieldRegistry desalineado con kyciMasterSpec');
+  }
+}
+
 module.exports = {
   KYCI_PDF_SECTIONS,
   KYCE_PDF_SECTIONS,
@@ -128,4 +101,5 @@ module.exports = {
   KYCE_ALL_FIELD_KEYS,
   DATE_FIELD_KEYS,
   assertKycPdfFieldRegistryParity,
+  assertKyciMasterSpecParity,
 };

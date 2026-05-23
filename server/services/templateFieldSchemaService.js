@@ -26,31 +26,7 @@ const FORM_TYPE_BY_TEMPLATE = Object.freeze({
   cumplimiento_entidades: 'Cumplimiento Entidades',
 });
 
-/** Etiquetas humanas KYCI (es) alineadas con client i18n — fallback si el PDF usa otros nombres AcroForm. */
-const KYCI_FIELD_LABELS_ES = Object.freeze({
-  firstName: 'NOMBRE',
-  secondName: 'SEGUNDO NOMBRE',
-  lastName: 'APELLIDOS',
-  birthDate: 'FECHA DE NACIMIENTO',
-  birthPlace: 'LUGAR DE NACIMIENTO',
-  maritalStatus: 'ESTADO CIVIL',
-  nationality: 'NACIONALIDAD',
-  passport: 'PASAPORTE / CÉDULA',
-  idCard: 'ID / DOCUMENTO',
-  phone: 'TELÉFONO',
-  email: 'CORREO ELECTRÓNICO',
-  address: 'DIRECCIÓN',
-  city: 'CIUDAD',
-  country: 'PAÍS',
-  occupation: 'OCUPACIÓN / PROFESIÓN',
-  employer: 'EMPLEADOR',
-  pep: 'PERSONA EXPUESTA POLÍTICAMENTE (PEP)',
-  pepDetails: 'DETALLE PEP (si aplica)',
-  fundsSource: 'ORIGEN DE FONDOS / PATRIMONIO',
-  fundsOther: 'OTRAS FUENTES (ESPECIFIQUE)',
-  declarationName: 'NOMBRE EN DECLARACIÓN',
-  declarationDate: 'FECHA DE DECLARACIÓN',
-});
+const { FIELD_LABELS_ES: KYCI_FIELD_LABELS_ES } = require('../../lib/kyciMasterSpec.cjs');
 
 /** Etiquetas humanas KYCE (es) alineadas con client i18n. */
 const KYCE_FIELD_LABELS_ES = Object.freeze({
