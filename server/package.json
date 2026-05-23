@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:prod": "npm run db:migrate && node index.js",
+    "start:prod": "node scripts/run-migrate-prod.cjs && node index.js",
     "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:prod": "node scripts/run-migrate-prod.cjs",
     "db:migrate:status": "sequelize-cli db:migrate:status",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "test": "node run-tests.cjs",

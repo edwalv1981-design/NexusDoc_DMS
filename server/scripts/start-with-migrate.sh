@@ -8,8 +8,8 @@ export NODE_ENV="${NODE_ENV:-production}"
 cd "$(dirname "$0")/.."
 
 echo "[start] NODE_ENV=${NODE_ENV}"
-echo "[start] Running Sequelize migrations (db:migrate)..."
-npm run db:migrate
+echo "[start] Running Sequelize migrations (production)..."
+node scripts/run-migrate-prod.cjs
 
 echo "[start] Migrations OK. Starting server..."
 exec node index.js

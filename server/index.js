@@ -2,11 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet');
-const { rateLimit } = require('express-rate-limit');
 require('dotenv').config();
 const { connectDB, sequelize } = require('./config/db');
-
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -16,104 +13,88 @@ const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-// RUTA DE SALUD
+console.log(
+    `[start] NexusDoc API NODE_ENV=${process.env.NODE_ENV || 'development'} PORT=${PORT} DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'missing'} JWT_SECRET=${JWT_SECRET ? 'set' : 'MISSING'}`
+);
+
+let apiReady = false;
+
 app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 
-if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET no está definido. El servidor no puede iniciar de forma segura.');
+app.get('/ready', (req, res) => {
+    if (apiReady) return res.send('ready');
+    return res.status(503).send('bootstrap en progreso');
+});
+
+function verifySharedLib() {
+    const libSpec = path.join(__dirname, '../lib/kyciMasterSpec.cjs');
+    if (!fs.existsSync(libSpec)) {
+        console.error(`❌ MODULE_NOT_FOUND: falta ${libSpec} (¿lib/ no copiado en el deploy?)`);
+        process.exit(1);
+    }
 }
 
-// 0. SEGURIDAD DE CABECERAS (HELMET)
-app.use(helmet({
-    crossOriginResourcePolicy: false, // Permitir cargar imágenes/PDFs si se sirven estáticamente
-}));
+function registerApiAndFrontend() {
+    app.use(cors({
+        origin: (origin, callback) => {
+            if (!origin) return callback(null, true);
+            if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+            return callback(new Error('Origen no permitido por CORS'));
+        },
+        credentials: true
+    }));
+    app.use(express.json());
 
-// 0.1 RATE LIMITING (PROTECCIÓN CONTRA ATAQUES DE FUERZA BRUTA)
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    limit: 150, // Límite de 150 peticiones por ventana por IP
-    standardHeaders: 'draft-7',
-    legacyHeaders: false,
-    message: { msg: 'Demasiadas peticiones desde esta IP, por favor intente más tarde.' }
-});
+    app.use((req, res, next) => {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+        next();
+    });
 
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 10, // Solo 10 intentos de login/registro cada 15 min
-    message: { msg: 'Límite de intentos de autenticación superado. Espere 15 minutos.' }
-});
+    app.use('/api/auth', require('./routes/auth'));
+    app.use('/api/admin', require('./routes/admin'));
+    app.use('/api/forms', require('./routes/formRoutes'));
+    app.use('/api/documents', require('./routes/documents'));
+    app.use('/api/signed-docs', require('./routes/signedDocuments'));
+    app.get('/api/debug-pdf', (req, res) => {
+        const logPath = path.join(__dirname, 'last_pdf_error.txt');
+        if (fs.existsSync(logPath)) {
+            res.sendFile(logPath);
+        } else {
+            res.status(404).send('No logs available yet.');
+        }
+    });
+    app.use('/templates', express.static(path.join(__dirname, '../templates')));
 
-app.use('/api/', generalLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+    const distPath = path.join(__dirname, '../client/dist');
+    app.use(express.static(distPath));
 
-// 1. MIDDLEWARES
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow non-browser clients and same-origin requests.
-        if (!origin) return callback(null, true);
-        if (CORS_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(new Error('Origen no permitido por CORS'));
-    },
-    credentials: true
-}));
-app.use(express.json());
-
-// Log de peticiones entrantes
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-    next();
-});
-
-// 2. RUTAS DE LA API
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/forms', require('./routes/formRoutes'));
-app.use('/api/documents', require('./routes/documents'));
-app.use('/api/signed-docs', require('./routes/signedDocuments'));
-app.get('/api/debug-pdf', (req, res) => {
-    const logPath = path.join(__dirname, 'last_pdf_error.txt');
-    if (fs.existsSync(logPath)) {
-        res.sendFile(logPath);
-    } else {
-        res.status(404).send('No logs available yet.');
-    }
-});
-app.use('/templates', express.static(path.join(__dirname, '../templates')));
-
-
-// 3. SERVIR FRONTEND
-const distPath = path.join(__dirname, '../client/dist');
-app.use(express.static(distPath));
-
-app.get(/.*/, (req, res) => {
-    if (req.path.startsWith('/api')) {
-        return res.status(404).json({ msg: 'API Route not found' });
-    }
-    res.sendFile(path.resolve(distPath, 'index.html'));
-});
+    app.get(/.*/, (req, res) => {
+        if (req.path.startsWith('/api')) {
+            return res.status(404).json({ msg: 'API Route not found' });
+        }
+        const indexHtml = path.resolve(distPath, 'index.html');
+        if (!fs.existsSync(indexHtml)) {
+            return res.status(503).send('Frontend no construido (falta client/dist)');
+        }
+        res.sendFile(indexHtml);
+    });
+}
 
 /**
  * Asegura columna users.language de forma idempotente y resiliente al casing del tableName.
- *
- * Sequelize con `define.underscored: true` puede crear tabla `users` (lowercase) o `Users`
- * dependiendo de la versión y de si se hizo sync inicial con `freezeTableName`. Esta función:
- *
- * 1. Detecta el nombre real vía `information_schema.tables`.
- * 2. Ejecuta `ADD COLUMN IF NOT EXISTS` sobre el nombre correcto.
- * 3. Normaliza valores existentes a 'es' por defecto.
- *
- * Cualquier fallo se loggea pero NO derriba el server (queries de Sequelize toleran
- * `language` faltante porque el modelo lo declara `allowNull: true`).
  */
 async function ensureUserLanguageColumn() {
     try {
-        const { User } = require('./models');
-        const rawTableName = User.getTableName();
-        const tableName = typeof rawTableName === 'object' ? rawTableName.tableName : rawTableName;
-        
+        const [rows] = await sequelize.query(
+            `SELECT table_name FROM information_schema.tables
+              WHERE table_schema = current_schema()
+                AND lower(table_name) = 'users'
+              ORDER BY table_name ASC
+              LIMIT 1`
+        );
+        const tableName = rows && rows[0] && rows[0].table_name;
         if (!tableName) {
-            console.warn('⚠️ ensureUserLanguageColumn: no se pudo obtener el nombre de la tabla de User.');
+            console.warn('⚠️ ensureUserLanguageColumn: tabla users no encontrada en current_schema().');
             return;
         }
         const quoted = `"${tableName.replace(/"/g, '""')}"`;
@@ -122,23 +103,6 @@ async function ensureUserLanguageColumn() {
         console.log(`🌐 Columna ${tableName}.language asegurada (default es).`);
     } catch (langErr) {
         console.warn('⚠️ ensureUserLanguageColumn falló:', langErr.message);
-    }
-}
-
-/**
- * Asegura columna users.active_token para evitar 500 en login/perfil.
- */
-async function ensureUserActiveTokenColumn() {
-    try {
-        const { User } = require('./models');
-        const rawTableName = User.getTableName();
-        const tableName = typeof rawTableName === 'object' ? rawTableName.tableName : rawTableName;
-        if (!tableName) return;
-        
-        console.log(`🛠️ Verificando columna active_token en tabla ${tableName}...`);
-        await sequelize.query(`ALTER TABLE "${tableName.replace(/"/g, '""')}" ADD COLUMN IF NOT EXISTS "active_token" TEXT;`);
-    } catch (e) {
-        console.warn('⚠️ No se pudo asegurar columna active_token:', e.message);
     }
 }
 
@@ -153,23 +117,9 @@ async function bootstrap() {
         console.log('✅ Modo migraciones activo: sequelize.sync deshabilitado (DB_SYNC_ALTER=false).');
     }
 
-    // CRÍTICO: aplicar antes de aceptar tráfico para que los SELECT incluyan la columna sin romper.
     await ensureUserLanguageColumn();
-    await ensureUserActiveTokenColumn();
 
     const { User } = require('./models');
-
-    // DESBLOQUEO MAESTRO PARA EL USUARIO ESPECÍFICO
-    const debugUserEmail = 'edwinalvarezvivero@yahoo.com';
-    const debugUser = await User.findOne({ where: { email: debugUserEmail } });
-    if (debugUser) {
-        console.log(`🔓 RECOVERY: Desbloqueando usuario ${debugUserEmail}...`);
-        debugUser.status = 'authorized';
-        debugUser.loginAttempts = 0;
-        debugUser.lockUntil = null;
-        await debugUser.save();
-    }
-
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
@@ -199,40 +149,35 @@ async function bootstrap() {
     }
 }
 
-// 5. ARRANQUE NORMAL DE PRODUCCIÓN
-// Bootstrap SÍNCRONO antes de aceptar tráfico: garantiza que el schema esté listo
-// (columna language en su lugar) antes de procesar logins. Evita 500s silenciosos.
-bootstrap()
-    .then(() => {
-
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT}`);
-            console.log('💎 SISTEMA OPERATIVO Y PERSISTENTE.');
-        });
-    })
-    .catch((error) => {
-        console.error('⚠️ ALERTA TÉCNICA al iniciar:', error.message);
-        // Arrancamos igualmente para no caer en bucle de reinicio en Railway; el `/health`
-        // sigue respondiendo y los endpoints toleran la ausencia de la columna por allowNull.
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 SERVIDOR WEB ACTIVO (modo degradado) EN PUERTO: ${PORT}`);
-        });
+function startListening(label) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT} (${label})`);
     });
-// 6. HEALTH CHECK & DIAGNOSTICS
-app.get('/api/health-check', async (req, res) => {
-    try {
-        await sequelize.authenticate();
-        res.json({ status: 'OK', database: 'CONNECTED', timestamp: new Date().toISOString() });
-    } catch (err) {
-        res.status(500).json({ status: 'ERROR', database: 'DISCONNECTED', error: err.message });
-    }
-});
+}
 
-// 7. MANEJADOR GLOBAL DE ERRORES (Telemetría final)
 app.use((err, req, res, next) => {
     console.error('🔥 ERROR NO CONTROLADO:', err.stack);
-    res.status(500).json({ 
-        msg: 'Error crítico en el servidor', 
-        error: err.message 
+    res.status(500).json({
+        msg: 'Error crítico en el servidor',
+        error: err.message
     });
 });
+
+if (!JWT_SECRET) {
+    console.error('❌ JWT_SECRET no está definido. Solo /health responde; configure la variable en Railway.');
+    startListening('sin JWT_SECRET');
+} else {
+    verifySharedLib();
+    registerApiAndFrontend();
+    // Escuchar de inmediato: Railway hace healthcheck al puerto antes de que bootstrap() termine.
+    startListening('API + bootstrap en segundo plano');
+    bootstrap()
+        .then(() => {
+            apiReady = true;
+            console.log('💎 Bootstrap completado.');
+        })
+        .catch((error) => {
+            apiReady = true;
+            console.error('⚠️ ALERTA TÉCNICA al iniciar (modo degradado):', error.message);
+        });
+}
