@@ -75,6 +75,6 @@ ENV NODE_ENV=production
 # 10. Exponer puerto (documentación; el runtime usa $PORT)
 EXPOSE 8080
 
-# 11. Comando de arranque (migraciones antes del servidor; falla el deploy si migrate falla)
+# 11. Comando de arranque (servidor primero; migraciones en segundo plano)
 WORKDIR /app/server
 CMD ["sh", "scripts/start-with-migrate.sh"]
