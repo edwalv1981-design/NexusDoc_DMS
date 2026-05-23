@@ -190,6 +190,18 @@ if (!JWT_SECRET) {
 }
 
 setImmediate(() => {
+    if (process.env.NODE_ENV === 'production') {
+        const { spawn } = require('child_process');
+        const migrate = spawn('node', ['scripts/run-migrate-prod.cjs'], {
+            cwd: __dirname,
+            stdio: 'inherit',
+        });
+        migrate.on('exit', (code) => {
+            if (code === 0) console.log('[migrate] db:migrate completado.');
+            else console.warn(`[migrate] db:migrate falló (código ${code}).`);
+        });
+    }
+
     try {
         verifySharedLib();
         registerApiRoutes();

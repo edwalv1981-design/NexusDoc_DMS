@@ -77,4 +77,4 @@ EXPOSE 8080
 
 # 11. Comando de arranque (servidor primero; migraciones en segundo plano)
 WORKDIR /app/server
-CMD ["sh", "scripts/start-with-migrate.sh"]
+CMD ["node", "index.js"]
