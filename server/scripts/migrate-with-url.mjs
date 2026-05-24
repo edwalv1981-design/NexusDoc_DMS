@@ -5,6 +5,7 @@
  */
 import { config as loadDotenv } from 'dotenv';
 import { spawnSync } from 'child_process';
+import { lookup } from 'node:dns/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -22,7 +23,7 @@ if (!databaseUrl) {
   console.error(
     '❌ DATABASE_URL no está definida.\n' +
       `   Cree ${envPath} con una sola línea:\n` +
-      '   DATABASE_URL=postgres://postgres.PROJECT_REF:PASSWORD@aws-1-us-east-1.pooler.supabase.co:6543/postgres?sslmode=require\n' +
+      '   DATABASE_URL=postgres://postgres.PROJECT_REF:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require\n' +
       '   Si la contraseña tiene @ # % etc., codifíquela (encodeURIComponent) en la URL.\n' +
       '   Contraseña incorrecta: Supabase Dashboard → Project Settings → Database → Reset database password.'
   );
@@ -46,8 +47,36 @@ function maskDatabaseUrl(raw) {
   }
 }
 
+function validateDatabaseUrl(raw) {
+  let normalized = raw;
+  if (normalized.startsWith('postgresql://')) {
+    normalized = normalized.replace('postgresql://', 'postgres://');
+  }
+  const u = new URL(normalized);
+  if (!u.password) {
+    console.warn('[migrate] AVISO: DATABASE_URL sin contraseña (¿vacía o caracteres sin URL-encode?).');
+  }
+  if (u.hostname.endsWith('.supabase.co') && u.hostname.includes('pooler')) {
+    console.error(
+      `❌ Host incorrecto: ${u.hostname}\n` +
+        '   El Session pooler usa .supabase.com (NO .supabase.co).\n' +
+        '   Ejemplo: aws-0-us-east-1.pooler.supabase.com:6543'
+    );
+    process.exit(1);
+  }
+  try {
+    dns.lookupSync(u.hostname);
+  } catch (err) {
+    console.error(`❌ No se puede resolver ${u.hostname}: ${err.message}`);
+    console.error('   Use Session pooler: aws-0-[REGION].pooler.supabase.com:6543');
+    process.exit(1);
+  }
+}
+
 const nodeEnv = process.env.NODE_ENV || 'development';
 const sequelizeCommand = process.argv[2] || 'db:migrate';
+
+validateDatabaseUrl(databaseUrl);
 
 console.log(`[migrate] NODE_ENV=${nodeEnv}`);
 console.log(`[migrate] DATABASE_URL=${maskDatabaseUrl(databaseUrl)}`);

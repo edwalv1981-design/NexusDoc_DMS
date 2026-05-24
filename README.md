@@ -65,7 +65,7 @@ El proyecto usa migraciones para cambios de esquema sin depender de `sequelize.s
 **PowerShell (Windows):** la variable debe existir en el **mismo proceso** que ejecuta npm. Opción A: poner `DATABASE_URL` en `server/.env`. Opción B: en **una sola línea** (comillas simples `'...'` si la contraseña tiene `$`, `!`, `#`, etc.):
 
 ```powershell
-cd C:\ruta\NexusDoc_DMS\server; $env:DATABASE_URL='postgres://postgres.PROJECT_REF:SU_CONTRASEÑA@aws-1-us-east-1.pooler.supabase.co:6543/postgres?sslmode=require'; npm run db:migrate
+cd C:\ruta\NexusDoc_DMS\server; $env:DATABASE_URL='postgres://postgres.PROJECT_REF:SU_CONTRASEÑA@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'; npm run db:migrate
 ```
 - Revertir la ultima migracion: `cd server && npm run db:migrate:undo`
 - Crear administrador en Supabase (env `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD`): `cd server && npm run bootstrap:admin` (alias `npm run seed:admin` / `npm run create-admin`)

@@ -427,7 +427,7 @@ En **PowerShell** (Windows), sustituya `[SU-URI-SUPABASE]` por la URI del **Sess
 ```powershell
 cd C:\Users\USER\NexusDoc_DMS\server
 # Comillas simples si la contraseÃ±a tiene $, !, # u otros caracteres especiales de PowerShell
-$env:DATABASE_URL='postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-us-east-1.pooler.supabase.co:6543/postgres?sslmode=require'
+$env:DATABASE_URL='postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'
 npm run db:migrate
 npm run db:migrate:status
 ```
@@ -463,12 +463,18 @@ Tras el primer login puede quitar los secrets bootstrap: `fly secrets unset BOOT
 Railway usa `railway.toml` y el mismo `Dockerfile`. Fly usa este `fly.toml`. Puedes mantener ambos; cada plataforma ignora la config de la otra.
 ## Automatización local (una vez)
 
-Si DATABASE_URL en Fly falla con password authentication failed, la contraseña del **pooler Supabase** no coincide con la guardada en ly secrets. Ejecute en PowerShell desde la raíz del repo:
+Si `DATABASE_URL` en Fly tiene host `.supabase.co` (error `getaddrinfo ENOTFOUND`) o falla la autenticación, corrija el secret con el **Session pooler** (`.supabase.com`, puerto **6543**):
 
-`powershell
+```powershell
+fly secrets set DATABASE_URL="postgres://postgres.ohwqfujrakhwxfuxo:[PASSWORD-URL-ENCODED]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require" -a nexusdoc-dms
+```
+
+Codifique caracteres especiales de la contraseña (`@`, `#`, `%`, etc.) con `encodeURIComponent` antes de pegarla en la URL.
+
+O ejecute el script completo desde la raíz del repo (abre Supabase, pide la contraseña una vez, prueba poolers `aws-0` y `aws-1`, escribe `server/.env`, migra, crea admin, actualiza secrets y hace `fly deploy`):
+
+```powershell
 .\scripts\setup-supabase-once.ps1
-`
-
-Abre el panel de Supabase, pide la contraseña de **base de datos** una sola vez, prueba poolers ws-1 y ws-0, escribe server/.env, migra, crea admin, actualiza secrets y hace ly deploy.
+```
 
 

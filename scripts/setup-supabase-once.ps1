@@ -8,7 +8,7 @@
 #>
 param(
   [string]$ProjectRef = 'ohwqfujrakhwxfuxo',
-  [string[]]$PoolerHosts = @('aws-1-us-east-1.pooler.supabase.co', 'aws-0-us-east-1.pooler.supabase.co'),
+  [string[]]$PoolerHosts = @('aws-0-us-east-1.pooler.supabase.com', 'aws-1-us-east-1.pooler.supabase.com'),
   [string]$AdminEmail = 'edwinalvarezvivero@yahoo.com',
   [string]$AdminPassword = 'U3m3O2CJz1wnZegcsTYt',
   [string]$FlyApp = 'nexusdoc-dms',
@@ -38,11 +38,26 @@ function Build-DatabaseUrl([string]$password, [string]$hostName) {
   "postgres://postgres.${ProjectRef}:${enc}@${hostName}:6543/postgres?sslmode=require"
 }
 
+function Test-PoolerDns([string]$hostName) {
+  try {
+    $null = [System.Net.Dns]::GetHostEntry($hostName)
+    return $true
+  } catch {
+    Write-Host "DNS falló para $hostName : $($_.Exception.Message)" -ForegroundColor DarkYellow
+    return $false
+  }
+}
+
 function Test-Migrate([string]$url) {
   $env:DATABASE_URL = $url
   $env:NODE_ENV = 'production'
   Push-Location $ServerDir
   try {
+    node -e "const dns=require('dns');const u=new URL(process.argv[1].replace(/^postgresql:/,'postgres:'));dns.lookup(u.hostname,(e)=>process.exit(e?1:0));" $url
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "Host no resuelve en Node — omitiendo migrate." -ForegroundColor DarkYellow
+      return $false
+    }
     npm run db:migrate:url 2>&1 | Out-Host
     return ($LASTEXITCODE -eq 0)
   } finally { Pop-Location }
@@ -69,6 +84,7 @@ if (-not $dbPass) { throw 'Contraseña vacía.' }
 $workingUrl = $null
 foreach ($h in $PoolerHosts) {
   Write-Host "Probando pooler $h ..."
+  if (-not (Test-PoolerDns $h)) { continue }
   $candidate = Build-DatabaseUrl $dbPass $h
   if (Test-Migrate $candidate) {
     $workingUrl = $candidate

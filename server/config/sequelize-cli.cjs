@@ -13,6 +13,7 @@ function databaseNeedsSsl(url) {
     lower.includes('supabase') ||
     lower.includes('sslmode=require') ||
     lower.includes('amazonaws.com') ||
+    lower.includes('pooler.supabase.com') ||
     lower.includes('pooler.supabase.co') ||
     (isProduction && !lower.includes('localhost') && !lower.includes('127.0.0.1'))
   );
