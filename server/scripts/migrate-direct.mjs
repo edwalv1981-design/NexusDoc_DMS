@@ -12,6 +12,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, '..');
 loadDotenv({ path: path.join(serverRoot, '.env') });
 
+const databaseUrl = process.env.DATABASE_URL || '';
+const isSupabase = databaseUrl.includes('supabase');
+
+if (databaseUrl && !isSupabase) {
+  console.log('[migrate:direct] Entorno no-Supabase detectado (Railway/Postgres). Evitando reescritura de host y ejecutando migración directa.');
+  const result = spawnSync('node', [path.join(__dirname, 'migrate-with-url.mjs'), ...process.argv.slice(2)], {
+    cwd: serverRoot,
+    env: process.env,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+  process.exit(result.status === 0 ? 0 : result.status ?? 1);
+}
+
 function projectRefFromUrl(raw) {
   if (!raw?.trim()) return '';
   const normalized = raw.trim().replace(/^postgresql:/i, 'postgres:');

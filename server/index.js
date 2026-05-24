@@ -245,7 +245,7 @@ setImmediate(async () => {
 
     if (process.env.NODE_ENV === 'production') {
         const { runMigrationsSync } = require('./scripts/run-migrate-prod.cjs');
-        if (runMigrationsSync()) {
+        if (await runMigrationsSync()) {
             console.log('[migrate] db:migrate completado antes del bootstrap.');
         } else {
             console.warn('[migrate] db:migrate falló — login puede devolver 503 hasta corregir DATABASE_URL.');

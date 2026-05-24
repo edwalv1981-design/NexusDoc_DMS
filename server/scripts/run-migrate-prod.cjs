@@ -1,6 +1,6 @@
 'use strict';
 
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 
 function usesSessionPooler() {
@@ -8,27 +8,38 @@ function usesSessionPooler() {
   return u.includes('pooler.supabase.com') || u.includes('pooler.supabase.co');
 }
 
-function runMigrationsSync() {
-  const serverRoot = path.resolve(__dirname, '..');
-  const env = { ...process.env, NODE_ENV: process.env.NODE_ENV || 'production' };
-  const migrateScript = usesSessionPooler()
-    ? 'migrate-with-url.mjs'
-    : 'migrate-direct.mjs';
+function runMigrations() {
+  return new Promise((resolve) => {
+    const serverRoot = path.resolve(__dirname, '..');
+    const env = { ...process.env, NODE_ENV: process.env.NODE_ENV || 'production' };
+    const migrateScript = usesSessionPooler()
+      ? 'migrate-with-url.mjs'
+      : 'migrate-direct.mjs';
 
-  console.log(`[migrate:prod] ${migrateScript} (pooler=${usesSessionPooler()})`);
+    console.log(`[migrate:prod] ${migrateScript} (pooler=${usesSessionPooler()})`);
 
-  const result = spawnSync('node', [path.join(__dirname, migrateScript)], {
-    cwd: serverRoot,
-    env,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
+    const child = spawn('node', [path.join(__dirname, migrateScript)], {
+      cwd: serverRoot,
+      env,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+
+    child.on('close', (code) => {
+      resolve(code === 0);
+    });
+
+    child.on('error', (err) => {
+      console.error('[migrate:error]', err);
+      resolve(false);
+    });
   });
-
-  return result.status === 0;
 }
 
-module.exports = { runMigrationsSync };
+module.exports = { runMigrations, runMigrationsSync: runMigrations };
 
 if (require.main === module) {
-  process.exit(runMigrationsSync() ? 0 : 1);
+  runMigrations().then((success) => {
+    process.exit(success ? 0 : 1);
+  });
 }
