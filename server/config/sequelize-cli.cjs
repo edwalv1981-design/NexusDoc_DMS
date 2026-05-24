@@ -1,3 +1,7 @@
+const path = require('path');
+
+// Siempre intentar server/.env antes de loadEnv (NODE_ENV=production no debe bloquear migraciones locales).
+require('dotenv').config({ path: path.resolve(__dirname, '../.env'), quiet: true });
 require('../utils/loadEnv').loadEnv();
 
 function databaseNeedsSsl(url) {
@@ -14,7 +18,7 @@ function databaseNeedsSsl(url) {
   );
 }
 
-/** Parse DATABASE_URL explicitly so Supabase usernames like postgres.PROJECT_REF decode correctly. */
+/** Parse DATABASE_URL explicitly (Supabase user postgres.PROJECT_REF, password URL-encoded). */
 function configFromDatabaseUrl() {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
@@ -74,5 +78,11 @@ const buildProductionConfig = () => {
 module.exports = {
   development: buildEnvConfig(),
   test: buildEnvConfig(),
-  production: buildProductionConfig(),
 };
+
+Object.defineProperty(module.exports, 'production', {
+  enumerable: true,
+  get() {
+    return buildProductionConfig();
+  },
+});
