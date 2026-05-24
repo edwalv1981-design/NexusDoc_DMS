@@ -224,7 +224,7 @@ async function bootstrap() {
 }
 
 // Single listen — must succeed before any heavy require or DB work.
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
     console.log(`🚀 SERVIDOR WEB ACTIVO EN PUERTO: ${PORT} (health + SPA inmediato)`);
 });
 
