@@ -7,7 +7,7 @@ primary_region = "iad"
 
 [env]
   NODE_ENV = "production"
-  PORT = "8080"
+  # PORT lo inyecta Fly automáticamente (= internal_port). No fijar PORT aquí ni en .env.
 
 [http_service]
   internal_port = 8080

@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('../utils/loadEnv').loadEnv();
 
 function databaseNeedsSsl(url) {
   if (process.env.DB_SSL === 'false') return false;

@@ -1,8 +1,38 @@
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
+require('./loadEnv').loadEnv();
 
 const isProduction = process.env.NODE_ENV === 'production';
 let dbUrl = process.env.DATABASE_URL;
+
+function extractDbHost(url) {
+    if (!url) return null;
+    try {
+        const normalized = url.startsWith('postgresql://')
+            ? url.replace('postgresql://', 'postgres://')
+            : url;
+        return new URL(normalized).hostname;
+    } catch {
+        return null;
+    }
+}
+
+function isIpv6LiteralHost(host) {
+    if (!host) return false;
+    const bare = host.replace(/^\[|\]$/g, '');
+    return bare.includes(':') && !bare.includes('.');
+}
+
+function warnIfIpv6DirectConnection(url) {
+    if (!isProduction || !url) return;
+    const host = extractDbHost(url);
+    if (!isIpv6LiteralHost(host)) return;
+  console.error(
+        '❌ DATABASE_URL usa un host IPv6 directo (p. ej. Supabase Direct). Fly.io suele fallar con ECONNREFUSED.\n' +
+            '   Use el Session pooler de Supabase (IPv4), puerto 6543:\n' +
+            '   postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require\n' +
+            '   Dashboard → Project Settings → Database → Connection string → Session pooler (6543).'
+    );
+}
 
 function databaseNeedsSsl(url) {
     if (process.env.DB_SSL === 'false') return false;
@@ -60,11 +90,12 @@ function createLocalSequelize() {
 let sequelize;
 
 if (dbUrl) {
+    warnIfIpv6DirectConnection(dbUrl);
     console.log(`📡 Conectando a Producción${databaseNeedsSsl(dbUrl) ? ' con SSL' : ''}...`);
     sequelize = createSequelizeFromUrl(dbUrl);
 } else if (isProduction) {
     console.error(
-        '❌ DATABASE_URL no está definida en producción. Configure fly secrets (Supabase). /health sigue activo; la API no podrá usar la BD.'
+        '❌ DATABASE_URL no está definida en producción. Configure fly secrets (Supabase Session pooler, puerto 6543). /health sigue activo; la API no podrá usar la BD.'
     );
     sequelize = null;
 } else {

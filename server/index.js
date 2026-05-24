@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
-require('dotenv').config();
+require('./utils/loadEnv').loadEnv();
 
 const app = express();
 const PORT = Number(process.env.PORT) || (process.env.NODE_ENV === 'production' ? 8080 : 5000);

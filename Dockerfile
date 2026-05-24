@@ -62,7 +62,7 @@ RUN cd client && npm install
 # 6. Instalar dependencias de Python (Globalmente)
 RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt
 
-# 7. Copiar el resto del código
+# 7. Copiar el resto del código (.env excluido vía .dockerignore — usar fly secrets)
 COPY . .
 
 # 8. Construir el Frontend (obligatorio para / y /dashboard)
