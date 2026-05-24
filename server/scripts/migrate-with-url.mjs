@@ -30,55 +30,108 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
+const PLACEHOLDER_PASSWORD = /^\[?\s*YOUR[-_]?PASSWORD\s*\]?$/i;
+
+function normalizePostgresUrl(raw) {
+  let normalized = raw.trim();
+  if (normalized.startsWith('postgresql://')) {
+    normalized = normalized.replace('postgresql://', 'postgres://');
+  }
+  return normalized;
+}
+
+function parsePostgresUrl(raw) {
+  const normalized = normalizePostgresUrl(raw);
+  const m = normalized.match(/^postgres:\/\/([^@]+)@([^/?#]+)(?:\/([^?#]*))?(?:\?([^#]*))?/i);
+  if (!m) return null;
+  const userPart = m[1];
+  const colon = userPart.indexOf(':');
+  const username =
+    colon >= 0
+      ? decodeURIComponent(userPart.slice(0, colon))
+      : decodeURIComponent(userPart);
+  const password =
+    colon >= 0 ? decodeURIComponent(userPart.slice(colon + 1)) : '';
+  const hostPort = m[2];
+  const slash = hostPort.lastIndexOf(':');
+  let hostname = hostPort;
+  let port = '';
+  if (slash > 0 && /^\d+$/.test(hostPort.slice(slash + 1))) {
+    hostname = hostPort.slice(0, slash);
+    port = hostPort.slice(slash + 1);
+  }
+  return {
+    username,
+    password,
+    hostname,
+    port: port || '5432',
+    database: (m[3] || 'postgres').replace(/^\//, '') || 'postgres',
+    search: m[4] ? `?${m[4]}` : '',
+  };
+}
+
 function maskDatabaseUrl(raw) {
   try {
-    let normalized = raw;
-    if (normalized.startsWith('postgresql://')) {
-      normalized = normalized.replace('postgresql://', 'postgres://');
+    const parsed = parsePostgresUrl(raw);
+    if (!parsed) {
+      return '(URL inválida — revise formato y contraseña URL-encoded)';
     }
-    const u = new URL(normalized);
-    const user = decodeURIComponent(u.username);
-    const host = u.hostname;
-    const port = u.port || '5432';
-    const db = u.pathname.replace(/^\//, '') || 'postgres';
-    return `postgres://${user}@${host}:${port}/${db}`;
+    const { username, password, hostname, port, database } = parsed;
+    const cred = password ? `${username}:***` : `${username}:(sin contraseña)`;
+    const qs = raw.includes('?') ? raw.slice(raw.indexOf('?')) : '';
+    return `postgres://${cred}@${hostname}:${port}/${database}${qs}`;
   } catch {
     return '(URL inválida — revise formato y contraseña URL-encoded)';
   }
 }
 
+function isPlaceholderPassword(password) {
+  if (!password || !String(password).trim()) return true;
+  return PLACEHOLDER_PASSWORD.test(String(password).trim());
+}
+
 async function validateDatabaseUrl(raw) {
-  let normalized = raw;
-  if (normalized.startsWith('postgresql://')) {
-    normalized = normalized.replace('postgresql://', 'postgres://');
+  const normalized = normalizePostgresUrl(raw);
+  const parsed = parsePostgresUrl(normalized);
+  if (!parsed) {
+    console.error(
+      '❌ DATABASE_URL con formato inválido.\n' +
+        '   Ejemplo: postgres://postgres.PROJECT_REF:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'
+    );
+    process.exit(1);
   }
-  const u = new URL(normalized);
-  const user = decodeURIComponent(u.username);
+  const { username: user, password, hostname } = parsed;
   const expectedRef = process.env.SUPABASE_PROJECT_REF?.trim();
-  if (user && !/^postgres\.[a-z0-9]+$/.test(user)) {
+  if (user && !/^postgres(\.[a-z0-9]+)?$/i.test(user)) {
     console.warn(
       `[migrate] AVISO: usuario "${user}" — Session pooler requiere postgres.PROJECT_REF (copie desde Connect).`
     );
-  } else if (expectedRef && user !== `postgres.${expectedRef}`) {
+  } else if (expectedRef && user !== `postgres.${expectedRef}` && user !== 'postgres') {
     console.warn(
       `[migrate] AVISO: usuario "${user}" ≠ postgres.${expectedRef} — "Tenant or user not found" suele ser host/región o usuario incorrecto.`
     );
   }
-  if (!u.password) {
-    console.warn('[migrate] AVISO: DATABASE_URL sin contraseña (¿vacía o caracteres sin URL-encode?).');
-  }
-  if (u.hostname.endsWith('.supabase.co') && u.hostname.includes('pooler')) {
+  if (!password || isPlaceholderPassword(password)) {
     console.error(
-      `❌ Host incorrecto: ${u.hostname}\n` +
+      '❌ DATABASE_URL sin contraseña (falta :PASSWORD@ entre usuario y host).\n' +
+        '   Pegue la URI COMPLETA desde Supabase Connect reemplazando [YOUR-PASSWORD] por su contraseña de BD,\n' +
+        '   o defina solo la contraseña y deje que el script arme la URL.\n' +
+        `   Recibido (enmascarado): ${maskDatabaseUrl(normalized)}`
+    );
+    process.exit(1);
+  }
+  if (hostname.endsWith('.supabase.co') && hostname.includes('pooler')) {
+    console.error(
+      `❌ Host incorrecto: ${hostname}\n` +
         '   El Session pooler usa .supabase.com (NO .supabase.co).\n' +
         '   Ejemplo: aws-0-us-east-1.pooler.supabase.com:6543'
     );
     process.exit(1);
   }
   try {
-    await lookup(u.hostname);
+    await lookup(hostname);
   } catch (err) {
-    console.error(`❌ No se puede resolver ${u.hostname}: ${err.message}`);
+    console.error(`❌ No se puede resolver ${hostname}: ${err.message}`);
     console.error('   Use Session pooler: aws-0-[REGION].pooler.supabase.com:6543');
     process.exit(1);
   }
