@@ -53,6 +53,17 @@ async function validateDatabaseUrl(raw) {
     normalized = normalized.replace('postgresql://', 'postgres://');
   }
   const u = new URL(normalized);
+  const user = decodeURIComponent(u.username);
+  const expectedRef = process.env.SUPABASE_PROJECT_REF?.trim();
+  if (user && !/^postgres\.[a-z0-9]+$/.test(user)) {
+    console.warn(
+      `[migrate] AVISO: usuario "${user}" — Session pooler requiere postgres.PROJECT_REF (copie desde Connect).`
+    );
+  } else if (expectedRef && user !== `postgres.${expectedRef}`) {
+    console.warn(
+      `[migrate] AVISO: usuario "${user}" ≠ postgres.${expectedRef} — "Tenant or user not found" suele ser host/región o usuario incorrecto.`
+    );
+  }
   if (!u.password) {
     console.warn('[migrate] AVISO: DATABASE_URL sin contraseña (¿vacía o caracteres sin URL-encode?).');
   }
@@ -85,8 +96,18 @@ console.log(`[migrate] comando=sequelize-cli ${sequelizeCommand}`);
 const result = spawnSync('npx', ['sequelize-cli', sequelizeCommand], {
   cwd: serverRoot,
   env: { ...process.env, DATABASE_URL: databaseUrl, NODE_ENV: nodeEnv },
-  stdio: 'inherit',
+  stdio: ['inherit', 'pipe', 'pipe'],
   shell: process.platform === 'win32',
 });
+
+const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+if (combined) process.stdout.write(combined);
+if (/Tenant or user not found/i.test(combined)) {
+  console.error(
+    '\n❌ Tenant or user not found — host/región del pooler incorrecto o usuario distinto de postgres.PROJECT_REF.\n' +
+      '   Copie la URI COMPLETA desde Supabase → Connect → Session pooler (puerto 6543).\n' +
+      '   Ejemplo: postgres://postgres.ohwqfujrakhwxfuxo:***@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'
+  );
+}
 
 process.exit(result.status === 0 ? 0 : result.status ?? 1);
