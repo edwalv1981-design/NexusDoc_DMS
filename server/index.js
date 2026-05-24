@@ -5,11 +5,12 @@ const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = Number(process.env.PORT) || (process.env.NODE_ENV === 'production' ? 8080 : 5000);
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const DEFAULT_CORS_ORIGINS = [
     'https://nexusdocdms-production.up.railway.app',
+    'https://nexusdoc-dms.fly.dev',
     'http://localhost:5173',
     'http://localhost:3000',
 ];
@@ -186,7 +187,7 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 if (!JWT_SECRET) {
-    console.error('❌ JWT_SECRET no está definido. /health y SPA responden; configure la variable en Railway.');
+    console.error('❌ JWT_SECRET no está definido. /health y SPA responden; configure fly secrets o Railway.');
 }
 
 setImmediate(() => {

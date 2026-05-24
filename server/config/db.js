@@ -1,51 +1,69 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-let sequelize;
+const isProduction = process.env.NODE_ENV === 'production';
 let dbUrl = process.env.DATABASE_URL;
 
-if (dbUrl) {
-    console.log('📡 Conectando a Producción con SSL...');
-    
-    if (dbUrl.startsWith('postgresql://')) {
-        dbUrl = dbUrl.replace('postgresql://', 'postgres://');
+function createSequelizeFromUrl(url) {
+    let normalized = url;
+    if (normalized.startsWith('postgresql://')) {
+        normalized = normalized.replace('postgresql://', 'postgres://');
     }
 
-    sequelize = new Sequelize(dbUrl, {
+    return new Sequelize(normalized, {
         dialect: 'postgres',
         logging: false,
         dialectOptions: {
             ssl: {
                 require: true,
-                rejectUnauthorized: false
-            }
+                rejectUnauthorized: false,
+            },
         },
         define: {
             timestamps: true,
             underscored: true,
-        }
+        },
     });
-} else {
-    console.log('🏠 Usando configuración local...');
-    sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
-        host: process.env.DB_HOST,
+}
+
+function createLocalSequelize() {
+    return new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
+        host: process.env.DB_HOST || 'localhost',
         dialect: 'postgres',
-        port: process.env.DB_PORT,
+        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
         logging: false,
         define: {
             timestamps: true,
             underscored: true,
-        }
+        },
     });
 }
 
+let sequelize;
+
+if (dbUrl) {
+    console.log('📡 Conectando a Producción con SSL...');
+    sequelize = createSequelizeFromUrl(dbUrl);
+} else if (isProduction) {
+    console.error(
+        '❌ DATABASE_URL no está definida en producción. Configure fly secrets (Supabase). /health sigue activo; la API no podrá usar la BD.'
+    );
+    sequelize = null;
+} else {
+    console.log('🏠 Usando configuración local...');
+    sequelize = createLocalSequelize();
+}
+
 const connectDB = async () => {
+    if (!sequelize) {
+        throw new Error('DATABASE_URL requerida en producción (fly secrets set DATABASE_URL=...)');
+    }
     try {
         await sequelize.authenticate();
         console.log('✅ PostgreSQL Connected Successfully!');
     } catch (err) {
         console.error('❌ FATAL: Error de conexión:', err.message);
-        // No salimos del proceso inmediatamente para dejar que Railway nos dé más info
+        throw err;
     }
 };
 

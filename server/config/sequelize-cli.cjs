@@ -34,7 +34,9 @@ const buildProductionConfig = () => {
       ...common
     };
   }
-  return buildLocalConfig();
+  throw new Error(
+    'DATABASE_URL requerida en producción para sequelize-cli (fly secrets set DATABASE_URL=...)'
+  );
 };
 
 module.exports = {
