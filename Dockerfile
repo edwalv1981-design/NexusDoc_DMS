@@ -77,4 +77,4 @@ EXPOSE 5000
 
 # 11. Comando de arranque (servidor primero; migraciones en segundo plano)
 WORKDIR /app/server
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
