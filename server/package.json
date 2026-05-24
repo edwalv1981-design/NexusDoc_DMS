@@ -8,6 +8,7 @@
     "start:dev": "node index.js",
     "start:prod": "sh scripts/start-with-migrate.sh",
     "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:url": "node scripts/migrate-with-url.mjs",
     "db:migrate:prod": "node scripts/run-migrate-prod.cjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.js",
     "seed:admin": "node scripts/bootstrap-admin.js",

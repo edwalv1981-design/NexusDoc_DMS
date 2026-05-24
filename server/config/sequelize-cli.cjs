@@ -9,27 +9,43 @@ function databaseNeedsSsl(url) {
     lower.includes('supabase') ||
     lower.includes('sslmode=require') ||
     lower.includes('amazonaws.com') ||
+    lower.includes('pooler.supabase.co') ||
     (isProduction && !lower.includes('localhost') && !lower.includes('127.0.0.1'))
   );
 }
 
-const buildDialectOptions = () => {
-  if (process.env.DATABASE_URL && databaseNeedsSsl(process.env.DATABASE_URL)) {
-    return {
+/** Parse DATABASE_URL explicitly so Supabase usernames like postgres.PROJECT_REF decode correctly. */
+function configFromDatabaseUrl() {
+  const url = process.env.DATABASE_URL;
+  if (!url) return null;
+
+  let normalized = url;
+  if (normalized.startsWith('postgresql://')) {
+    normalized = normalized.replace('postgresql://', 'postgres://');
+  }
+
+  const u = new URL(normalized);
+  const config = {
+    username: decodeURIComponent(u.username),
+    password: decodeURIComponent(u.password),
+    database: u.pathname.replace(/^\//, '') || 'postgres',
+    host: u.hostname,
+    port: parseInt(u.port || '5432', 10),
+    dialect: 'postgres',
+    logging: false,
+  };
+
+  if (databaseNeedsSsl(url)) {
+    config.dialectOptions = {
       ssl: {
         require: true,
         rejectUnauthorized: false,
       },
     };
   }
-  return {};
-};
 
-const common = {
-  dialect: 'postgres',
-  logging: false,
-  dialectOptions: buildDialectOptions()
-};
+  return config;
+}
 
 const buildLocalConfig = () => ({
   username: process.env.DB_USER || 'postgres',
@@ -37,34 +53,26 @@ const buildLocalConfig = () => ({
   database: process.env.DB_NAME || 'nexusdoc',
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-  ...common
+  dialect: 'postgres',
+  logging: false,
 });
 
-/** Misma prioridad que config/db.js: DATABASE_URL gana sobre DB_* / localhost. */
-const buildConfig = () => {
-  if (process.env.DATABASE_URL) {
-    return {
-      use_env_variable: 'DATABASE_URL',
-      ...common
-    };
-  }
+const buildEnvConfig = () => {
+  const fromUrl = configFromDatabaseUrl();
+  if (fromUrl) return fromUrl;
   return buildLocalConfig();
 };
 
 const buildProductionConfig = () => {
-  if (process.env.DATABASE_URL) {
-    return {
-      use_env_variable: 'DATABASE_URL',
-      ...common
-    };
-  }
+  const fromUrl = configFromDatabaseUrl();
+  if (fromUrl) return fromUrl;
   throw new Error(
-    'DATABASE_URL requerida en producción para sequelize-cli (fly secrets set DATABASE_URL=...)'
+    'DATABASE_URL requerida en producción para sequelize-cli. Local: cree server/.env con DATABASE_URL=... y use npm run db:migrate:url. Fly: fly secrets set DATABASE_URL=...'
   );
 };
 
 module.exports = {
-  development: buildConfig(),
-  test: buildConfig(),
-  production: buildProductionConfig()
+  development: buildEnvConfig(),
+  test: buildEnvConfig(),
+  production: buildProductionConfig(),
 };
