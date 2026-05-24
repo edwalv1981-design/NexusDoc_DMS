@@ -9,6 +9,9 @@ $AdminEmail = 'edwinalvarezvivero@yahoo.com'
 $AdminPassword = 'U3m3O2CJz1wnZegcsTYt'
 $FlyApp = 'nexusdoc-dms'
 $ProjectRef = 'oxpohwcfujrakhwxfuxo'
+$DefaultPoolerHost = 'aws-0-us-east-1.pooler.supabase.com'
+
+. (Join-Path $PSScriptRoot 'supabase-uri-helpers.ps1')
 
 function Get-Flyctl {
     $cmd = Get-Command flyctl -ErrorAction SilentlyContinue
@@ -16,14 +19,6 @@ function Get-Flyctl {
     $default = Join-Path $env:USERPROFILE '.fly\bin\flyctl.exe'
     if (Test-Path $default) { return $default }
     throw 'flyctl no está instalado. Instálelo: https://fly.io/docs/flyctl/install/'
-}
-
-function Mask-Url([string]$url) {
-    if (-not $url) { return '(vacío)' }
-    if ($url -match '^(?i)postgres(ql)?://([^:@]+):([^@]*)@([^/?#]+)') {
-        return "postgres://$($Matches[2]):***@$($Matches[4])"
-    }
-    return '(URL no reconocida)'
 }
 
 function Read-ExistingJwt {
@@ -42,19 +37,119 @@ function Fail([string]$msg) {
     exit 1
 }
 
-Write-Host ''
-$dbUrl = (Read-Host 'DATABASE_URL').Trim()
-if (-not $dbUrl) { Fail 'No pegó ninguna URI.' }
-if ($dbUrl -match '^(?i)DATABASE_URL\s*=\s*(.+)$') { $dbUrl = $Matches[1].Trim().Trim('"', "'") }
-$dbUrl = $dbUrl -replace '^(?i)postgresql://', 'postgres://'
-if ($dbUrl -match '\[YOUR-PASSWORD\]') {
-    Fail 'La URI aún contiene [YOUR-PASSWORD]. Sustitúyalo por la contraseña real de la base de datos.'
-}
-if ($dbUrl -notmatch '^(?i)postgres://') {
-    Fail 'La URI debe empezar por postgres:// (cópiela desde Connect → Session pooler, puerto 5432).'
+function Read-SecureDatabasePassword {
+    $secure = Read-Host 'Escriba solo la contraseña de base de datos (la que puso al crear el proyecto o al resetear)' -AsSecureString
+    if (-not $secure -or $secure.Length -eq 0) { return '' }
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try {
+        [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+    } finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
 }
 
-Write-Host "URI detectada: $(Mask-Url $dbUrl)" -ForegroundColor Cyan
+function Apply-DatabasePasswordToUri([string]$rawUri, [string]$plainPassword) {
+    $s = $rawUri.Trim()
+    if ($s -match '\[YOUR-PASSWORD\]') {
+        $enc = Encode-DbPassword $plainPassword
+        $s = $s -replace '\[YOUR-PASSWORD\]', $enc
+    }
+    $parsed = Parse-PostgresUri $s
+    if (-not $parsed -or $parsed.IsPasswordOnly) { return $null }
+
+    if (Test-PlaceholderPassword $parsed.Password) {
+        $parsed.Password = $plainPassword
+    } elseif ([string]::IsNullOrWhiteSpace($parsed.Password)) {
+        $parsed.Password = $plainPassword
+    } else {
+        $parsed.Password = $plainPassword
+    }
+    $parsed
+}
+
+function Resolve-PoolerHost($parsed) {
+    if ($parsed.Host -match '(?i)pooler\.supabase\.com') {
+        return ($parsed.Host -replace '\.supabase\.co$', '.supabase.com')
+    }
+    $DefaultPoolerHost
+}
+
+function Build-CanonicalConnectUrl($parsed) {
+    $poolerHost = Resolve-PoolerHost $parsed
+    $canonical = [PSCustomObject]@{
+        IsPasswordOnly = $false
+        User           = "postgres.$ProjectRef"
+        Password       = $parsed.Password
+        Host           = $poolerHost
+        Port           = 5432
+        Database       = 'postgres'
+        Query          = '?sslmode=require'
+    }
+    Build-PostgresUri $canonical
+}
+
+function Write-ConnectionTestFailure([string]$output) {
+    $kind = Classify-PostgresError $output
+    switch ($kind) {
+        'bad_password' {
+            Fail @"
+Contraseña de base de datos incorrecta.
+Use la contraseña que definió al crear el proyecto o al resetearla desde Connect (no la del administrador de NexusDoc).
+Vuelva a ejecutar ARREGLAR-LOGIN.bat.
+Detalle: $output
+"@
+        }
+        'tenant' {
+            Fail @"
+El pooler no reconoció el usuario o el proyecto.
+Pegue la URI exacta de Connect → Session pooler (puerto 5432). Compruebe que el proyecto no está pausado y que inició sesión en la cuenta correcta de Supabase.
+Detalle: $output
+"@
+        }
+        'dns' {
+            Fail @"
+No se pudo resolver el host del pooler. Copie la URI completa desde Connect sin cambiar el host.
+Detalle: $output
+"@
+        }
+        default {
+            Fail @"
+No se pudo conectar a PostgreSQL antes de migrar.
+Revise la URI de Connect y la contraseña de base de datos, luego vuelva a ejecutar ARREGLAR-LOGIN.bat.
+Detalle: $output
+"@
+        }
+    }
+}
+
+Write-Host ''
+Write-Host 'Copie en Supabase la ventana Connect que ya tiene abierta. Pulse Enter.' -ForegroundColor Cyan
+$null = Read-Host
+
+$connectUri = (Read-Host 'Pegue aqui la URI de Connect (puede traer [YOUR-PASSWORD], no importa)').Trim()
+if (-not $connectUri) { Fail 'No pegó ninguna URI.' }
+if ($connectUri -match '^(?i)DATABASE_URL\s*=\s*(.+)$') {
+    $connectUri = $Matches[1].Trim().Trim('"', "'")
+}
+
+$dbPassword = Read-SecureDatabasePassword
+if ([string]::IsNullOrWhiteSpace($dbPassword)) { Fail 'No escribió la contraseña de base de datos.' }
+
+$parsed = Apply-DatabasePasswordToUri $connectUri $dbPassword
+if (-not $parsed) {
+    Fail 'No reconocimos una URI de Connect. Copie la línea postgres:// completa desde Session pooler (puerto 5432).'
+}
+
+$dbUrl = Build-CanonicalConnectUrl $parsed
+Write-Host "URI canónica: $(Mask-DatabaseUrl $dbUrl)" -ForegroundColor Cyan
+
+Write-Host 'Probando conexión a la base de datos...' -ForegroundColor Yellow
+$pgTest = Test-PostgresSelect1 $dbUrl $ServerDir
+if ($pgTest.ExitCode -ne 0) {
+    Write-ConnectionTestFailure $pgTest.Output
+}
+
+Write-Host 'Conexión OK.' -ForegroundColor Green
 
 $jwt = Read-ExistingJwt
 if (-not $jwt) {
@@ -82,9 +177,9 @@ Push-Location $ServerDir
 try {
     npm run db:migrate:url 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) {
-        $hint = 'Revise la URI (Session pooler 5432) y la contraseña.'
+        $hint = 'Revise la contraseña de base de datos y la URI de Connect (Session pooler 5432).'
         if ($dbUrl -match 'Tenant|tenant') {
-            $hint = 'Si la URI es la de Connect con contraseña correcta: proyecto Supabase pausado o cuenta equivocada. Restaure el proyecto en el panel.'
+            $hint = 'Proyecto Supabase pausado o cuenta equivocada. Restaure el proyecto en el panel y vuelva a ejecutar el script.'
         }
         Fail "Migración falló. $hint"
     }
@@ -101,7 +196,7 @@ Push-Location $ServerDir
 try {
     npm run seed:admin 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) {
-        Fail 'No se pudo crear el administrador. Revise la URI y vuelva a ejecutar ARREGLAR-LOGIN.bat.'
+        Fail 'No se pudo crear el administrador. Vuelva a ejecutar ARREGLAR-LOGIN.bat.'
     }
 } finally {
     Pop-Location

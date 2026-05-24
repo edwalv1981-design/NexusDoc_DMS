@@ -1,6 +1,6 @@
 # Un solo paso (login / base de datos)
 
-Perdón por la confusión anterior. **Solo haga esto:**
+**Solo haga esto:**
 
 ## 1. Ejecute
 
@@ -8,30 +8,29 @@ En la carpeta del proyecto, doble clic en:
 
 **`ARREGLAR-LOGIN.bat`**
 
-## 2. En el navegador (se abre solo)
+Se abre Supabase en **Connect** (Session pooler, puerto 5432). Copie la URI que muestra el panel.
 
-1. **Connect**
-2. **Session pooler** — puerto **5432**
-3. Copie la **URI**
-4. Sustituya **`[YOUR-PASSWORD]`** por la contraseña real de la base de datos
+## 2. Pegue y escriba la contraseña
 
-## 3. En la ventana negra
+En la ventana negra:
 
-Pegue **una sola línea** (la URI completa) cuando pida `DATABASE_URL:` y pulse Enter.
+1. Pulse **Enter** cuando le indique que copió en Connect.
+2. **Pegue** la URI de Connect (puede traer `[YOUR-PASSWORD]`; no hace falta cambiarla).
+3. **Escriba** solo la contraseña de **base de datos** del proyecto (la que puso al crear o al resetear).
 
-Espere. El script migra, crea el admin y despliega en Fly.
+Espere. El script prueba la conexión, migra, crea el admin y despliega en Fly.
 
-## 4. Entrar
+## Entrar
 
 - https://nexusdoc-dms.fly.dev/dashboard  
 - Email: `edwinalvarezvivero@yahoo.com`  
-- Contraseña: la que dejó en el script (`U3m3O2CJz1wnZegcsTYt`)
+- Contraseña de la app: la que dejó en el script (`U3m3O2CJz1wnZegcsTYt`)
 
 ---
 
-**Si falla con “Tenant or user not found”** y usted pegó bien la URI de Connect (Session pooler 5432, contraseña correcta):
+**Si falla** y usted pegó la URI de Connect y escribió la contraseña correcta de base de datos:
 
 - El proyecto Supabase puede estar **pausado** → Restaure en el panel.
 - O está en la **cuenta de Supabase equivocada**.
 
-No use otros scripts ni pasos manuales; solo `ARREGLAR-LOGIN.bat`.
+No use otros scripts; solo `ARREGLAR-LOGIN.bat`.
