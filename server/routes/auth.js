@@ -2,7 +2,6 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { User, AuditLog, PendingRegistration } = require('../models');
-const { sequelize } = require('../config/db');
 const { sendSecurityCode, sendTemporaryPassword } = require('../services/emailService');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
@@ -11,6 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const stablePdfForms = require('../config/stablePdfForms');
 const userLanguageStore = require('../services/userLanguageStore');
+const { sequelize } = require('../config/db');
+const { normalizeLoginEmail, mapLoginInfrastructureError } = require('../utils/loginAuth');
 
 const generateUniqueCode = async (formType) => {
     const prefix = stablePdfForms.UNIQUE_CODE_PREFIX_BY_FORM_TYPE[formType] || 'NDOC';
@@ -247,15 +248,45 @@ router.patch('/me/language', auth, async (req, res) => {
 // @route   POST api/auth/login
 // @desc    Authenticate user & get token
 router.post('/login', async (req, res) => {
+    const email = normalizeLoginEmail(req.body && req.body.email);
+    const password = req.body && req.body.password;
+
     try {
-        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ msg: 'Correo y contraseña son obligatorios.' });
+        }
+
+        if (!sequelize) {
+            return res.status(503).json({
+                msg: 'Base de datos no configurada. Defina DATABASE_URL en fly secrets (Supabase Session pooler, puerto 6543).',
+            });
+        }
+
+        if (!JWT_SECRET) {
+            return res.status(503).json({
+                msg: 'Autenticación no disponible: falta JWT_SECRET en el servidor.',
+            });
+        }
 
         console.log(`🔐 Intento de login para: ${email}`);
-        const user = await User.findOne({ where: { email } });
-        
+
+        let user;
+        try {
+            user = await User.findOne({
+                where: { email: { [Op.iLike]: email } },
+            });
+        } catch (dbErr) {
+            const mapped = mapLoginInfrastructureError(dbErr);
+            if (mapped) {
+                console.error('⚠️ LOGIN DB:', dbErr.message);
+                return res.status(mapped.status).json({ msg: mapped.msg });
+            }
+            throw dbErr;
+        }
+
         if (!user) {
             console.log('❌ Usuario no encontrado en la base de datos.');
-            return res.status(400).json({ msg: 'Credenciales inválidas' });
+            return res.status(401).json({ msg: 'Credenciales inválidas' });
         }
 
         console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
@@ -287,19 +318,19 @@ router.post('/login', async (req, res) => {
 
         const isMatch = await user.comparePassword(password);
         console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
-        
+
         if (!isMatch) {
             user.loginAttempts += 1;
             console.log(`📉 Intento fallido #${user.loginAttempts}`);
-            
+
             if (user.loginAttempts >= 3) {
                 user.status = 'blocked';
                 await user.save();
                 return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos. Contacta al soporte.' });
             }
-            
+
             await user.save();
-            return res.status(400).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
+            return res.status(401).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
         }
 
         // Reset attempts
@@ -308,38 +339,42 @@ router.post('/login', async (req, res) => {
 
         const payload = { user: { id: user.id, role: user.role } };
 
-        jwt.sign(
-            payload,
-            JWT_SECRET,
-            { expiresIn: '8h' },
-            async (err, token) => {
-                if (err) {
-                    console.error('❌ Error al firmar JWT:', err.message);
-                    throw err;
-                }
-                
+        jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' }, async (err, token) => {
+            if (err) {
+                console.error('❌ Error al firmar JWT:', err.message);
+                return res.status(500).json({ msg: 'Error interno al generar la sesión.' });
+            }
+
+            try {
                 user.activeToken = token;
                 await user.save();
                 console.log(`✅ Sesión iniciada para: ${email}`);
 
-                res.json({ 
-                    token, 
-                    user: { 
-                        id: user.id, 
-                        name: user.name, 
-                        email: user.email, 
-                        role: user.role, 
-                        mustChangePassword: user.mustChangePassword 
-                    } 
+                return res.json({
+                    token,
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        mustChangePassword: user.mustChangePassword,
+                    },
                 });
+            } catch (saveErr) {
+                console.error('❌ Error guardando sesión:', saveErr.message);
+                return res.status(500).json({ msg: 'Error interno al guardar la sesión.' });
             }
-        );
+        });
     } catch (err) {
+        const mapped = mapLoginInfrastructureError(err);
+        if (mapped) {
+            console.error('⚠️ LOGIN infra:', err.message);
+            return res.status(mapped.status).json({ msg: mapped.msg });
+        }
         console.error('🔥 LOGIN CRITICAL ERROR:', err);
-        res.status(500).json({ 
-            msg: 'Error interno en el servidor durante el login', 
-            error: err.message,
-            stack: err.stack
+        return res.status(500).json({
+            msg: 'Error interno en el servidor durante el login',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined,
         });
     }
 });

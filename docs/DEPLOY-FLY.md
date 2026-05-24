@@ -28,6 +28,10 @@
 
 | **HTTP 503** en `/dashboard` | `client/dist/index.html` no existe en el contenedor — revisar paso `npm run build` del `Dockerfile`. |
 
+| **HTTP 500** en `POST /api/auth/login` | Tabla `users` sin migrar, `DATABASE_URL`/SSL incorrectos, o `JWT_SECRET` ausente. Usuario de Railway **no** existe en Supabase vacío → debe crear admin (bootstrap o `npm run seed:admin`). Con usuario inexistente la API debe responder **401**, no 500. |
+
+| `relation "Users" does not exist` | Migraciones no ejecutadas contra Supabase. Ver sección **Primer acceso / login** abajo. |
+
 | `The server does not support SSL connections` | `DATABASE_URL` apunta a Postgres local sin SSL pero Sequelize forzaba SSL. Usar `?sslmode=require` en Supabase o `DB_SSL=false` solo en local. |
 
 
@@ -118,7 +122,17 @@ fly secrets set \
 
 
 
-Opcionales (bootstrap de admin, email, etc.): ver `server/.env.example` y `README.md`.
+Opcionales (bootstrap de admin, email, etc.):
+
+```bash
+fly secrets set \
+  BOOTSTRAP_ADMIN_EMAIL="tu@correo.com" \
+  BOOTSTRAP_ADMIN_PASSWORD="ContraseñaSegura7+" \
+  -a nexusdoc-dms
+fly deploy -a nexusdoc-dms
+```
+
+También puede crear el admin **una vez** contra Supabase desde su PC: `cd server && npm run seed:admin` (con `DATABASE_URL` apuntando al pooler). Ver `server/.env.example` y `README.md`.
 
 
 
@@ -402,9 +416,49 @@ fly deploy -a nexusdoc-dms
 
 
 
+## Primer acceso / login (Supabase vacío)
+
+Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase. Las contraseñas están hasheadas con bcrypt en cada BD; sin export/import manual debe **registrarse de nuevo** o crear un administrador.
+
+### Pasos recomendados (español)
+
+1. En Supabase: copie la URI del **Session pooler** (puerto **6543**, `?sslmode=require`).
+
+2. En su PC, desde la raíz del repo, ejecute migraciones **una vez** contra esa URI:
+
+   ```bash
+   cd server
+   set DATABASE_URL=postgres://postgres.REF:PASS@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmode=require
+   set NODE_ENV=production
+   npm run db:migrate
+   npm run db:migrate:status
+   ```
+
+3. Cree el administrador (elija **A** o **B**):
+
+   **A — Secrets en Fly (bootstrap en cada arranque si el usuario no existe):**
+
+   ```bash
+   fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_ADMIN_PASSWORD="SuClaveSegura7+" -a nexusdoc-dms
+   fly deploy -a nexusdoc-dms
+   ```
+
+   **B — Script local (no deja la contraseña en Fly tras el primer login; puede quitar los secrets bootstrap):**
+
+   ```bash
+   cd server
+   set BOOTSTRAP_ADMIN_EMAIL=edwinalvarezvivero@yahoo.com
+   set BOOTSTRAP_ADMIN_PASSWORD=SuClaveSegura7+
+   npm run seed:admin
+   ```
+
+4. Redespliegue si cambió secrets: `fly deploy -a nexusdoc-dms`.
+
+5. Pruebe login en https://nexusdoc-dms.fly.dev/dashboard — credenciales incorrectas → **401**; sin tabla/migración → **503** con mensaje claro.
+
+6. **Registro público:** si no usa bootstrap, un usuario nuevo puede usar el flujo **Registrarse** en la app (`POST /api/auth/register` → verificación por correo).
+
 ## Railway vs Fly
-
-
 
 Railway usa `railway.toml` y el mismo `Dockerfile`. Fly usa este `fly.toml`. Puedes mantener ambos; cada plataforma ignora la config de la otra.
 

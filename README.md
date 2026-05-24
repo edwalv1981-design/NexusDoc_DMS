@@ -58,8 +58,10 @@ Variable opcional para documentación / enlaces en correos:
 El proyecto usa migraciones para cambios de esquema sin depender de `sequelize.sync`.
 
 - Ejecutar migraciones manualmente: `npm run db:migrate`
+- Producción (misma lógica que Fly al arrancar): `cd server && npm run db:migrate:prod`
 - Ver estado de migraciones: `cd server && npm run db:migrate:status`
 - Revertir la ultima migracion: `cd server && npm run db:migrate:undo`
+- Crear administrador en Supabase (env `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD`): `cd server && npm run seed:admin` (alias `npm run create-admin`)
 
 En despliegue (Railway/Docker), el arranque usa `server/scripts/start-with-migrate.sh` (definido en `Dockerfile`, `railway.toml` y `server` → `npm start`). El servidor hace **listen en `PORT` de inmediato** (`/` y `/health` responden antes del bootstrap). Las migraciones Sequelize se intentan al inicio; si fallan, el API arranca igualmente (revisar logs). Desarrollo local sin migrate: `cd server && npm run start:dev`.
 

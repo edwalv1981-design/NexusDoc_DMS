@@ -209,9 +209,13 @@ async function bootstrap() {
                 uniqueCode: 'MASTER-ADMIN-001',
             });
         } else {
-            console.log('🔄 Sincronizando rol/estado de administrador...');
-            admin.status = 'authorized';
+            console.log('🔄 Sincronizando administrador desde entorno...');
+            admin.name = adminName;
+            admin.password = adminPassword;
             admin.role = 'admin';
+            admin.status = 'authorized';
+            admin.loginAttempts = 0;
+            admin.lockUntil = null;
             await admin.save();
         }
     } else {
@@ -228,19 +232,7 @@ if (!JWT_SECRET) {
     console.error('❌ JWT_SECRET no está definido. /health y SPA responden; configure fly secrets o Railway.');
 }
 
-setImmediate(() => {
-    if (process.env.NODE_ENV === 'production') {
-        const { spawn } = require('child_process');
-        const migrate = spawn('node', ['scripts/run-migrate-prod.cjs'], {
-            cwd: __dirname,
-            stdio: 'inherit',
-        });
-        migrate.on('exit', (code) => {
-            if (code === 0) console.log('[migrate] db:migrate completado.');
-            else console.warn(`[migrate] db:migrate falló (código ${code}).`);
-        });
-    }
-
+setImmediate(async () => {
     try {
         verifySharedLib();
         registerApiRoutes();
@@ -251,13 +243,21 @@ setImmediate(() => {
 
     registerErrorHandler();
 
-    bootstrap()
-        .then(() => {
-            apiReady = true;
-            console.log('💎 Bootstrap completado.');
-        })
-        .catch((error) => {
-            apiReady = true;
-            console.error('⚠️ ALERTA TÉCNICA al iniciar (modo degradado):', error.message);
-        });
+    if (process.env.NODE_ENV === 'production') {
+        const { runMigrationsSync } = require('./scripts/run-migrate-prod.cjs');
+        if (runMigrationsSync()) {
+            console.log('[migrate] db:migrate completado antes del bootstrap.');
+        } else {
+            console.warn('[migrate] db:migrate falló — login puede devolver 503 hasta corregir DATABASE_URL.');
+        }
+    }
+
+    try {
+        await bootstrap();
+        apiReady = true;
+        console.log('💎 Bootstrap completado.');
+    } catch (error) {
+        apiReady = true;
+        console.error('⚠️ ALERTA TÉCNICA al iniciar (modo degradado):', error.message);
+    }
 });

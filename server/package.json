@@ -9,6 +9,8 @@
     "start:prod": "sh scripts/start-with-migrate.sh",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:prod": "node scripts/run-migrate-prod.cjs",
+    "seed:admin": "node scripts/seed-admin.cjs",
+    "create-admin": "npm run seed:admin",
     "db:migrate:status": "sequelize-cli db:migrate:status",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "test": "node run-tests.cjs",
