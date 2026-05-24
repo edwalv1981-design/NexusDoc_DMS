@@ -5,7 +5,7 @@ const fs = require('fs');
 require('./utils/loadEnv').loadEnv();
 
 const app = express();
-const PORT = Number(process.env.PORT) || (process.env.NODE_ENV === 'production' ? 8080 : 5000);
+const PORT = Number(process.env.PORT) || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const DEFAULT_CORS_ORIGINS = [

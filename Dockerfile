@@ -73,7 +73,7 @@ ENV NODE_ENV=production
 # Railway asigna PORT (p. ej. 8080); no fijar PORT aquí.
 
 # 10. Exponer puerto (documentación; el runtime usa $PORT)
-EXPOSE 8080
+EXPOSE 5000
 
 # 11. Comando de arranque (servidor primero; migraciones en segundo plano)
 WORKDIR /app/server
