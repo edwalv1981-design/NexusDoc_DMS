@@ -3,8 +3,11 @@
 .SYNOPSIS
   One-time Supabase DB -> local .env, migrate, seed admin, Fly secrets, deploy.
 .DESCRIPTION
-  Migraciones: SOLO conexión DIRECTA db.PROJECT_REF.supabase.co:5432 (usuario postgres).
-  App/Fly secrets: Session pooler :5432 (postgres.PROJECT_REF, aws-0 o aws-1).
+  Migraciones: intenta directa db.PROJECT_REF.supabase.co:5432; si DNS falla (común en
+  algunos ISPs/Windows), migra por Session pooler aws-0-us-east-1.pooler.supabase.com
+  :5432 o :6543 (usuario postgres.PROJECT_REF). aws-1 solo si aws-0 falla.
+  Fly secrets usan la misma URL que migró cuando fue por pooler.
+  Algunos ISPs/Windows bloquean db.*.supabase.co; el pooler .supabase.com suele resolver.
   Pega URI completa del panel Connect o solo la contraseña de base de datos.
 #>
 param(
@@ -209,6 +212,38 @@ function Test-PoolerDns([string]$hostName) {
   }
 }
 
+function Test-PoolerReachability([string]$hostName) {
+  Write-Host "Pooler $hostName — nslookup + Test-NetConnection ..." -ForegroundColor DarkGray
+  try {
+    $nsLines = @(nslookup $hostName 2>&1 | ForEach-Object { "$_" })
+    $nsText = $nsLines -join "`n"
+    if ($nsText -match '(?i)Address(es)?\s*:\s*[\d\.a-f:]+' -or $nsText -match 'Nombre:\s') {
+      $tail = $nsLines | Select-Object -Last 8
+      Write-Host ($tail -join "`n") -ForegroundColor DarkGray
+    } else {
+      Write-Host "nslookup sin dirección para $hostName" -ForegroundColor DarkYellow
+      return $false
+    }
+  } catch {
+    Write-Host "nslookup error: $($_.Exception.Message)" -ForegroundColor DarkYellow
+  }
+  if (-not (Test-PoolerDns $hostName)) { return $false }
+  foreach ($port in @(5432, 6543)) {
+    try {
+      $tnc = Test-NetConnection -ComputerName $hostName -Port $port -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+      if ($tnc.TcpTestSucceeded) {
+        Write-Host "TCP OK: ${hostName}:$port" -ForegroundColor DarkGreen
+        return $true
+      }
+      Write-Host "TCP no alcanzable: ${hostName}:$port" -ForegroundColor DarkYellow
+    } catch {
+      Write-Host "Test-NetConnection ${hostName}:$port — $($_.Exception.Message)" -ForegroundColor DarkYellow
+    }
+  }
+  Write-Host "DNS OK pero puertos 5432/6543 no respondieron — se intentará migrate igual." -ForegroundColor DarkYellow
+  return $true
+}
+
 function Write-PasswordErrorHint {
   Write-Host ''
   Write-Host 'Contraseña incorrecta. Verifique en Supabase → Settings → Database → Reset database password.' -ForegroundColor Red
@@ -219,8 +254,15 @@ function Write-TenantErrorHint {
   Write-Host ''
   Write-Host 'ERROR: Tenant or user not found — project ref, host o usuario incorrectos.' -ForegroundColor Red
   Write-Host "  Verifique ref en dashboard: https://supabase.com/dashboard/project/$ProjectRef" -ForegroundColor Yellow
-  Write-Host "  Migraciones SOLO directa: postgres@$DirectHost`:5432 (usuario postgres, NO $ExpectedDbUser)" -ForegroundColor Yellow
-  Write-Host '  No use pooler (6543/5432 pooler) para migrate — pegue solo la contraseña de BD (opción 2).' -ForegroundColor Yellow
+  Write-Host "  Use aws-0-us-east-1.pooler.supabase.com (no aws-1 salvo que aws-0 falle)." -ForegroundColor Yellow
+  Write-Host "  Usuario pooler: $ExpectedDbUser (no postgres@pooler)." -ForegroundColor Yellow
+}
+
+function Write-DirectDnsBlockedHint {
+  Write-Host ''
+  Write-Host "DNS no resuelve $DirectHost (Host desconocido)." -ForegroundColor Yellow
+  Write-Host '  Algunos ISPs o Windows bloquean db.*.supabase.co; el pooler aws-0 suele funcionar.' -ForegroundColor Cyan
+  Write-Host '  Continuando migrate por Session pooler (aws-0, puertos 5432 luego 6543)...' -ForegroundColor Cyan
 }
 
 function Test-MigrateOutput([string]$joined) {
@@ -282,13 +324,18 @@ function Test-Migrate([string]$url) {
 
 function Get-PoolerHostOrder([string[]]$preferredHosts) {
   $order = [System.Collections.Generic.List[string]]::new()
+  $aws0 = $PoolerHosts[0]
+  if ($aws0) { [void]$order.Add($aws0) }
   foreach ($h in $preferredHosts) {
     if ($h -and $h -match 'pooler\.supabase\.com$' -and $order -notcontains $h) {
       [void]$order.Add($h)
     }
   }
-  foreach ($h in $PoolerHosts) {
-    if ($order -notcontains $h) { [void]$order.Add($h) }
+  if (-not (Test-PoolerDns $aws0)) {
+    Write-Host 'aws-0 sin DNS — añadiendo aws-1 como respaldo.' -ForegroundColor Yellow
+    foreach ($h in $PoolerHosts | Select-Object -Skip 1) {
+      if ($h -and $order -notcontains $h) { [void]$order.Add($h) }
+    }
   }
   return $order
 }
@@ -301,22 +348,51 @@ function Get-FirstReachablePoolerHost([string[]]$hostOrder) {
 }
 
 function Try-MigrateDirect([string]$password) {
-  Write-Host "Migrate (solo directa) $DirectHost :5432 usuario postgres ..."
+  Write-Host "Migrate (directa) $DirectHost :5432 usuario postgres ..."
   if (-not (Test-PoolerDns $DirectHost)) {
-    Write-Host "DNS no resuelve $DirectHost — confirme PROJECT_REF=$ProjectRef en el dashboard." -ForegroundColor Red
+    Write-DirectDnsBlockedHint
     return $null
   }
   $candidate = Build-DirectDatabaseUrl $password
   if (Test-Migrate $candidate) {
     Write-Host "OK migrate: direct $DirectHost" -ForegroundColor Green
     return [PSCustomObject]@{
-      MigrateUrl = $candidate
-      Password   = $password
-      UsedDirect = $true
+      MigrateUrl       = $candidate
+      Password         = $password
+      ConnectionKind   = 'direct'
     }
   }
-  Write-Host "Falló migrate con direct $DirectHost" -ForegroundColor DarkYellow
+  Write-Host "Falló migrate con direct $DirectHost — probando Session pooler..." -ForegroundColor DarkYellow
   return $null
+}
+
+function Try-MigrateViaSessionPooler([string]$password, [string[]]$preferredHosts) {
+  $hostOrder = Get-PoolerHostOrder $preferredHosts
+  $primary = $hostOrder[0]
+  if ($primary) { Test-PoolerReachability $primary | Out-Null }
+
+  foreach ($h in $hostOrder) {
+    if (-not (Test-PoolerDns $h)) { continue }
+    foreach ($port in @(5432, 6543)) {
+      $url = Build-SessionPoolerUrl $password $h $ExpectedDbUser $port
+      Write-Host "Migrate Session pooler $h`:$port ($ExpectedDbUser) ..."
+      if (Test-Migrate $url) {
+        Write-Host "OK migrate: Session pooler $h`:$port" -ForegroundColor Green
+        return [PSCustomObject]@{
+          MigrateUrl     = $url
+          Password       = $password
+          ConnectionKind = 'pooler'
+        }
+      }
+    }
+  }
+  return $null
+}
+
+function Try-MigrateWithFallback([string]$password, [string[]]$preferredHosts) {
+  $direct = Try-MigrateDirect $password
+  if ($direct) { return $direct }
+  return Try-MigrateViaSessionPooler $password $preferredHosts
 }
 
 function Test-SessionPoolerQuery([string]$url) {
@@ -398,8 +474,9 @@ function Resolve-PasswordForParsed($parsed, [string]$fallbackInput) {
 function Read-ConnectionInput {
   Write-Host ''
   Write-Host 'Supabase → Settings → Database → Connect' -ForegroundColor Cyan
-  Write-Host '  1) URI COMPLETA desde Connect (Session pooler — solo para detectar host/región)' -ForegroundColor Cyan
-  Write-Host '  2) Solo la contraseña de BD (recomendado — migrate directa :5432, Fly Session pooler después)' -ForegroundColor Cyan
+  Write-Host '  1) URI COMPLETA desde Connect (Session pooler aws-0 — detecta región)' -ForegroundColor Cyan
+  Write-Host '  2) Solo la contraseña de BD (directa si DNS OK; si no, pooler aws-0 :5432/:6543)' -ForegroundColor Cyan
+  Write-Host '  Nota: algunos ISPs bloquean db.*.supabase.co; el pooler aws-0 suele resolver.' -ForegroundColor DarkGray
   Write-Host ''
   $input = Read-Host 'URI completa postgres://... o contraseña'
   if (-not $input) { throw 'Entrada vacía.' }
@@ -408,13 +485,28 @@ function Read-ConnectionInput {
 
 function Try-MigrateFromParsed($parsed, [string]$password, [string[]]$preferredHosts) {
   $merged = Merge-UriWithPassword $parsed $password
+  $hosts = @($preferredHosts)
   if ($merged.Host -match 'pooler\.supabase\.com') {
-    Write-Host "URI pooler detectada ($($merged.Host)) — migrate solo por directa; contraseña de la URI." -ForegroundColor Cyan
+    $h = ($merged.Host -replace '\.supabase\.co$', '.supabase.com')
+    if ($hosts -notcontains $h) { $hosts = @($h) + $hosts }
+    Write-Host "URI pooler Connect ($h) — migrate con misma URL (Fly igual)." -ForegroundColor Cyan
+    $url = Build-SessionPoolerUrlFromParsed $merged
+    if (Test-Migrate $url) {
+      return [PSCustomObject]@{
+        MigrateUrl     = $url
+        Password       = $merged.Password
+        ConnectionKind = 'pooler'
+      }
+    }
+    Write-Host 'Migrate con URI Connect falló — directa o aws-0 ...' -ForegroundColor Yellow
   }
-  return Try-MigrateDirect $merged.Password
+  return Try-MigrateWithFallback $merged.Password $hosts
 }
 
 Repair-EnvPoolerHost
+
+Write-Host 'Comprobando pooler Supabase (aws-0 primero)...' -ForegroundColor Cyan
+Test-PoolerReachability 'aws-0-us-east-1.pooler.supabase.com' | Out-Null
 
 $migrateResult = $null
 $preferredHosts = @()
@@ -429,16 +521,14 @@ if ($existingUrl) {
     $preferredHosts += $existingParsed.Host
     Write-Host "server/.env: $(Mask-DatabaseUrl $existingUrl)" -ForegroundColor DarkCyan
     if (-not (Test-PlaceholderPassword $existingParsed.Password)) {
-      Write-Host 'Probando DATABASE_URL existente en .env (directa primero) ...' -ForegroundColor Cyan
+      Write-Host 'Probando DATABASE_URL existente en .env (directa, luego pooler aws-0) ...' -ForegroundColor Cyan
       $prevEap = $ErrorActionPreference
       $ErrorActionPreference = 'Continue'
       try {
-        $directTry = Try-MigrateDirect $existingParsed.Password
-        if ($directTry) {
-          $migrateResult = $directTry
-          Write-Host 'OK: migrate con conexión directa (.env password).' -ForegroundColor Green
-        } else {
-          Write-Host '.env tiene pooler/URL antigua — migrate requiere directa; use opción 2 (solo contraseña).' -ForegroundColor Yellow
+        $try = Try-MigrateWithFallback $existingParsed.Password $preferredHosts
+        if ($try) {
+          $migrateResult = $try
+          Write-Host "OK: migrate (.env, $($try.ConnectionKind))." -ForegroundColor Green
         }
       } catch {
         Write-Host $_.Exception.Message -ForegroundColor DarkYellow
@@ -462,8 +552,8 @@ if (-not $migrateResult) {
   $parsed = Parse-PostgresUri $connInput
 
   if ($parsed -and $parsed.IsPasswordOnly) {
-    Write-Host 'Solo contraseña — migrate SOLO conexión directa :5432 (postgres@db...)' -ForegroundColor Cyan
-    $migrateResult = Try-MigrateDirect $parsed.Password
+    Write-Host 'Solo contraseña — migrate directa o pooler aws-0 si DNS directa falla' -ForegroundColor Cyan
+    $migrateResult = Try-MigrateWithFallback $parsed.Password $preferredHosts
   } elseif ($parsed) {
     $parsedForApp = $parsed
     $dbPassword = Resolve-PasswordForParsed $parsed $connInput
@@ -475,13 +565,18 @@ if (-not $migrateResult) {
 
 if (-not $migrateResult) {
   Write-TenantErrorHint
-  throw 'Migración falló (solo directa). Verifique contraseña y PROJECT_REF en el dashboard.'
+  throw 'Migración falló (directa y pooler). Verifique contraseña y PROJECT_REF en el dashboard.'
 }
 
 if ($connInput -and -not $parsedForApp) {
   $parsedForApp = Parse-PostgresUri $connInput
 }
-$appUrl = Resolve-SessionPoolerAppUrl $migrateResult.Password $parsedForApp $preferredHosts
+if ($migrateResult.ConnectionKind -eq 'pooler') {
+  $appUrl = $migrateResult.MigrateUrl
+  Write-Host 'Fly/.env usarán la misma URL Session pooler que migró.' -ForegroundColor Cyan
+} else {
+  $appUrl = Resolve-SessionPoolerAppUrl $migrateResult.Password $parsedForApp $preferredHosts
+}
 Assert-DatabaseUrlHasPassword $appUrl
 Write-Host "App/Fly URL (Session pooler): $(Mask-DatabaseUrl $appUrl)" -ForegroundColor Cyan
 
@@ -522,7 +617,7 @@ $fly = Get-Flyctl
 if ($LASTEXITCODE -ne 0) { throw 'fly secrets set falló' }
 
 Write-Host ''
-Write-Host 'Fly secrets DATABASE_URL actualizado (Session pooler :5432).' -ForegroundColor Cyan
+Write-Host 'Fly secrets DATABASE_URL actualizado (misma URL que migrate / Session pooler).' -ForegroundColor Cyan
 Write-Host "  $(Mask-DatabaseUrl $appUrl)" -ForegroundColor DarkGray
 
 if (-not $SkipDeploy) {

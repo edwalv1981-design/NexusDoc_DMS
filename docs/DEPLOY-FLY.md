@@ -471,7 +471,7 @@ fly secrets set DATABASE_URL="postgres://postgres.ohwqfujrakhwxfuxo:[PASSWORD-UR
 
 Codifique caracteres especiales de la contraseña (`@`, `#`, `%`, etc.) con `encodeURIComponent` antes de pegarla en la URL.
 
-O ejecute el script completo desde la raíz del repo (abre Supabase, pide la contraseña una vez, prueba poolers `aws-0` y `aws-1`, escribe `server/.env`, migra, crea admin, actualiza secrets y hace `fly deploy`):
+O ejecute el script completo desde la raíz del repo (abre Supabase, pide la contraseña una vez; si `db.*.supabase.co` no resuelve DNS en su red, migra por Session pooler **aws-0** `:5432`/`6543`; escribe `server/.env`, crea admin, actualiza secrets y hace `fly deploy`):
 
 ```powershell
 .\scripts\setup-supabase-once.ps1
