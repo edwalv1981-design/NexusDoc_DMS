@@ -23,7 +23,7 @@ if (!databaseUrl) {
   console.error(
     '❌ DATABASE_URL no está definida.\n' +
       `   Cree ${envPath} con una sola línea:\n` +
-      '   DATABASE_URL=postgres://postgres.PROJECT_REF:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require\n' +
+      '   DATABASE_URL=postgres://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require\n' +
       '   Si la contraseña tiene @ # % etc., codifíquela (encodeURIComponent) en la URL.\n' +
       '   Contraseña incorrecta: Supabase Dashboard → Project Settings → Database → Reset database password.'
   );
@@ -96,20 +96,40 @@ async function validateDatabaseUrl(raw) {
   if (!parsed) {
     console.error(
       '❌ DATABASE_URL con formato inválido.\n' +
-        '   Ejemplo: postgres://postgres.PROJECT_REF:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'
+        '   Ejemplo directa (migraciones): postgres://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require'
     );
     process.exit(1);
   }
-  const { username: user, password, hostname } = parsed;
+  const { username: user, password, hostname, port } = parsed;
   const expectedRef = process.env.SUPABASE_PROJECT_REF?.trim();
-  if (user && !/^postgres(\.[a-z0-9]+)?$/i.test(user)) {
-    console.warn(
-      `[migrate] AVISO: usuario "${user}" — Session pooler requiere postgres.PROJECT_REF (copie desde Connect).`
+  const isDirectHost =
+    /^db\.[a-z0-9]+\.supabase\.co$/i.test(hostname) ||
+    (expectedRef && hostname === `db.${expectedRef}.supabase.co`);
+  const isPoolerHost = hostname.includes('pooler.supabase.com');
+
+  if (isPoolerHost) {
+    console.error(
+      '❌ Migraciones no usan pooler (Session ni Transaction).\n' +
+        '   Use conexión DIRECTA en puerto 5432 con usuario postgres (no postgres.PROJECT_REF):\n' +
+        `   postgres://postgres:***@db.${expectedRef || 'PROJECT_REF'}.supabase.co:5432/postgres?sslmode=require\n` +
+        '   Supabase → Connect → Direct connection. Para la app/Fly use Session pooler después de migrar.'
     );
-  } else if (expectedRef && user !== `postgres.${expectedRef}` && user !== 'postgres') {
-    console.warn(
-      `[migrate] AVISO: usuario "${user}" ≠ postgres.${expectedRef} — "Tenant or user not found" suele ser host/región o usuario incorrecto.`
-    );
+    process.exit(1);
+  }
+
+  if (isDirectHost) {
+    if (user !== 'postgres') {
+      console.error(
+        `❌ Conexión directa requiere usuario "postgres", no "${user}".\n` +
+          `   Ejemplo: postgres://postgres:***@db.${expectedRef || 'PROJECT_REF'}.supabase.co:5432/postgres?sslmode=require`
+      );
+      process.exit(1);
+    }
+    if (port && port !== '5432') {
+      console.warn(`[migrate] AVISO: directa suele usar puerto 5432, recibido ${port}.`);
+    }
+  } else if (user && !/^postgres(\.[a-z0-9]+)?$/i.test(user)) {
+    console.warn(`[migrate] AVISO: usuario "${user}" inesperado para migraciones.`);
   }
   if (!password || isPlaceholderPassword(password)) {
     console.error(
@@ -132,7 +152,7 @@ async function validateDatabaseUrl(raw) {
     await lookup(hostname);
   } catch (err) {
     console.error(`❌ No se puede resolver ${hostname}: ${err.message}`);
-    console.error('   Use Session pooler: aws-0-[REGION].pooler.supabase.com:6543');
+    console.error('   Directa: db.PROJECT_REF.supabase.co:5432 | App: Session pooler aws-0-[REGION].pooler.supabase.com:5432');
     process.exit(1);
   }
 }
@@ -163,9 +183,10 @@ if (/password authentication failed|28P01|invalid password/i.test(combined)) {
   );
 } else if (/Tenant or user not found/i.test(combined)) {
   console.error(
-    '\n❌ Tenant or user not found — host/región del pooler incorrecto o usuario distinto de postgres.PROJECT_REF.\n' +
-      '   Para migraciones use conexión directa: postgres://postgres:***@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require\n' +
-      '   Para la app/Fly use Transaction pooler (6543): postgres://postgres.PROJECT_REF:***@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true'
+    '\n❌ Tenant or user not found — suele ser project ref, host o usuario incorrectos.\n' +
+      '   Migraciones: postgres://postgres:***@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require (usuario postgres, NO postgres.PROJECT_REF).\n' +
+      '   Verifique PROJECT_REF en la URL del dashboard (p. ej. supabase.com/dashboard/project/REF/...).\n' +
+      '   App/Fly: Session pooler postgres://postgres.PROJECT_REF:***@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require'
   );
 }
 

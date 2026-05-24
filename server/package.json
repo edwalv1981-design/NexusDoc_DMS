@@ -8,6 +8,7 @@
     "start:dev": "node index.js",
     "start:prod": "sh scripts/start-with-migrate.sh",
     "db:migrate": "node scripts/migrate-with-url.mjs",
+    "db:migrate:direct": "node scripts/migrate-direct.mjs",
     "db:migrate:url": "node scripts/migrate-with-url.mjs",
     "db:migrate:prod": "node scripts/run-migrate-prod.cjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.js",
