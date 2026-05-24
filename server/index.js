@@ -31,10 +31,37 @@ console.log(
 let apiReady = false;
 let routesRegistered = false;
 
-const distPath = path.join(__dirname, '../client/dist');
+const distPath = path.resolve(__dirname, '../client/dist');
+const indexHtmlPath = path.join(distPath, 'index.html');
+const hasFrontend = fs.existsSync(indexHtmlPath);
 
-// --- Health + SPA: always available (Railway probes, JWT/DB not required) ---
-app.get('/', (req, res) => res.send('OK - NexusDoc DMS'));
+console.log(
+    `[static] distPath=${distPath} index.html=${hasFrontend ? 'ok' : 'MISSING — ejecute npm run build en client/'}`
+);
+
+function isApiPath(reqPath) {
+    return reqPath === '/api' || reqPath.startsWith('/api/');
+}
+
+function shouldServeSpa(req) {
+    if (req.path === '/health' || req.path === '/ready') return false;
+    if (isApiPath(req.path)) return false;
+    return req.method === 'GET' || req.method === 'HEAD';
+}
+
+function sendSpaIndex(req, res, next) {
+    if (!hasFrontend) {
+        return res.status(503).type('text/plain').send('Frontend no construido (falta client/dist/index.html)');
+    }
+    res.sendFile('index.html', { root: distPath }, (err) => {
+        if (err) {
+            console.error('[spa] sendFile error:', err.message, 'root=', distPath);
+            return next(err);
+        }
+    });
+}
+
+// --- Health + SPA: always available (Fly/Railway probes, JWT/DB not required) ---
 app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 
 app.get('/ready', (req, res) => {
@@ -42,23 +69,18 @@ app.get('/ready', (req, res) => {
     return res.status(503).send('bootstrap en progreso');
 });
 
-app.use(express.static(distPath, { index: false }));
-
-app.get(/^\/(?!health$|ready$).+/, (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    const indexHtml = path.resolve(distPath, 'index.html');
-    if (!fs.existsSync(indexHtml)) {
-        return res.status(503).send('Frontend no construido (falta client/dist)');
-    }
-    res.sendFile(indexHtml);
+app.get('/', (req, res, next) => {
+    if (hasFrontend) return sendSpaIndex(req, res, next);
+    return res.send('OK - NexusDoc DMS');
 });
 
-app.use((err, req, res, next) => {
-    console.error('🔥 ERROR NO CONTROLADO:', err.stack);
-    res.status(500).json({
-        msg: 'Error crítico en el servidor',
-        error: err.message,
-    });
+if (hasFrontend) {
+    app.use(express.static(distPath, { index: false, fallthrough: true }));
+}
+
+app.use((req, res, next) => {
+    if (!shouldServeSpa(req)) return next();
+    return sendSpaIndex(req, res, next);
 });
 
 function verifySharedLib() {
@@ -107,10 +129,26 @@ function registerApiRoutes() {
     app.use('/templates', express.static(path.join(__dirname, '../templates')));
 
     app.use((req, res) => {
-        if (req.path.startsWith('/api')) {
+        if (isApiPath(req.path)) {
             return res.status(404).json({ msg: 'API Route not found' });
         }
+        if (shouldServeSpa(req)) {
+            return sendSpaIndex(req, res, () => {
+                res.status(404).send('Not found');
+            });
+        }
         res.status(404).send('Not found');
+    });
+}
+
+function registerErrorHandler() {
+    app.use((err, req, res, next) => {
+        console.error('🔥 ERROR NO CONTROLADO:', err.stack);
+        if (res.headersSent) return next(err);
+        res.status(500).json({
+            msg: 'Error crítico en el servidor',
+            error: err.message,
+        });
     });
 }
 
@@ -210,6 +248,8 @@ setImmediate(() => {
     } catch (err) {
         console.error('⚠️ Falló carga de rutas/API (modo degradado, /health y SPA siguen activos):', err.message);
     }
+
+    registerErrorHandler();
 
     bootstrap()
         .then(() => {

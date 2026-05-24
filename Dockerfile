@@ -65,8 +65,8 @@ RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.t
 # 7. Copiar el resto del código
 COPY . .
 
-# 8. Construir el Frontend
-RUN cd client && npm run build
+# 8. Construir el Frontend (obligatorio para / y /dashboard)
+RUN cd client && npm run build && test -f dist/index.html
 
 # 9. Variables de entorno por defecto
 ENV NODE_ENV=production

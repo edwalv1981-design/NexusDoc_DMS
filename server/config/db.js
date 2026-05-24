@@ -4,26 +4,44 @@ require('dotenv').config();
 const isProduction = process.env.NODE_ENV === 'production';
 let dbUrl = process.env.DATABASE_URL;
 
+function databaseNeedsSsl(url) {
+    if (process.env.DB_SSL === 'false') return false;
+    if (process.env.DB_SSL === 'true') return true;
+    const lower = (url || '').toLowerCase();
+    return (
+        lower.includes('supabase') ||
+        lower.includes('sslmode=require') ||
+        lower.includes('amazonaws.com') ||
+        (isProduction && !lower.includes('localhost') && !lower.includes('127.0.0.1'))
+    );
+}
+
 function createSequelizeFromUrl(url) {
     let normalized = url;
     if (normalized.startsWith('postgresql://')) {
         normalized = normalized.replace('postgresql://', 'postgres://');
     }
 
-    return new Sequelize(normalized, {
+    const useSsl = databaseNeedsSsl(url);
+    const config = {
         dialect: 'postgres',
         logging: false,
-        dialectOptions: {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false,
-            },
-        },
         define: {
             timestamps: true,
             underscored: true,
         },
-    });
+    };
+
+    if (useSsl) {
+        config.dialectOptions = {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false,
+            },
+        };
+    }
+
+    return new Sequelize(normalized, config);
 }
 
 function createLocalSequelize() {
@@ -42,7 +60,7 @@ function createLocalSequelize() {
 let sequelize;
 
 if (dbUrl) {
-    console.log('📡 Conectando a Producción con SSL...');
+    console.log(`📡 Conectando a Producción${databaseNeedsSsl(dbUrl) ? ' con SSL' : ''}...`);
     sequelize = createSequelizeFromUrl(dbUrl);
 } else if (isProduction) {
     console.error(
