@@ -155,11 +155,17 @@ const result = spawnSync('npx', ['sequelize-cli', sequelizeCommand], {
 
 const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 if (combined) process.stdout.write(combined);
-if (/Tenant or user not found/i.test(combined)) {
+if (/password authentication failed|28P01|invalid password/i.test(combined)) {
+  console.error(
+    '\n❌ Contraseña incorrecta.\n' +
+      '   Supabase → Project Settings → Database → Reset database password.\n' +
+      '   Use la contraseña de base de datos (NO la del admin de la app).'
+  );
+} else if (/Tenant or user not found/i.test(combined)) {
   console.error(
     '\n❌ Tenant or user not found — host/región del pooler incorrecto o usuario distinto de postgres.PROJECT_REF.\n' +
-      '   Copie la URI COMPLETA desde Supabase → Connect → Session pooler (puerto 6543).\n' +
-      '   Ejemplo: postgres://postgres.ohwqfujrakhwxfuxo:***@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'
+      '   Para migraciones use conexión directa: postgres://postgres:***@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require\n' +
+      '   Para la app/Fly use Transaction pooler (6543): postgres://postgres.PROJECT_REF:***@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true'
   );
 }
 
