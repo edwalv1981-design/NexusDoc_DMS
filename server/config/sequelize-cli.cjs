@@ -1,4 +1,5 @@
 const path = require('path');
+const { prepareDatabaseUrlForPg } = require('./normalizeDatabaseUrl');
 
 // Siempre intentar server/.env antes de loadEnv (NODE_ENV=production no debe bloquear migraciones locales).
 require('dotenv').config({ path: path.resolve(__dirname, '../.env'), quiet: true });
@@ -24,10 +25,7 @@ function configFromDatabaseUrl() {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
 
-  let normalized = url;
-  if (normalized.startsWith('postgresql://')) {
-    normalized = normalized.replace('postgresql://', 'postgres://');
-  }
+  const normalized = prepareDatabaseUrlForPg(url);
 
   const u = new URL(normalized);
   const config = {

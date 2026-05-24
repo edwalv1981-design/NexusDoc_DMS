@@ -1,4 +1,5 @@
 const { Sequelize } = require('sequelize');
+const { prepareDatabaseUrlForPg } = require('./normalizeDatabaseUrl');
 require('../utils/loadEnv').loadEnv();
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -50,10 +51,7 @@ function databaseNeedsSsl(url) {
 }
 
 function createSequelizeFromUrl(url) {
-    let normalized = url;
-    if (normalized.startsWith('postgresql://')) {
-        normalized = normalized.replace('postgresql://', 'postgres://');
-    }
+    const normalized = prepareDatabaseUrlForPg(url);
 
     const useSsl = databaseNeedsSsl(url);
     const config = {
