@@ -1,4 +1,4 @@
-# NexusDoc DMS — Fly.io (https://fly.io/docs/reference/configuration/)
+﻿# NexusDoc DMS â€” Fly.io (https://fly.io/docs/reference/configuration/)
 app = "nexusdoc-dms"
 primary_region = "iad"
 
@@ -7,7 +7,7 @@ primary_region = "iad"
 
 [env]
   NODE_ENV = "production"
-  # PORT lo inyecta Fly automáticamente (= internal_port). No fijar PORT aquí ni en .env.
+  # PORT lo inyecta Fly automÃ¡ticamente (= internal_port). No fijar PORT aquÃ­ ni en .env.
 
 [http_service]
   internal_port = 8080
@@ -28,3 +28,6 @@ primary_region = "iad"
   memory = "1gb"
   cpu_kind = "shared"
   cpus = 1
+[deploy]
+  release_command = "npm run db:migrate:prod"
+

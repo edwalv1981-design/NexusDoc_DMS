@@ -1,46 +1,46 @@
-# Despliegue en Fly.io — NexusDoc DMS
+﻿# Despliegue en Fly.io â€” NexusDoc DMS
 
 
 
-## Causa de los fallos típicos
+## Causa de los fallos tÃ­picos
 
 
 
-| Síntoma en logs | Causa |
+| SÃ­ntoma en logs | Causa |
 
 |-----------------|--------|
 
-| `injecting env (8) from .env` en producción | Un `.env` dentro de la imagen Docker **sobrescribe** `fly secrets` (p. ej. `DATABASE_URL` local, `PORT=3000`). La app ya **no** carga `.env` si `NODE_ENV=production` o `FLY_APP_NAME` está definido; `.dockerignore` excluye `.env` / `.env.local`. |
+| `injecting env (8) from .env` en producciÃ³n | Un `.env` dentro de la imagen Docker **sobrescribe** `fly secrets` (p. ej. `DATABASE_URL` local, `PORT=3000`). La app ya **no** carga `.env` si `NODE_ENV=production` o `FLY_APP_NAME` estÃ¡ definido; `.dockerignore` excluye `.env` / `.env.local`. |
 
-| `connect ECONNREFUSED` a IPv6 (`2800:…:5432`) | `DATABASE_URL` usa Supabase **Direct** (IPv6). Fly necesita el **Session pooler** (IPv4, puerto **6543**). |
+| `connect ECONNREFUSED` a IPv6 (`2800:â€¦:5432`) | `DATABASE_URL` usa Supabase **Direct** (IPv6). Fly necesita el **Session pooler** (IPv4, puerto **6543**). |
 
-| `connect ECONNREFUSED 127.0.0.1:5432` | No existe `DATABASE_URL` en secrets. Sequelize caía al modo “local” (`localhost:5432`). |
+| `connect ECONNREFUSED 127.0.0.1:5432` | No existe `DATABASE_URL` en secrets. Sequelize caÃ­a al modo â€œlocalâ€ (`localhost:5432`). |
 
-| `[migrate] db:migrate falló (código 1)` | Misma razón: migraciones sin URL de Postgres (p. ej. Supabase pooler). |
+| `[migrate] db:migrate fallÃ³ (cÃ³digo 1)` | Misma razÃ³n: migraciones sin URL de Postgres (p. ej. Supabase pooler). |
 
 | `PORT=3000` en logs pero `internal_port = 8080` | `.env` en imagen o secret obsoleto fijaba `PORT=3000`. Fly inyecta `PORT` = `internal_port` (8080); deben coincidir. |
 
 | `instance refused connection` en `0.0.0.0:3000` | Proxy Fly al 8080 pero la app escuchaba 3000. Tras el fix, logs deben mostrar puerto **8080**. |
 
-| Proxy / health checks en `0.0.0.0:3030` | `fly launch` antiguo dejó `internal_port = 3030` en Fly aunque el repo usa **8080**. La app escucha 8080 pero el proxy apunta a 3030 → conexión rechazada. |
+| Proxy / health checks en `0.0.0.0:3030` | `fly launch` antiguo dejÃ³ `internal_port = 3030` en Fly aunque el repo usa **8080**. La app escucha 8080 pero el proxy apunta a 3030 â†’ conexiÃ³n rechazada. |
 
-| **HTTP 500** en `/` o `/dashboard` | Imagen sin `client/dist` (build falló) o middleware SPA roto. |
+| **HTTP 500** en `/` o `/dashboard` | Imagen sin `client/dist` (build fallÃ³) o middleware SPA roto. |
 
-| **HTTP 503** en `/dashboard` | `client/dist/index.html` no existe en el contenedor — revisar paso `npm run build` del `Dockerfile`. |
+| **HTTP 503** en `/dashboard` | `client/dist/index.html` no existe en el contenedor â€” revisar paso `npm run build` del `Dockerfile`. |
 
-| **HTTP 500** en `POST /api/auth/login` | Tabla `users` sin migrar, `DATABASE_URL`/SSL incorrectos, o `JWT_SECRET` ausente. Usuario de Railway **no** existe en Supabase vacío → debe crear admin (bootstrap o `npm run bootstrap:admin`). Con usuario inexistente la API debe responder **401**, no 500. |
+| **HTTP 500** en `POST /api/auth/login` | Tabla `users` sin migrar, `DATABASE_URL`/SSL incorrectos, o `JWT_SECRET` ausente. Usuario de Railway **no** existe en Supabase vacÃ­o â†’ debe crear admin (bootstrap o `npm run bootstrap:admin`). Con usuario inexistente la API debe responder **401**, no 500. |
 
-| `relation "Users" does not exist` | Migraciones no ejecutadas contra Supabase. Ver sección **Primer login** abajo. |
+| `relation "Users" does not exist` | Migraciones no ejecutadas contra Supabase. Ver secciÃ³n **Primer login** abajo. |
 
 | `The server does not support SSL connections` | `DATABASE_URL` apunta a Postgres local sin SSL pero Sequelize forzaba SSL. Usar `?sslmode=require` en Supabase o `DB_SSL=false` solo en local. |
 
 
 
-El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la BD falle después. La API completa y las migraciones **sí** requieren `DATABASE_URL`. **`/health` y el SPA no dependen de la BD.**
+El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la BD falle despuÃ©s. La API completa y las migraciones **sÃ­** requieren `DATABASE_URL`. **`/health` y el SPA no dependen de la BD.**
 
 
 
-## Variables de entorno en producción
+## Variables de entorno en producciÃ³n
 
 
 
@@ -50,7 +50,7 @@ El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la 
 
 - Configure **solo** `fly secrets` para secretos (`DATABASE_URL`, `JWT_SECRET`, etc.).
 
-- **No** defina `PORT` en secrets ni en `.env`: Fly lo inyecta automáticamente igual a `internal_port` en `fly.toml` (8080).
+- **No** defina `PORT` en secrets ni en `.env`: Fly lo inyecta automÃ¡ticamente igual a `internal_port` en `fly.toml` (8080).
 
 
 
@@ -58,15 +58,15 @@ El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la 
 
 
 
-### Supabase — usar Session pooler (NO Direct / IPv6)
+### Supabase â€” usar Session pooler (NO Direct / IPv6)
 
 
 
-En el panel de Supabase: **Project Settings → Database → Connection string → URI → Session pooler** (puerto **6543**).
+En el panel de Supabase: **Project Settings â†’ Database â†’ Connection string â†’ URI â†’ Session pooler** (puerto **6543**).
 
 
 
-**No use** “Direct connection” (`db.<ref>.supabase.co`) en Fly: suele resolver a IPv6 y falla con `ECONNREFUSED`.
+**No use** â€œDirect connectionâ€ (`db.<ref>.supabase.co`) en Fly: suele resolver a IPv6 y falla con `ECONNREFUSED`.
 
 
 
@@ -82,19 +82,19 @@ postgres://postgres.[PROJECT_REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase
 
 
 
-Ejemplo (sustituya `[PROJECT_REF]`, contraseña y región):
+Ejemplo (sustituya `[PROJECT_REF]`, contraseÃ±a y regiÃ³n):
 
 
 
 ```text
 
-postgres://postgres.abcdefghijklmnop:TuContraseñaSegura@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+postgres://postgres.abcdefghijklmnop:TuContraseÃ±aSegura@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require
 
 ```
 
 
 
-**Nota IPv4:** Si el pooler sigue fallando, en Supabase puede activar el add-on **IPv4** (Settings → Add-ons) para obtener un host IPv4 dedicado.
+**Nota IPv4:** Si el pooler sigue fallando, en Supabase puede activar el add-on **IPv4** (Settings â†’ Add-ons) para obtener un host IPv4 dedicado.
 
 
 
@@ -127,12 +127,12 @@ Opcionales (bootstrap de admin, email, etc.):
 ```bash
 fly secrets set \
   BOOTSTRAP_ADMIN_EMAIL="tu@correo.com" \
-  BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÑA]" \
+  BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÃ‘A]" \
   -a nexusdoc-dms
 fly deploy -a nexusdoc-dms
 ```
 
-También puede crear el admin **una vez** contra Supabase desde su PC: `cd server && npm run bootstrap:admin` (con `DATABASE_URL` apuntando al pooler). Ver `server/.env.example` y `README.md`.
+TambiÃ©n puede crear el admin **una vez** contra Supabase desde su PC: `cd server && npm run bootstrap:admin` (con `DATABASE_URL` apuntando al pooler). Ver `server/.env.example` y `README.md`.
 
 
 
@@ -148,7 +148,7 @@ fly secrets list -a nexusdoc-dms
 
 
 
-Si antes tenía un `DATABASE_URL` incorrecto (Direct / IPv6) o `PORT=3000` en secrets, **elimínelos** y vuelva a configurar solo los valores correctos:
+Si antes tenÃ­a un `DATABASE_URL` incorrecto (Direct / IPv6) o `PORT=3000` en secrets, **elimÃ­nelos** y vuelva a configurar solo los valores correctos:
 
 
 
@@ -166,7 +166,7 @@ fly secrets set DATABASE_URL="postgres://postgres.[REF]:[PASS]@aws-0-[REGION].po
 
 
 
-Desde la raíz del repo (con `fly.toml` y `Dockerfile`):
+Desde la raÃ­z del repo (con `fly.toml` y `Dockerfile`):
 
 
 
@@ -178,7 +178,7 @@ fly deploy -a nexusdoc-dms
 
 
 
-**Importante:** Los cambios en `fly.toml` (p. ej. `internal_port`, `[env]`, checks) **no** se aplican a las máquinas en Fly hasta un **`fly deploy`**. Verifique la config desplegada:
+**Importante:** Los cambios en `fly.toml` (p. ej. `internal_port`, `[env]`, checks) **no** se aplican a las mÃ¡quinas en Fly hasta un **`fly deploy`**. Verifique la config desplegada:
 
 
 
@@ -190,7 +190,7 @@ fly config show -a nexusdoc-dms
 
 
 
-Debe mostrar `internal_port = 8080` bajo `[http_service]`. **No** debe haber `PORT=3030` ni `PORT=3000` en `[env]` del repo (Fly inyecta `PORT` automáticamente). Si `fly config show` aún muestra **3030**, redespliegue y revise en [Fly → Machines](https://fly.io/apps/nexusdoc-dms/machines) que el puerto interno sea **8080**.
+Debe mostrar `internal_port = 8080` bajo `[http_service]`. **No** debe haber `PORT=3030` ni `PORT=3000` en `[env]` del repo (Fly inyecta `PORT` automÃ¡ticamente). Si `fly config show` aÃºn muestra **3030**, redespliegue y revise en [Fly â†’ Machines](https://fly.io/apps/nexusdoc-dms/machines) que el puerto interno sea **8080**.
 
 
 
@@ -216,9 +216,9 @@ Debes ver algo como `OK - Servidor Vivo` y en logs **sin** `injecting env from .
 
 [start] ... PORT=8080 DATABASE_URL=set JWT_SECRET=set
 
-🚀 SERVIDOR WEB ACTIVO EN PUERTO: 8080 (health + SPA inmediato)
+ðŸš€ SERVIDOR WEB ACTIVO EN PUERTO: 8080 (health + SPA inmediato)
 
-✅ PostgreSQL Connected Successfully!
+âœ… PostgreSQL Connected Successfully!
 
 ```
 
@@ -228,9 +228,9 @@ Debes ver algo como `OK - Servidor Vivo` y en logs **sin** `injecting env from .
 
 
 
-- `fly.toml` → `[http_service] internal_port = 8080` (no el **3030** por defecto de algunos `fly launch`; este repo no usa formato legacy `[[services]]`).
+- `fly.toml` â†’ `[http_service] internal_port = 8080` (no el **3030** por defecto de algunos `fly launch`; este repo no usa formato legacy `[[services]]`).
 
-- Fly inyecta `PORT=8080` automáticamente; debe coincidir con `internal_port`. Si la app escucha en **8080** pero Fly/proxy usa **3030**, los health checks fallan.
+- Fly inyecta `PORT=8080` automÃ¡ticamente; debe coincidir con `internal_port`. Si la app escucha en **8080** pero Fly/proxy usa **3030**, los health checks fallan.
 
 - La app escucha en **`0.0.0.0:${PORT}`** (no `127.0.0.1`).
 
@@ -244,11 +244,11 @@ Debes ver algo como `OK - Servidor Vivo` y en logs **sin** `injecting env from .
 
 
 
-- Producción: **solo** `DATABASE_URL` (Postgres gestionado, Supabase Session pooler con SSL).
+- ProducciÃ³n: **solo** `DATABASE_URL` (Postgres gestionado, Supabase Session pooler con SSL).
 
-- En producción **no** hay fallback a `localhost`; sin URL verás un error explícito en logs, pero `/health` puede seguir respondiendo.
+- En producciÃ³n **no** hay fallback a `localhost`; sin URL verÃ¡s un error explÃ­cito en logs, pero `/health` puede seguir respondiendo.
 
-- Si `DATABASE_URL` es IPv6 o Supabase Direct, verá un error claro en logs; opcionalmente `REJECT_IPV6_DB=true` aborta el arranque.
+- Si `DATABASE_URL` es IPv6 o Supabase Direct, verÃ¡ un error claro en logs; opcionalmente `REJECT_IPV6_DB=true` aborta el arranque.
 
 
 
@@ -268,7 +268,7 @@ postgres://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/pos
 
 
 
-Para depuración local contra Postgres sin SSL: `DB_SSL=false` (no usar en Fly).
+Para depuraciÃ³n local contra Postgres sin SSL: `DB_SSL=false` (no usar en Fly).
 
 
 
@@ -276,7 +276,7 @@ Para depuración local contra Postgres sin SSL: `DB_SSL=false` (no usar en Fly).
 
 
 
-Los secrets no se aplican a máquinas ya corriendo hasta un nuevo deploy:
+Los secrets no se aplican a mÃ¡quinas ya corriendo hasta un nuevo deploy:
 
 
 
@@ -290,11 +290,11 @@ fly deploy -a nexusdoc-dms
 
 
 
-## Instrucciones rápidas (español)
+## Instrucciones rÃ¡pidas (espaÃ±ol)
 
 
 
-1. En Supabase: **Connection string → URI → Session pooler** (puerto **6543**). Copie la URI completa.
+1. En Supabase: **Connection string â†’ URI â†’ Session pooler** (puerto **6543**). Copie la URI completa.
 
 2. En Fly, configure el secret (sustituya la URI real):
 
@@ -304,13 +304,13 @@ fly deploy -a nexusdoc-dms
 
    fly secrets unset PORT -a nexusdoc-dms
 
-   fly secrets set DATABASE_URL="postgres://postgres.xxxxx:CONTRASEÑA@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require" JWT_SECRET="secreto-largo" -a nexusdoc-dms
+   fly secrets set DATABASE_URL="postgres://postgres.xxxxx:CONTRASEÃ‘A@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require" JWT_SECRET="secreto-largo" -a nexusdoc-dms
 
    ```
 
 
 
-3. **Redespliegue** (obligatorio si cambió `fly.toml` o secrets):
+3. **Redespliegue** (obligatorio si cambiÃ³ `fly.toml` o secrets):
 
 
 
@@ -324,11 +324,11 @@ fly deploy -a nexusdoc-dms
 
 
 
-   En [fly.io → nexusdoc-dms → Machines](https://fly.io/apps/nexusdoc-dms/machines), confirme puerto interno **8080**, no **3030**.
+   En [fly.io â†’ nexusdoc-dms â†’ Machines](https://fly.io/apps/nexusdoc-dms/machines), confirme puerto interno **8080**, no **3030**.
 
 
 
-4. Verifique logs (no debe aparecer `injecting env from .env`; puerto **8080**; **no** `0.0.0.0:3030` en proxy checks; conexión PostgreSQL OK):
+4. Verifique logs (no debe aparecer `injecting env from .env`; puerto **8080**; **no** `0.0.0.0:3030` en proxy checks; conexiÃ³n PostgreSQL OK):
 
 
 
@@ -340,11 +340,11 @@ fly deploy -a nexusdoc-dms
 
 
 
-## Verificación post-deploy (orden recomendado)
+## VerificaciÃ³n post-deploy (orden recomendado)
 
 
 
-1. **Probar `/health` primero** (despierta la máquina si `auto_stop_machines` está activo):
+1. **Probar `/health` primero** (despierta la mÃ¡quina si `auto_stop_machines` estÃ¡ activo):
 
 
 
@@ -416,28 +416,28 @@ fly deploy -a nexusdoc-dms
 
 
 
-## Primer login (Supabase vacío)
+## Primer login (Supabase vacÃ­o)
 
 Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase. Debe ejecutar migraciones y crear un administrador antes del primer acceso.
 
-En **PowerShell** (Windows), sustituya `[SU-URI-SUPABASE]` por la URI del **Session pooler** (puerto **6543**, `?sslmode=require`) y `[SU-CONTRASEÑA]` por una clave de al menos 7 caracteres.
+En **PowerShell** (Windows), sustituya `[SU-URI-SUPABASE]` por la URI del **Session pooler** (puerto **6543**, `?sslmode=require`) y `[SU-CONTRASEÃ‘A]` por una clave de al menos 7 caracteres.
 
 **1. Migraciones (una sola vez):**
 
 ```powershell
 cd C:\Users\USER\NexusDoc_DMS\server
-# Comillas simples si la contraseña tiene $, !, # u otros caracteres especiales de PowerShell
+# Comillas simples si la contraseÃ±a tiene $, !, # u otros caracteres especiales de PowerShell
 $env:DATABASE_URL='postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-us-east-1.pooler.supabase.co:6543/postgres?sslmode=require'
 npm run db:migrate
 npm run db:migrate:status
 ```
 
-(`NODE_ENV=production` solo es obligatorio con `npm run db:migrate:prod`; con `DATABASE_URL` definida, `db:migrate` ya usa el pooler vía `sequelize-cli.cjs`.)
+(`NODE_ENV=production` solo es obligatorio con `npm run db:migrate:prod`; con `DATABASE_URL` definida, `db:migrate` ya usa el pooler vÃ­a `sequelize-cli.cjs`.)
 
 **2. Secrets de bootstrap en Fly:**
 
 ```powershell
-fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÑA]" -a nexusdoc-dms
+fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÃ‘A]" -a nexusdoc-dms
 ```
 
 **3. Redespliegue:**
@@ -446,19 +446,29 @@ fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_A
 fly deploy -a nexusdoc-dms
 ```
 
-**Alternativa local** (sin dejar la contraseña en Fly): tras migrar, en la misma carpeta `server`:
+**Alternativa local** (sin dejar la contraseÃ±a en Fly): tras migrar, en la misma carpeta `server`:
 
 ```powershell
 $env:BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com"
-$env:BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÑA]"
+$env:BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÃ‘A]"
 npm run bootstrap:admin
 ```
 
-Verifique login en https://nexusdoc-dms.fly.dev/dashboard — credenciales incorrectas → **401**; BD caída o sin migrar → **503** (el error real queda solo en logs del servidor).
+Verifique login en https://nexusdoc-dms.fly.dev/dashboard â€” credenciales incorrectas â†’ **401**; BD caÃ­da o sin migrar â†’ **503** (el error real queda solo en logs del servidor).
 
 Tras el primer login puede quitar los secrets bootstrap: `fly secrets unset BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD -a nexusdoc-dms`
 
 ## Railway vs Fly
 
 Railway usa `railway.toml` y el mismo `Dockerfile`. Fly usa este `fly.toml`. Puedes mantener ambos; cada plataforma ignora la config de la otra.
+## Automatización local (una vez)
+
+Si DATABASE_URL en Fly falla con password authentication failed, la contraseña del **pooler Supabase** no coincide con la guardada en ly secrets. Ejecute en PowerShell desde la raíz del repo:
+
+`powershell
+.\scripts\setup-supabase-once.ps1
+`
+
+Abre el panel de Supabase, pide la contraseña de **base de datos** una sola vez, prueba poolers ws-1 y ws-0, escribe server/.env, migra, crea admin, actualiza secrets y hace ly deploy.
+
 
