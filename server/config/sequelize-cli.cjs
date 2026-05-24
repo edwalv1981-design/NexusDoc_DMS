@@ -1,12 +1,25 @@
 require('dotenv').config();
 
+function databaseNeedsSsl(url) {
+  if (process.env.DB_SSL === 'false') return false;
+  if (process.env.DB_SSL === 'true') return true;
+  const lower = (url || '').toLowerCase();
+  const isProduction = process.env.NODE_ENV === 'production';
+  return (
+    lower.includes('supabase') ||
+    lower.includes('sslmode=require') ||
+    lower.includes('amazonaws.com') ||
+    (isProduction && !lower.includes('localhost') && !lower.includes('127.0.0.1'))
+  );
+}
+
 const buildDialectOptions = () => {
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && databaseNeedsSsl(process.env.DATABASE_URL)) {
     return {
       ssl: {
         require: true,
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
     };
   }
   return {};

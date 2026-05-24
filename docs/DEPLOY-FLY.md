@@ -8,8 +8,25 @@
 | `[migrate] db:migrate falló (código 1)` | Misma razón: migraciones sin URL de Postgres (p. ej. Supabase). |
 | `Is your app listening on 0.0.0.0:3030?` | `fly.toml` tenía `internal_port = 3030` pero la app escucha `PORT` (8080 en producción). |
 | `instance refused connection` | Health check al puerto equivocado o el proceso murió antes de `listen`. |
+| **HTTP 500** en `/` o `/dashboard` | Imagen sin `client/dist` (build falló) o middleware SPA roto (commit `b729d11` lo corrige). También `sendFile` sin callback devolvía 500 si fallaba la ruta. |
+| **HTTP 503** en `/dashboard` | `client/dist/index.html` no existe en el contenedor — revisar paso `npm run build` del `Dockerfile`. |
+| `The server does not support SSL connections` | `DATABASE_URL` apunta a Postgres local sin SSL pero Sequelize forzaba SSL. Usar `?sslmode=require` en Supabase o `DB_SSL=false` solo en local. |
 
-El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la BD falle después (comportamiento desde `682ea67`). La API completa y las migraciones **sí** requieren `DATABASE_URL`.
+El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la BD falle después (comportamiento desde `682ea67`). La API completa y las migraciones **sí** requieren `DATABASE_URL`. **`/health` y el SPA no dependen de la BD.**
+
+## HTTP 500 en `/dashboard` — causa y corrección
+
+**Causa:** Tras configurar secrets, la app arrancaba (502 → 500) pero el frontend no se servía bien: el handler de errores estaba *antes* de las rutas API/SPA, `express.static` se montaba aunque faltara `dist`, y `/` no devolvía `index.html`.
+
+**Corrección (commit `b729d11`):**
+
+- SPA y estáticos registrados **antes** del error handler.
+- `/` y `/dashboard` sirven `client/dist/index.html` cuando existe el build.
+- `Dockerfile` verifica `test -f dist/index.html` tras el build.
+- `.dockerignore` excluye `client/dist` local (el build ocurre dentro de la imagen).
+- SSL condicional en `server/config/db.js` para Supabase.
+
+**Importante:** Cambiar secrets **no** redeploya solo. Después de `fly secrets set` hay que ejecutar `fly deploy`.
 
 ## Secrets obligatorios (antes del deploy)
 
@@ -65,6 +82,16 @@ Debes ver algo como `OK - Servidor Vivo` y en logs:
 - Producción: **solo** `DATABASE_URL` (Postgres gestionado, p. ej. Supabase con SSL).
 - En producción **no** hay fallback a `localhost`; sin URL verás un error explícito en logs, pero `/health` puede seguir respondiendo.
 
+### Supabase / SSL
+
+Use la URI de Supabase con `?sslmode=require` (Session pooler, puerto 5432, o Transaction pooler 6543):
+
+```text
+postgres://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Si las migraciones fallan por SSL, confirme que `DATABASE_URL` incluye `sslmode=require`. Para depuración local contra Postgres sin SSL: `DB_SSL=false` (no usar en Fly).
+
 ## Redeploy tras cambiar secrets
 
 Los secrets no se aplican a máquinas ya corriendo hasta un nuevo deploy:
@@ -73,6 +100,44 @@ Los secrets no se aplican a máquinas ya corriendo hasta un nuevo deploy:
 fly secrets set DATABASE_URL="..." -a nexusdoc-dms
 fly deploy -a nexusdoc-dms
 ```
+
+## Verificación post-deploy (orden recomendado)
+
+1. **Probar `/health` primero** (despierta la máquina si `auto_stop_machines` está activo):
+
+   ```bash
+   curl -s https://nexusdoc-dms.fly.dev/health
+   ```
+
+   Esperado: `OK - Servidor Vivo`
+
+2. **SPA:**
+
+   ```bash
+   curl -sI https://nexusdoc-dms.fly.dev/dashboard | findstr /I "HTTP content-type"
+   ```
+
+   Esperado: `HTTP/2 200` y `content-type: text/html`
+
+3. **Logs (stack trace si hay 500):**
+
+   ```bash
+   fly logs -a nexusdoc-dms
+   ```
+
+   Buscar: `[static] distPath=... index.html=ok`, `[spa] sendFile error`, `ERROR NO CONTROLADO`.
+
+4. **Smoke local antes de deploy:**
+
+   ```bash
+   cd client && npm run build
+   cd ../server
+   set NODE_ENV=production
+   set JWT_SECRET=test
+   node index.js
+   ```
+
+   En otra terminal: `curl http://127.0.0.1:8080/health` y `curl -I http://127.0.0.1:8080/dashboard`
 
 ## Railway vs Fly
 
