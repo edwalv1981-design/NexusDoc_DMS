@@ -9,6 +9,10 @@ function shouldLoadDotenv() {
 function loadEnv() {
     if (shouldLoadDotenv()) {
         require('dotenv').config();
+        return;
+    }
+    if (process.env.FLY_APP_NAME) {
+        console.log('[env] .env omitido en Fly — use fly secrets (no empaquetar .env en la imagen).');
     }
 }
 

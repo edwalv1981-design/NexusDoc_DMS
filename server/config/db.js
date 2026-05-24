@@ -1,5 +1,5 @@
 const { Sequelize } = require('sequelize');
-require('./loadEnv').loadEnv();
+require('../utils/loadEnv').loadEnv();
 
 const isProduction = process.env.NODE_ENV === 'production';
 let dbUrl = process.env.DATABASE_URL;
@@ -26,12 +26,15 @@ function warnIfIpv6DirectConnection(url) {
     if (!isProduction || !url) return;
     const host = extractDbHost(url);
     if (!isIpv6LiteralHost(host)) return;
-  console.error(
-        '❌ DATABASE_URL usa un host IPv6 directo (p. ej. Supabase Direct). Fly.io suele fallar con ECONNREFUSED.\n' +
-            '   Use el Session pooler de Supabase (IPv4), puerto 6543:\n' +
-            '   postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require\n' +
-            '   Dashboard → Project Settings → Database → Connection string → Session pooler (6543).'
-    );
+    const message =
+        'DATABASE_URL usa un host IPv6 directo (p. ej. Supabase Direct). Fly.io suele fallar con ECONNREFUSED.\n' +
+        '   Use el Session pooler de Supabase (IPv4), puerto 6543:\n' +
+        '   postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require\n' +
+        '   Dashboard → Project Settings → Database → Connection string → Session pooler (6543).';
+    console.error(`❌ ${message}`);
+    if (process.env.REJECT_IPV6_DB === 'true') {
+        throw new Error(message.replace(/\n\s+/g, ' '));
+    }
 }
 
 function databaseNeedsSsl(url) {
