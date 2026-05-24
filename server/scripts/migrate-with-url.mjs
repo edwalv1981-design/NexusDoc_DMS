@@ -47,7 +47,7 @@ function maskDatabaseUrl(raw) {
   }
 }
 
-function validateDatabaseUrl(raw) {
+async function validateDatabaseUrl(raw) {
   let normalized = raw;
   if (normalized.startsWith('postgresql://')) {
     normalized = normalized.replace('postgresql://', 'postgres://');
@@ -65,7 +65,7 @@ function validateDatabaseUrl(raw) {
     process.exit(1);
   }
   try {
-    dns.lookupSync(u.hostname);
+    await lookup(u.hostname);
   } catch (err) {
     console.error(`❌ No se puede resolver ${u.hostname}: ${err.message}`);
     console.error('   Use Session pooler: aws-0-[REGION].pooler.supabase.com:6543');
@@ -76,7 +76,7 @@ function validateDatabaseUrl(raw) {
 const nodeEnv = process.env.NODE_ENV || 'development';
 const sequelizeCommand = process.argv[2] || 'db:migrate';
 
-validateDatabaseUrl(databaseUrl);
+await validateDatabaseUrl(databaseUrl);
 
 console.log(`[migrate] NODE_ENV=${nodeEnv}`);
 console.log(`[migrate] DATABASE_URL=${maskDatabaseUrl(databaseUrl)}`);

@@ -21,6 +21,15 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ServerDir = Join-Path $RepoRoot 'server'
 $EnvFile = Join-Path $ServerDir '.env'
 
+function Repair-EnvPoolerHost {
+  if (-not (Test-Path $EnvFile)) { return }
+  $content = Get-Content $EnvFile -Raw
+  if ($content -notmatch 'pooler\.supabase\.co') { return }
+  $fixed = $content -replace 'pooler\.supabase\.co', 'pooler.supabase.com'
+  Set-Content -Path $EnvFile -Value $fixed.TrimEnd() -Encoding UTF8
+  Write-Host "Corregido host pooler .supabase.co -> .supabase.com en $EnvFile" -ForegroundColor Yellow
+}
+
 function Get-Flyctl {
   $cmd = Get-Command flyctl -ErrorAction SilentlyContinue
   if ($cmd) { return $cmd.Source }
@@ -71,6 +80,8 @@ function Read-DbPasswordOnce {
   $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
   try { [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 }
+
+Repair-EnvPoolerHost
 
 if (-not $SkipBrowser) {
   $dash = "https://supabase.com/dashboard/project/$ProjectRef/settings/database"
@@ -132,6 +143,11 @@ $fly = Get-Flyctl
   "CORS_ORIGINS=https://nexusdoc-dms.fly.dev" `
   -a $FlyApp
 if ($LASTEXITCODE -ne 0) { throw 'fly secrets set falló' }
+
+Write-Host ''
+Write-Host 'Fly secrets DATABASE_URL actualizado (Session pooler .supabase.com:6543).' -ForegroundColor Cyan
+Write-Host "  fly secrets set DATABASE_URL=`"<postgres://postgres.$ProjectRef:***@HOST:6543/postgres?sslmode=require>`" -a $FlyApp" -ForegroundColor DarkGray
+Write-Host '  Si el deploy anterior fallaba con ENOTFOUND .supabase.co, quedó corregido.' -ForegroundColor DarkGray
 
 if (-not $SkipDeploy) {
   Push-Location $RepoRoot
