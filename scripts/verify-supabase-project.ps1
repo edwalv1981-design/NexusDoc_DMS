@@ -100,4 +100,4 @@ if ($doMigrate -match '^(s|y|si|sí)$') {
 }
 
 Write-Host ''
-Write-Host 'Siguiente: .\scripts\setup-supabase-once.ps1 (misma URI) para .env, admin y Fly.' -ForegroundColor DarkGray
+Write-Host 'Siguiente: ARREGLAR-LOGIN.bat en la raíz del repo (misma URI).' -ForegroundColor DarkGray

@@ -1,5 +1,11 @@
 # NexusDoc DMS - Variables de Entorno
 
+## Arreglar login (Fly + Supabase)
+
+**Solo esto:** ejecute **`ARREGLAR-LOGIN.bat`** en la raíz del repositorio, pegue la URI de Supabase una vez. Guía: [docs/UN-SOLO-PASO.md](docs/UN-SOLO-PASO.md).
+
+---
+
 Esta guía deja documentadas las variables para despliegue en Railway y para entorno local.
 
 **Post-deploy:** tras cada deploy en Railway, ejecuta el [checklist automático de smoke](docs/DEPLOY-CHECKLIST.md) (`npm run check:deploy:prod`).
@@ -55,20 +61,12 @@ Variable opcional para documentación / enlaces en correos:
 
 ## Migraciones (sequelize-cli)
 
+Para **primer login / Supabase / Fly**, use **`ARREGLAR-LOGIN.bat`** (no los pasos manuales de abajo salvo mantenimiento avanzado).
+
 El proyecto usa migraciones para cambios de esquema sin depender de `sequelize.sync`.
 
-- Ejecutar migraciones manualmente: `cd server && npm run db:migrate`
-- Si `DATABASE_URL` está en `server/.env` (Supabase Session pooler, puerto **6543**), `db:migrate` la usa aunque `NODE_ENV` no sea `production`.
-- Producción / Fly (fuerza `NODE_ENV=production`): `cd server && npm run db:migrate:prod`
-- Ver estado de migraciones: `cd server && npm run db:migrate:status`
-
-**PowerShell (Windows):** la variable debe existir en el **mismo proceso** que ejecuta npm. Opción A: poner `DATABASE_URL` en `server/.env`. Opción B: en **una sola línea** (comillas simples `'...'` si la contraseña tiene `$`, `!`, `#`, etc.):
-
-```powershell
-cd C:\ruta\NexusDoc_DMS\server; $env:DATABASE_URL='postgres://postgres.PROJECT_REF:SU_CONTRASEÑA@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'; npm run db:migrate
-```
 - Revertir la ultima migracion: `cd server && npm run db:migrate:undo`
-- Crear administrador en Supabase (env `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD`): `cd server && npm run bootstrap:admin` (alias `npm run seed:admin` / `npm run create-admin`)
+- Ver estado: `cd server && npm run db:migrate:status`
 
 En despliegue (Railway/Docker), el arranque usa `server/scripts/start-with-migrate.sh` (definido en `Dockerfile`, `railway.toml` y `server` → `npm start`). El servidor hace **listen en `PORT` de inmediato** (`/` y `/health` responden antes del bootstrap). Las migraciones Sequelize se intentan al inicio; si fallan, el API arranca igualmente (revisar logs). Desarrollo local sin migrate: `cd server && npm run start:dev`.
 

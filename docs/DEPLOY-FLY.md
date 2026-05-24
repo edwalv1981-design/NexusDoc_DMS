@@ -418,68 +418,18 @@ fly deploy -a nexusdoc-dms
 
 ## Primer login (Supabase vacÃ­o)
 
-Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase. Debe ejecutar migraciones y crear un administrador antes del primer acceso.
+Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase.
 
-En **PowerShell** (Windows), sustituya `[SU-URI-SUPABASE]` por la URI del **Session pooler** (puerto **6543**, `?sslmode=require`) y `[SU-CONTRASEÃ‘A]` por una clave de al menos 7 caracteres.
+**Un solo paso (Windows):** ejecute **`ARREGLAR-LOGIN.bat`** en la raÃ­z del repo. Pegue la URI de Supabase **Connect â†’ Session pooler (6543)** una vez. GuÃ­a: [docs/UN-SOLO-PASO.md](UN-SOLO-PASO.md).
 
-**1. Migraciones (una sola vez):**
-
-```powershell
-cd C:\Users\USER\NexusDoc_DMS\server
-# Comillas simples si la contraseÃ±a tiene $, !, # u otros caracteres especiales de PowerShell
-$env:DATABASE_URL='postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require'
-npm run db:migrate
-npm run db:migrate:status
-```
-
-(`NODE_ENV=production` solo es obligatorio con `npm run db:migrate:prod`; con `DATABASE_URL` definida, `db:migrate` ya usa el pooler vÃ­a `sequelize-cli.cjs`.)
-
-**2. Secrets de bootstrap en Fly:**
-
-```powershell
-fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÃ‘A]" -a nexusdoc-dms
-```
-
-**3. Redespliegue:**
-
-```powershell
-fly deploy -a nexusdoc-dms
-```
-
-**Alternativa local** (sin dejar la contraseÃ±a en Fly): tras migrar, en la misma carpeta `server`:
-
-```powershell
-$env:BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com"
-$env:BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÃ‘A]"
-npm run bootstrap:admin
-```
-
-Verifique login en https://nexusdoc-dms.fly.dev/dashboard â€” credenciales incorrectas â†’ **401**; BD caÃ­da o sin migrar â†’ **503** (el error real queda solo en logs del servidor).
-
-Tras el primer login puede quitar los secrets bootstrap: `fly secrets unset BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD -a nexusdoc-dms`
+Verifique login en https://nexusdoc-dms.fly.dev/dashboard â€” credenciales incorrectas â†’ **401**; BD caÃ­da o sin migrar â†’ **503**.
 
 ## Railway vs Fly
 
 Railway usa `railway.toml` y el mismo `Dockerfile`. Fly usa este `fly.toml`. Puedes mantener ambos; cada plataforma ignora la config de la otra.
 ## Automatización local (una vez)
 
-**No arme la URL a mano** (error frecuente: `Tenant or user not found` por host `aws-0` vs `aws-1` o usuario `postgres` vs `postgres.PROJECT_REF`).
-
-1. Verifique solo la conexión (recomendado primero):
-
-```powershell
-.\scripts\verify-supabase-project.ps1
-```
-
-Pegue la URI **exacta** de **Connect → Session pooler** (sustituya `[YOUR-PASSWORD]`). El script prueba `SELECT 1`; opcionalmente migraciones.
-
-2. Setup completo (`.env`, migrate, admin, `fly secrets`, deploy):
-
-```powershell
-.\scripts\setup-supabase-once.ps1
-```
-
-Usa la **misma URI** que funcionó en el paso 1. `fly secrets set DATABASE_URL=...` recibe esa URL sin reconstruirla.
+Ejecute solo **`ARREGLAR-LOGIN.bat`** (raÃ­z del repo). No use otros scripts para el primer login.
 
 ### Proyecto pausado (plan gratuito)
 
