@@ -4,7 +4,7 @@
   Verifica conexión Supabase usando SOLO la URI pegada desde Connect (sin adivinar host/ref).
 .DESCRIPTION
   1) Abre el dashboard del proyecto (ref opcional o extraído de la URI).
-  2) Pide pegar la URI exacta del Session pooler (6543) con contraseña real.
+  2) Pide pegar la URI exacta del Session pooler (5432) con contraseña real.
   3) Prueba SELECT 1 con pg; si falla Session, prueba Transaction (?pgbouncer=true).
   4) Solo si SELECT 1 OK, ofrece ejecutar migraciones.
 #>
@@ -21,7 +21,7 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ServerDir = Join-Path $RepoRoot 'server'
 
 if (-not $ProjectRef) {
-  $ProjectRef = 'ohwqfujrakhwxfuxo'
+  $ProjectRef = 'oxpohwcfujrakhwxfuxo'
 }
 
 if (-not $SkipBrowser) {

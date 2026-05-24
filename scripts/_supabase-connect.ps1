@@ -221,7 +221,7 @@ function Write-SupabaseTenantHint([string]$ref) {
   Write-Host ''
   Write-Host 'ERROR: Tenant or user not found' -ForegroundColor Red
   Write-Host '  El pooler no reconoce usuario+host. NO construya la URL a mano.' -ForegroundColor Yellow
-  Write-Host '  Copie la URI EXACTA desde Connect → Session pooler (o Transaction 6543).' -ForegroundColor Yellow
+  Write-Host '  Copie la URI EXACTA desde Connect → Session pooler 5432 (o Transaction 6543).' -ForegroundColor Yellow
   if ($ref) {
     Write-Host "  Ref detectado en URI: $ref — confirme en dashboard:" -ForegroundColor Cyan
     Write-Host "  https://supabase.com/dashboard/project/$ref/settings/database" -ForegroundColor Cyan

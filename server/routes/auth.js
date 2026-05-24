@@ -258,7 +258,7 @@ router.post('/login', async (req, res) => {
 
         if (!sequelize) {
             return res.status(503).json({
-                msg: 'Base de datos no configurada. Defina DATABASE_URL en fly secrets (Supabase Session pooler, puerto 6543).',
+                msg: 'Base de datos no configurada. Defina DATABASE_URL en fly secrets (Supabase Session pooler, puerto 5432).',
             });
         }
 

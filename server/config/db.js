@@ -29,9 +29,9 @@ function warnIfIpv6DirectConnection(url) {
     if (!isIpv6LiteralHost(host)) return;
     const message =
         'DATABASE_URL usa un host IPv6 directo (p. ej. Supabase Direct). Fly.io suele fallar con ECONNREFUSED.\n' +
-        '   Use el Session pooler de Supabase (IPv4), puerto 6543:\n' +
-        '   postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require\n' +
-        '   Dashboard → Project Settings → Database → Connection string → Session pooler (6543).';
+        '   Use el Session pooler de Supabase (IPv4), puerto 5432:\n' +
+        '   postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require\n' +
+        '   Dashboard → Connect → Session pooler (5432).';
     console.error(`❌ ${message}`);
     if (process.env.REJECT_IPV6_DB === 'true') {
         throw new Error(message.replace(/\n\s+/g, ' '));
@@ -96,7 +96,7 @@ if (dbUrl) {
     sequelize = createSequelizeFromUrl(dbUrl);
 } else if (isProduction) {
     console.error(
-        '❌ DATABASE_URL no está definida en producción. Configure fly secrets (Supabase Session pooler, puerto 6543). /health sigue activo; la API no podrá usar la BD.'
+        '❌ DATABASE_URL no está definida en producción. Configure fly secrets (Supabase Session pooler, puerto 5432). /health sigue activo; la API no podrá usar la BD.'
     );
     sequelize = null;
 } else {

@@ -12,7 +12,7 @@
 
 | `injecting env (8) from .env` en producciÃ³n | Un `.env` dentro de la imagen Docker **sobrescribe** `fly secrets` (p. ej. `DATABASE_URL` local, `PORT=3000`). La app ya **no** carga `.env` si `NODE_ENV=production` o `FLY_APP_NAME` estÃ¡ definido; `.dockerignore` excluye `.env` / `.env.local`. |
 
-| `connect ECONNREFUSED` a IPv6 (`2800:â€¦:5432`) | `DATABASE_URL` usa Supabase **Direct** (IPv6). Fly necesita el **Session pooler** (IPv4, puerto **6543**). |
+| `connect ECONNREFUSED` a IPv6 (`2800:â€¦:5432`) | `DATABASE_URL` usa Supabase **Direct** (IPv6). Fly necesita el **Session pooler** (IPv4, puerto **5432**). |
 
 | `connect ECONNREFUSED 127.0.0.1:5432` | No existe `DATABASE_URL` en secrets. Sequelize caÃ­a al modo â€œlocalâ€ (`localhost:5432`). |
 
@@ -62,7 +62,7 @@ El servidor hace **listen primero** en `0.0.0.0` y responde `/health` aunque la 
 
 
 
-En el panel de Supabase: **Project Settings â†’ Database â†’ Connection string â†’ URI â†’ Session pooler** (puerto **6543**).
+En el panel de Supabase: **Connect â†’ Session pooler** (puerto **5432**, host `aws-0-us-east-1.pooler.supabase.com`).
 
 
 
@@ -76,7 +76,7 @@ Formato exacto:
 
 ```text
 
-postgres://postgres.[PROJECT_REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require
+postgres://postgres.[PROJECT_REF]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require
 
 ```
 
@@ -88,7 +88,7 @@ Ejemplo (sustituya `[PROJECT_REF]`, contraseÃ±a y regiÃ³n):
 
 ```text
 
-postgres://postgres.abcdefghijklmnop:TuContraseÃ±aSegura@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+postgres://postgres.oxpohwcfujrakhwxfuxo:TuContraseÃ±aSegura@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require
 
 ```
 
@@ -106,7 +106,7 @@ Comando:
 
 fly secrets set \
 
-  DATABASE_URL="postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require" \
+  DATABASE_URL="postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require" \
 
   JWT_SECRET="tu-secreto-largo-aleatorio" \
 
@@ -156,7 +156,7 @@ Si antes tenÃ­a un `DATABASE_URL` incorrecto (Direct / IPv6) o `PORT=3000` en 
 
 fly secrets unset PORT -a nexusdoc-dms
 
-fly secrets set DATABASE_URL="postgres://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require" -a nexusdoc-dms
+fly secrets set DATABASE_URL="postgres://postgres.[REF]:[PASS]@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require" -a nexusdoc-dms
 
 ```
 
@@ -256,13 +256,13 @@ Debes ver algo como `OK - Servidor Vivo` y en logs **sin** `injecting env from .
 
 
 
-Use la URI del **Session pooler** con `?sslmode=require` y puerto **6543**:
+Use la URI del **Session pooler** con `?sslmode=require` y puerto **5432**:
 
 
 
 ```text
 
-postgres://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require
+postgres://postgres.[ref]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require
 
 ```
 
@@ -294,7 +294,7 @@ fly deploy -a nexusdoc-dms
 
 
 
-1. En Supabase: **Connection string â†’ URI â†’ Session pooler** (puerto **6543**). Copie la URI completa.
+1. En Supabase: **Connect â†’ Session pooler** (puerto **5432**). Copie la URI completa.
 
 2. En Fly, configure el secret (sustituya la URI real):
 
@@ -304,7 +304,7 @@ fly deploy -a nexusdoc-dms
 
    fly secrets unset PORT -a nexusdoc-dms
 
-   fly secrets set DATABASE_URL="postgres://postgres.xxxxx:CONTRASEÃ‘A@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require" JWT_SECRET="secreto-largo" -a nexusdoc-dms
+   fly secrets set DATABASE_URL="postgres://postgres.oxpohwcfujrakhwxfuxo:CONTRASEÃ‘A@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require" JWT_SECRET="secreto-largo" -a nexusdoc-dms
 
    ```
 
@@ -420,7 +420,7 @@ fly deploy -a nexusdoc-dms
 
 Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase.
 
-**Un solo paso (Windows):** ejecute **`ARREGLAR-LOGIN.bat`** en la raÃ­z del repo. Pegue la URI de Supabase **Connect â†’ Session pooler (6543)** una vez. GuÃ­a: [docs/UN-SOLO-PASO.md](UN-SOLO-PASO.md).
+**Un solo paso (Windows):** ejecute **`ARREGLAR-LOGIN.bat`** en la raÃ­z del repo. Pegue la URI de Supabase **Connect â†’ Session pooler (5432)** una vez. GuÃ­a: [docs/UN-SOLO-PASO.md](UN-SOLO-PASO.md).
 
 Verifique login en https://nexusdoc-dms.fly.dev/dashboard â€” credenciales incorrectas â†’ **401**; BD caÃ­da o sin migrar â†’ **503**.
 

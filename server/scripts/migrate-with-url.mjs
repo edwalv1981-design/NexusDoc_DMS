@@ -153,7 +153,7 @@ async function validateDatabaseUrl(raw) {
     console.error(
       `âŒ Host incorrecto: ${hostname}\n` +
         '   El Session pooler usa .supabase.com (NO .supabase.co).\n' +
-        '   Ejemplo: aws-0-us-east-1.pooler.supabase.com:6543'
+        '   Ejemplo: aws-0-us-east-1.pooler.supabase.com:5432'
     );
     process.exit(1);
   }

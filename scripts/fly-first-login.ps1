@@ -26,7 +26,7 @@ function Show-MaskedUrl([string]$Url) {
 }
 
 if (-not $DatabaseUrl) {
-  Write-Host 'DATABASE_URL no definido. Supabase Session pooler puerto 6543.' -ForegroundColor Yellow
+  Write-Host 'DATABASE_URL no definido. Supabase Session pooler puerto 5432.' -ForegroundColor Yellow
   exit 1
 }
 

@@ -25,7 +25,7 @@ function projectRefFromUrl(raw) {
 const projectRef =
   process.env.SUPABASE_PROJECT_REF?.trim() ||
   projectRefFromUrl(process.env.DATABASE_URL) ||
-  'ohwqfujrakhwxfuxo';
+  'oxpohwcfujrakhwxfuxo';
 const directHost = `db.${projectRef}.supabase.co`;
 
 function passwordFromDatabaseUrl(raw) {

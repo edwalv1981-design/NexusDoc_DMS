@@ -1,12 +1,12 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Configura Supabase (Session pooler aws-0:6543), migra, seed admin, Fly secrets y deploy.
+  Configura Supabase (Session pooler aws-0:5432), migra, seed admin, Fly secrets y deploy.
 #>
 param(
-  [string]$ProjectRef = 'ohwqfujrakhwxfuxo',
+  [string]$ProjectRef = 'oxpohwcfujrakhwxfuxo',
   [string]$PoolerHost = 'aws-0-us-east-1.pooler.supabase.com',
-  [int]$PoolerPort = 6543,
+  [int]$PoolerPort = 5432,
   [string]$AdminEmail = 'edwinalvarezvivero@yahoo.com',
   [string]$AdminPassword = 'U3m3O2CJz1wnZegcsTYt',
   [string]$FlyApp = 'nexusdoc-dms',

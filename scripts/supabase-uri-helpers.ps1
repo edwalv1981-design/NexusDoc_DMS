@@ -136,7 +136,7 @@ function Mask-DatabaseUrl([string]$url) {
 
 function Assert-UriHasPassword($parsed) {
   if (-not $parsed -or $parsed.IsPasswordOnly) {
-    throw 'Pegue la URI completa de Supabase Connect (Session pooler, puerto 6543), con [YOUR-PASSWORD] sustituido por su contraseña real.'
+    throw 'Pegue la URI completa de Supabase Connect (Session pooler, puerto 5432), con [YOUR-PASSWORD] sustituido por su contraseña real.'
   }
   if (Test-PlaceholderPassword $parsed.Password) {
     throw 'La URI aún tiene [YOUR-PASSWORD]. En Connect copie la cadena y reemplace ese texto por la contraseña de Database (o resetéela en el dashboard).'
@@ -235,7 +235,7 @@ function Test-UriWithSessionThenTransaction([string]$baseUrl, [string]$serverDir
 function Read-ConnectUriFromUser {
   Write-Host ''
   Write-Host 'Supabase → Connect → Connection string → URI' -ForegroundColor Cyan
-  Write-Host '  Modo: Session pooler, puerto 6543 (como muestra el panel)' -ForegroundColor Cyan
+  Write-Host '  Modo: Session pooler, puerto 5432 (como muestra el panel)' -ForegroundColor Cyan
   Write-Host '  Sustituya [YOUR-PASSWORD] por su contraseña de Database antes de pegar.' -ForegroundColor Cyan
   Write-Host '  No invente host ni usuario — copie la línea completa.' -ForegroundColor Cyan
   Write-Host ''

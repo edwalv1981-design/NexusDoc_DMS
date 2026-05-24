@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba DATABASE_URL (solo si está definida): Session pooler aws-0 en 6543 y 5432.
+ * Prueba DATABASE_URL (solo si está definida): Session pooler aws-0 en 5432 y 6543.
  * No imprime contraseña.
  */
 import { config as loadDotenv } from 'dotenv';
@@ -38,8 +38,8 @@ function withPort(url, port) {
 }
 
 const host = 'aws-0-us-east-1.pooler.supabase.com';
-const ref = process.env.SUPABASE_PROJECT_REF?.trim() || 'ohwqfujrakhwxfuxo';
-const base = prepareDatabaseUrlForPg(raw.includes(host) ? raw : withPort(raw.replace(/@[^/]+/, `@${host}`), 6543));
+const ref = process.env.SUPABASE_PROJECT_REF?.trim() || 'oxpohwcfujrakhwxfuxo';
+const base = prepareDatabaseUrlForPg(raw.includes(host) ? raw : withPort(raw.replace(/@[^/]+/, `@${host}`), 5432));
 
 async function tryConnect(label, url) {
   const conn = prepareDatabaseUrlForPg(url);
@@ -60,6 +60,6 @@ async function tryConnect(label, url) {
   }
 }
 
-let ok654 = await tryConnect('pooler :6543', withPort(base, 6543));
-let ok543 = await tryConnect('pooler :5432', withPort(base, 5432));
-process.exit(ok654 || ok543 ? 0 : 1);
+let ok543 = await tryConnect('pooler :5432 (Session)', withPort(base, 5432));
+let ok654 = await tryConnect('pooler :6543 (Transaction)', withPort(base, 6543));
+process.exit(ok543 || ok654 ? 0 : 1);

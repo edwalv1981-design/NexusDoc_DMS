@@ -8,7 +8,7 @@ $EnvFile = Join-Path $ServerDir '.env'
 $AdminEmail = 'edwinalvarezvivero@yahoo.com'
 $AdminPassword = 'U3m3O2CJz1wnZegcsTYt'
 $FlyApp = 'nexusdoc-dms'
-$ProjectRef = 'ohwqfujrakhwxfuxo'
+$ProjectRef = 'oxpohwcfujrakhwxfuxo'
 
 function Get-Flyctl {
     $cmd = Get-Command flyctl -ErrorAction SilentlyContinue
@@ -51,7 +51,7 @@ if ($dbUrl -match '\[YOUR-PASSWORD\]') {
     Fail 'La URI aún contiene [YOUR-PASSWORD]. Sustitúyalo por la contraseña real de la base de datos.'
 }
 if ($dbUrl -notmatch '^(?i)postgres://') {
-    Fail 'La URI debe empezar por postgres:// (cópiela desde Connect → Session pooler, puerto 6543).'
+    Fail 'La URI debe empezar por postgres:// (cópiela desde Connect → Session pooler, puerto 5432).'
 }
 
 Write-Host "URI detectada: $(Mask-Url $dbUrl)" -ForegroundColor Cyan
@@ -82,7 +82,7 @@ Push-Location $ServerDir
 try {
     npm run db:migrate:url 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) {
-        $hint = 'Revise la URI (Session pooler 6543) y la contraseña.'
+        $hint = 'Revise la URI (Session pooler 5432) y la contraseña.'
         if ($dbUrl -match 'Tenant|tenant') {
             $hint = 'Si la URI es la de Connect con contraseña correcta: proyecto Supabase pausado o cuenta equivocada. Restaure el proyecto en el panel.'
         }

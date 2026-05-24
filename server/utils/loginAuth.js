@@ -59,7 +59,7 @@ function mapLoginInfrastructureError(err) {
         if (msg.includes('password authentication failed')) {
             return {
                 status: 503,
-                msg: 'No se pudo autenticar en PostgreSQL. En fly secrets use el Session pooler (puerto 6543), usuario postgres.PROJECT_REF (no solo "postgres"), contraseña del dashboard URL-encoded y ?sslmode=require.',
+                msg: 'No se pudo autenticar en PostgreSQL. En fly secrets use el Session pooler (puerto 5432), usuario postgres.PROJECT_REF (no solo "postgres"), contraseña del dashboard URL-encoded y ?sslmode=require.',
             };
         }
         if (msg.includes('self signed certificate') || msg.includes('self-signed certificate')) {
@@ -70,7 +70,7 @@ function mapLoginInfrastructureError(err) {
         }
         return {
             status: 503,
-            msg: 'No se pudo conectar a la base de datos. Verifique DATABASE_URL (Supabase Session pooler, puerto 6543) y SSL.',
+            msg: 'No se pudo conectar a la base de datos. Verifique DATABASE_URL (Supabase Session pooler, puerto 5432) y SSL.',
         };
     }
     return null;
