@@ -40,6 +40,17 @@ const buildLocalConfig = () => ({
   ...common
 });
 
+/** Misma prioridad que config/db.js: DATABASE_URL gana sobre DB_* / localhost. */
+const buildConfig = () => {
+  if (process.env.DATABASE_URL) {
+    return {
+      use_env_variable: 'DATABASE_URL',
+      ...common
+    };
+  }
+  return buildLocalConfig();
+};
+
 const buildProductionConfig = () => {
   if (process.env.DATABASE_URL) {
     return {
@@ -53,7 +64,7 @@ const buildProductionConfig = () => {
 };
 
 module.exports = {
-  development: buildLocalConfig(),
-  test: buildLocalConfig(),
+  development: buildConfig(),
+  test: buildConfig(),
   production: buildProductionConfig()
 };

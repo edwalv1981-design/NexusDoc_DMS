@@ -426,11 +426,13 @@ En **PowerShell** (Windows), sustituya `[SU-URI-SUPABASE]` por la URI del **Sess
 
 ```powershell
 cd C:\Users\USER\NexusDoc_DMS\server
-$env:DATABASE_URL="[SU-URI-SUPABASE]"
-$env:NODE_ENV="production"
+# Comillas simples si la contraseña tiene $, !, # u otros caracteres especiales de PowerShell
+$env:DATABASE_URL='postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-us-east-1.pooler.supabase.co:6543/postgres?sslmode=require'
 npm run db:migrate
 npm run db:migrate:status
 ```
+
+(`NODE_ENV=production` solo es obligatorio con `npm run db:migrate:prod`; con `DATABASE_URL` definida, `db:migrate` ya usa el pooler vía `sequelize-cli.cjs`.)
 
 **2. Secrets de bootstrap en Fly:**
 
