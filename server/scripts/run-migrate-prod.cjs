@@ -1,17 +1,23 @@
 'use strict';
 
-/**
- * Ejecuta migraciones Sequelize con NODE_ENV=production (Fly / Railway / npm run db:migrate:prod).
- * En Fly, DATABASE_URL (Session pooler) aporta la contraseña; migrate-direct usa conexión directa :5432.
- */
 const { spawnSync } = require('child_process');
 const path = require('path');
+
+function usesSessionPooler() {
+  const u = (process.env.DATABASE_URL || '').toLowerCase();
+  return u.includes('pooler.supabase.com') || u.includes('pooler.supabase.co');
+}
 
 function runMigrationsSync() {
   const serverRoot = path.resolve(__dirname, '..');
   const env = { ...process.env, NODE_ENV: process.env.NODE_ENV || 'production' };
+  const migrateScript = usesSessionPooler()
+    ? 'migrate-with-url.mjs'
+    : 'migrate-direct.mjs';
 
-  const result = spawnSync('node', [path.join(__dirname, 'migrate-direct.mjs')], {
+  console.log(`[migrate:prod] ${migrateScript} (pooler=${usesSessionPooler()})`);
+
+  const result = spawnSync('node', [path.join(__dirname, migrateScript)], {
     cwd: serverRoot,
     env,
     stdio: 'inherit',
@@ -24,6 +30,5 @@ function runMigrationsSync() {
 module.exports = { runMigrationsSync };
 
 if (require.main === module) {
-  const ok = runMigrationsSync();
-  process.exit(ok ? 0 : 1);
+  process.exit(runMigrationsSync() ? 0 : 1);
 }

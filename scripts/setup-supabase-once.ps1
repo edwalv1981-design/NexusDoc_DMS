@@ -1,14 +1,12 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Configura Supabase una vez: URI de Connect → .env → migrate → admin → Fly secrets → deploy.
-.DESCRIPTION
-  NO construye URLs desde un ref fijo. Solo usa la URI que usted pega desde Supabase Connect
-  (Session pooler 6543), con [YOUR-PASSWORD] ya sustituido.
-  Si Session falla, prueba Transaction pooler (?pgbouncer=true) en la misma URI.
+  Configura Supabase (Session pooler aws-0:6543), migra, seed admin, Fly secrets y deploy.
 #>
 param(
-  [string]$ProjectRef,
+  [string]$ProjectRef = 'ohwqfujrakhwxfuxo',
+  [string]$PoolerHost = 'aws-0-us-east-1.pooler.supabase.com',
+  [int]$PoolerPort = 6543,
   [string]$AdminEmail = 'edwinalvarezvivero@yahoo.com',
   [string]$AdminPassword = 'U3m3O2CJz1wnZegcsTYt',
   [string]$FlyApp = 'nexusdoc-dms',
@@ -17,11 +15,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'supabase-uri-helpers.ps1')
-
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ServerDir = Join-Path $RepoRoot 'server'
 $EnvFile = Join-Path $ServerDir '.env'
+$DbUser = "postgres.$ProjectRef"
 
 function Get-Flyctl {
   $cmd = Get-Command flyctl -ErrorAction SilentlyContinue
@@ -31,125 +28,76 @@ function Get-Flyctl {
   throw 'flyctl no encontrado: https://fly.io/docs/flyctl/install/'
 }
 
-function Repair-EnvPoolerHost {
-  if (-not (Test-Path $EnvFile)) { return }
-  $content = Get-Content $EnvFile -Raw
-  if ($content -notmatch 'pooler\.supabase\.co') { return }
-  $fixed = $content -replace 'pooler\.supabase\.co', 'pooler.supabase.com'
-  Set-Content -Path $EnvFile -Value $fixed.TrimEnd() -Encoding UTF8
-  Write-Host "Corregido pooler .supabase.co -> .supabase.com en $EnvFile" -ForegroundColor Yellow
+function Encode-DbPassword([string]$plain) {
+  [System.Uri]::EscapeDataString($plain)
 }
 
-function Get-ExistingDatabaseUrl {
-  if (-not (Test-Path $EnvFile)) { return $null }
-  foreach ($line in Get-Content $EnvFile) {
-    if ($line -match '^\s*DATABASE_URL\s*=\s*(.+)\s*$') {
-      return $Matches[1].Trim().Trim('"', "'")
-    }
+function Build-CanonicalDatabaseUrl([string]$password) {
+  if ([string]::IsNullOrWhiteSpace($password)) { throw 'Contraseña vacía.' }
+  $enc = Encode-DbPassword $password.Trim()
+  "postgres://${DbUser}:${enc}@${PoolerHost}:${PoolerPort}/postgres?sslmode=require&uselibpqcompat=true"
+}
+
+function Mask-DatabaseUrl([string]$url) {
+  if (-not $url) { return '(vacío)' }
+  if ($url -match '^(?i)postgres(ql)?://([^:@]+):([^@]*)@([^/?#]+)') {
+    return "postgres://$($Matches[2]):***@$($Matches[4])"
   }
-  return $null
+  return '(URL inválida)'
 }
 
-function Test-Migrate([string]$url) {
-  Write-Host "Migrando: $(Mask-DatabaseUrl $url)" -ForegroundColor Cyan
-  $env:DATABASE_URL = $url
-  $env:NODE_ENV = 'production'
-  if ($script:ProjectRef) { $env:SUPABASE_PROJECT_REF = $script:ProjectRef }
-  Push-Location $ServerDir
-  $prev = $ErrorActionPreference
-  $ErrorActionPreference = 'Continue'
-  try {
-    node scripts/migrate-with-url.mjs 2>&1 | ForEach-Object { Write-Host $_ }
-    return ($LASTEXITCODE -eq 0)
-  } finally {
-    $ErrorActionPreference = $prev
-    Pop-Location
-  }
-}
-
-Repair-EnvPoolerHost
-
-$workingUrl = $null
-$existingUrl = Get-ExistingDatabaseUrl
-
-if ($existingUrl) {
-  $existingParsed = Parse-PostgresUri $existingUrl
-  if ($existingParsed -and -not $existingParsed.IsPasswordOnly) {
-    try {
-      Assert-UriHasPassword $existingParsed
-      [void](Repair-ParsedUriHost $existingParsed)
-      $script:ProjectRef = Get-ProjectRefFromParsed $existingParsed
-      if (-not $ProjectRef) { $ProjectRef = $script:ProjectRef }
-      $candidate = Build-PostgresUri $existingParsed
-      Write-Host "Probando server/.env existente ..." -ForegroundColor Cyan
-      $attempt = Test-UriWithSessionThenTransaction $candidate $ServerDir
-      if ($attempt.Url) {
-        $workingUrl = $attempt.Url
-        Write-Host 'server/.env: SELECT 1 OK.' -ForegroundColor Green
+function Read-DatabasePassword {
+  $existing = $null
+  if (Test-Path $EnvFile) {
+    foreach ($line in Get-Content $EnvFile) {
+      if ($line -match '^\s*DATABASE_URL\s*=\s*(.+)\s*$') {
+        $existing = $Matches[1].Trim().Trim('"', "'")
+        break
       }
-    } catch {
-      Write-Host $_.Exception.Message -ForegroundColor Yellow
     }
   }
-}
+  if ($existing -and $existing -match ':(?:[^@]+)@') {
+    Write-Host "Usando contraseña de server/.env existente ($(Mask-DatabaseUrl $existing))" -ForegroundColor Cyan
+    $uri = $existing -replace '^(?i)postgresql://', 'postgres://'
+    $userinfo = ($uri -replace '^[^:]+://', '').Split('@')[0]
+    $pass = if ($userinfo -match ':') { [Uri]::UnescapeDataString(($userinfo -split ':', 2)[1]) } else { '' }
+    if ($pass -and $pass -notmatch 'YOUR-PASSWORD') { return $pass }
+  }
 
-if (-not $workingUrl) {
   if (-not $SkipBrowser) {
-    Open-SupabaseDatabaseDashboard $(if ($ProjectRef) { $ProjectRef } else { 'ohwqfujrakhwxfuxo' })
+    Start-Process "https://supabase.com/dashboard/project/$ProjectRef/settings/database"
   }
-
-  $raw = Read-ConnectUriFromUser
-  $parsed = Parse-PostgresUri $raw
-  if (-not $parsed -or $parsed.IsPasswordOnly) {
-    throw 'Pegue la URI completa desde Connect (Session pooler 6543), no solo la contraseña.'
-  }
-
-  Assert-UriHasPassword $parsed
-  [void](Repair-ParsedUriHost $parsed)
-
-  $script:ProjectRef = Get-ProjectRefFromParsed $parsed
-  if ($ProjectRef -and $script:ProjectRef -and $ProjectRef -ne $script:ProjectRef) {
-    Write-Host "Ref URI ($script:ProjectRef) difiere de -ProjectRef ($ProjectRef); usando ref de la URI." -ForegroundColor Yellow
-  }
-  if ($script:ProjectRef) { $ProjectRef = $script:ProjectRef }
-
-  $url = Build-PostgresUri $parsed
-  $attempt = Test-UriWithSessionThenTransaction $url $ServerDir
-
-  if (-not $attempt.Url) {
-    switch ($attempt.Result.Kind) {
-      'bad_password' {
-        Write-ResetPasswordHint
-        throw 'Contraseña incorrecta. Reset database password en Supabase y pegue la URI de nuevo.'
-      }
-      'tenant' {
-        Write-TenantNotFoundHint $ProjectRef
-        Write-PausedProjectHint
-        throw 'Tenant or user not found — use la URI exacta de Connect o reactive el proyecto pausado.'
-      }
-      default {
-        Write-PausedProjectHint
-        throw "No se pudo conectar: $($attempt.Result.Message)"
-      }
-    }
-  }
-
-  $workingUrl = $attempt.Url
+  Write-Host 'Supabase -> Settings -> Database -> contraseña de BASE DE DATOS (no admin app)' -ForegroundColor Cyan
+  $pw = Read-Host 'Contraseña'
+  if (-not $pw) { throw 'Contraseña vacía.' }
+  $pw.Trim()
 }
 
-if (-not (Test-Migrate $workingUrl)) {
-  throw 'Migración falló tras conexión SELECT 1. Revise logs arriba.'
+function Invoke-Migrate([string]$databaseUrl) {
+  $env:DATABASE_URL = $databaseUrl
+  $env:SUPABASE_PROJECT_REF = $ProjectRef
+  $env:NODE_ENV = 'development'
+  Push-Location $ServerDir
+  try {
+    npm run db:migrate:url
+    if ($LASTEXITCODE -ne 0) { throw 'db:migrate:url falló' }
+  } finally { Pop-Location }
 }
+
+$dbPassword = Read-DatabasePassword
+$appUrl = Build-CanonicalDatabaseUrl $dbPassword
+Write-Host "URL canónica: $(Mask-DatabaseUrl $appUrl)" -ForegroundColor Green
+
+Invoke-Migrate $appUrl
 
 $jwt = $env:JWT_SECRET
-if (-not $jwt) {
-  $jwt = -join ((48..57 + 65..90 + 97..122 | Get-Random -Count 48 | ForEach-Object { [char]$_ }))
-}
+if (-not $jwt) { $jwt = -join ((48..57 + 65..90 + 97..122 | Get-Random -Count 48 | ForEach-Object { [char]$_ })) }
 
 $envLines = @(
   'NODE_ENV=development',
   "JWT_SECRET=$jwt",
-  "DATABASE_URL=$workingUrl",
+  "DATABASE_URL=$appUrl",
+  "SUPABASE_PROJECT_REF=$ProjectRef",
   'CORS_ORIGINS=https://nexusdoc-dms.fly.dev,http://localhost:5173',
   'DB_SYNC_ALTER=false',
   "BOOTSTRAP_ADMIN_EMAIL=$AdminEmail",
@@ -157,9 +105,9 @@ $envLines = @(
   'BOOTSTRAP_ADMIN_NAME=Administrador Maestro'
 )
 Set-Content -Path $EnvFile -Value ($envLines -join "`n") -Encoding UTF8
-Write-Host "Escrito $EnvFile — $(Mask-DatabaseUrl $workingUrl)" -ForegroundColor Green
+Write-Host "Escrito $EnvFile" -ForegroundColor Cyan
 
-$env:DATABASE_URL = $workingUrl
+$env:DATABASE_URL = $appUrl
 $env:BOOTSTRAP_ADMIN_EMAIL = $AdminEmail
 $env:BOOTSTRAP_ADMIN_PASSWORD = $AdminPassword
 $env:NODE_ENV = 'production'
@@ -167,37 +115,27 @@ Push-Location $ServerDir
 try {
   npm run seed:admin
   if ($LASTEXITCODE -ne 0) { throw 'seed:admin falló' }
-} finally {
-  Pop-Location
-}
+} finally { Pop-Location }
 
 $fly = Get-Flyctl
-Push-Location $RepoRoot
-try {
-  & $fly secrets set `
-    "DATABASE_URL=$workingUrl" `
-    "JWT_SECRET=$jwt" `
-    "BOOTSTRAP_ADMIN_EMAIL=$AdminEmail" `
-    "BOOTSTRAP_ADMIN_PASSWORD=$AdminPassword" `
-    "CORS_ORIGINS=https://nexusdoc-dms.fly.dev" `
-    -a $FlyApp
-  if ($LASTEXITCODE -ne 0) { throw 'fly secrets set falló' }
-} finally {
-  Pop-Location
-}
+& $fly secrets set `
+  "DATABASE_URL=$appUrl" `
+  "JWT_SECRET=$jwt" `
+  "BOOTSTRAP_ADMIN_EMAIL=$AdminEmail" `
+  "BOOTSTRAP_ADMIN_PASSWORD=$AdminPassword" `
+  "CORS_ORIGINS=https://nexusdoc-dms.fly.dev" `
+  -a $FlyApp
+if ($LASTEXITCODE -ne 0) { throw 'fly secrets set falló' }
 
-Write-Host ''
-Write-Host 'Fly secrets DATABASE_URL = misma URI verificada (Session o Transaction).' -ForegroundColor Cyan
-Write-Host "  $(Mask-DatabaseUrl $workingUrl)" -ForegroundColor DarkGray
+& $fly secrets deploy -a $FlyApp
+if ($LASTEXITCODE -ne 0) { throw 'fly secrets deploy falló' }
 
 if (-not $SkipDeploy) {
   Push-Location $RepoRoot
   try {
     & $fly deploy -a $FlyApp
     if ($LASTEXITCODE -ne 0) { throw 'fly deploy falló' }
-  } finally {
-    Pop-Location
-  }
+  } finally { Pop-Location }
 }
 
 Write-Host ''
