@@ -361,12 +361,18 @@ function Resolve-SessionPoolerAppUrl([string]$password, $parsedFromConnect, [str
 
   foreach ($c in $candidates) {
     if (-not (Test-PoolerDns $c.Host)) { continue }
-    $port = if ($c.Port) { [int]$c.Port } else { 5432 }
-    $url = Build-SessionPoolerUrl $password $c.Host $c.User $port
-    Write-Host "Probando Session pooler ($($c.Label)) ..."
-    if (Test-SessionPoolerQuery $url) {
-      Write-Host "OK Session pooler: $($c.Host)" -ForegroundColor Green
-      return $url
+    $portsToTry = @()
+    if ($c.Port) { [void]$portsToTry.Add([int]$c.Port) }
+    foreach ($p in @(5432, 6543)) {
+      if ($portsToTry -notcontains $p) { [void]$portsToTry.Add($p) }
+    }
+    foreach ($port in $portsToTry) {
+      $url = Build-SessionPoolerUrl $password $c.Host $c.User $port
+      Write-Host "Probando Session pooler ($($c.Label), puerto $port) ..."
+      if (Test-SessionPoolerQuery $url) {
+        Write-Host "OK Session pooler: $($c.Host):$port" -ForegroundColor Green
+        return $url
+      }
     }
   }
 
