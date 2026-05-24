@@ -190,10 +190,10 @@ if (/password authentication failed|28P01|invalid password/i.test(combined)) {
   );
 } else if (/Tenant or user not found/i.test(combined)) {
   console.error(
-    '\n❌ Tenant or user not found — suele ser project ref, host o usuario incorrectos.\n' +
-      '   Directa: postgres://postgres:***@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require\n' +
-      '   Si db.* no resuelve (DNS/ISP): Session pooler postgres://postgres.PROJECT_REF:***@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require\n' +
-      '   Verifique PROJECT_REF en supabase.com/dashboard/project/REF/... (proyecto pausado también falla).'
+    '\n❌ Tenant or user not found — host pooler o usuario postgres.PROJECT_REF no coinciden con SU proyecto.\n' +
+      '   NO invente aws-0/aws-1: copie la URI EXACTA desde Supabase → Connect (Session pooler).\n' +
+      '   Ejecute: ..\\scripts\\verify-supabase-project.ps1\n' +
+      '   Proyecto pausado: Dashboard → Restore project. Contraseña: Reset database password.'
   );
 }
 

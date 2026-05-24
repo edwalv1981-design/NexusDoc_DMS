@@ -463,18 +463,36 @@ Tras el primer login puede quitar los secrets bootstrap: `fly secrets unset BOOT
 Railway usa `railway.toml` y el mismo `Dockerfile`. Fly usa este `fly.toml`. Puedes mantener ambos; cada plataforma ignora la config de la otra.
 ## Automatización local (una vez)
 
-Si `DATABASE_URL` en Fly tiene host `.supabase.co` (error `getaddrinfo ENOTFOUND`) o falla la autenticación, corrija el secret con el **Session pooler** (`.supabase.com`, puerto **6543**):
+**No arme la URL a mano** (error frecuente: `Tenant or user not found` por host `aws-0` vs `aws-1` o usuario `postgres` vs `postgres.PROJECT_REF`).
+
+1. Verifique solo la conexión (recomendado primero):
 
 ```powershell
-fly secrets set DATABASE_URL="postgres://postgres.ohwqfujrakhwxfuxo:[PASSWORD-URL-ENCODED]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require" -a nexusdoc-dms
+.\scripts\verify-supabase-project.ps1
 ```
 
-Codifique caracteres especiales de la contraseña (`@`, `#`, `%`, etc.) con `encodeURIComponent` antes de pegarla en la URL.
+Pegue la URI **exacta** de **Connect → Session pooler** (sustituya `[YOUR-PASSWORD]`). El script prueba `SELECT 1`; opcionalmente migraciones.
 
-O ejecute el script completo desde la raíz del repo (abre Supabase, pide la contraseña una vez; si `db.*.supabase.co` no resuelve DNS en su red, migra por Session pooler **aws-0** `:5432`/`6543`; escribe `server/.env`, crea admin, actualiza secrets y hace `fly deploy`):
+2. Setup completo (`.env`, migrate, admin, `fly secrets`, deploy):
 
 ```powershell
 .\scripts\setup-supabase-once.ps1
 ```
+
+Usa la **misma URI** que funcionó en el paso 1. `fly secrets set DATABASE_URL=...` recibe esa URL sin reconstruirla.
+
+### Proyecto pausado (plan gratuito)
+
+Si el proyecto estuvo inactivo ~7 días, Supabase lo **pausa** y las conexiones fallan (a veces con `Tenant or user not found` o timeout).
+
+1. [Dashboard](https://supabase.com/dashboard) → su proyecto → **Restore project** / **Unpause**
+2. Espere 1–2 minutos
+3. **Connect** → copie de nuevo la URI (el host/región no cambia, pero la contraseña puede haberse reseteado si la rotó)
+
+### Si la contraseña falla (`password authentication failed`)
+
+Dashboard → **Project Settings → Database → Reset database password** → pegue la URI de Connect con la contraseña **nueva** (no reutilice contraseñas antiguas en scripts).
+
+Codifique caracteres especiales (`@`, `#`, `%`, etc.) en la URL con `encodeURIComponent` o deje que Connect los codifique al pegar.
 
 
