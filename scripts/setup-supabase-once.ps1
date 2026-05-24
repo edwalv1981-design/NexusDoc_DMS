@@ -146,7 +146,7 @@ if ($LASTEXITCODE -ne 0) { throw 'fly secrets set falló' }
 
 Write-Host ''
 Write-Host 'Fly secrets DATABASE_URL actualizado (Session pooler .supabase.com:6543).' -ForegroundColor Cyan
-Write-Host "  fly secrets set DATABASE_URL=`"<postgres://postgres.$ProjectRef:***@HOST:6543/postgres?sslmode=require>`" -a $FlyApp" -ForegroundColor DarkGray
+Write-Host "  fly secrets set DATABASE_URL=`"<postgres://postgres.${ProjectRef}:***@HOST:6543/postgres?sslmode=require>`" -a $FlyApp" -ForegroundColor DarkGray
 Write-Host '  Si el deploy anterior fallaba con ENOTFOUND .supabase.co, quedó corregido.' -ForegroundColor DarkGray
 
 if (-not $SkipDeploy) {
