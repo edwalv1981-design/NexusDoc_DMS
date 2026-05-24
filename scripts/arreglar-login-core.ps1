@@ -55,7 +55,8 @@ function Fail([string]$msg) {
 }
 
 function Read-SecureDatabasePassword {
-    $secure = Read-Host 'Escriba solo la contraseña de base de datos (la que puso al crear el proyecto o al resetear)' -AsSecureString
+    param([string]$Prompt = 'Escriba solo la contraseña de base de datos (la que puso al crear el proyecto o al resetear)')
+    $secure = Read-Host $Prompt -AsSecureString
     if (-not $secure -or $secure.Length -eq 0) { return '' }
     $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     try {
@@ -63,6 +64,91 @@ function Read-SecureDatabasePassword {
     } finally {
         [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
     }
+}
+
+function Normalize-Aws0PoolerHost([string]$hostName) {
+    $h = ($hostName -replace '\.supabase\.co$', '.supabase.com')
+    if ($h -match '(?i)aws-1-') {
+        Write-Host 'Aviso: este script usa aws-0-us-east-1 (no aws-1). Corrija el host en Connect si el panel muestra aws-1.' -ForegroundColor Yellow
+        $h = $h -replace '(?i)aws-1-', 'aws-0-'
+    }
+    if ($h -notmatch '(?i)aws-0-us-east-1\.pooler\.supabase\.com') {
+        return $DefaultPoolerHost
+    }
+    $h
+}
+
+function Get-PoolerUser($parsed) {
+    if ($parsed.User -match '^postgres\.([a-z0-9]+)$') { return $parsed.User }
+    "postgres.$ProjectRef"
+}
+
+function New-Aws0PoolerVariant($parsed, [int]$port) {
+    $qs = if ($port -eq 6543) { '?pgbouncer=true&sslmode=require' } else { '?sslmode=require' }
+    [PSCustomObject]@{
+        IsPasswordOnly = $false
+        User           = Get-PoolerUser $parsed
+        Password       = $parsed.Password
+        Host           = Normalize-Aws0PoolerHost $parsed.Host
+        Port           = $port
+        Database       = if ($parsed.Database) { $parsed.Database } else { 'postgres' }
+        Query          = $qs
+    }
+}
+
+function Test-DatabaseOnAws0Ports($parsed, [string]$serverDir) {
+    $lastOutput = ''
+    $lastKind = 'other'
+    foreach ($port in @(5432, 6543)) {
+        $label = if ($port -eq 5432) { 'Session pooler aws-0:5432' } else { 'Transaction pooler aws-0:6543' }
+        $variant = New-Aws0PoolerVariant $parsed $port
+        $url = Build-PostgresUri $variant
+        Write-Host "Probando $label ..." -ForegroundColor Cyan
+        Write-Host "  $(Mask-DatabaseUrl $url)" -ForegroundColor DarkGray
+        $pgTest = Test-PostgresSelect1 $url $serverDir
+        if ($pgTest.ExitCode -eq 0) {
+            return [PSCustomObject]@{ Ok = $true; Url = $url; Parsed = $variant; Output = $pgTest.Output }
+        }
+        $lastOutput = $pgTest.Output
+        $lastKind = Classify-PostgresError $pgTest.Output
+        Write-Host "Falló ($label): $lastOutput" -ForegroundColor Red
+    }
+    [PSCustomObject]@{ Ok = $false; Url = $null; Parsed = $null; Output = $lastOutput; Kind = $lastKind }
+}
+
+function Write-PausedProjectHint {
+    Write-Host ''
+    Write-Host 'Si el proyecto está PAUSADO (plan gratuito inactivo), restáurelo en el panel y espere 1-2 minutos:' -ForegroundColor Yellow
+    Write-Host "  https://supabase.com/dashboard/project/$ProjectRef" -ForegroundColor Cyan
+}
+
+function Invoke-DatabasePasswordRecovery($parsed) {
+    Write-Host ''
+    Write-Host 'La contraseña de Database en Supabase NO coincide. Debe hacer Reset database password.' -ForegroundColor Red
+    Write-PausedProjectHint
+    $dbUrl = "https://supabase.com/dashboard/project/$ProjectRef/settings/database"
+    Write-Host "Abriendo: $dbUrl" -ForegroundColor Cyan
+    Start-Process $dbUrl
+    Write-Host ''
+    Write-Host 'En el panel: Database -> Reset database password. Luego pulse Enter aqui.' -ForegroundColor Cyan
+    $null = Read-Host
+    $newPassword = Read-SecureDatabasePassword -Prompt 'Escriba SOLO la contraseña NUEVA (tras Reset database password)'
+    if ([string]::IsNullOrWhiteSpace($newPassword)) { Fail 'No escribió la contraseña nueva.' }
+    $parsed.Password = $newPassword
+    $parsed
+}
+
+function Invoke-ConnectionFailureRecovery($parsed, [string]$serverDir, [string]$lastKind) {
+    if ($lastKind -eq 'tenant') {
+        Write-Host ''
+        Write-Host 'El pooler respondió "Tenant or user not found". Suele ser contraseña incorrecta o proyecto pausado.' -ForegroundColor Yellow
+    }
+    $parsed = Invoke-DatabasePasswordRecovery $parsed
+    $retry = Test-DatabaseOnAws0Ports $parsed $serverDir
+    if (-not $retry.Ok) {
+        Write-ConnectionTestFailure $retry.Output $retry.Kind
+    }
+    $retry
 }
 
 function Apply-DatabasePasswordToUri([string]$rawUri, [string]$plainPassword) {
@@ -85,8 +171,8 @@ function Apply-DatabasePasswordToUri([string]$rawUri, [string]$plainPassword) {
 }
 
 function Resolve-PoolerHost($parsed) {
-    if ($parsed.Host -match '(?i)pooler\.supabase\.com') {
-        return ($parsed.Host -replace '\.supabase\.co$', '.supabase.com')
+    if ($parsed.Host -match '(?i)pooler\.supabase') {
+        return (Normalize-Aws0PoolerHost $parsed.Host)
     }
     $DefaultPoolerHost
 }
@@ -105,34 +191,34 @@ function Build-CanonicalConnectUrl($parsed) {
     Build-PostgresUri $canonical
 }
 
-function Write-ConnectionTestFailure([string]$output) {
-    $kind = Classify-PostgresError $output
+function Write-ConnectionTestFailure([string]$output, [string]$kind = $null) {
+    if (-not $kind) { $kind = Classify-PostgresError $output }
     switch ($kind) {
         'bad_password' {
             Fail @"
-Contraseña de base de datos incorrecta.
-Use la contraseña que definió al crear el proyecto o al resetearla desde Connect (no la del administrador de NexusDoc).
-Vuelva a ejecutar ARREGLAR-LOGIN.bat.
+La contraseña de Database sigue sin coincidir tras el reintento.
+Reset database password en Supabase, copie la NUEVA contraseña y vuelva a ejecutar ARREGLAR-LOGIN.bat (pegue solo la contraseña si lo prefiere).
 Detalle: $output
 "@
         }
         'tenant' {
+            Write-PausedProjectHint
             Fail @"
-El pooler no reconoció el usuario o el proyecto.
-Pegue la URI exacta de Connect → Session pooler (puerto 5432). Compruebe que el proyecto no está pausado y que inició sesión en la cuenta correcta de Supabase.
+El pooler no reconoció el usuario o el proyecto (Tenant or user not found).
+Compruebe que el proyecto NO está pausado, que la contraseña es la NUEVA tras Reset, y que usa aws-0-us-east-1 (no aws-1).
 Detalle: $output
 "@
         }
         'dns' {
             Fail @"
-No se pudo resolver el host del pooler. Copie la URI completa desde Connect sin cambiar el host.
+No se pudo resolver el host del pooler. Use aws-0-us-east-1.pooler.supabase.com desde Connect.
 Detalle: $output
 "@
         }
         default {
             Fail @"
-No se pudo conectar a PostgreSQL antes de migrar.
-Revise la URI de Connect y la contraseña de base de datos, luego vuelva a ejecutar ARREGLAR-LOGIN.bat.
+No se pudo conectar a PostgreSQL (puertos 5432 y 6543 en aws-0).
+Revise contraseña y que el proyecto no esté pausado, luego vuelva a ejecutar ARREGLAR-LOGIN.bat.
 Detalle: $output
 "@
         }
@@ -177,12 +263,18 @@ if ($firstPaste -match '^(?i)postgres(ql)?://') {
 }
 Write-Host "URI canónica: $(Mask-DatabaseUrl $dbUrl)" -ForegroundColor Cyan
 
-Write-Host 'Probando conexión a la base de datos...' -ForegroundColor Yellow
-$pgTest = Test-PostgresSelect1 $dbUrl $ServerDir
-if ($pgTest.ExitCode -ne 0) {
-    Write-ConnectionTestFailure $pgTest.Output
+Write-Host 'Probando conexión a la base de datos (aws-0, puertos 5432 y 6543)...' -ForegroundColor Yellow
+$conn = Test-DatabaseOnAws0Ports $parsed $ServerDir
+if (-not $conn.Ok) {
+    $recoverable = @('bad_password', 'tenant', 'other') -contains $conn.Kind
+    if ($recoverable) {
+        $conn = Invoke-ConnectionFailureRecovery $parsed $ServerDir $conn.Kind
+    } else {
+        Write-ConnectionTestFailure $conn.Output $conn.Kind
+    }
 }
-
+$dbUrl = $conn.Url
+$parsed = $conn.Parsed
 Write-Host 'Conexión OK.' -ForegroundColor Green
 
 $jwt = Read-ExistingJwt
