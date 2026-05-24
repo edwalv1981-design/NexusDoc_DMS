@@ -143,21 +143,38 @@ Write-Host ''
 Write-Host 'Copie en Supabase la ventana Connect que ya tiene abierta. Pulse Enter.' -ForegroundColor Cyan
 $null = Read-Host
 
-$connectUri = (Read-Host 'Pegue aqui la URI de Connect (puede traer [YOUR-PASSWORD], no importa)').Trim()
-if (-not $connectUri) { Fail 'No pegó ninguna URI.' }
-if ($connectUri -match '^(?i)DATABASE_URL\s*=\s*(.+)$') {
-    $connectUri = $Matches[1].Trim().Trim('"', "'")
+$firstPaste = (Read-Host 'Pegue aqui la URI de Connect (puede traer [YOUR-PASSWORD], no importa)').Trim()
+if (-not $firstPaste) { Fail 'No pegó ninguna URI ni contraseña.' }
+
+if ($firstPaste -match '^(?i)postgres(ql)?://') {
+    $connectUri = $firstPaste
+    if ($connectUri -match '^(?i)DATABASE_URL\s*=\s*(.+)$') {
+        $connectUri = $Matches[1].Trim().Trim('"', "'")
+    }
+
+    $dbPassword = Read-SecureDatabasePassword
+    if ([string]::IsNullOrWhiteSpace($dbPassword)) { Fail 'No escribió la contraseña de base de datos.' }
+
+    $parsed = Apply-DatabasePasswordToUri $connectUri $dbPassword
+    if (-not $parsed) {
+        Fail 'No reconocimos una URI de Connect. Copie la línea postgres:// completa desde Session pooler (puerto 5432).'
+    }
+
+    $dbUrl = Build-CanonicalConnectUrl $parsed
+} else {
+    Write-Host 'Detectamos solo la contraseña. Usaremos la URL de su proyecto automaticamente.' -ForegroundColor Yellow
+    $dbPassword = $firstPaste
+    $parsed = [PSCustomObject]@{
+        IsPasswordOnly = $false
+        User           = "postgres.$ProjectRef"
+        Password       = $dbPassword
+        Host           = $DefaultPoolerHost
+        Port           = 5432
+        Database       = 'postgres'
+        Query          = '?sslmode=require'
+    }
+    $dbUrl = Build-PostgresUri $parsed
 }
-
-$dbPassword = Read-SecureDatabasePassword
-if ([string]::IsNullOrWhiteSpace($dbPassword)) { Fail 'No escribió la contraseña de base de datos.' }
-
-$parsed = Apply-DatabasePasswordToUri $connectUri $dbPassword
-if (-not $parsed) {
-    Fail 'No reconocimos una URI de Connect. Copie la línea postgres:// completa desde Session pooler (puerto 5432).'
-}
-
-$dbUrl = Build-CanonicalConnectUrl $parsed
 Write-Host "URI canónica: $(Mask-DatabaseUrl $dbUrl)" -ForegroundColor Cyan
 
 Write-Host 'Probando conexión a la base de datos...' -ForegroundColor Yellow
