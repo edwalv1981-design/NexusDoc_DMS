@@ -28,9 +28,9 @@
 
 | **HTTP 503** en `/dashboard` | `client/dist/index.html` no existe en el contenedor — revisar paso `npm run build` del `Dockerfile`. |
 
-| **HTTP 500** en `POST /api/auth/login` | Tabla `users` sin migrar, `DATABASE_URL`/SSL incorrectos, o `JWT_SECRET` ausente. Usuario de Railway **no** existe en Supabase vacío → debe crear admin (bootstrap o `npm run seed:admin`). Con usuario inexistente la API debe responder **401**, no 500. |
+| **HTTP 500** en `POST /api/auth/login` | Tabla `users` sin migrar, `DATABASE_URL`/SSL incorrectos, o `JWT_SECRET` ausente. Usuario de Railway **no** existe en Supabase vacío → debe crear admin (bootstrap o `npm run bootstrap:admin`). Con usuario inexistente la API debe responder **401**, no 500. |
 
-| `relation "Users" does not exist` | Migraciones no ejecutadas contra Supabase. Ver sección **Primer acceso / login** abajo. |
+| `relation "Users" does not exist` | Migraciones no ejecutadas contra Supabase. Ver sección **Primer login** abajo. |
 
 | `The server does not support SSL connections` | `DATABASE_URL` apunta a Postgres local sin SSL pero Sequelize forzaba SSL. Usar `?sslmode=require` en Supabase o `DB_SSL=false` solo en local. |
 
@@ -127,12 +127,12 @@ Opcionales (bootstrap de admin, email, etc.):
 ```bash
 fly secrets set \
   BOOTSTRAP_ADMIN_EMAIL="tu@correo.com" \
-  BOOTSTRAP_ADMIN_PASSWORD="ContraseñaSegura7+" \
+  BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÑA]" \
   -a nexusdoc-dms
 fly deploy -a nexusdoc-dms
 ```
 
-También puede crear el admin **una vez** contra Supabase desde su PC: `cd server && npm run seed:admin` (con `DATABASE_URL` apuntando al pooler). Ver `server/.env.example` y `README.md`.
+También puede crear el admin **una vez** contra Supabase desde su PC: `cd server && npm run bootstrap:admin` (con `DATABASE_URL` apuntando al pooler). Ver `server/.env.example` y `README.md`.
 
 
 
@@ -416,47 +416,45 @@ fly deploy -a nexusdoc-dms
 
 
 
-## Primer acceso / login (Supabase vacío)
+## Primer login (Supabase vacío)
 
-Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase. Las contraseñas están hasheadas con bcrypt en cada BD; sin export/import manual debe **registrarse de nuevo** o crear un administrador.
+Los usuarios de la base **antigua (Railway)** no se copian solos a Supabase. Debe ejecutar migraciones y crear un administrador antes del primer acceso.
 
-### Pasos recomendados (español)
+En **PowerShell** (Windows), sustituya `[SU-URI-SUPABASE]` por la URI del **Session pooler** (puerto **6543**, `?sslmode=require`) y `[SU-CONTRASEÑA]` por una clave de al menos 7 caracteres.
 
-1. En Supabase: copie la URI del **Session pooler** (puerto **6543**, `?sslmode=require`).
+**1. Migraciones (una sola vez):**
 
-2. En su PC, desde la raíz del repo, ejecute migraciones **una vez** contra esa URI:
+```powershell
+cd C:\Users\USER\NexusDoc_DMS\server
+$env:DATABASE_URL="[SU-URI-SUPABASE]"
+$env:NODE_ENV="production"
+npm run db:migrate
+npm run db:migrate:status
+```
 
-   ```bash
-   cd server
-   set DATABASE_URL=postgres://postgres.REF:PASS@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmode=require
-   set NODE_ENV=production
-   npm run db:migrate
-   npm run db:migrate:status
-   ```
+**2. Secrets de bootstrap en Fly:**
 
-3. Cree el administrador (elija **A** o **B**):
+```powershell
+fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÑA]" -a nexusdoc-dms
+```
 
-   **A — Secrets en Fly (bootstrap en cada arranque si el usuario no existe):**
+**3. Redespliegue:**
 
-   ```bash
-   fly secrets set BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com" BOOTSTRAP_ADMIN_PASSWORD="SuClaveSegura7+" -a nexusdoc-dms
-   fly deploy -a nexusdoc-dms
-   ```
+```powershell
+fly deploy -a nexusdoc-dms
+```
 
-   **B — Script local (no deja la contraseña en Fly tras el primer login; puede quitar los secrets bootstrap):**
+**Alternativa local** (sin dejar la contraseña en Fly): tras migrar, en la misma carpeta `server`:
 
-   ```bash
-   cd server
-   set BOOTSTRAP_ADMIN_EMAIL=edwinalvarezvivero@yahoo.com
-   set BOOTSTRAP_ADMIN_PASSWORD=SuClaveSegura7+
-   npm run seed:admin
-   ```
+```powershell
+$env:BOOTSTRAP_ADMIN_EMAIL="edwinalvarezvivero@yahoo.com"
+$env:BOOTSTRAP_ADMIN_PASSWORD="[SU-CONTRASEÑA]"
+npm run bootstrap:admin
+```
 
-4. Redespliegue si cambió secrets: `fly deploy -a nexusdoc-dms`.
+Verifique login en https://nexusdoc-dms.fly.dev/dashboard — credenciales incorrectas → **401**; BD caída o sin migrar → **503** (el error real queda solo en logs del servidor).
 
-5. Pruebe login en https://nexusdoc-dms.fly.dev/dashboard — credenciales incorrectas → **401**; sin tabla/migración → **503** con mensaje claro.
-
-6. **Registro público:** si no usa bootstrap, un usuario nuevo puede usar el flujo **Registrarse** en la app (`POST /api/auth/register` → verificación por correo).
+Tras el primer login puede quitar los secrets bootstrap: `fly secrets unset BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD -a nexusdoc-dms`
 
 ## Railway vs Fly
 

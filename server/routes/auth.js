@@ -371,11 +371,8 @@ router.post('/login', async (req, res) => {
             console.error('⚠️ LOGIN infra:', err.message);
             return res.status(mapped.status).json({ msg: mapped.msg });
         }
-        console.error('🔥 LOGIN CRITICAL ERROR:', err);
-        return res.status(500).json({
-            msg: 'Error interno en el servidor durante el login',
-            error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-        });
+        console.error('🔥 LOGIN CRITICAL ERROR:', err.message, err.stack);
+        return res.status(500).json({ msg: 'Error interno en el servidor durante el login' });
     }
 });
 
