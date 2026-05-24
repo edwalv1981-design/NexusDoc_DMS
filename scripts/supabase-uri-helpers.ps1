@@ -146,7 +146,7 @@ function Assert-UriHasPassword($parsed) {
 function Write-ResetPasswordHint {
   Write-Host ''
   Write-Host 'La contraseña en la URI no es válida para este proyecto.' -ForegroundColor Red
-  Write-Host '  Supabase → Project Settings → Database → Reset database password' -ForegroundColor Yellow
+  Write-Host '  Supabase -> Project Settings -> Database -> Reset database password' -ForegroundColor Yellow
   Write-Host '  Pegue la URI de nuevo con la contraseña NUEVA (no reutilice contraseñas antiguas como Aute2026mayo si ya la reseteó).' -ForegroundColor Yellow
 }
 
@@ -154,9 +154,9 @@ function Write-TenantNotFoundHint([string]$projectRef) {
   Write-Host ''
   Write-Host 'ERROR: Tenant or user not found' -ForegroundColor Red
   Write-Host '  Causas habituales (en orden):' -ForegroundColor Yellow
-  Write-Host '    1) Host pooler incorrecto — copie EXACTO desde Connect (aws-0 vs aws-1, región us-east-1, etc.)' -ForegroundColor Yellow
+  Write-Host '    1) Host pooler incorrecto - copie EXACTO desde Connect (aws-0 vs aws-1, region us-east-1, etc.)' -ForegroundColor Yellow
   Write-Host '    2) Usuario debe ser postgres.PROJECT_REF (no solo postgres en pooler)' -ForegroundColor Yellow
-  Write-Host '    3) Proyecto pausado o ref distinto — verifique en el dashboard' -ForegroundColor Yellow
+  Write-Host '    3) Proyecto pausado o ref distinto - verifique en el dashboard' -ForegroundColor Yellow
   if ($projectRef) {
     Write-Host "  Dashboard: https://supabase.com/dashboard/project/$projectRef/settings/database" -ForegroundColor Cyan
   }
@@ -165,7 +165,7 @@ function Write-TenantNotFoundHint([string]$projectRef) {
 function Write-PausedProjectHint {
   Write-Host ''
   Write-Host 'Proyecto pausado (plan gratuito inactivo):' -ForegroundColor Yellow
-  Write-Host '  Dashboard → su proyecto → Restore project / Unpause' -ForegroundColor Cyan
+  Write-Host '  Dashboard -> su proyecto -> Restore project / Unpause' -ForegroundColor Cyan
   Write-Host '  Espere 1-2 minutos y vuelva a ejecutar este script.' -ForegroundColor Cyan
 }
 
@@ -234,10 +234,10 @@ function Test-UriWithSessionThenTransaction([string]$baseUrl, [string]$serverDir
 
 function Read-ConnectUriFromUser {
   Write-Host ''
-  Write-Host 'Supabase → Connect → Connection string → URI' -ForegroundColor Cyan
+  Write-Host 'Supabase -> Connect -> Connection string -> URI' -ForegroundColor Cyan
   Write-Host '  Modo: Session pooler, puerto 5432 (como muestra el panel)' -ForegroundColor Cyan
   Write-Host '  Sustituya [YOUR-PASSWORD] por su contraseña de Database antes de pegar.' -ForegroundColor Cyan
-  Write-Host '  No invente host ni usuario — copie la línea completa.' -ForegroundColor Cyan
+  Write-Host '  No invente host ni usuario - copie la linea completa.' -ForegroundColor Cyan
   Write-Host ''
   $input = Read-Host 'Pegue la URI postgres:// o postgresql:// completa'
   if (-not $input) { throw 'Entrada vacía.' }

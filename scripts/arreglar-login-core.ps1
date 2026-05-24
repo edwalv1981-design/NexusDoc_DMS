@@ -1,6 +1,14 @@
 #Requires -Version 5.1
 # Solo lo invoca ARREGLAR-LOGIN.bat (no documentar por separado).
+param([switch]$WhatIf)
+
 $ErrorActionPreference = 'Stop'
+
+try { chcp 65001 | Out-Null } catch { }
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ServerDir = Join-Path $RepoRoot 'server'
@@ -12,6 +20,15 @@ $ProjectRef = 'oxpohwcfujrakhwxfuxo'
 $DefaultPoolerHost = 'aws-0-us-east-1.pooler.supabase.com'
 
 . (Join-Path $PSScriptRoot 'supabase-uri-helpers.ps1')
+
+if ($WhatIf) {
+    Write-Host ''
+    Write-Host '[WhatIf] Script cargado correctamente. No se ejecutan migracion ni deploy.' -ForegroundColor Green
+    Write-Host "RepoRoot: $RepoRoot"
+    Write-Host "EnvFile: $EnvFile"
+    Write-Host 'Para ejecutar con prompts: powershell -NoExit -ExecutionPolicy Bypass -File scripts\arreglar-login-core.ps1'
+    exit 0
+}
 
 function Get-Flyctl {
     $cmd = Get-Command flyctl -ErrorAction SilentlyContinue
