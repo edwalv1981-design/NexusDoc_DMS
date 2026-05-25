@@ -1,8 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-    mergeBeneficiaryIntoCustody,
-    CUSTODY_PREFILL_TARGETS,
-} from '../utils/fondosBeneficiaryCustody';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
@@ -72,43 +68,8 @@ const ClientDashboard = () => {
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
     };
     const [formData, setFormData] = useState(EMPTY_FORM);
-    const custodyTouchedRef = useRef({});
-
-    const applyBeneficiaryToCustody = useCallback((onlyEmpty = false) => {
-        setFormData((prev) =>
-            mergeBeneficiaryIntoCustody(prev, {
-                touched: custodyTouchedRef.current,
-                onlyEmpty,
-            })
-        );
-    }, []);
-
-    useEffect(() => {
-        if (currentFormType !== 'Fondos Registros contables' || step !== 3) return;
-        applyBeneficiaryToCustody(true);
-    }, [currentFormType, step, applyBeneficiaryToCustody]);
-
-    useEffect(() => {
-        if (currentFormType !== 'Fondos Registros contables' || step !== 3) return;
-        applyBeneficiaryToCustody(false);
-    }, [currentFormType, step, formData.beneficiaryName, formData.address, applyBeneficiaryToCustody]);
-
-    const setCustodyField = (field, value) => {
-        if (CUSTODY_PREFILL_TARGETS.includes(field)) {
-            custodyTouchedRef.current[field] = true;
-        }
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
 
     const goToFondosStep = (nextStep) => {
-        if (nextStep === 3) {
-            setFormData((prev) =>
-                mergeBeneficiaryIntoCustody(prev, {
-                    touched: custodyTouchedRef.current,
-                    onlyEmpty: true,
-                })
-            );
-        }
         setStep(nextStep);
     };
 
@@ -562,11 +523,11 @@ const ClientDashboard = () => {
                             {step === 3 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.custodyName')}</label><input className="input-expert" value={formData.custodyName} onChange={e => setCustodyField('custodyName', e.target.value)} required /></div>
+                                        <div className="field-group"><label>{t('fondos.custodyName')}</label><input className="input-expert" value={formData.custodyName} onChange={e => setFormData(prev => ({...prev, custodyName: e.target.value}))} required /></div>
                                         <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')})} required /></div>
                                     </div>
                                     <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
-                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" value={formData.custodyAddress} onChange={e => setCustodyField('custodyAddress', e.target.value)} required /></div>
+                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" value={formData.custodyAddress} onChange={e => setFormData(prev => ({...prev, custodyAddress: e.target.value}))} required /></div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                                         <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" value={formData.signerName} onChange={e => setFormData({...formData, signerName: e.target.value})} required /></div>
                                         <div className="field-group"><label>{t('fondos.date')}</label><input type="date" className="input-expert" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
