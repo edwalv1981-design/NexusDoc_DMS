@@ -72,6 +72,135 @@ router.get('/beneficiaries/search', auth, async (req, res) => {
     }
 });
 
+// @route   GET api/forms/corporacion/search-person
+router.get('/corporacion/search-person', auth, async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const { sequelize } = require('../config/db');
+
+        const [directorRows] = await sequelize.query(
+            `SELECT DISTINCT ON (elem->>'passport')
+                    elem->>'firstName'     AS "firstName",
+                    elem->>'secondName'    AS "secondName",
+                    elem->>'lastName'      AS "lastName",
+                    elem->>'birthDate'     AS "birthDate",
+                    elem->>'maritalStatus' AS "maritalStatus",
+                    elem->>'nationality'   AS "nationality",
+                    elem->>'passport'      AS "passport",
+                    elem->>'phone'         AS "phone",
+                    elem->>'email'         AS "email",
+                    elem->>'address'       AS "address",
+                    elem->>'city'          AS "city",
+                    elem->>'country'       AS "country"
+             FROM "FormData",
+                  jsonb_array_elements(data->'directors') AS elem
+             WHERE elem->>'passport' ILIKE :pattern
+               AND elem->>'passport' IS NOT NULL
+               AND elem->>'passport' != ''
+             ORDER BY elem->>'passport', "updatedAt" DESC
+             LIMIT 50`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
+        const [dignitaryRows] = await sequelize.query(
+            `SELECT DISTINCT ON (elem->>'passport')
+                    elem->>'fullName'           AS "fullName",
+                    elem->>'birthDate'          AS "birthDate",
+                    elem->>'passport'           AS "passport",
+                    elem->>'registrationNumber' AS "registrationNumber"
+             FROM "FormData",
+                  jsonb_array_elements(data->'dignitaries') AS elem
+             WHERE elem->>'passport' ILIKE :pattern
+               AND elem->>'passport' IS NOT NULL
+               AND elem->>'passport' != ''
+             ORDER BY elem->>'passport', "updatedAt" DESC
+             LIMIT 50`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
+        const resultsMap = new Map();
+
+        directorRows.forEach(r => {
+            const key = (r.passport || '').trim();
+            if (!key) return;
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, { ...r });
+            } else {
+                const existing = resultsMap.get(key);
+                Object.keys(r).forEach(k => {
+                    if (!existing[k] && r[k]) existing[k] = r[k];
+                });
+            }
+        });
+
+        dignitaryRows.forEach(r => {
+            const key = (r.passport || '').trim();
+            if (!key) return;
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, { passport: key, fullName: r.fullName, birthDate: r.birthDate, registrationNumber: r.registrationNumber });
+            } else {
+                const existing = resultsMap.get(key);
+                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
+                if (!existing.birthDate && r.birthDate) existing.birthDate = r.birthDate;
+                if (!existing.registrationNumber && r.registrationNumber) existing.registrationNumber = r.registrationNumber;
+            }
+        });
+
+        res.json(Array.from(resultsMap.values()).slice(0, 10));
+    } catch (err) {
+        console.error('Error searching corporacion persons:', err);
+        res.status(500).json({ msg: 'Error al buscar personas' });
+    }
+});
+
+// @route   GET api/forms/corporacion/search-shareholder
+router.get('/corporacion/search-shareholder', auth, async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const { sequelize } = require('../config/db');
+
+        const [rows] = await sequelize.query(
+            `SELECT DISTINCT ON (elem->>'name')
+                    elem->>'name'        AS "name",
+                    elem->>'address'     AS "address",
+                    elem->>'certificate' AS "certificate",
+                    elem->>'value'       AS "value",
+                    elem->>'shares'      AS "shares"
+             FROM "FormData",
+                  jsonb_array_elements(data->'shareholders') AS elem
+             WHERE elem->>'name' ILIKE :pattern
+               AND elem->>'name' IS NOT NULL
+               AND elem->>'name' != ''
+             ORDER BY elem->>'name', "updatedAt" DESC
+             LIMIT 50`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
+        const resultsMap = new Map();
+        rows.forEach(r => {
+            const name = (r.name || '').trim();
+            if (!name) return;
+            if (!resultsMap.has(name)) {
+                resultsMap.set(name, { ...r });
+            } else {
+                const existing = resultsMap.get(name);
+                Object.keys(r).forEach(k => {
+                    if (!existing[k] && r[k]) existing[k] = r[k];
+                });
+            }
+        });
+
+        res.json(Array.from(resultsMap.values()).slice(0, 10));
+    } catch (err) {
+        console.error('Error searching corporacion shareholders:', err);
+        res.status(500).json({ msg: 'Error al buscar accionistas' });
+    }
+});
+
 // @route   GET api/forms/schema/:formType
 router.get('/schema/:formType', auth, async (req, res) => {
     try {

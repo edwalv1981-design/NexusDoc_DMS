@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     Building, Users, UserCheck, Briefcase, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, Save, 
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useLang } from '../i18n';
 import { normalizeLoadedCorporacionData } from '../utils/corporacionPersonRegistry';
+import API_BASE_URL from '../config';
 
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const { lang, t } = useLang();
@@ -44,6 +45,112 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             setFormData(prev => ({ ...prev, ...cleanData }));
         }
     }, [initialData]);
+
+    // --- Autocomplete state ---
+    const [directorSuggestions, setDirectorSuggestions] = useState({});
+    const [dignitarySuggestions, setDignitarySuggestions] = useState({});
+    const [shareholderSuggestions, setShareholderSuggestions] = useState({});
+    const [activeDirectorIdx, setActiveDirectorIdx] = useState(null);
+    const [activeDignitaryIdx, setActiveDignitaryIdx] = useState(null);
+    const [activeShareholderIdx, setActiveShareholderIdx] = useState(null);
+    const debounceTimers = useRef({});
+    const autocompleteRefs = useRef({});
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            const isInsideAny = Object.values(autocompleteRefs.current).some(
+                ref => ref && ref.contains(e.target)
+            );
+            if (!isInsideAny) {
+                setActiveDirectorIdx(null);
+                setActiveDignitaryIdx(null);
+                setActiveShareholderIdx(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const searchPerson = useCallback((query, index, type) => {
+        const timerKey = `${type}-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            if (type === 'director') { setDirectorSuggestions(prev => ({ ...prev, [index]: [] })); setActiveDirectorIdx(null); }
+            if (type === 'dignitary') { setDignitarySuggestions(prev => ({ ...prev, [index]: [] })); setActiveDignitaryIdx(null); }
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/corporacion/search-person?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    if (type === 'director') { setDirectorSuggestions(prev => ({ ...prev, [index]: data })); setActiveDirectorIdx(data.length > 0 ? index : null); }
+                    if (type === 'dignitary') { setDignitarySuggestions(prev => ({ ...prev, [index]: data })); setActiveDignitaryIdx(data.length > 0 ? index : null); }
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const searchShareholder = useCallback((query, index) => {
+        const timerKey = `shareholder-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setShareholderSuggestions(prev => ({ ...prev, [index]: [] }));
+            setActiveShareholderIdx(null);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/corporacion/search-shareholder?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setShareholderSuggestions(prev => ({ ...prev, [index]: data }));
+                    setActiveShareholderIdx(data.length > 0 ? index : null);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const selectDirectorSuggestion = (index, person) => {
+        const newDirectors = [...formData.directors];
+        const d = newDirectors[index];
+        const fields = ['firstName', 'secondName', 'lastName', 'birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email', 'address', 'city', 'country'];
+        fields.forEach(f => { if (person[f]) d[f] = person[f]; });
+        setFormData(prev => ({ ...prev, directors: newDirectors }));
+        setDirectorSuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveDirectorIdx(null);
+    };
+
+    const selectDignitarySuggestion = (index, person) => {
+        const newDigs = [...formData.dignitaries];
+        const d = newDigs[index];
+        if (person.passport) d.passport = person.passport;
+        if (person.fullName) d.fullName = person.fullName;
+        else if (person.firstName) d.fullName = [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (person.birthDate) d.birthDate = person.birthDate;
+        if (person.registrationNumber) d.registrationNumber = person.registrationNumber;
+        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
+        setDignitarySuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveDignitaryIdx(null);
+    };
+
+    const selectShareholderSuggestion = (index, person) => {
+        const newShareholders = [...formData.shareholders];
+        const s = newShareholders[index];
+        if (person.name) s.name = person.name;
+        if (person.address) s.address = person.address;
+        setFormData(prev => ({ ...prev, shareholders: newShareholders }));
+        setShareholderSuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveShareholderIdx(null);
+    };
 
     const addDignitary = () => {
         setFormData(prev => ({
@@ -207,7 +314,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             </select>
                         </div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(i, 'passport', e.target.value)} /></div>
+                        <div className="expert-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-${i}`] = el}>
+                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
+                            <input className="expert-input" value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director'); }} onFocus={() => { if (directorSuggestions[i]?.length) setActiveDirectorIdx(i); }} />
+                            {activeDirectorIdx === i && directorSuggestions[i]?.length > 0 && (
+                                <div className="corp-autocomplete-dropdown">
+                                    {directorSuggestions[i].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onClick={() => selectDirectorSuggestion(i, p)}>
+                                            <span className="corp-ac-passport">{p.passport}</span>
+                                            <span className="corp-ac-name">{[p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || p.fullName || ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Phone' : 'Teléfono'}</label><input className="expert-input" value={d.phone} onChange={e => updateDirector(i, 'phone', e.target.value)} placeholder={lang === 'en' ? '+1-555-0100' : '+507-6000-0000'} /></div>
                         <div className="expert-field full-width"><label>{lang === 'en' ? 'Email' : 'Correo electrónico'}</label><input type="email" className="expert-input" value={d.email} onChange={e => updateDirector(i, 'email', e.target.value)} placeholder="name@example.com" /></div>
@@ -242,7 +362,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-grid">
                         <div className="expert-field"><label>{lang === 'en' ? 'Position / Role (President, Secretary, Treasurer...)' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="expert-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
                         <div className="expert-field full-width"><label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label><input className="expert-input" value={dig.fullName} onChange={e => updateDignitary(i, 'fullName', e.target.value)} /></div>
-                        <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={dig.passport} onChange={e => updateDignitary(i, 'passport', e.target.value)} /></div>
+                        <div className="expert-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-${i}`] = el}>
+                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
+                            <input className="expert-input" value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary'); }} onFocus={() => { if (dignitarySuggestions[i]?.length) setActiveDignitaryIdx(i); }} />
+                            {activeDignitaryIdx === i && dignitarySuggestions[i]?.length > 0 && (
+                                <div className="corp-autocomplete-dropdown">
+                                    {dignitarySuggestions[i].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onClick={() => selectDignitarySuggestion(i, p)}>
+                                            <span className="corp-ac-passport">{p.passport}</span>
+                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} /></div>
                     </div>
                 </div>
@@ -274,7 +407,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-field"><label>{lang === 'en' ? 'Share Certificate Number' : 'No. de Certificado'}</label><input className="expert-input" value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? "Share's value (USD)" : 'Valor por acción (USD)'}</label><input className="expert-input" value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Number of shares' : 'Cantidad de acciones'}</label><input className="expert-input" value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} /></div>
-                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Shareholder (Full name)' : 'Accionista (Nombre completo)'}</label><input className="expert-input" value={s.name} onChange={e => updateShareholder(i, 'name', e.target.value)} /></div>
+                        <div className="expert-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`sh-${i}`] = el}>
+                            <label>{lang === 'en' ? 'Shareholder (Full name)' : 'Accionista (Nombre completo)'}</label>
+                            <input className="expert-input" value={s.name} autoComplete="off" onChange={e => { updateShareholder(i, 'name', e.target.value); searchShareholder(e.target.value, i); }} onFocus={() => { if (shareholderSuggestions[i]?.length) setActiveShareholderIdx(i); }} />
+                            {activeShareholderIdx === i && shareholderSuggestions[i]?.length > 0 && (
+                                <div className="corp-autocomplete-dropdown">
+                                    {shareholderSuggestions[i].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onClick={() => selectShareholderSuggestion(i, p)}>
+                                            <span className="corp-ac-name">{p.name}</span>
+                                            {p.address && <span className="corp-ac-detail">{p.address}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección residencial'}</label><input className="expert-input" value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} /></div>
                     </div>
                 </div>
@@ -445,6 +591,14 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-nav-next { padding: 14px 28px; background: ${PRIMARY}; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px ${PRIMARY}30; transition: 0.3s; font-size: 13px; }
                 .expert-btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 15px 30px ${PRIMARY}40; }
                 .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
+
+                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: white; border: 2px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-height: 220px; overflow-y: auto; margin-top: 4px; }
+                .corp-autocomplete-item { padding: 10px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+                .corp-autocomplete-item:last-child { border-bottom: none; }
+                .corp-autocomplete-item:hover { background: #f0f9ff; }
+                .corp-ac-passport { font-size: 13px; font-weight: 700; color: ${SECONDARY}; }
+                .corp-ac-name { font-size: 11px; color: #64748b; font-weight: 600; }
+                .corp-ac-detail { font-size: 11px; color: #94a3b8; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             `}</style>
         </div>
     );
