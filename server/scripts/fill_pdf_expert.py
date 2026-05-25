@@ -737,7 +737,14 @@ def fill_capital_authorized_field(page, cap_raw, cfg):
 def fill_corporacion_engine(doc, data, pdf_path, root_dir):
     directors = list(data.get("directors") or [])
     shareholders = list(data.get("shareholders") or [])
-    dignitaries = dict(data.get("dignitaries") or {})
+    raw_dig = data.get("dignitaries") or {}
+    if isinstance(raw_dig, list):
+        dignitaries = {}
+        for d in raw_dig:
+            if isinstance(d, dict) and d.get("role"):
+                dignitaries[d["role"].strip().lower()] = d
+    else:
+        dignitaries = dict(raw_dig)
     corp_cfg = load_corporacion_coords(root_dir)
     dir_section = corp_cfg.get("directors_section") or {}
     dig_section = corp_cfg.get("dignatarios_section") or {}
