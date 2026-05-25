@@ -1261,7 +1261,7 @@ def fill_pdf_universal_engine(data, output_path, template_name, master_config, c
         checks = {"bienes": (74.5, 376.3), "inversiones": (74.5, 387.8), "negocios": (74.5, 399.3), "prestamos": (74.5, 410.8), "herencia": (74.5, 422.3), "otras": (74.5, 434.0)}
         for k, pos in checks.items():
             if k in f_d: page1.insert_text(pos, "X", fontsize=8, fontname="Helvetica-Bold")
-        page1.insert_text((72, 436.0), "Other forms of income / Otras formas de ingresos", fontsize=9, fontname="Helvetica-BoldOblique")
+        page1.insert_text((70, 437.0), "Other forms of income / Otras formas de ingresos", fontsize=9, fontname="Helvetica-BoldOblique")
         if data.get("fundsOther"):
             page1.insert_text((225, 448.3), str(data["fundsOther"])[:100], fontsize=9, fontname="Helvetica")
         
