@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, BookOpen } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, BookOpen, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -27,6 +27,15 @@ const AdminDashboard = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+
+  const [consultaSearch, setConsultaSearch] = useState('');
+  const [consultaResults, setConsultaResults] = useState(null);
+  const [consultaSummary, setConsultaSummary] = useState(null);
+  const [consultaLoading, setConsultaLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUserForms, setSelectedUserForms] = useState(null);
+  const [expandedPerson, setExpandedPerson] = useState(null);
+
   const itemsPerPage = 15;
   const navigate = useNavigate();
   const toast = useToast();
@@ -186,6 +195,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleConsultaSearch = async (e) => {
+    e && e.preventDefault();
+    const q = consultaSearch.trim();
+    if (!q || q.length < 2) return toast.error('Ingrese al menos 2 caracteres');
+    setConsultaLoading(true);
+    setSelectedUser(null);
+    setSelectedUserForms(null);
+    setExpandedPerson(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/api/admin/search-person`, {
+        headers: { 'x-auth-token': token },
+        params: { q }
+      });
+      setConsultaResults(res.data.results || []);
+      setConsultaSummary(res.data.summary || null);
+    } catch (err) {
+      if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
+      toast.error('Error en la búsqueda');
+    } finally { setConsultaLoading(false); }
+  };
+
+  const handleViewUserForms = async (userId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/user-forms/${userId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      setSelectedUser(res.data.user);
+      setSelectedUserForms(res.data.forms);
+    } catch (err) {
+      if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
+      toast.error('Error al cargar formularios');
+    }
+  };
+
   const logout = () => { localStorage.clear(); navigate('/'); };
 
   return (
@@ -196,7 +241,7 @@ const AdminDashboard = () => {
           <span style={{ fontWeight: 700, fontSize: '13px' }}>NEXUSDOC ADMIN</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'settings', icon: Settings, label: t('admin.settings') }].map(item => (
+          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'settings', icon: Settings, label: t('admin.settings') }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS }}>
               <item.icon size={15} /> {item.label}
             </button>
@@ -324,6 +369,179 @@ const AdminDashboard = () => {
                   <span style={{ fontSize: '11px', color: '#64748b', marginLeft: 8 }}>{t('admin.pageOf', { page: currentPage, total: logsTotalPages })}</span>
                 </div>
               </>
+            )}
+
+            {activeTab === 'consultas' && (
+              <div style={{ padding: '30px' }}>
+                <form onSubmit={handleConsultaSearch} style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input
+                      className="input-modern-admin"
+                      placeholder="Buscar por nombre, pasaporte o cédula..."
+                      value={consultaSearch}
+                      onChange={e => setConsultaSearch(e.target.value)}
+                      style={{ paddingLeft: 34 }}
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary" disabled={consultaLoading} style={{ whiteSpace: 'nowrap', padding: '10px 20px' }}>
+                    {consultaLoading ? 'BUSCANDO...' : 'BUSCAR'}
+                  </button>
+                </form>
+
+                {consultaSummary && (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 140, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: RADIUS, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#15803d' }}>{consultaSummary.totalResults}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginTop: 2 }}>RESULTADOS</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 140, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: RADIUS, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#1d4ed8' }}>{consultaSummary.uniqueForms}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', marginTop: 2 }}>FORMULARIOS</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 140, background: '#fefce8', border: '1px solid #fde68a', borderRadius: RADIUS, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#a16207' }}>{consultaSummary.uniqueUsers}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#facc15', marginTop: 2 }}>USUARIOS</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 140, background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: RADIUS, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: '#7e22ce' }}>{(consultaSummary.roles || []).join(', ')}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#c084fc', marginTop: 2 }}>ROLES ENCONTRADOS</div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedUser && selectedUserForms && (
+                  <div style={{ marginBottom: 24, background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, padding: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: 16, color: '#1e293b' }}>
+                          <User size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+                          {selectedUser.name}
+                        </h3>
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
+                          {selectedUser.email} &middot; {selectedUser.uniqueCode || 'Sin código'} &middot; {selectedUser.idNumber || 'Sin cédula'}
+                        </p>
+                      </div>
+                      <button onClick={() => { setSelectedUser(null); setSelectedUserForms(null); }} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 6, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b' }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>
+                      {selectedUserForms.length} formulario(s) encontrado(s)
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
+                      <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
+                        <tr style={{ fontSize: 10, color: '#64748b', fontWeight: 800 }}>
+                          <th style={{ padding: '10px 12px' }}>TIPO</th>
+                          <th style={{ padding: '10px 12px' }}>ENTIDAD/EMPRESA</th>
+                          <th style={{ padding: '10px 12px' }}>DETALLES</th>
+                          <th style={{ padding: '10px 12px' }}>FECHA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedUserForms.map(f => (
+                          <tr key={f.formId} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: 11 }}>
+                            <td style={{ padding: '10px 12px' }}>
+                              <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>{f.formType}</span>
+                            </td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{f.entityName || '—'}</td>
+                            <td style={{ padding: '10px 12px', color: '#64748b' }}>
+                              {f.directorCount > 0 && <span style={{ marginRight: 8 }}>{f.directorCount} director(es)</span>}
+                              {f.dignitaryCount > 0 && <span style={{ marginRight: 8 }}>{f.dignitaryCount} dignatario(s)</span>}
+                              {f.shareholderCount > 0 && <span style={{ marginRight: 8 }}>{f.shareholderCount} accionista(s)</span>}
+                              {f.beneficiaryCount > 0 && <span style={{ marginRight: 8 }}>{f.beneficiaryCount} beneficiario(s)</span>}
+                              {f.memberCount > 0 && <span>{f.memberCount} miembro(s)</span>}
+                              {!f.directorCount && !f.dignitaryCount && !f.shareholderCount && !f.beneficiaryCount && !f.memberCount && '—'}
+                            </td>
+                            <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(f.updatedAt).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {consultaResults && consultaResults.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
+                    <SearchCheck size={40} style={{ marginBottom: 10, opacity: 0.4 }} />
+                    <p style={{ fontSize: 13 }}>No se encontraron resultados para "<strong>{consultaSearch}</strong>"</p>
+                  </div>
+                )}
+
+                {consultaResults && consultaResults.length > 0 && (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
+                    <thead style={{ background: '#f9f9f9', borderBottom: `1px solid ${BORDER}` }}>
+                      <tr style={{ fontSize: 10, color: '#666', fontWeight: 800 }}>
+                        <th style={{ padding: '12px 12px' }}>PERSONA</th>
+                        <th style={{ padding: '12px 12px' }}>PASAPORTE/CÉDULA</th>
+                        <th style={{ padding: '12px 12px' }}>ROL</th>
+                        <th style={{ padding: '12px 12px' }}>FORMULARIO</th>
+                        <th style={{ padding: '12px 12px' }}>USUARIO</th>
+                        <th style={{ padding: '12px 12px' }}>FECHA</th>
+                        <th style={{ padding: '12px 8px', width: 40 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {consultaResults.map((r, idx) => {
+                        const isExpanded = expandedPerson === idx;
+                        const det = r.personDetails || {};
+                        const detailKeys = Object.keys(det).filter(k => det[k] && typeof det[k] !== 'object');
+                        return (
+                          <React.Fragment key={`${r.formId}-${r.role}-${idx}`}>
+                            <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${BORDER}`, fontSize: 11, background: isExpanded ? '#f8fafc' : 'white' }}>
+                              <td style={{ padding: '10px 12px', fontWeight: 700, color: '#1e293b' }}>{r.personName || '—'}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: '#475569' }}>{r.personPassport || '—'}</td>
+                              <td style={{ padding: '10px 12px' }}>
+                                <span style={{
+                                  padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700,
+                                  background: r.role === 'Director' ? '#dbeafe' : r.role === 'Dignatario' ? '#fef3c7' : r.role === 'Accionista' ? '#d1fae5' : r.role === 'Beneficiario' ? '#ede9fe' : '#f1f5f9',
+                                  color: r.role === 'Director' ? '#1e40af' : r.role === 'Dignatario' ? '#92400e' : r.role === 'Accionista' ? '#065f46' : r.role === 'Beneficiario' ? '#5b21b6' : '#475569'
+                                }}>{r.role}</span>
+                              </td>
+                              <td style={{ padding: '10px 12px' }}>
+                                <span style={{ background: '#f0fdf4', color: '#15803d', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>{r.formType}</span>
+                              </td>
+                              <td style={{ padding: '10px 12px' }}>
+                                <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, fontSize: 11, textDecoration: 'underline', padding: 0 }}>
+                                  {r.userName}
+                                </button>
+                                <div style={{ fontSize: 9, color: '#94a3b8' }}>{r.userCode}</div>
+                              </td>
+                              <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(r.formDate).toLocaleDateString()}</td>
+                              <td style={{ padding: '10px 8px' }}>
+                                <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 4, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b', display: 'flex' }}>
+                                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                </button>
+                              </td>
+                            </tr>
+                            {isExpanded && detailKeys.length > 0 && (
+                              <tr style={{ borderBottom: `1px solid ${BORDER}`, background: '#f8fafc' }}>
+                                <td colSpan={7} style={{ padding: '12px 20px' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+                                    {detailKeys.map(k => (
+                                      <div key={k} style={{ fontSize: 11 }}>
+                                        <span style={{ color: '#94a3b8', fontWeight: 700, fontSize: 9, textTransform: 'uppercase' }}>{k}: </span>
+                                        <span style={{ color: '#334155' }}>{String(det[k])}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+
+                {!consultaResults && !consultaLoading && (
+                  <div style={{ textAlign: 'center', padding: 50, color: '#cbd5e1' }}>
+                    <Building2 size={48} style={{ marginBottom: 12, opacity: 0.3 }} />
+                    <p style={{ fontSize: 13, color: '#94a3b8' }}>Busque una persona por nombre, pasaporte o cédula para ver en qué empresas y formularios aparece.</p>
+                  </div>
+                )}
+              </div>
             )}
 
             {activeTab === 'settings' && (

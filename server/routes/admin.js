@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { User, AuditLog, DocumentTemplate, TemplateFieldSchema } = require('../models');
+const { User, AuditLog, FormData, DocumentTemplate, TemplateFieldSchema } = require('../models');
+const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
 const { sendTemporaryPassword } = require('../services/emailService');
 const multer = require('multer');
@@ -341,6 +342,229 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
     } catch (err) {
         console.error('🔥 Error al eliminar plantilla:', err);
         res.status(500).send('Server error');
+    }
+});
+
+// ---------------------------------------------------------------------------
+// CONSULTAS — Admin search endpoints
+// ---------------------------------------------------------------------------
+
+// @route   GET api/admin/search-users?q=<query>
+// @desc    Search users by name, email, uniqueCode or idNumber
+router.get('/search-users', [auth, isAdmin], async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const users = await User.findAll({
+            where: {
+                [Op.or]: [
+                    { name: { [Op.iLike]: `%${q}%` } },
+                    { email: { [Op.iLike]: `%${q}%` } },
+                    { uniqueCode: { [Op.iLike]: `%${q}%` } },
+                    { idNumber: { [Op.iLike]: `%${q}%` } }
+                ]
+            },
+            attributes: ['id', 'name', 'email', 'uniqueCode', 'idNumber', 'nationality', 'role', 'status', 'createdAt'],
+            order: [['name', 'ASC']],
+            limit: 50
+        });
+
+        res.json(users);
+    } catch (err) {
+        console.error('Error searching users:', err);
+        res.status(500).json({ msg: 'Error al buscar usuarios' });
+    }
+});
+
+// @route   GET api/admin/user-forms/:userId
+// @desc    Get ALL forms submitted by a specific user with summary data
+router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findByPk(userId, {
+            attributes: ['id', 'name', 'email', 'uniqueCode', 'idNumber', 'nationality', 'status']
+        });
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+
+        const forms = await FormData.findAll({
+            where: { userId },
+            order: [['updatedAt', 'DESC']]
+        });
+
+        const summaries = forms.map(f => {
+            const d = f.data || {};
+            const summary = { formId: f.id, formType: f.formType, createdAt: f.createdAt, updatedAt: f.updatedAt };
+
+            const ft = (f.formType || '').toLowerCase();
+            if (ft.includes('corporacion') || ft.includes('incorporacion')) {
+                summary.entityName = d.companyName || d.corporationName || '';
+                summary.directorCount = Array.isArray(d.directors) ? d.directors.length : 0;
+                summary.dignitaryCount = Array.isArray(d.dignitaries) ? d.dignitaries.length : 0;
+                summary.shareholderCount = Array.isArray(d.shareholders) ? d.shareholders.length : 0;
+            } else if (ft.includes('fundacion')) {
+                summary.entityName = d.foundationName || d.nombreFundacion || '';
+                summary.beneficiaryCount = Array.isArray(d.beneficiaries) ? d.beneficiaries.length : 0;
+                summary.memberCount = Array.isArray(d.members) ? d.members.length : 0;
+            } else if (ft.includes('cumplimiento') || ft.includes('kyc')) {
+                summary.entityName = d.companyName || d.fullName || d.name || '';
+            } else if (ft.includes('fondos')) {
+                summary.entityName = d.accountHolder || d.beneficiaryName || '';
+            }
+
+            if (!summary.entityName) {
+                summary.entityName = d.companyName || d.corporationName || d.foundationName
+                    || d.nombreFundacion || d.fullName || d.name || d.accountHolder || '';
+            }
+
+            return summary;
+        });
+
+        res.json({ user, forms: summaries });
+    } catch (err) {
+        console.error('Error fetching user forms:', err);
+        res.status(500).json({ msg: 'Error al obtener formularios del usuario' });
+    }
+});
+
+// @route   GET api/admin/search-person?q=<name_or_passport>
+// @desc    Search across ALL form data for a person by name or passport/cedula
+router.get('/search-person', [auth, isAdmin], async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const pattern = `%${q}%`;
+        const results = [];
+
+        const arraySearches = [
+            { arrayField: 'directors',    role: 'Director',      nameFields: ["elem->>'fullName'", "CONCAT(elem->>'firstName',' ',elem->>'lastName')"], passportField: "elem->>'passport'" },
+            { arrayField: 'dignitaries',  role: 'Dignatario',    nameFields: ["elem->>'fullName'", "elem->>'name'"], passportField: "elem->>'passport'" },
+            { arrayField: 'shareholders', role: 'Accionista',    nameFields: ["elem->>'name'", "elem->>'fullName'"], passportField: "elem->>'passport'" },
+            { arrayField: 'beneficiaries',role: 'Beneficiario',  nameFields: ["elem->>'fullName'", "elem->>'name'", "elem->>'beneficiaryName'"], passportField: "elem->>'passport'" },
+            { arrayField: 'members',      role: 'Miembro',       nameFields: ["elem->>'fullName'", "elem->>'name'"], passportField: "elem->>'passport'" },
+        ];
+
+        for (const search of arraySearches) {
+            const nameConds = search.nameFields.map(nf => `${nf} ILIKE :pattern`).join(' OR ');
+            const passportCond = search.passportField ? `${search.passportField} ILIKE :pattern` : 'FALSE';
+
+            const sql = `
+                SELECT f.id         AS "formId",
+                       f."formType",
+                       f."userId",
+                       f."createdAt",
+                       f."updatedAt",
+                       u.name       AS "userName",
+                       u.email      AS "userEmail",
+                       u."uniqueCode" AS "userCode",
+                       ${search.nameFields[0]} AS "personName",
+                       ${search.passportField || 'NULL'} AS "personPassport",
+                       elem::text   AS "personData"
+                FROM "FormData" f
+                JOIN "Users" u ON u.id = f."userId"
+                CROSS JOIN LATERAL jsonb_array_elements(
+                    CASE WHEN f.data ? '${search.arrayField}' AND jsonb_typeof(f.data->'${search.arrayField}') = 'array'
+                         THEN f.data->'${search.arrayField}'
+                         ELSE '[]'::jsonb END
+                ) AS elem
+                WHERE (${nameConds} OR ${passportCond})
+                ORDER BY f."updatedAt" DESC
+                LIMIT 100
+            `;
+
+            try {
+                const [rows] = await sequelize.query(sql, { replacements: { pattern } });
+                rows.forEach(r => {
+                    let parsed = {};
+                    try { parsed = JSON.parse(r.personData); } catch (_) {}
+                    const displayName = parsed.fullName
+                        || [parsed.firstName, parsed.secondName, parsed.lastName].filter(Boolean).join(' ')
+                        || parsed.name || parsed.beneficiaryName || r.personName || '';
+
+                    results.push({
+                        formId: r.formId,
+                        formType: r.formType,
+                        userId: r.userId,
+                        userName: r.userName,
+                        userEmail: r.userEmail,
+                        userCode: r.userCode,
+                        role: search.role,
+                        personName: displayName,
+                        personPassport: parsed.passport || r.personPassport || '',
+                        personDetails: parsed,
+                        formDate: r.updatedAt
+                    });
+                });
+            } catch (queryErr) {
+                console.warn(`search-person: skipping ${search.arrayField}:`, queryErr.message);
+            }
+        }
+
+        const topLevelSql = `
+            SELECT f.id         AS "formId",
+                   f."formType",
+                   f."userId",
+                   f."createdAt",
+                   f."updatedAt",
+                   u.name       AS "userName",
+                   u.email      AS "userEmail",
+                   u."uniqueCode" AS "userCode",
+                   f.data->>'beneficiaryName' AS "beneficiaryName",
+                   f.data->>'fullName'        AS "fullName",
+                   f.data->>'name'            AS "topName"
+            FROM "FormData" f
+            JOIN "Users" u ON u.id = f."userId"
+            WHERE (f.data->>'beneficiaryName' ILIKE :pattern
+                OR f.data->>'fullName' ILIKE :pattern
+                OR f.data->>'name' ILIKE :pattern)
+            ORDER BY f."updatedAt" DESC
+            LIMIT 50
+        `;
+
+        try {
+            const [topRows] = await sequelize.query(topLevelSql, { replacements: { pattern } });
+            topRows.forEach(r => {
+                const existsAlready = results.some(x => x.formId === r.formId);
+                if (existsAlready) return;
+
+                results.push({
+                    formId: r.formId,
+                    formType: r.formType,
+                    userId: r.userId,
+                    userName: r.userName,
+                    userEmail: r.userEmail,
+                    userCode: r.userCode,
+                    role: 'Titular',
+                    personName: r.beneficiaryName || r.fullName || r.topName || '',
+                    personPassport: '',
+                    personDetails: {},
+                    formDate: r.updatedAt
+                });
+            });
+        } catch (topErr) {
+            console.warn('search-person: top-level query error:', topErr.message);
+        }
+
+        const entityNames = new Set();
+        results.forEach(r => {
+            const ft = (r.formType || '').toLowerCase();
+            if (ft.includes('corporacion') || ft.includes('incorporacion')) entityNames.add(r.formId);
+        });
+
+        res.json({
+            results,
+            summary: {
+                totalResults: results.length,
+                uniqueForms: new Set(results.map(r => r.formId)).size,
+                uniqueUsers: new Set(results.map(r => r.userId)).size,
+                roles: [...new Set(results.map(r => r.role))]
+            }
+        });
+    } catch (err) {
+        console.error('Error searching person:', err);
+        res.status(500).json({ msg: 'Error al buscar persona' });
     }
 });
 
