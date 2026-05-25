@@ -211,7 +211,7 @@ const FondosForm = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
-                                <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="off" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
+                                <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="new-password" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.activities')}</label>
@@ -220,11 +220,11 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.country')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('country')} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('country')} autoComplete="new-password" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
                                 </div>
                                 <div style={{ position: 'relative' }}>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="off" value={formData.beneficiaryName} 
+                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="new-password" value={formData.beneficiaryName} 
                                         onChange={e => { 
                                             const val = e.target.value;
                                             setFormData({...formData, beneficiaryName: val}); 
@@ -266,16 +266,16 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
-                                    <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
+                                    <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="new-password" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthPlace')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('birthPlace')} autoComplete="off" value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('birthPlace')} autoComplete="new-password" value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); }} />
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.address')}</label>
-                                <input className="corporate-input" style={getErrorStyle('address')} autoComplete="off" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); }} />
+                                <input className="corporate-input" style={getErrorStyle('address')} autoComplete="new-password" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); }} />
                             </div>
                         </div>
                         {validationErrors.length > 0 && (
@@ -318,7 +318,7 @@ const FondosForm = () => {
 
                          <div>
                             <label style={labelStyle}>{t('fondos.fundsOther')}</label>
-                            <input className="corporate-input" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} />
+                            <input className="corporate-input" autoComplete="new-password" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} />
                         </div>
 
                          {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.fundsError')}</p>}
@@ -343,7 +343,7 @@ const FondosForm = () => {
                                 <input 
                                     className="corporate-input" 
                                     style={getErrorStyle('custodyName')} 
-                                    autoComplete="name"
+                                    autoComplete="new-password"
                                     value={formData.custodyName} 
                                     onChange={e => { 
                                         const val = e.target.value;
@@ -356,16 +356,16 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
-                                    <input type="text" className="corporate-input" style={getErrorStyle('custodyPhone')} autoComplete="tel" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
+                                    <input type="text" className="corporate-input" style={getErrorStyle('custodyPhone')} autoComplete="new-password" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyEmail')}</label>
-                                    <input type="email" className="corporate-input" style={getErrorStyle('custodyEmail')} autoComplete="email" value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} placeholder="ejemplo@correo.com" />
+                                    <input type="email" className="corporate-input" style={getErrorStyle('custodyEmail')} autoComplete="new-password" value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} placeholder="ejemplo@correo.com" />
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
-                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="street-address" value={formData.custodyAddress} onChange={e => { setCustodyField('custodyAddress', e.target.value); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
+                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="new-password" value={formData.custodyAddress} onChange={e => { setCustodyField('custodyAddress', e.target.value); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
