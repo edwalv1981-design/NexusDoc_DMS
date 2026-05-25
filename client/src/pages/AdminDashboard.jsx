@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, BookOpen, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, BookOpen, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X, Database, Play, RotateCcw, Terminal } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -35,6 +35,13 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserForms, setSelectedUserForms] = useState(null);
   const [expandedPerson, setExpandedPerson] = useState(null);
+
+  const [sqlOpen, setSqlOpen] = useState(false);
+  const [sqlQuery, setSqlQuery] = useState('');
+  const [sqlResults, setSqlResults] = useState(null);
+  const [sqlError, setSqlError] = useState('');
+  const [sqlLoading, setSqlLoading] = useState(false);
+  const [sqlRowCount, setSqlRowCount] = useState(0);
 
   const itemsPerPage = 15;
   const navigate = useNavigate();
@@ -229,6 +236,34 @@ const AdminDashboard = () => {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
       toast.error('Error al cargar formularios');
     }
+  };
+
+  const handleSqlQuery = async () => {
+    const q = sqlQuery.trim();
+    if (!q) return;
+    setSqlLoading(true);
+    setSqlError('');
+    setSqlResults(null);
+    setSqlRowCount(0);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${API_BASE_URL}/api/admin/query`, { sql: q }, {
+        headers: { 'x-auth-token': token },
+        timeout: 15000,
+      });
+      setSqlResults(res.data.rows || []);
+      setSqlRowCount(res.data.rowCount || 0);
+    } catch (err) {
+      if (err.response?.status === 401) { localStorage.clear(); navigate('/'); return; }
+      setSqlError(err.response?.data?.msg || 'Error al ejecutar la consulta');
+    } finally { setSqlLoading(false); }
+  };
+
+  const handleSqlClear = () => {
+    setSqlResults(null);
+    setSqlError('');
+    setSqlRowCount(0);
+    setSqlQuery('');
   };
 
   const logout = () => { localStorage.clear(); navigate('/'); };
@@ -541,6 +576,126 @@ const AdminDashboard = () => {
                     <p style={{ fontSize: 13, color: '#94a3b8' }}>Busque una persona por nombre, pasaporte o cédula para ver en qué empresas y formularios aparece.</p>
                   </div>
                 )}
+
+                {/* Advanced SQL Query Mode */}
+                <div style={{ marginTop: 30, borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
+                  <button
+                    onClick={() => setSqlOpen(!sqlOpen)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: `1px solid ${BORDER}`,
+                      padding: '10px 18px', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                      color: '#475569', width: '100%', justifyContent: 'space-between',
+                      background: sqlOpen ? '#f8fafc' : 'white',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Database size={16} color={PRIMARY} />
+                      Modo Avanzado — Consulta SQL
+                    </span>
+                    {sqlOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+
+                  {sqlOpen && (
+                    <div style={{ marginTop: 16, background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, padding: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <Terminal size={14} color="#64748b" />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>CONSULTA SQL (SOLO SELECT)</span>
+                      </div>
+
+                      <textarea
+                        value={sqlQuery}
+                        onChange={e => setSqlQuery(e.target.value)}
+                        placeholder={'SELECT * FROM "Users" LIMIT 10;\n\n-- Solo se permiten consultas SELECT.\n-- Se aplica LIMIT 100 automáticamente si no se especifica.'}
+                        onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSqlQuery(); } }}
+                        style={{
+                          width: '100%', minHeight: 120, padding: 14, border: `1px solid ${BORDER}`, borderRadius: RADIUS,
+                          fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace", fontSize: 13, lineHeight: '1.5',
+                          background: '#1e293b', color: '#e2e8f0', resize: 'vertical', outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+
+                      <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
+                        <button
+                          onClick={handleSqlQuery}
+                          disabled={sqlLoading || !sqlQuery.trim()}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', border: 'none',
+                            background: sqlLoading ? '#94a3b8' : PRIMARY, color: 'white', borderRadius: RADIUS,
+                            cursor: sqlLoading || !sqlQuery.trim() ? 'not-allowed' : 'pointer',
+                            fontWeight: 700, fontSize: 12,
+                          }}
+                        >
+                          <Play size={14} />
+                          {sqlLoading ? 'EJECUTANDO...' : 'EJECUTAR'}
+                        </button>
+                        <button
+                          onClick={handleSqlClear}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: `1px solid ${BORDER}`,
+                            background: 'white', color: '#64748b', borderRadius: RADIUS, cursor: 'pointer',
+                            fontWeight: 700, fontSize: 12,
+                          }}
+                        >
+                          <RotateCcw size={14} />
+                          LIMPIAR
+                        </button>
+                        <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 'auto' }}>Ctrl+Enter para ejecutar</span>
+                      </div>
+
+                      {sqlError && (
+                        <div style={{ marginTop: 14, padding: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: RADIUS, color: '#b91c1c', fontSize: 12, fontWeight: 600 }}>
+                          {sqlError}
+                        </div>
+                      )}
+
+                      {sqlResults && (
+                        <div style={{ marginTop: 16 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
+                              Resultados: {sqlRowCount} fila(s)
+                            </span>
+                          </div>
+
+                          {sqlResults.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: 30, color: '#94a3b8', fontSize: 13 }}>
+                              La consulta no retornó resultados.
+                            </div>
+                          ) : (
+                            <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 500, overflowY: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 11 }}>
+                                <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}`, position: 'sticky', top: 0 }}>
+                                  <tr>
+                                    {Object.keys(sqlResults[0]).map(col => (
+                                      <th key={col} style={{ padding: '10px 12px', fontWeight: 800, fontSize: 10, color: '#475569', whiteSpace: 'nowrap', borderRight: `1px solid ${BORDER}` }}>
+                                        {col}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sqlResults.map((row, idx) => (
+                                    <tr key={idx} style={{ borderBottom: `1px solid ${BORDER}`, background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
+                                      {Object.values(row).map((val, cidx) => (
+                                        <td key={cidx} style={{ padding: '8px 12px', color: '#334155', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: `1px solid ${BORDER}` }}
+                                            title={val !== null && val !== undefined ? String(val) : ''}
+                                        >
+                                          {val === null ? <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>NULL</span>
+                                            : typeof val === 'object' ? <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#7c3aed' }}>{JSON.stringify(val).substring(0, 120)}{JSON.stringify(val).length > 120 ? '…' : ''}</span>
+                                            : String(val)}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

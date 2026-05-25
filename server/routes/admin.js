@@ -568,4 +568,56 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// ---------------------------------------------------------------------------
+// ADVANCED SQL QUERY — Admin raw SELECT endpoint
+// ---------------------------------------------------------------------------
+
+// @route   POST api/admin/query
+// @desc    Execute a raw SELECT query against the database (admin only)
+router.post('/query', [auth, isAdmin], async (req, res) => {
+    const { sql } = req.body;
+    if (!sql || typeof sql !== 'string' || !sql.trim()) {
+        return res.status(400).json({ msg: 'Se requiere un query SQL' });
+    }
+
+    const normalized = sql.replace(/\s+/g, ' ').trim();
+
+    const forbidden = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXEC|EXECUTE|MERGE|CALL)\b/i;
+    if (forbidden.test(normalized)) {
+        return res.status(403).json({ msg: 'Solo se permiten consultas SELECT. Operaciones de escritura están bloqueadas.' });
+    }
+
+    if (!/^\s*SELECT\b/i.test(normalized)) {
+        return res.status(403).json({ msg: 'La consulta debe comenzar con SELECT.' });
+    }
+
+    let finalSql = normalized;
+    if (!/\bLIMIT\s+\d+/i.test(finalSql)) {
+        finalSql = finalSql.replace(/;?\s*$/, '') + ' LIMIT 100';
+    }
+
+    console.log(`[SQL-QUERY] Admin ${req.user.id} ejecutó: ${finalSql}`);
+
+    try {
+        const [rows] = await sequelize.query(finalSql, {
+            timeout: 10000,
+            raw: true,
+        });
+
+        const resultRows = Array.isArray(rows) ? rows : [];
+
+        res.json({
+            rows: resultRows,
+            rowCount: resultRows.length,
+            query: finalSql,
+        });
+    } catch (err) {
+        console.error('[SQL-QUERY] Error:', err.message);
+        const userMessage = err.message?.includes('timeout')
+            ? 'La consulta excedió el tiempo límite de 10 segundos.'
+            : `Error en la consulta: ${err.message}`;
+        res.status(400).json({ msg: userMessage });
+    }
+});
+
 module.exports = router;
