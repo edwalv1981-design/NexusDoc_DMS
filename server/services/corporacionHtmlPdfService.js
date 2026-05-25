@@ -39,36 +39,36 @@ function toDataUri(filePath) {
 }
 
 function buildDirectorBlocks(directors, t) {
-  return directors.map((d, i) => `
+  const fieldDefs = [
+    ['dirFirstName',   'firstName'],
+    ['dirMiddleName',  'secondName'],
+    ['dirSurnames',    'lastName'],
+    ['dirBirthDate',   'birthDate',      true],
+    ['dirMarital',     'maritalStatus'],
+    ['dirNationality', 'nationality'],
+    ['dirPassport',    'passport'],
+    ['dirPhone',       'phone'],
+    ['dirEmail',       'email'],
+    ['dirAddress',     'address'],
+    ['dirCity',        'city'],
+    ['dirCountry',     'country'],
+  ];
+
+  return directors.map((d, i) => {
+    const rows = fieldDefs.map(([labelKey, dataKey, isDate]) => {
+      const val = isDate ? fmtDate(d[dataKey]) : (d[dataKey] || '');
+      return `<tr><td class="dlabel">${esc(t[labelKey])}</td><td class="dval">${esc(val)}</td></tr>`;
+    }).join('');
+
+    return `
     <div class="director-block">
       <div class="director-num">Director #${i + 1}</div>
       <table class="director-fields">
-        <colgroup><col style="width:33.33%"/><col style="width:33.34%"/><col style="width:33.33%"/></colgroup>
-        <tbody>
-          <tr>
-            <td><div class="dl">${esc(t.dirFirstName)}</div><div class="dv">${esc(d.firstName || '')}</div></td>
-            <td><div class="dl">${esc(t.dirMiddleName)}</div><div class="dv">${esc(d.secondName || '')}</div></td>
-            <td><div class="dl">${esc(t.dirSurnames)}</div><div class="dv">${esc(d.lastName || '')}</div></td>
-          </tr>
-          <tr>
-            <td><div class="dl">${esc(t.dirBirthDate)}</div><div class="dv">${esc(fmtDate(d.birthDate))}</div></td>
-            <td><div class="dl">${esc(t.dirMarital)}</div><div class="dv">${esc(d.maritalStatus || '')}</div></td>
-            <td><div class="dl">${esc(t.dirNationality)}</div><div class="dv">${esc(d.nationality || '')}</div></td>
-          </tr>
-          <tr>
-            <td><div class="dl">${esc(t.dirPassport)}</div><div class="dv">${esc(d.passport || '')}</div></td>
-            <td><div class="dl">${esc(t.dirPhone)}</div><div class="dv">${esc(d.phone || '')}</div></td>
-            <td><div class="dl">${esc(t.dirEmail)}</div><div class="dv">${esc(d.email || '')}</div></td>
-          </tr>
-          <tr>
-            <td><div class="dl">${esc(t.dirAddress)}</div><div class="dv">${esc(d.address || '')}</div></td>
-            <td><div class="dl">${esc(t.dirCity)}</div><div class="dv">${esc(d.city || '')}</div></td>
-            <td><div class="dl">${esc(t.dirCountry)}</div><div class="dv">${esc(d.country || '')}</div></td>
-          </tr>
-        </tbody>
+        <colgroup><col style="width:28%"/><col style="width:72%"/></colgroup>
+        <tbody>${rows}</tbody>
       </table>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function buildShareholdersRows(shareholders) {
@@ -275,14 +275,14 @@ class CorporacionHtmlPdfService {
             th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 7.5px; text-align: center; line-height: 1.15; }
 
-            /* Director blocks: card-per-director with 3-col grid */
+            /* Director blocks: 2-column label|value rows */
             .director-block { border-bottom: 1.5px solid #bae6fd; }
             .director-block:last-child { border-bottom: none; }
             .director-num { background: #f0f9ff; padding: 3px 8px; font-weight: 700; font-size: 8.5px; color: #0369a1; border-bottom: 1px solid #e0f2fe; }
-            .director-fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            .director-fields td { padding: 2px 6px 3px; vertical-align: top; border: 1px solid #e0f2fe; }
-            .director-fields .dl { font-size: 6.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2; }
-            .director-fields .dv { font-size: 8.5px; color: #0f172a; min-height: 12px; word-break: break-word; overflow-wrap: anywhere; }
+            .director-fields { width: 100%; border-collapse: collapse; }
+            .director-fields td { padding: 2px 6px; vertical-align: middle; border: 1px solid #e0f2fe; font-size: 8.5px; line-height: 1.3; }
+            .director-fields .dlabel { font-weight: 700; color: #334155; background: #f8fdff; white-space: nowrap; }
+            .director-fields .dval { color: #0f172a; word-break: break-word; overflow-wrap: anywhere; }
 
             /* Officers table: 5 columns, comfortable */
             .officers-table { table-layout: fixed; }

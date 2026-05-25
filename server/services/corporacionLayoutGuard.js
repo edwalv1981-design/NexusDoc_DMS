@@ -186,8 +186,8 @@ function getAdaptiveCss(plan) {
       .layout-guard--compact .officers-table td { padding: 1px 2px; font-size: 7.5px; }
       .layout-guard--compact .shareholders-table th,
       .layout-guard--compact .shareholders-table td { padding: 1px 2px; font-size: 7px; }
-      .layout-guard--compact .director-fields .dl { font-size: 5.5px; }
-      .layout-guard--compact .director-fields .dv { font-size: 7.5px; }
+      .layout-guard--compact .director-fields .dlabel { font-size: 7px; }
+      .layout-guard--compact .director-fields .dval { font-size: 7.5px; }
       .layout-guard--compact .director-fields td { padding: 1px 4px 2px; }
       .layout-guard--compact .director-num { font-size: 7.5px; padding: 2px 6px; }
     `);

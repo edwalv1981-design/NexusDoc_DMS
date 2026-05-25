@@ -209,7 +209,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div className="expert-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="expert-input" value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label><input className="expert-input" value={d.passport} onChange={e => updateDirector(i, 'passport', e.target.value)} /></div>
                         <div className="expert-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="expert-input" value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Phone' : 'Teléfono'}</label><input className="expert-input" value={d.phone} onChange={e => updateDirector(i, 'phone', e.target.value)} placeholder={lang === 'en' ? '+1-555-0100' : '+507-6000-0000'} /></div>
+                        <div className="expert-field full-width"><label>{lang === 'en' ? 'Email' : 'Correo electrónico'}</label><input type="email" className="expert-input" value={d.email} onChange={e => updateDirector(i, 'email', e.target.value)} placeholder="name@example.com" /></div>
                         <div className="expert-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="expert-input" value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'City' : 'Ciudad'}</label><input className="expert-input" value={d.city} onChange={e => updateDirector(i, 'city', e.target.value)} /></div>
+                        <div className="expert-field"><label>{lang === 'en' ? 'Country' : 'País'}</label><input className="expert-input" value={d.country} onChange={e => updateDirector(i, 'country', e.target.value)} /></div>
                     </div>
                 </div>
             ))}
