@@ -456,7 +456,7 @@ class FundacionHtmlPdfService {
             @page { size: A4; margin: 0; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
-            .doc-body { padding: 0; margin: 0; box-sizing: border-box; }
+            .doc-body { padding: 4px 0 0; margin: 0; box-sizing: border-box; }
             .first-page-title { text-align: center; margin: 0; }
             .first-page-title h1 { margin: 0; color: #0369a1; font-size: 20px; line-height: 1.02; font-weight: 800; }
             .card { border: 1px solid #7dd3fc; margin: 8px 0; page-break-inside: auto; break-inside: auto; }
@@ -509,7 +509,7 @@ class FundacionHtmlPdfService {
         printBackground: true,
         preferCSSPageSize: false,
         scale: 1,
-        margin: { top: '18mm', right: '0', bottom: '0', left: '0' },
+        margin: { top: '20mm', bottom: '12mm', left: '14mm', right: '14mm' },
         ...chromePdfRest,
         displayHeaderFooter: true,
         headerTemplate,
