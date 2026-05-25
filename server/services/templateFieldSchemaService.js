@@ -602,6 +602,36 @@ async function getMergedSchemaResponse(
     return null;
   }
   const resolvedTemplate = resolveTemplateName(templateName);
+
+  // ENFORCE ADMIN TEMPLATE FOR KYCI AND KYCE
+  const isKyciOrKyce = stablePdfForms.isKyciHtmlForm(canonicalFormType) || stablePdfForms.isKyceHtmlForm(canonicalFormType);
+  if (isKyciOrKyce) {
+    const dbTemplate = DocumentTemplateModel ? await DocumentTemplateModel.findOne({ where: { name: resolvedTemplate } }) : null;
+    const adminUploaded = dbTemplate && dbTemplate.uploadedBy;
+    
+    if (!adminUploaded) {
+      return {
+        schema: null,
+        schemaSource: 'none',
+        flatPdf: true, // Forces the UI to show the blocker message
+        formType: canonicalFormType,
+        emptyState: {},
+        templateId: resolvedTemplate,
+        acroFieldCount: 0,
+        acroFieldNames: [],
+        acroSource: 'none',
+        templateAvailable: false,
+        extractError: null,
+        staticFieldCount: 0,
+        dynamicFieldCount: 0,
+        usesStaticFallback: false,
+        fieldMapping: {},
+        message: 'Para poder generar el formulario, la plantilla debe estar subida y configurada previamente desde el panel de Administrador.',
+        warnings: ['admin_template_required']
+      };
+    }
+  }
+
   const stored = await getStoredRecord(TemplateFieldSchemaModel, canonicalFormType);
 
   let acroFields = Array.isArray(stored?.acroFields) ? stored.acroFields : [];
