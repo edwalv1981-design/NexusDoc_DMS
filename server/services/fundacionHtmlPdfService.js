@@ -453,7 +453,7 @@ class FundacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: 0; }
+            @page { size: A4; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
             .doc-body { padding: 4px 0 0; margin: 0; box-sizing: border-box; }
