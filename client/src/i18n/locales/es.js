@@ -355,6 +355,7 @@ const es = {
       negocios: 'Negocios',
       prestamos: 'Préstamos',
       herencia: 'Herencia o Fondo Fiduciario',
+      otras: 'Otras formas de ingresos',
     },
   },
   corporacion: {

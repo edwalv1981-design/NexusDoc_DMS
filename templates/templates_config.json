@@ -47,7 +47,8 @@
       "inversiones": {"x": 74.5, "y": 387.8},
       "negocios": {"x": 74.5, "y": 399.3},
       "prestamos": {"x": 74.5, "y": 410.8},
-      "herencia": {"x": 74.5, "y": 422.3}
+      "herencia": {"x": 74.5, "y": 422.3},
+      "otras": {"x": 74.5, "y": 433.8}
     }
   },
   "cumplimiento_entidades": {

@@ -249,7 +249,7 @@ const FondosForm = () => {
               <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: validationErrors.includes('fundsSource') ? '2px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '25px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 4px #ef444415' : 'none' }}>
                             <p style={{ fontSize: '13px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '20px' }}>{t('fondos.fundsInstructions')}</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {['bienes', 'inversiones', 'negocios', 'prestamos', 'herencia'].map(fKey => (
+                                {['bienes', 'inversiones', 'negocios', 'prestamos', 'herencia', 'otras'].map(fKey => (
                                     <label key={fKey} style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '10px 15px', borderRadius: '8px', border: formData.fundsSource.includes(fKey) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(fKey) ? `${PRIMARY_COLOR}08` : 'transparent', transition: '0.2s' }}>
                                         <input type="checkbox" checked={formData.fundsSource.includes(fKey)} onChange={() => toggleFund(fKey)} style={{ width: '18px', height: '18px', accentColor: PRIMARY_COLOR }} />
                                         <span style={{ fontSize: '14px', fontWeight: formData.fundsSource.includes(fKey) ? 700 : 500, color: '#1e293b' }}>{t(`fondos.sources.${fKey}`)}</span>

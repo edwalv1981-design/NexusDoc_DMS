@@ -352,6 +352,7 @@ const en = {
       negocios: 'Business activities',
       prestamos: 'Loans',
       herencia: 'Inheritance or trust fund',
+      otras: 'Other forms of income',
     },
   },
   corporacion: {
