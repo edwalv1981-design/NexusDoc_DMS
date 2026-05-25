@@ -38,23 +38,36 @@ function toDataUri(filePath) {
   return `data:${mime};base64,${b64}`;
 }
 
-function buildDirectorsRows(directors) {
+function buildDirectorBlocks(directors, t) {
   return directors.map((d, i) => `
-    <tr>
-      <td class="col-num">${i + 1}</td>
-      <td class="col-name">${esc(d.firstName || '')}</td>
-      <td class="col-mid">${esc(d.secondName || '')}</td>
-      <td class="col-surname">${esc(d.lastName || '')}</td>
-      <td class="col-birth">${esc(fmtDate(d.birthDate))}</td>
-      <td class="col-marital">${esc(d.maritalStatus || '')}</td>
-      <td class="col-nat">${esc(d.nationality || '')}</td>
-      <td class="col-passport">${esc(d.passport || '')}</td>
-      <td class="col-phone">${esc(d.phone || '')}</td>
-      <td class="col-email">${esc(d.email || '')}</td>
-      <td class="col-addr">${esc(d.address || '')}</td>
-      <td class="col-city">${esc(d.city || '')}</td>
-      <td class="col-country">${esc(d.country || '')}</td>
-    </tr>
+    <div class="director-block">
+      <div class="director-num">Director #${i + 1}</div>
+      <table class="director-fields">
+        <colgroup><col style="width:33.33%"/><col style="width:33.34%"/><col style="width:33.33%"/></colgroup>
+        <tbody>
+          <tr>
+            <td><div class="dl">${esc(t.dirFirstName)}</div><div class="dv">${esc(d.firstName || '')}</div></td>
+            <td><div class="dl">${esc(t.dirMiddleName)}</div><div class="dv">${esc(d.secondName || '')}</div></td>
+            <td><div class="dl">${esc(t.dirSurnames)}</div><div class="dv">${esc(d.lastName || '')}</div></td>
+          </tr>
+          <tr>
+            <td><div class="dl">${esc(t.dirBirthDate)}</div><div class="dv">${esc(fmtDate(d.birthDate))}</div></td>
+            <td><div class="dl">${esc(t.dirMarital)}</div><div class="dv">${esc(d.maritalStatus || '')}</div></td>
+            <td><div class="dl">${esc(t.dirNationality)}</div><div class="dv">${esc(d.nationality || '')}</div></td>
+          </tr>
+          <tr>
+            <td><div class="dl">${esc(t.dirPassport)}</div><div class="dv">${esc(d.passport || '')}</div></td>
+            <td><div class="dl">${esc(t.dirPhone)}</div><div class="dv">${esc(d.phone || '')}</div></td>
+            <td><div class="dl">${esc(t.dirEmail)}</div><div class="dv">${esc(d.email || '')}</div></td>
+          </tr>
+          <tr>
+            <td><div class="dl">${esc(t.dirAddress)}</div><div class="dv">${esc(d.address || '')}</div></td>
+            <td><div class="dl">${esc(t.dirCity)}</div><div class="dv">${esc(d.city || '')}</div></td>
+            <td><div class="dl">${esc(t.dirCountry)}</div><div class="dv">${esc(d.country || '')}</div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   `).join('');
 }
 
@@ -123,7 +136,6 @@ class CorporacionHtmlPdfService {
       const plan = corporacionLayoutGuard.analyzeFormData(data);
       const layoutCss = corporacionLayoutGuard.getAdaptiveCss(plan);
       const bodyGuardClass = corporacionLayoutGuard.bodyClassForPlan(plan);
-      const pageMarginCss = corporacionLayoutGuard.getPrintPageMarginCss(corporacionLayoutGuard.LAYOUT);
 
       const content = `
         <main class="doc-body">
@@ -156,29 +168,7 @@ class CorporacionHtmlPdfService {
         <section class="card directors-card">
           <h2>${esc(t.sectionDirectors)}</h2>
           <div class="hint">${esc(t.sectionDirectorsHint)}</div>
-          <table class="directors-table">
-            <colgroup>
-              <col style="width:3%"/>
-              <col style="width:9%"/>
-              <col style="width:7%"/>
-              <col style="width:10%"/>
-              <col style="width:7%"/>
-              <col style="width:7%"/>
-              <col style="width:7%"/>
-              <col style="width:8%"/>
-              <col style="width:9%"/>
-              <col style="width:12%"/>
-              <col style="width:11%"/>
-              <col style="width:6%"/>
-              <col style="width:6%"/>
-            </colgroup>
-            <thead>
-              <tr>
-                <th>#</th><th>${esc(t.dirFirstName || 'First Name')}</th><th>${esc(t.dirMiddleName || 'Middle')}</th><th>${esc(t.dirSurnames || 'Surnames')}</th><th>${esc(t.dirBirthDate)}</th><th>${esc(t.dirMarital)}</th><th>${esc(t.dirNationality)}</th><th>${esc(t.dirPassport)}</th><th>${esc(t.dirPhone)}</th><th>${esc(t.dirEmail)}</th><th>${esc(t.dirAddress)}</th><th>${esc(t.dirCity)}</th><th>${esc(t.dirCountry)}</th>
-              </tr>
-            </thead>
-            <tbody>${buildDirectorsRows(directors)}</tbody>
-          </table>
+          ${buildDirectorBlocks(directors, t)}
         </section>
 
         <section class="card officers-card">
@@ -243,7 +233,7 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: ${pageMarginCss}; }
+            @page { size: A4; margin: 0; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 9.5px; }
             .doc-body {
@@ -285,11 +275,14 @@ class CorporacionHtmlPdfService {
             th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 7.5px; text-align: center; line-height: 1.15; }
 
-            /* Directors table: 13 columns, needs tight layout */
-            .directors-table { table-layout: fixed; font-size: 7px; }
-            .directors-table th { font-size: 6.5px; padding: 2px 1px; }
-            .directors-table td { font-size: 7px; padding: 1px 2px; line-height: 1.2; }
-            .directors-table .col-num { text-align: center; }
+            /* Director blocks: card-per-director with 3-col grid */
+            .director-block { border-bottom: 1.5px solid #bae6fd; }
+            .director-block:last-child { border-bottom: none; }
+            .director-num { background: #f0f9ff; padding: 3px 8px; font-weight: 700; font-size: 8.5px; color: #0369a1; border-bottom: 1px solid #e0f2fe; }
+            .director-fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .director-fields td { padding: 2px 6px 3px; vertical-align: top; border: 1px solid #e0f2fe; }
+            .director-fields .dl { font-size: 6.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2; }
+            .director-fields .dv { font-size: 8.5px; color: #0f172a; min-height: 12px; word-break: break-word; overflow-wrap: anywhere; }
 
             /* Officers table: 5 columns, comfortable */
             .officers-table { table-layout: fixed; }
@@ -322,14 +315,11 @@ class CorporacionHtmlPdfService {
         corporacionLayoutGuard.LAYOUT,
         logoDataUri
       );
-      const { margin: _pdfMarginFromChromeOpts, ...chromePdfRest } = chromePdf;
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: true,
         scale: 1,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' },
-        ...chromePdfRest,
+        ...chromePdf,
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {
