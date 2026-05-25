@@ -27,6 +27,44 @@ router.get('/templates/status', auth, async (req, res) => {
     }
 });
 
+// @route   GET api/forms/beneficiaries/search
+router.get('/beneficiaries/search', auth, async (req, res) => {
+    try {
+        const q = (req.query.q || '').toLowerCase().trim();
+        if (!q) return res.json([]);
+
+        const forms = await FormData.findAll({ attributes: ['data'] });
+        const resultsMap = new Map();
+
+        forms.forEach(f => {
+            if (f.data && f.data.beneficiaryName) {
+                const bName = String(f.data.beneficiaryName);
+                if (bName.toLowerCase().includes(q)) {
+                    if (!resultsMap.has(bName)) {
+                        resultsMap.set(bName, {
+                            beneficiaryName: bName,
+                            birthDate: f.data.birthDate || '',
+                            birthPlace: f.data.birthPlace || '',
+                            address: f.data.address || ''
+                        });
+                    } else {
+                        const existing = resultsMap.get(bName);
+                        if (!existing.birthDate && f.data.birthDate) existing.birthDate = f.data.birthDate;
+                        if (!existing.birthPlace && f.data.birthPlace) existing.birthPlace = f.data.birthPlace;
+                        if (!existing.address && f.data.address) existing.address = f.data.address;
+                    }
+                }
+            }
+        });
+
+        const results = Array.from(resultsMap.values()).slice(0, 10);
+        res.json(results);
+    } catch (err) {
+        console.error('Error searching beneficiaries:', err);
+        res.status(500).json({ msg: 'Error al buscar beneficiarios' });
+    }
+});
+
 // @route   GET api/forms/schema/:formType
 router.get('/schema/:formType', auth, async (req, res) => {
     try {

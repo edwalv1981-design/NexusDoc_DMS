@@ -43,6 +43,8 @@ const FondosForm = () => {
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
     const [validationErrors, setValidationErrors] = useState([]);
+    const [beneficiarySuggestions, setBeneficiarySuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const custodyTouchedRef = useRef({});
 
     useEffect(() => {
@@ -110,6 +112,26 @@ const FondosForm = () => {
             }
         } catch (error) {
             console.error('Error loading data');
+        }
+    };
+
+    const searchBeneficiaries = async (query) => {
+        if (!query || query.length < 2) {
+            setBeneficiarySuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/forms/beneficiaries/search?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (response.ok) {
+                const results = await response.json();
+                setBeneficiarySuggestions(results);
+                setShowSuggestions(results.length > 0);
+            }
+        } catch (error) {
+            console.error('Error searching beneficiaries', error);
         }
     };
 
@@ -189,7 +211,7 @@ const FondosForm = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
-                                <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="organization" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
+                                <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="off" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.activities')}</label>
@@ -198,26 +220,62 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.country')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('country')} autoComplete="country-name" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('country')} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
                                 </div>
-                                <div>
+                                <div style={{ position: 'relative' }}>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="name" value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="off" value={formData.beneficiaryName} 
+                                        onChange={e => { 
+                                            const val = e.target.value;
+                                            setFormData({...formData, beneficiaryName: val}); 
+                                            if (val) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); 
+                                            searchBeneficiaries(val);
+                                        }} 
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                        onFocus={() => { if (beneficiarySuggestions.length > 0) setShowSuggestions(true); }}
+                                    />
+                                    {showSuggestions && (
+                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', marginTop: '4px', zIndex: 10, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', maxHeight: '200px', overflowY: 'auto' }}>
+                                            {beneficiarySuggestions.map((sug, idx) => (
+                                                <div 
+                                                    key={idx} 
+                                                    style={{ padding: '10px 15px', cursor: 'pointer', borderBottom: idx === beneficiarySuggestions.length - 1 ? 'none' : '1px solid #f1f5f9', fontSize: '13px', color: '#334155' }}
+                                                    onClick={() => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            beneficiaryName: sug.beneficiaryName,
+                                                            birthDate: sug.birthDate || prev.birthDate,
+                                                            birthPlace: sug.birthPlace || prev.birthPlace,
+                                                            address: sug.address || prev.address
+                                                        }));
+                                                        setShowSuggestions(false);
+                                                    }}
+                                                    onMouseEnter={e => e.target.style.background = '#f8fafc'}
+                                                    onMouseLeave={e => e.target.style.background = 'white'}
+                                                >
+                                                    <div style={{ fontWeight: 600 }}>{sug.beneficiaryName}</div>
+                                                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                                        {[sug.birthDate, sug.birthPlace].filter(Boolean).join(' • ')}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
-                                    <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="bday" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
+                                    <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthPlace')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('birthPlace')} value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); }} />
+                                    <input className="corporate-input" style={getErrorStyle('birthPlace')} autoComplete="off" value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); }} />
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.address')}</label>
-                                <input className="corporate-input" style={getErrorStyle('address')} autoComplete="street-address" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); }} />
+                                <input className="corporate-input" style={getErrorStyle('address')} autoComplete="off" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); }} />
                             </div>
                         </div>
                         {validationErrors.length > 0 && (
