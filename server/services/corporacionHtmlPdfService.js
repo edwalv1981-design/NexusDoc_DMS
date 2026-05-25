@@ -117,16 +117,8 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   const capital = Number(String(data.capitalSocial || '10000').replace(/[^\d]/g, '')) || 10000;
   const capitalFmt = new Intl.NumberFormat('en-US').format(capital);
 
-  /* Header: logo top-left, title center-right */
-  const logoImg = logoDataUri
-    ? `<img src="${logoDataUri}" alt="Logo" style="max-height:40px;width:auto;display:block;" />`
-    : `<span style="font-size:12px;font-weight:bold;color:${C.titleColor};">PANAMA TAX LAWYERS</span>`;
-
-  const headerHtml = `<div style="display:flex;align-items:center;margin-bottom:8px;">
-    <div style="flex:0 0 auto;">${logoImg}</div>
-    <div style="flex:1;text-align:center;">
-      <div style="font-size:16px;font-weight:800;color:${C.titleColor};line-height:1.2;">Incorporation Form / Formulario de Incorporaci&oacute;n</div>
-    </div>
+  const headerHtml = `<div style="text-align:center;margin-bottom:8px;">
+    <div style="font-size:16px;font-weight:800;color:${C.titleColor};line-height:1.2;">Incorporation Form / Formulario de Incorporaci&oacute;n</div>
   </div>`;
 
   /* Section 1 – Company Name */
@@ -312,7 +304,7 @@ class CorporacionHtmlPdfService {
       const pdfOpts = corporacionLayoutGuard.getCorporacionPuppeteerPdfChromeOptions();
 
       const headerTemplate = logoDataUri
-        ? `<div style="font-size:0;width:100%;padding:4px 12mm;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        ? `<div style="font-size:0;width:100%;padding:4px 12mm;text-align:left;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
         : '<div style="font-size:1px;">&nbsp;</div>';
       const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
 
@@ -321,7 +313,7 @@ class CorporacionHtmlPdfService {
         printBackground: true,
         scale: 1,
         ...pdfOpts,
-        margin: { ...pdfOpts.margin, top: '15mm' },
+        margin: { ...pdfOpts.margin, top: '18mm' },
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate,

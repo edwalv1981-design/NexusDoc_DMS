@@ -155,12 +155,10 @@ class KyceHtmlPdfService {
     let browser = null;
     try {
       const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
-      let logoHtml = '';
       let logoDataUri = '';
       const logoPath = path.join(rootDir, 'templates', 'logo_empresa.png');
       if (fs.existsSync(logoPath)) {
         logoDataUri = toDataUri(logoPath);
-        logoHtml = '<div class="logo-wrap"><img src="' + logoDataUri + '" alt="" class="logo" /></div>';
       }
 
       const lang = normalizeLanguage(options.language || data.language);
@@ -170,11 +168,9 @@ class KyceHtmlPdfService {
         '<!DOCTYPE html><html lang="' +
         lang +
         '"><head><meta charset="utf-8" /><style>' +
-        '@page { size: A4; margin: 14mm 12mm; }' +
+        '@page { size: A4; margin: 0; }' +
         '* { box-sizing: border-box; }' +
-        'body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #0f172a; margin: 0; }' +
-        '.logo-wrap { text-align: right; margin-bottom: 8px; }' +
-        '.logo { max-height: 48px; max-width: 160px; }' +
+        'body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #0f172a; margin: 0; padding: 0; }' +
         '.doc-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #1d4ed8; padding-bottom: 10px; }' +
         '.doc-header h1 { margin: 0 0 4px; font-size: 14px; color: #1e40af; }' +
         '.subtitle { margin: 0; font-size: 10px; color: #64748b; }' +
@@ -190,7 +186,6 @@ class KyceHtmlPdfService {
         '.chk { font-family: monospace; font-weight: 700; }' +
         '.declaration { margin-top: 12px; }' +
         '</style></head><body>' +
-        logoHtml +
         inner +
         '</body></html>';
 
@@ -202,15 +197,15 @@ class KyceHtmlPdfService {
       await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
       const headerTemplate = logoDataUri
-        ? `<div style="font-size:0;width:100%;padding:4px 12mm;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        ? `<div style="font-size:0;width:100%;padding:4px 12mm;text-align:left;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
         : '<div style="font-size:1px;">&nbsp;</div>';
       const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
 
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: true,
-        margin: { top: '15mm', right: '10mm', bottom: '12mm', left: '10mm' },
+        preferCSSPageSize: false,
+        margin: { top: '18mm', right: '10mm', bottom: '12mm', left: '10mm' },
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate,

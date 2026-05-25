@@ -375,17 +375,18 @@ const FondosForm = () => {
                 }
                 .corporate-input {
                     width: 100%;
-                    border: 1.5px solid #e2e8f0;
+                    border: 1px solid #cbd5e1;
                     border-radius: 4px;
-                    padding: 7px 10px;
+                    padding: 5px 8px;
                     font-size: 13px;
                     color: #1e293b;
                     outline: none;
                     transition: all 0.15s;
+                    background: #f8fafc;
                 }
                 .corporate-input:focus {
-                    border-color: ${PRIMARY_COLOR};
-                    box-shadow: 0 0 0 2px ${PRIMARY_COLOR}12;
+                    border-color: #0891b2;
+                    box-shadow: 0 0 0 2px rgba(8,145,178,0.1);
                     background: white;
                 }
                 .corporate-btn-primary {

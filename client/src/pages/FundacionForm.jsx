@@ -1379,56 +1379,56 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
             <style>{`
-                .expert-container { width: 100%; max-width: 900px; margin: 0 auto; padding: 12px 0 40px; font-family: 'Inter', sans-serif; }
-                .expert-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; }
-                .expert-title { font-size: 20px; font-weight: 800; color: ${SECONDARY}; margin: 0; letter-spacing: -0.5px; }
-                .expert-subtitle { font-size: 11px; color: #64748b; margin: 3px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+                .expert-container { width: 100%; max-width: 900px; margin: 0 auto; padding: 8px 0 24px; font-family: 'Inter', sans-serif; }
+                .expert-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+                .expert-title { font-size: 18px; font-weight: 800; color: ${SECONDARY}; margin: 0; letter-spacing: -0.5px; }
+                .expert-subtitle { font-size: 10px; color: #64748b; margin: 2px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
 
-                .expert-btn-save-master { padding: 7px 16px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-size: 12px; }
+                .expert-btn-save-master { padding: 5px 14px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s; font-size: 11px; }
                 .expert-btn-save-master:hover { background: ${PRIMARY}; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px ${PRIMARY}30; }
 
-                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
-                .standard-step-title { font-size: 12px; font-weight: 700; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
-                .standard-step-badge { font-size: 10px; font-weight: 800; color: ${PRIMARY}; background: ${PRIMARY}12; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px; }
+                .standard-step-title { font-size: 11px; font-weight: 700; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 9px; font-weight: 800; color: ${PRIMARY}; background: ${PRIMARY}12; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
 
-                .standard-progress-stepper { display: flex; gap: 4px; margin-bottom: 18px; }
+                .standard-progress-stepper { display: flex; gap: 3px; margin-bottom: 10px; }
                 .standard-progress-bar { flex: 1; height: 3px; background: #e2e8f0; border-radius: 3px; transition: all 0.3s ease; }
                 .standard-progress-bar.active { background: ${PRIMARY}; }
 
-                .expert-main-panel { background: white; border-radius: 10px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-                .expert-step-title { font-size: 14px; font-weight: 700; color: ${SECONDARY}; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+                .expert-main-panel { background: white; border-radius: 8px; padding: 16px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+                .expert-step-title { font-size: 13px; font-weight: 700; color: ${SECONDARY}; margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
 
-                .expert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+                .expert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
                 .full-width { grid-column: span 2; }
-                .expert-field { display: flex; flex-direction: column; gap: 3px; }
-                .expert-field label { font-size: 10.5px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; }
+                .expert-field { display: flex; flex-direction: column; gap: 2px; }
+                .expert-field label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; }
 
-                .expert-input { width: 100%; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; color: ${SECONDARY}; transition: all 0.15s; background: #fafbfc; }
-                .expert-input:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px ${PRIMARY}12; }
+                .expert-input { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; color: ${SECONDARY}; transition: all 0.15s; background: #f8fafc; }
+                .expert-input:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
 
-                .expert-hint { font-size: 11px; color: #64748b; font-style: italic; font-weight: 500; }
-                .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; line-height: 1.4; }
+                .expert-hint { font-size: 10px; color: #64748b; font-style: italic; font-weight: 500; }
+                .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 6px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; line-height: 1.3; }
 
-                .expert-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-                .expert-btn-add { padding: 5px 12px; background: ${PRIMARY}0a; color: ${PRIMARY}; border: 1px solid ${PRIMARY}30; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 11px; transition: 0.15s; }
+                .expert-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+                .expert-btn-add { padding: 4px 10px; background: ${PRIMARY}0a; color: ${PRIMARY}; border: 1px solid ${PRIMARY}30; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 10px; transition: 0.15s; }
                 .expert-btn-add:hover { background: ${PRIMARY}; color: white; }
 
-                .expert-card-legal { background: #fafbfc; border: 1.5px solid #e8edf2; border-radius: 8px; padding: 16px; position: relative; margin-bottom: 12px; }
-                .expert-card-label { position: absolute; top: -8px; left: 16px; background: ${SECONDARY}; color: white; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.3px; }
-                .expert-btn-remove { position: absolute; top: 8px; right: 8px; color: #ef4444; background: #fee2e2; border: none; padding: 5px; border-radius: 4px; cursor: pointer; transition: 0.15s; }
+                .expert-card-legal { background: #fafbfc; border: 1px solid #e8edf2; border-radius: 6px; padding: 12px 12px 10px; position: relative; margin-bottom: 8px; }
+                .expert-card-label { position: absolute; top: -7px; left: 12px; background: ${SECONDARY}; color: white; font-size: 8px; font-weight: 800; padding: 1px 6px; border-radius: 3px; letter-spacing: 0.3px; }
+                .expert-btn-remove { position: absolute; top: 6px; right: 6px; color: #ef4444; background: #fee2e2; border: none; padding: 4px; border-radius: 3px; cursor: pointer; transition: 0.15s; }
                 .expert-btn-remove:hover { transform: rotate(90deg); }
 
-                .expert-legal-box { background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 8px; padding: 18px; color: ${SECONDARY}; margin-top: 16px; }
-                .expert-legal-text { font-size: 12px; line-height: 1.5; color: #334155; margin-bottom: 12px; font-style: italic; border-left: 3px solid ${PRIMARY}; padding: 8px 12px; background: #eff6ff; border-radius: 4px; font-weight: 500; }
-                .expert-input-legal { width: 100%; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 4px; background: white; color: ${SECONDARY}; outline: none; font-size: 13px; font-weight: 500; transition: all 0.15s; }
-                .expert-input-legal:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px ${PRIMARY}12; }
+                .expert-legal-box { background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 6px; padding: 12px; color: ${SECONDARY}; margin-top: 10px; }
+                .expert-legal-text { font-size: 11px; line-height: 1.4; color: #334155; margin-bottom: 8px; font-style: italic; border-left: 3px solid ${PRIMARY}; padding: 6px 10px; background: #eff6ff; border-radius: 4px; font-weight: 500; }
+                .expert-input-legal { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: ${SECONDARY}; outline: none; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+                .expert-input-legal:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
 
-                .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 14px; border-top: 1px solid #e8edf2; }
-                .expert-btn-nav-prev { padding: 8px 18px; background: #f8fafc; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.15s; font-size: 12px; }
+                .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e8edf2; }
+                .expert-btn-nav-prev { padding: 7px 16px; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.15s; font-size: 12px; }
                 .expert-btn-nav-prev:hover:not(:disabled) { background: #f1f5f9; }
-                .expert-btn-nav-next { padding: 8px 18px; background: ${PRIMARY}; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px ${PRIMARY}25; transition: 0.15s; font-size: 12px; }
+                .expert-btn-nav-next { padding: 7px 16px; background: ${PRIMARY}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px ${PRIMARY}25; transition: 0.15s; font-size: 12px; }
                 .expert-btn-nav-next:hover { transform: translateY(-1px); box-shadow: 0 4px 12px ${PRIMARY}30; }
-                .expert-btn-nav-finish { padding: 8px 18px; background: #16a34a; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); transition: 0.15s; font-size: 12px; }
+                .expert-btn-nav-finish { padding: 7px 16px; background: #16a34a; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); transition: 0.15s; font-size: 12px; }
 
                 .poa-original-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
                 .poa-column-card { background: #ffffff; border: 1.5px solid #40a2be; border-radius: 8px; overflow: hidden; }

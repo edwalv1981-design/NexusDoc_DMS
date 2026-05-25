@@ -332,7 +332,7 @@ class FundacionHtmlPdfService {
       const plan = fundacionLayoutGuard.analyzeFormData(data);
       const layoutCss = fundacionLayoutGuard.getAdaptiveCss(plan);
       const bodyGuardClass = fundacionLayoutGuard.bodyClassForPlan(plan);
-      const pageMarginCss = fundacionLayoutGuard.getPrintPageMarginCss(fundacionLayoutGuard.LAYOUT);
+
 
       const declarationName =
         data.declarationName ||
@@ -366,17 +366,10 @@ class FundacionHtmlPdfService {
         `<div class="hint">${esc(t.sectionDirectorsHint)}</div>`
       );
 
-      const logoImg = logoDataUri
-        ? `<img src="${logoDataUri}" alt="Logo" style="max-height:40px;width:auto;display:block;" />`
-        : `<span style="font-size:12px;font-weight:bold;color:#0369a1;">PANAMA TAX LAWYERS</span>`;
-
       const content = `
         <main class="doc-body">
-          <div style="display:flex;align-items:center;margin-bottom:8px;">
-            <div style="flex:0 0 auto;">${logoImg}</div>
-            <div style="flex:1;text-align:center;">
-              <div class="first-page-title"><h1>${esc(t.docTitle)}</h1></div>
-            </div>
+          <div style="text-align:center;margin-bottom:8px;">
+            <div class="first-page-title"><h1>${esc(t.docTitle)}</h1></div>
           </div>
 
           <section class="card">
@@ -460,7 +453,7 @@ class FundacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            @page { size: A4; margin: ${pageMarginCss}; }
+            @page { size: A4; margin: 0; }
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
             .doc-body { padding: 0; margin: 0; box-sizing: border-box; }
@@ -507,16 +500,16 @@ class FundacionHtmlPdfService {
       const { margin: _m, ...chromePdfRest } = chromePdf;
 
       const headerTemplate = logoDataUri
-        ? `<div style="font-size:0;width:100%;padding:4px 12mm;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        ? `<div style="font-size:0;width:100%;padding:4px 12mm;text-align:left;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
         : '<div style="font-size:1px;">&nbsp;</div>';
       const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
 
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: true,
+        preferCSSPageSize: false,
         scale: 1,
-        margin: { top: '15mm', right: '0', bottom: '0', left: '0' },
+        margin: { top: '18mm', right: '0', bottom: '0', left: '0' },
         ...chromePdfRest,
         displayHeaderFooter: true,
         headerTemplate,

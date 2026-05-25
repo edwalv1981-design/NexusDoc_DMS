@@ -139,19 +139,19 @@ export function KycFundsSourceGroup({
 }
 
 export const kycFormSharedStyles = (primary = KYC_PRIMARY) => `
-  .expert-input { width: 100%; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; }
-  .expert-input:focus { border-color: ${primary}; box-shadow: 0 0 0 2px ${primary}12; }
-  .expert-group { display: flex; flex-direction: column; gap: 3px; }
+  .expert-input { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; background: #f8fafc; }
+  .expert-input:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
+  .expert-group { display: flex; flex-direction: column; gap: 2px; }
   .expert-group label { font-size: 10px; font-weight: 700; color: #475569; letter-spacing: 0.3px; }
-  .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
-  .expert-hint { font-size: 11px; color: #64748b; font-style: italic; font-weight: 500; }
-  .poa-question-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 10px 12px; }
-  .poa-question-text { font-size: 12px; color: #0c4a6e; margin-bottom: 8px; }
-  .poa-check-row { display: flex; gap: 16px; flex-wrap: wrap; }
-  .poa-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #334155; cursor: pointer; }
-  .poa-radio { width: 15px; height: 15px; accent-color: #0e7490; cursor: pointer; }
-  .expert-btn-primary { padding: 8px 18px; background: ${primary}; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; }
-  .expert-btn-nav { padding: 8px 18px; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; }
-  .expert-btn-save { padding: 7px 16px; background: white; color: ${primary}; border: 1.5px solid ${primary}; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 11px; }
-  .expert-btn-finish { padding: 8px 18px; background: #16a34a; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 6px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; display: flex; align-items: flex-start; gap: 6px; line-height: 1.3; }
+  .expert-hint { font-size: 10px; color: #64748b; font-style: italic; font-weight: 500; }
+  .poa-question-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 5px; padding: 8px 10px; }
+  .poa-question-text { font-size: 11px; color: #0c4a6e; margin-bottom: 6px; }
+  .poa-check-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .poa-check-label { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #334155; cursor: pointer; }
+  .poa-radio { width: 14px; height: 14px; accent-color: #0e7490; cursor: pointer; }
+  .expert-btn-primary { padding: 7px 16px; background: ${primary}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; }
+  .expert-btn-nav { padding: 7px 16px; background: #f1f5f9; color: #475569; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; }
+  .expert-btn-save { padding: 5px 14px; background: white; color: ${primary}; border: 1.5px solid ${primary}; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 11px; }
+  .expert-btn-finish { padding: 7px 16px; background: #16a34a; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; }
 `;

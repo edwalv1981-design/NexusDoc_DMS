@@ -55,6 +55,27 @@ button, input, textarea, select {
   font-size: 13px;
 }
 
+input, textarea, select {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #0891b2;
+  background: #fff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(8,145,178,0.1);
+}
+input[type="checkbox"], input[type="radio"] {
+  border: revert;
+  background: revert;
+  padding: revert;
+  box-shadow: none;
+}
+
 /* Scrollbar personalizada */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

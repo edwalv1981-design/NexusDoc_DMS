@@ -678,15 +678,16 @@ const ClientDashboard = () => {
             </main>
             <style>{`
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                .field-group { display: flex; flex-direction: column; gap: 3px; } 
+                .field-group { display: flex; flex-direction: column; gap: 2px; } 
                 .field-group label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; } 
-                .input-expert { width: 100%; padding: 7px 10px; border: 1.5px solid ${BORDER}; border-radius: 4px; outline: none; font-size: 13px; }
+                .input-expert { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 13px; background: #f8fafc; }
+                .input-expert:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
                 .beneficiary-dropdown {
-                    position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
-                    background: white; border: 1.5px solid ${PRIMARY}; border-top: none;
-                    border-radius: 0 0 4px 4px;
-                    box-shadow: 0 4px 16px rgba(0,120,212,0.1);
-                    max-height: 200px; overflow-y: auto;
+                    position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+                    background: white; border: 1px solid #cbd5e1;
+                    border-radius: 0 0 5px 5px;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+                    max-height: 180px; overflow-y: auto;
                 }
                 .beneficiary-dropdown-item {
                     padding: 7px 10px; cursor: pointer;
