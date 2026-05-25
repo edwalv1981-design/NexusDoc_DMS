@@ -678,19 +678,19 @@ const ClientDashboard = () => {
             </main>
             <style>{`
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                .field-group { display: flex; flex-direction: column; gap: 4px; } 
-                .field-group label { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.5px; } 
-                .input-expert { width: 100%; padding: 10px 14px; border: 1.5px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 13px; }
+                .field-group { display: flex; flex-direction: column; gap: 3px; } 
+                .field-group label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; } 
+                .input-expert { width: 100%; padding: 7px 10px; border: 1.5px solid ${BORDER}; border-radius: 4px; outline: none; font-size: 13px; }
                 .beneficiary-dropdown {
                     position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
                     background: white; border: 1.5px solid ${PRIMARY}; border-top: none;
-                    border-radius: 0 0 ${RADIUS} ${RADIUS};
-                    box-shadow: 0 8px 24px rgba(0,120,212,0.12);
-                    max-height: 220px; overflow-y: auto;
+                    border-radius: 0 0 4px 4px;
+                    box-shadow: 0 4px 16px rgba(0,120,212,0.1);
+                    max-height: 200px; overflow-y: auto;
                 }
                 .beneficiary-dropdown-item {
-                    padding: 10px 14px; cursor: pointer;
-                    border-bottom: 1px solid ${BORDER}; transition: background 0.15s;
+                    padding: 7px 10px; cursor: pointer;
+                    border-bottom: 1px solid ${BORDER}; transition: background 0.1s;
                 }
                 .beneficiary-dropdown-item:last-child { border-bottom: none; }
                 .beneficiary-dropdown-item:hover { background: #eef6ff; }

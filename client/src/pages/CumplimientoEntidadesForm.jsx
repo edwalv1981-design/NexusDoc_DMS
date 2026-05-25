@@ -144,7 +144,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
 
   const renderStep1 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
+      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
         <Building2 size={22} color={PRIMARY} /> {t('kyce.steps.entity')}
       </h2>
       <KycHintBox>{t('kyce.hints.entity')}</KycHintBox>
@@ -170,7 +170,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
 
   const renderStep2 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
+      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
         <Phone size={22} color={PRIMARY} /> {t('kyce.steps.contact')}
       </h2>
       <KycHintBox>{t('kyce.hints.contact')}</KycHintBox>
@@ -187,7 +187,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
 
   const renderStep3 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 10 }}>
+      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
         <ShieldCheck size={22} color={PRIMARY} /> {t('kyce.steps.compliance')}
       </h2>
       <KycHintBox>{t('kyce.hints.compliance')}</KycHintBox>
@@ -228,31 +228,31 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
   );
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 900, color: SECONDARY }}>{t('formType.Cumplimiento Entidades')}</h1>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '12px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY }}>{t('formType.Cumplimiento Entidades')}</h1>
         <button type="button" onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save">
           <Save size={18} /> {saving ? t('common.saving') : t('kyce.saveDraft')}
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: '40px' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: '20px' }}>
         {[1, 2, 3].map((s) => (
           <div key={s} style={{ flex: 1, position: 'relative' }}>
-            <div style={{ height: '5px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '10px', transition: 'all 0.3s' }} />
-            <div style={{ position: 'absolute', top: '-25px', left: 0, fontSize: '10px', fontWeight: 800, color: step >= s ? PRIMARY : '#94a3b8' }}>
+            <div style={{ height: '3px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '3px', transition: 'all 0.3s' }} />
+            <div style={{ position: 'absolute', top: '-18px', left: 0, fontSize: '9px', fontWeight: 700, color: step >= s ? PRIMARY : '#94a3b8' }}>
               {t('kyce.stepLabel', { step: s })}
             </div>
           </div>
         ))}
       </div>
 
-      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' }}>
+      <div style={{ background: 'white', padding: '24px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e8edf2' }}>
           <button type="button" onClick={() => setStep((prev) => prev - 1)} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}>
             <ChevronLeft size={18} /> {t('common.back')}
           </button>

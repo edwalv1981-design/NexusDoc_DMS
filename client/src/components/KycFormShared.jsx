@@ -5,9 +5,9 @@ export const KYC_PRIMARY = '#0078d4';
 
 export function KycHintBox({ children }) {
   return (
-    <div className="expert-hint-box" style={{ marginBottom: 20 }}>
-      <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: 2 }} />
-      <div style={{ fontSize: 13, lineHeight: 1.5, color: '#334155' }}>{children}</div>
+    <div className="expert-hint-box" style={{ marginBottom: 10 }}>
+      <Info size={16} color="#0369a1" style={{ flexShrink: 0, marginTop: 1 }} />
+      <div style={{ fontSize: 12, lineHeight: 1.4, color: '#334155' }}>{children}</div>
     </div>
   );
 }
@@ -28,7 +28,7 @@ export function KycPepQuestion({
       <div className="poa-question-box">
         <div className="poa-question-text">
           <strong>{label}</strong>
-          {hint ? <p className="expert-hint" style={{ marginTop: 8, marginBottom: 0 }}>{hint}</p> : null}
+          {hint ? <p className="expert-hint" style={{ marginTop: 4, marginBottom: 0 }}>{hint}</p> : null}
         </div>
         <div className="poa-check-row">
           <label className="poa-check-label">
@@ -82,28 +82,28 @@ export function KycFundsSourceGroup({
     <div
       style={{
         background: '#f8fafc',
-        padding: 24,
-        borderRadius: 12,
+        padding: 14,
+        borderRadius: 6,
         border: '1px solid #e2e8f0',
-        marginBottom: 8,
+        marginBottom: 6,
       }}
     >
       <label
         style={{
           fontSize: 10,
-          fontWeight: 800,
+          fontWeight: 700,
           color: '#475569',
-          letterSpacing: '0.5px',
+          letterSpacing: '0.3px',
           display: 'block',
-          marginBottom: 8,
+          marginBottom: 4,
         }}
       >
         {label}
       </label>
       {instructions ? (
-        <p style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 16 }}>{instructions}</p>
+        <p style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 10 }}>{instructions}</p>
       ) : null}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {options.map((opt) => {
           const selected = fundsSource.includes(opt.key);
           return (
@@ -112,22 +112,22 @@ export function KycFundsSourceGroup({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 14,
+                gap: 10,
                 cursor: 'pointer',
-                padding: '10px 14px',
-                borderRadius: 8,
+                padding: '5px 10px',
+                borderRadius: 4,
                 border: selected ? `1px solid ${primary}` : '1px solid transparent',
-                background: selected ? `${primary}08` : 'transparent',
-                transition: '0.2s',
+                background: selected ? `${primary}06` : 'transparent',
+                transition: '0.15s',
               }}
             >
               <input
                 type="checkbox"
                 checked={selected}
                 onChange={() => onToggle(opt.key)}
-                style={{ width: 18, height: 18, accentColor: primary }}
+                style={{ width: 15, height: 15, accentColor: primary }}
               />
-              <span style={{ fontSize: 14, fontWeight: selected ? 700 : 500, color: '#1e293b' }}>
+              <span style={{ fontSize: 13, fontWeight: selected ? 700 : 500, color: '#1e293b' }}>
                 {getOptionLabel(opt)}
               </span>
             </label>
@@ -139,19 +139,19 @@ export function KycFundsSourceGroup({
 }
 
 export const kycFormSharedStyles = (primary = KYC_PRIMARY) => `
-  .expert-input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 13px; font-weight: 500; }
-  .expert-input:focus { border-color: ${primary}; box-shadow: 0 0 0 4px ${primary}15; }
-  .expert-group { display: flex; flex-direction: column; gap: 6px; }
-  .expert-group label { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 0.5px; }
-  .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 12px 18px; border-radius: 12px; font-size: 12px; font-weight: 600; display: flex; align-items: flex-start; gap: 12px; }
-  .expert-hint { font-size: 12px; color: #64748b; font-style: italic; font-weight: 500; }
-  .poa-question-box { background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 18px; }
-  .poa-question-text { font-size: 13px; color: #0c4a6e; margin-bottom: 12px; }
-  .poa-check-row { display: flex; gap: 24px; flex-wrap: wrap; }
-  .poa-check-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; }
-  .poa-radio { width: 18px; height: 18px; accent-color: #0e7490; cursor: pointer; }
-  .expert-btn-primary { padding: 12px 25px; background: ${primary}; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  .expert-btn-nav { padding: 12px 25px; background: #f1f5f9; color: #475569; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  .expert-btn-save { padding: 10px 20px; background: white; color: ${primary}; border: 1.5px solid ${primary}; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; }
-  .expert-btn-finish { padding: 12px 25px; background: #16a34a; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .expert-input { width: 100%; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; }
+  .expert-input:focus { border-color: ${primary}; box-shadow: 0 0 0 2px ${primary}12; }
+  .expert-group { display: flex; flex-direction: column; gap: 3px; }
+  .expert-group label { font-size: 10px; font-weight: 700; color: #475569; letter-spacing: 0.3px; }
+  .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+  .expert-hint { font-size: 11px; color: #64748b; font-style: italic; font-weight: 500; }
+  .poa-question-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 10px 12px; }
+  .poa-question-text { font-size: 12px; color: #0c4a6e; margin-bottom: 8px; }
+  .poa-check-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .poa-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #334155; cursor: pointer; }
+  .poa-radio { width: 15px; height: 15px; accent-color: #0e7490; cursor: pointer; }
+  .expert-btn-primary { padding: 8px 18px; background: ${primary}; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .expert-btn-nav { padding: 8px 18px; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .expert-btn-save { padding: 7px 16px; background: white; color: ${primary}; border: 1.5px solid ${primary}; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .expert-btn-finish { padding: 8px 18px; background: #16a34a; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; }
 `;

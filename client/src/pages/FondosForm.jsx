@@ -131,8 +131,8 @@ const FondosForm = () => {
 
 
     const renderStep = () => {
-        const headerStyle = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: '35px', borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' };
-        const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' };
+        const headerStyle = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: '16px', borderBottom: '1px solid #e8edf2', paddingBottom: '10px' };
+        const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' };
         const getErrorStyle = (field) => validationErrors.includes(field) ? { borderColor: '#ef4444', boxShadow: '0 0 0 4px #ef444415' } : {};
 
         switch(step) {
@@ -140,13 +140,13 @@ const FondosForm = () => {
                 return (
                     <div className="corporate-step">
                         <div style={headerStyle}>
-                            <div style={{ padding: '8px', background: `${PRIMARY_COLOR}11`, borderRadius: '8px', color: PRIMARY_COLOR }}>
-                                <Building size={20} />
+                            <div style={{ padding: '5px', background: `${PRIMARY_COLOR}0a`, borderRadius: '4px', color: PRIMARY_COLOR }}>
+                                <Building size={18} />
                             </div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step1')} {editId && <span style={{ color: '#22c55e', fontSize: '12px', marginLeft: 10 }}>{t('fondos.editing')}</span>}</h2>
+                            <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('fondos.step1')} {editId && <span style={{ color: '#22c55e', fontSize: '11px', marginLeft: 6 }}>{t('fondos.editing')}</span>}</h2>
                         </div>
                         
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
                                 <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="off" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
@@ -155,7 +155,7 @@ const FondosForm = () => {
                                 <label style={labelStyle}>{t('fondos.activities')}</label>
                                 <textarea className="corporate-input" style={getErrorStyle('activities')} rows={3} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'activities')); }} />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.country')}</label>
                                     <input className="corporate-input" style={getErrorStyle('country')} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
@@ -165,7 +165,7 @@ const FondosForm = () => {
                                     <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="off" value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
                                     <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
@@ -181,18 +181,18 @@ const FondosForm = () => {
                             </div>
                         </div>
                         {validationErrors.length > 0 && (
-                            <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '10px', marginTop: '20px', border: '1px solid #fee2e2' }}>
-                                <p style={{ color: '#ef4444', fontSize: '13px', fontWeight: 700, margin: 0 }}>
+                            <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '6px', marginTop: '12px', border: '1px solid #fee2e2' }}>
+                                <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, margin: 0 }}>
                                     {t('fondos.validationTitle')}
                                 </p>
-                                <ul style={{ margin: '8px 0 0', paddingLeft: '20px', color: '#b91c1c', fontSize: '12px', fontWeight: 600 }}>
+                                <ul style={{ margin: '4px 0 0', paddingLeft: '16px', color: '#b91c1c', fontSize: '11px', fontWeight: 600 }}>
                                     {validationErrors.map(err => {
                                         return <li key={err}>{t(`fondos.fields.${err}`)}</li>;
                                     })}
                                 </ul>
                             </div>
                         )}
-                        <button onClick={handleNext} className="corporate-btn-primary" style={{ marginTop: '40px' }}>
+                        <button onClick={handleNext} className="corporate-btn-primary" style={{ marginTop: '18px' }}>
                             {t('common.next')} <ChevronRight size={18} />
                         </button>
                     </div>
@@ -201,18 +201,18 @@ const FondosForm = () => {
                 return (
                     <div className="corporate-step">
                          <div style={headerStyle}>
-                            <div style={{ padding: '8px', background: `${PRIMARY_COLOR}11`, borderRadius: '8px', color: PRIMARY_COLOR }}>
-                                <Wallet size={20} />
+                            <div style={{ padding: '5px', background: `${PRIMARY_COLOR}0a`, borderRadius: '4px', color: PRIMARY_COLOR }}>
+                                <Wallet size={18} />
                             </div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step2')}</h2>
+                            <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('fondos.step2')}</h2>
                         </div>
-              <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: validationErrors.includes('fundsSource') ? '2px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '25px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 4px #ef444415' : 'none' }}>
-                            <p style={{ fontSize: '13px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '20px' }}>{t('fondos.fundsInstructions')}</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '6px', border: validationErrors.includes('fundsSource') ? '1.5px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '12px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 2px #ef444412' : 'none' }}>
+                            <p style={{ fontSize: '12px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '10px' }}>{t('fondos.fundsInstructions')}</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 {['bienes', 'inversiones', 'negocios', 'prestamos', 'herencia', 'otras'].map(fKey => (
-                                    <label key={fKey} style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '10px 15px', borderRadius: '8px', border: formData.fundsSource.includes(fKey) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(fKey) ? `${PRIMARY_COLOR}08` : 'transparent', transition: '0.2s' }}>
-                                        <input type="checkbox" checked={formData.fundsSource.includes(fKey)} onChange={() => toggleFund(fKey)} style={{ width: '18px', height: '18px', accentColor: PRIMARY_COLOR }} />
-                                        <span style={{ fontSize: '14px', fontWeight: formData.fundsSource.includes(fKey) ? 700 : 500, color: '#1e293b' }}>{t(`fondos.sources.${fKey}`)}</span>
+                                    <label key={fKey} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '6px 10px', borderRadius: '4px', border: formData.fundsSource.includes(fKey) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(fKey) ? `${PRIMARY_COLOR}06` : 'transparent', transition: '0.15s' }}>
+                                        <input type="checkbox" checked={formData.fundsSource.includes(fKey)} onChange={() => toggleFund(fKey)} style={{ width: '15px', height: '15px', accentColor: PRIMARY_COLOR }} />
+                                        <span style={{ fontSize: '13px', fontWeight: formData.fundsSource.includes(fKey) ? 700 : 500, color: '#1e293b' }}>{t(`fondos.sources.${fKey}`)}</span>
                                     </label>
                                 ))}
                             </div>
@@ -223,10 +223,10 @@ const FondosForm = () => {
                             <input className="corporate-input" autoComplete="off" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} />
                         </div>
 
-                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.fundsError')}</p>}
-                        <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
-                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> {t('common.back')}</button>
-                            <button onClick={handleNext} className="corporate-btn-primary" style={{ flex: 1 }}>{t('common.continue')} <ChevronRight size={18} /></button>
+                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '11px', fontWeight: 700, marginTop: '10px' }}>{t('fondos.fundsError')}</p>}
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={16} /> {t('common.back')}</button>
+                            <button onClick={handleNext} className="corporate-btn-primary" style={{ flex: 1 }}>{t('common.continue')} <ChevronRight size={16} /></button>
                         </div>
                     </div>
                 );
@@ -234,12 +234,12 @@ const FondosForm = () => {
                 return (
                     <div className="corporate-step">
                          <div style={headerStyle}>
-                            <div style={{ padding: '8px', background: `${PRIMARY_COLOR}11`, borderRadius: '8px', color: PRIMARY_COLOR }}>
-                                <Shield size={20} />
+                            <div style={{ padding: '5px', background: `${PRIMARY_COLOR}0a`, borderRadius: '4px', color: PRIMARY_COLOR }}>
+                                <Shield size={18} />
                             </div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('fondos.step3')}</h2>
+                            <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('fondos.step3')}</h2>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyName')}</label>
                                 <input 
@@ -254,7 +254,7 @@ const FondosForm = () => {
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
                                     <input type="text" className="corporate-input" style={getErrorStyle('custodyPhone')} autoComplete="off" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
@@ -268,7 +268,7 @@ const FondosForm = () => {
                                 <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
                                 <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.signerName')}</label>
                                     <input 
@@ -286,10 +286,10 @@ const FondosForm = () => {
                             </div>
                         </div>
 
-                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '20px' }}>{t('fondos.custodyError')}</p>}
-                        <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
-                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={18} /> {t('common.back')}</button>
-                            <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '16px' }} disabled={loading}>
+                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '11px', fontWeight: 700, marginTop: '10px' }}>{t('fondos.custodyError')}</p>}
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+                            <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={16} /> {t('common.back')}</button>
+                            <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '9px 18px' }} disabled={loading}>
                                 <Save size={18} /> {loading ? t('common.saving') : t('fondos.finish')}
                             </button>
                         </div>
@@ -297,12 +297,12 @@ const FondosForm = () => {
                 );
             case 4:
                 return (
-                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                        <div style={{ width: '72px', height: '72px', background: '#ecfdf5', color: '#10b981', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 30px', border: '1px solid #d1fae5' }}>
-                            <Check size={36} />
+                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                        <div style={{ width: '56px', height: '56px', background: '#ecfdf5', color: '#10b981', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', border: '1px solid #d1fae5' }}>
+                            <Check size={28} />
                         </div>
-                         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>{t('fondos.validatedTitle')}</h2>
-                        <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>{t('fondos.validatedBody')}</p>
+                         <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>{t('fondos.validatedTitle')}</h2>
+                        <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px', maxWidth: '400px', margin: '0 auto 20px' }}>{t('fondos.validatedBody')}</p>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px', margin: '0 auto' }}>
                             <button onClick={() => navigate('/dashboard')} className="corporate-btn-primary">
@@ -318,8 +318,8 @@ const FondosForm = () => {
     return (
         <div className="corporate-page">
             <div className="corporate-card">
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px' }}>{t('fondos.management')}</div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{t('fondos.management')}</div>
                     <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }}><X size={24} /></button>
                 </div>
                 
@@ -347,12 +347,12 @@ const FondosForm = () => {
             </div>
 
             <style>{`
-                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 5px; }
-                .standard-step-title { font-size: 14px; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; }
-                .standard-step-badge { font-size: 11px; font-weight: 900; color: ${PRIMARY_COLOR}; background: ${PRIMARY_COLOR}15; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
+                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
+                .standard-step-title { font-size: 12px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 10px; font-weight: 800; color: ${PRIMARY_COLOR}; background: ${PRIMARY_COLOR}12; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
 
-                .standard-progress-stepper { display: flex; gap: 8px; margin-bottom: 40px; }
-                .standard-progress-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 10px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+                .standard-progress-stepper { display: flex; gap: 4px; margin-bottom: 18px; }
+                .standard-progress-bar { flex: 1; height: 3px; background: #e2e8f0; border-radius: 3px; transition: all 0.3s ease; }
                 .standard-progress-bar.active { background: ${PRIMARY_COLOR}; }
 
                 .corporate-page {
@@ -361,7 +361,7 @@ const FondosForm = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    padding: 40px;
+                    padding: 20px;
                     font-family: 'Inter', system-ui, sans-serif;
                 }
                 .corporate-card {
@@ -369,23 +369,23 @@ const FondosForm = () => {
                     max-width: 750px;
                     background: white;
                     border: 1px solid #e2e8f0;
-                    border-radius: 24px;
-                    padding: 50px;
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+                    border-radius: 10px;
+                    padding: 28px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
                 }
                 .corporate-input {
                     width: 100%;
                     border: 1.5px solid #e2e8f0;
-                    border-radius: 10px;
-                    padding: 14px 18px;
-                    font-size: 15px;
+                    border-radius: 4px;
+                    padding: 7px 10px;
+                    font-size: 13px;
                     color: #1e293b;
                     outline: none;
-                    transition: all 0.2s;
+                    transition: all 0.15s;
                 }
                 .corporate-input:focus {
                     border-color: ${PRIMARY_COLOR};
-                    box-shadow: 0 0 0 4px ${PRIMARY_COLOR}15;
+                    box-shadow: 0 0 0 2px ${PRIMARY_COLOR}12;
                     background: white;
                 }
                 .corporate-btn-primary {
@@ -393,34 +393,35 @@ const FondosForm = () => {
                     background: ${PRIMARY_COLOR};
                     color: white;
                     border: none;
-                    border-radius: 12px;
-                    padding: 16px;
+                    border-radius: 6px;
+                    padding: 9px 18px;
                     font-weight: 700;
-                    font-size: 16px;
+                    font-size: 13px;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 10px;
-                    transition: all 0.2s;
-                    box-shadow: 0 10px 15px -3px ${PRIMARY_COLOR}33;
+                    gap: 6px;
+                    transition: all 0.15s;
+                    box-shadow: 0 2px 6px ${PRIMARY_COLOR}25;
                 }
                 .corporate-btn-primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 15px 20px -5px ${PRIMARY_COLOR}44;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px ${PRIMARY_COLOR}30;
                 }
                 .corporate-btn-secondary {
                     background: white;
                     border: 1.5px solid #e2e8f0;
                     color: #64748b;
-                    padding: 14px 30px;
-                    border-radius: 12px;
+                    padding: 8px 18px;
+                    border-radius: 6px;
                     font-weight: 700;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
-                    gap: 10px;
-                    transition: all 0.2s;
+                    gap: 6px;
+                    transition: all 0.15s;
+                    font-size: 13px;
                 }
                 .corporate-btn-secondary:hover {
                     border-color: #cbd5e1;
@@ -430,14 +431,15 @@ const FondosForm = () => {
                     flex: 1;
                     color: white;
                     border: none;
-                    border-radius: 12px;
+                    border-radius: 6px;
                     font-weight: 700;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 10px;
-                    transition: all 0.2s;
+                    gap: 6px;
+                    transition: all 0.15s;
+                    font-size: 13px;
                 }
             `}</style>
         </div>

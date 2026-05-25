@@ -234,16 +234,16 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <h2 className="expert-step-title"><Building size={22} color={PRIMARY} /> {t('corporacion.steps.societyInfo') || 'Información de la Sociedad'}</h2>
             
-            <div className="expert-hint-box" style={{ marginBottom: '25px', display: 'flex', gap: '12px', alignItems: 'flex-start', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: '8px', padding: '15px' }}>
-                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '13px', color: '#1e293b', lineHeight: '1.5' }}>
+            <div className="expert-hint-box" style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'flex-start', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '6px', padding: '8px 12px' }}>
+                <Info size={16} color="#0369a1" style={{ flexShrink: 0, marginTop: '1px' }} />
+                <div style={{ fontSize: '12px', color: '#1e293b', lineHeight: '1.4' }}>
                     <strong>
                         {lang === 'en'
                             ? 'List the names you wish to use to incorporate your corporation in order of preference.'
                             : 'Listar los nombres que desea utilizar para incorporar su compañía en orden de preferencia.'
                         }
                     </strong>
-                    <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#475569' }}>
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#475569' }}>
                         {lang === 'en'
                             ? 'The name of the Company must be determined by one of the following terminations: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.'
                             : 'El nombre de la Compañía debe terminar con una de las siguientes terminaciones: Corporation, Incorporated, Société Anonyme, Sociedad Anónima, Corp., Inc., S.A., A/S, N.V., B.V., AG.'
@@ -431,9 +431,9 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const renderStep5 = () => (
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
             <h2 className="expert-step-title"><FileCheck size={22} color={PRIMARY} /> {t('corporacion.steps.finalization')}</h2>
-            <div className="expert-field full-width" style={{ marginBottom: '30px' }}>
+            <div className="expert-field full-width" style={{ marginBottom: '14px' }}>
                 <label>{lang === 'en' ? 'Company Activities / Purpose' : 'Actividades y Objeto Social de la Compañía'}</label>
-                <div className="expert-hint" style={{ marginBottom: '10px' }}>
+                <div className="expert-hint" style={{ marginBottom: '4px' }}>
                     {lang === 'en'
                         ? "Please provide an explanation of the corporation's activities."
                         : 'Favor provea una explicación de la actividad de la sociedad.'
@@ -443,8 +443,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             </div>
 
             <div className="expert-legal-box">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 900, color: SECONDARY, margin: 0 }}>{lang === 'en' ? 'Declaration / Sworn Affidavit' : 'Declaración / Declaración Jurada'}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: SECONDARY, margin: 0 }}>{lang === 'en' ? 'Declaration / Sworn Affidavit' : 'Declaración / Declaración Jurada'}</h3>
                     <button onClick={addSigner} className="expert-btn-add-white"><Plus size={16} /> {t('corporacion.fields.addSigner') || (lang === 'en' ? 'ADD SIGNER' : 'AGREGAR FIRMANTE')}</button>
                 </div>
                 <p className="expert-legal-text">
@@ -455,30 +455,30 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </p>
                 
                 {formData.signers.map((s, i) => (
-                    <div key={i} style={{ marginTop: '20px', padding: '25px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', position: 'relative' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 900, color: PRIMARY, letterSpacing: '0.5px' }}>{lang === 'en' ? `SIGNER #${i+1}` : `FIRMANTE #${i+1}`}</span>
+                    <div key={i} style={{ marginTop: '10px', padding: '14px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', position: 'relative' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: PRIMARY, letterSpacing: '0.3px' }}>{lang === 'en' ? `SIGNER #${i+1}` : `FIRMANTE #${i+1}`}</span>
                             {formData.signers.length > 1 && (
-                                <button onClick={() => removeSigner(i)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button onClick={() => removeSigner(i)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <Trash2 size={13} /> {lang === 'en' ? 'REMOVE' : 'ELIMINAR'}
                                 </button>
                             )}
                         </div>
                         <div className="expert-grid">
                             <div className="expert-field full-width">
-                                <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
+                                <label style={{ color: '#64748b', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
                                 <input className="expert-input-legal" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
                             </div>
                             <div className="expert-field full-width">
-                                <label style={{ color: '#64748b', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
+                                <label style={{ color: '#64748b', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
                                 <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} />
                             </div>
                         </div>
                     </div>
                 ))}
                 
-                <div className="expert-field" style={{ marginTop: '25px' }}>
-                    <label style={{ color: '#475569', fontWeight: 800, fontSize: '11px' }}>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaración'}</label>
+                <div className="expert-field" style={{ marginTop: '12px' }}>
+                    <label style={{ color: '#475569', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaración'}</label>
                     <input type="date" className="expert-input-legal" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
                 </div>
             </div>
@@ -538,67 +538,66 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
 
 
             <style>{`
-                .expert-container { width: 100%; maxWidth: 900px; margin: 0 auto; padding: 20px 0 80px; font-family: 'Inter', sans-serif; }
-                .expert-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
-                .expert-title { font-size: 26px; font-weight: 900; color: ${SECONDARY}; margin: 0; letter-spacing: -1px; }
-                .expert-subtitle { font-size: 13px; color: #64748b; margin: 5px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+                .expert-container { width: 100%; max-width: 900px; margin: 0 auto; padding: 12px 0 40px; font-family: 'Inter', sans-serif; }
+                .expert-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; }
+                .expert-title { font-size: 20px; font-weight: 800; color: ${SECONDARY}; margin: 0; letter-spacing: -0.5px; }
+                .expert-subtitle { font-size: 11px; color: #64748b; margin: 3px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
                 
-                .expert-btn-save-master { padding: 12px 24px; background: white; color: ${PRIMARY}; border: 2.5px solid ${PRIMARY}; border-radius: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; font-size: 13px; }
-                .expert-btn-save-master:hover { background: ${PRIMARY}; color: white; transform: translateY(-2px); box-shadow: 0 10px 20px ${PRIMARY}30; }
+                .expert-btn-save-master { padding: 7px 16px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-size: 12px; }
+                .expert-btn-save-master:hover { background: ${PRIMARY}; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px ${PRIMARY}30; }
 
-                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 5px; }
-                .standard-step-title { font-size: 14px; font-weight: 800; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
-                .standard-step-badge { font-size: 11px; font-weight: 900; color: ${PRIMARY}; background: ${PRIMARY}15; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
+                .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
+                .standard-step-title { font-size: 12px; font-weight: 700; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 10px; font-weight: 800; color: ${PRIMARY}; background: ${PRIMARY}12; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
 
-                .standard-progress-stepper { display: flex; gap: 8px; margin-bottom: 40px; }
-                .standard-progress-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 10px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+                .standard-progress-stepper { display: flex; gap: 4px; margin-bottom: 18px; }
+                .standard-progress-bar { flex: 1; height: 3px; background: #e2e8f0; border-radius: 3px; transition: all 0.3s ease; }
                 .standard-progress-bar.active { background: ${PRIMARY}; }
 
-                .expert-main-panel { background: white; border-radius: 24px; padding: 45px; border: 1px solid #e2e8f0; box-shadow: 0 10px 40px rgba(0,0,0,0.03); }
-                .expert-step-title { font-size: 17px; font-weight: 900; color: ${SECONDARY}; margin: 0 0 25px; display: flex; align-items: center; gap: 12px; }
+                .expert-main-panel { background: white; border-radius: 10px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+                .expert-step-title { font-size: 14px; font-weight: 700; color: ${SECONDARY}; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
                 
-                .expert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                .expert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
                 .full-width { grid-column: span 2; }
-                .expert-field { display: flex; flex-direction: column; gap: 8px; }
-                .expert-field label { font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 0.5px; }
+                .expert-field { display: flex; flex-direction: column; gap: 3px; }
+                .expert-field label { font-size: 10.5px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; }
                 
-                .expert-input { width: 100%; padding: 14px 18px; border: 2.5px solid #f1f5f9; border-radius: 14px; outline: none; font-size: 14px; font-weight: 600; color: ${SECONDARY}; transition: all 0.2s; background: #f8fafc; }
-                .expert-input:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 4px ${PRIMARY}10; }
+                .expert-input { width: 100%; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; color: ${SECONDARY}; transition: all 0.15s; background: #fafbfc; }
+                .expert-input:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px ${PRIMARY}12; }
 
-                .expert-hint { font-size: 12px; color: #64748b; font-style: italic; font-weight: 500; }
-                .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 12px 18px; border-radius: 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 12px; margin-bottom: 25px; }
+                .expert-hint { font-size: 11px; color: #64748b; font-style: italic; font-weight: 500; }
+                .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; line-height: 1.4; }
 
-                .expert-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-                .expert-btn-add { padding: 10px 18px; background: ${PRIMARY}10; color: ${PRIMARY}; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 11px; transition: 0.2s; }
-                .expert-btn-add:hover { background: ${PRIMARY}; color: white; transform: scale(1.03); }
+                .expert-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+                .expert-btn-add { padding: 5px 12px; background: ${PRIMARY}0a; color: ${PRIMARY}; border: 1px solid ${PRIMARY}30; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 11px; transition: 0.15s; }
+                .expert-btn-add:hover { background: ${PRIMARY}; color: white; }
 
-                .expert-card-legal { background: #fcfdfe; border: 2px solid #f1f5f9; border-radius: 20px; padding: 30px; position: relative; margin-bottom: 25px; }
-                .expert-card-label { position: absolute; top: -10px; left: 25px; background: ${SECONDARY}; color: white; font-size: 9px; font-weight: 900; padding: 5px 14px; border-radius: 20px; }
-                .expert-btn-remove { position: absolute; top: 15px; right: 15px; color: #ef4444; background: #fee2e2; border: none; padding: 8px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+                .expert-card-legal { background: #fafbfc; border: 1.5px solid #e8edf2; border-radius: 8px; padding: 16px; position: relative; margin-bottom: 12px; }
+                .expert-card-label { position: absolute; top: -8px; left: 16px; background: ${SECONDARY}; color: white; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.3px; }
+                .expert-btn-remove { position: absolute; top: 8px; right: 8px; color: #ef4444; background: #fee2e2; border: none; padding: 5px; border-radius: 4px; cursor: pointer; transition: 0.15s; }
                 .expert-btn-remove:hover { transform: rotate(90deg); }
 
-                .expert-legal-box { background: #f8fafc; border: 2.5px dashed #cbd5e1; border-radius: 20px; padding: 35px; color: ${SECONDARY}; margin-top: 30px; }
-                .expert-legal-text { font-size: 13px; line-height: 1.6; color: #334155; margin-bottom: 25px; font-style: italic; border-left: 4px solid ${PRIMARY}; padding: 15px 20px; background: #eff6ff; border-radius: 8px; font-weight: 500; }
-                .expert-btn-add-white { background: ${PRIMARY}10; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}30; padding: 10px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 11px; transition: all 0.2s; }
-                .expert-btn-add-white:hover { background: ${PRIMARY}; color: white; transform: scale(1.02); }
-                .expert-input-legal { width: 100%; padding: 14px 18px; border: 2.5px solid #e2e8f0; border-radius: 12px; background: white; color: ${SECONDARY}; outline: none; font-size: 14px; font-weight: 600; transition: all 0.2s; }
-                .expert-input-legal:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 4px ${PRIMARY}10; }
+                .expert-legal-box { background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 8px; padding: 18px; color: ${SECONDARY}; margin-top: 16px; }
+                .expert-legal-text { font-size: 12px; line-height: 1.5; color: #334155; margin-bottom: 12px; font-style: italic; border-left: 3px solid ${PRIMARY}; padding: 8px 12px; background: #eff6ff; border-radius: 4px; font-weight: 500; }
+                .expert-btn-add-white { background: ${PRIMARY}0a; color: ${PRIMARY}; border: 1px solid ${PRIMARY}30; padding: 5px 12px; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 11px; transition: all 0.15s; }
+                .expert-btn-add-white:hover { background: ${PRIMARY}; color: white; }
+                .expert-input-legal { width: 100%; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 4px; background: white; color: ${SECONDARY}; outline: none; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+                .expert-input-legal:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px ${PRIMARY}12; }
 
-
-                .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 30px; border-top: 2px solid #f1f5f9; }
-                .expert-btn-nav-prev { padding: 14px 28px; background: #f8fafc; color: #64748b; border: 2px solid #e2e8f0; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; font-size: 13px; }
+                .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 14px; border-top: 1px solid #e8edf2; }
+                .expert-btn-nav-prev { padding: 8px 18px; background: #f8fafc; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.15s; font-size: 12px; }
                 .expert-btn-nav-prev:hover:not(:disabled) { background: #f1f5f9; }
-                .expert-btn-nav-next { padding: 14px 28px; background: ${PRIMARY}; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px ${PRIMARY}30; transition: 0.3s; font-size: 13px; }
-                .expert-btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 15px 30px ${PRIMARY}40; }
-                .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
+                .expert-btn-nav-next { padding: 8px 18px; background: ${PRIMARY}; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px ${PRIMARY}25; transition: 0.15s; font-size: 12px; }
+                .expert-btn-nav-next:hover { transform: translateY(-1px); box-shadow: 0 4px 12px ${PRIMARY}30; }
+                .expert-btn-nav-finish { padding: 8px 18px; background: #16a34a; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); transition: 0.15s; font-size: 12px; }
 
-                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white; border: 2px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-height: 220px; overflow-y: auto; margin-top: 4px; }
-                .corp-autocomplete-item { padding: 10px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white; border: 1.5px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; margin-top: 2px; }
+                .corp-autocomplete-item { padding: 7px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
                 .corp-autocomplete-item:last-child { border-bottom: none; }
                 .corp-autocomplete-item:hover { background: #f0f9ff; }
-                .corp-ac-passport { font-size: 13px; font-weight: 700; color: ${SECONDARY}; }
-                .corp-ac-name { font-size: 11px; color: #64748b; font-weight: 600; }
-                .corp-ac-detail { font-size: 11px; color: #94a3b8; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .corp-ac-passport { font-size: 12px; font-weight: 700; color: ${SECONDARY}; }
+                .corp-ac-name { font-size: 11px; color: #64748b; font-weight: 500; }
+                .corp-ac-detail { font-size: 10px; color: #94a3b8; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             `}</style>
         </div>
     );
