@@ -24,7 +24,7 @@
   },
   "corporacion_2025": {
     "template": "corporacion.pdf",
-    "header": { "logo_x": 450, "logo_y": 30, "title_y": 70 },
+    "header": { "logo_x": 42, "logo_y": 28, "title_y": 68 },
     "company_section": {
         "x_label": 50,
         "x_value": 230,

@@ -41,17 +41,19 @@ function toDataUri(filePath) {
 function buildDirectorsRows(directors) {
   return directors.map((d, i) => `
     <tr>
-      <td>${i + 1}</td>
-      <td>${esc([d.firstName, d.secondName, d.lastName].filter(Boolean).join(' '))}</td>
-      <td>${esc(fmtDate(d.birthDate))}</td>
-      <td>${esc(d.maritalStatus)}</td>
-      <td>${esc(d.nationality)}</td>
-      <td>${esc(d.passport)}</td>
-      <td>${esc(d.phone)}</td>
-      <td>${esc(d.email)}</td>
-      <td>${esc(d.address)}</td>
-      <td>${esc(d.city)}</td>
-      <td>${esc(d.country)}</td>
+      <td class="col-num">${i + 1}</td>
+      <td class="col-name">${esc(d.firstName || '')}</td>
+      <td class="col-mid">${esc(d.secondName || '')}</td>
+      <td class="col-surname">${esc(d.lastName || '')}</td>
+      <td class="col-birth">${esc(fmtDate(d.birthDate))}</td>
+      <td class="col-marital">${esc(d.maritalStatus || '')}</td>
+      <td class="col-nat">${esc(d.nationality || '')}</td>
+      <td class="col-passport">${esc(d.passport || '')}</td>
+      <td class="col-phone">${esc(d.phone || '')}</td>
+      <td class="col-email">${esc(d.email || '')}</td>
+      <td class="col-addr">${esc(d.address || '')}</td>
+      <td class="col-city">${esc(d.city || '')}</td>
+      <td class="col-country">${esc(d.country || '')}</td>
     </tr>
   `).join('');
 }
@@ -151,22 +153,44 @@ class CorporacionHtmlPdfService {
           </table>
         </section>
 
-        <section class="card">
+        <section class="card directors-card">
           <h2>${esc(t.sectionDirectors)}</h2>
           <div class="hint">${esc(t.sectionDirectorsHint)}</div>
-          <table>
+          <table class="directors-table">
+            <colgroup>
+              <col style="width:3%"/>
+              <col style="width:9%"/>
+              <col style="width:7%"/>
+              <col style="width:10%"/>
+              <col style="width:7%"/>
+              <col style="width:7%"/>
+              <col style="width:7%"/>
+              <col style="width:8%"/>
+              <col style="width:9%"/>
+              <col style="width:12%"/>
+              <col style="width:11%"/>
+              <col style="width:6%"/>
+              <col style="width:6%"/>
+            </colgroup>
             <thead>
               <tr>
-                <th>${esc(t.dirNum)}</th><th>${esc(t.dirFullName)}</th><th>${esc(t.dirBirthDate)}</th><th>${esc(t.dirMarital)}</th><th>${esc(t.dirNationality)}</th><th>${esc(t.dirPassport)}</th><th>${esc(t.dirPhone)}</th><th>${esc(t.dirEmail)}</th><th>${esc(t.dirAddress)}</th><th>${esc(t.dirCity)}</th><th>${esc(t.dirCountry)}</th>
+                <th>#</th><th>${esc(t.dirFirstName || 'First Name')}</th><th>${esc(t.dirMiddleName || 'Middle')}</th><th>${esc(t.dirSurnames || 'Surnames')}</th><th>${esc(t.dirBirthDate)}</th><th>${esc(t.dirMarital)}</th><th>${esc(t.dirNationality)}</th><th>${esc(t.dirPassport)}</th><th>${esc(t.dirPhone)}</th><th>${esc(t.dirEmail)}</th><th>${esc(t.dirAddress)}</th><th>${esc(t.dirCity)}</th><th>${esc(t.dirCountry)}</th>
               </tr>
             </thead>
             <tbody>${buildDirectorsRows(directors)}</tbody>
           </table>
         </section>
 
-        <section class="card">
+        <section class="card officers-card">
           <h2>${esc(t.sectionOfficers)}</h2>
-          <table>
+          <table class="officers-table">
+            <colgroup>
+              <col style="width:14%"/>
+              <col style="width:30%"/>
+              <col style="width:16%"/>
+              <col style="width:20%"/>
+              <col style="width:20%"/>
+            </colgroup>
             <thead><tr><th>${esc(t.officerPosition)}</th><th>${esc(t.officerFullName)}</th><th>${esc(t.officerBirthDate)}</th><th>${esc(t.officerPassport)}</th><th>${esc(t.officerRegNumber)}</th></tr></thead>
             <tbody>
               ${buildDignitariesRows(dignitaries, fmtDate)}
@@ -175,9 +199,17 @@ class CorporacionHtmlPdfService {
         </section>
 
 
-        <section class="card">
+        <section class="card shareholders-card">
           <h2>${esc(t.sectionShareholders)}</h2>
-          <table>
+          <table class="shareholders-table">
+            <colgroup>
+              <col style="width:5%"/>
+              <col style="width:14%"/>
+              <col style="width:11%"/>
+              <col style="width:10%"/>
+              <col style="width:28%"/>
+              <col style="width:32%"/>
+            </colgroup>
             <thead><tr><th>${esc(t.shNum)}</th><th>${esc(t.shCertificate)}</th><th>${esc(t.shValue)}</th><th>${esc(t.shCount)}</th><th>${esc(t.shName)}</th><th>${esc(t.shAddress)}</th></tr></thead>
             <tbody>${buildShareholdersRows(shareholders)}</tbody>
           </table>
@@ -211,33 +243,29 @@ class CorporacionHtmlPdfService {
         <head>
           <meta charset="utf-8" />
           <style>
-            /*
-             * Márgenes en @page (top right bottom left): se aplican en **cada** hoja al generar PDF.
-             * page.pdf({ margin: 0 }) evita doble margen; preferCSSPageSize true respeta esta regla.
-             */
             @page { size: A4; margin: ${pageMarginCss}; }
             html, body { margin: 0; padding: 0; }
-            body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 9.5px; }
             .doc-body {
               padding: 0;
               margin: 0;
               box-sizing: border-box;
             }
             .first-page-title { text-align: center; margin: 0 0 6px 0; }
-            .first-page-title h1 { margin: 0; color: #0369a1; font-size: 20px; line-height: 1.02; font-weight: 800; }
-            .first-page-title h2 { margin: 0; color: #0369a1; font-size: 16px; line-height: 1.02; font-weight: 800; }
-            .card { border: 1px solid #7dd3fc; margin: 8px 0; page-break-inside: auto; break-inside: auto; }
-            .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
-            .hint { padding: 4px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.25; }
-            .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
+            .first-page-title h1 { margin: 0; color: #0369a1; font-size: 18px; line-height: 1.1; font-weight: 800; }
+            .first-page-title h2 { margin: 0; color: #0369a1; font-size: 14px; line-height: 1.1; font-weight: 800; }
+            .card { border: 1px solid #7dd3fc; margin: 6px 0; page-break-inside: auto; break-inside: auto; }
+            .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 5px 8px; font-size: 11px; }
+            .hint { padding: 3px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; font-size: 8px; line-height: 1.2; }
+            .grid3, .grid2 { display: grid; gap: 6px; padding: 6px 8px; }
             .grid3 { grid-template-columns: 1fr 1fr 1fr; }
             .grid2 { grid-template-columns: 1fr 1fr; }
-            label { display: block; font-weight: 700; color: #334155; margin-bottom: 2px; }
-            .value { min-height: 18px; border: 1px solid #bae6fd; padding: 4px; background: #f8fdff; word-break: break-word; }
-            .capital-table td { text-align: center; font-weight: 700; font-size: 11px; padding: 8px; }
+            label { display: block; font-weight: 700; color: #334155; margin-bottom: 1px; font-size: 8px; }
+            .value { min-height: 16px; border: 1px solid #bae6fd; padding: 3px 4px; background: #f8fdff; word-break: break-word; font-size: 9px; }
+            .capital-table { table-layout: auto; }
+            .capital-table td { text-align: center; font-weight: 700; font-size: 11px; padding: 6px 8px; }
             .tail-block { page-break-inside: avoid; break-inside: avoid; }
-            .tail-block .card { margin: 8px 0; }
-            /* Evitar que el título/ayuda de actividades queden en una página y el cuerpo en otra. */
+            .tail-block .card { margin: 6px 0; }
             .card.card--activities h2 {
               page-break-after: avoid;
               break-after: avoid;
@@ -252,11 +280,28 @@ class CorporacionHtmlPdfService {
               page-break-inside: auto;
               break-inside: auto;
             }
-            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            table { width: 100%; border-collapse: collapse; }
             thead { display: table-header-group; }
             th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
-            th { background: #ecfeff; font-size: 9px; }
-            .longtext { padding: 8px; min-height: 42px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+            th { background: #ecfeff; font-size: 7.5px; text-align: center; line-height: 1.15; }
+
+            /* Directors table: 13 columns, needs tight layout */
+            .directors-table { table-layout: fixed; font-size: 7px; }
+            .directors-table th { font-size: 6.5px; padding: 2px 1px; }
+            .directors-table td { font-size: 7px; padding: 1px 2px; line-height: 1.2; }
+            .directors-table .col-num { text-align: center; }
+
+            /* Officers table: 5 columns, comfortable */
+            .officers-table { table-layout: fixed; }
+            .officers-table th { font-size: 8px; }
+            .officers-table td { font-size: 8.5px; padding: 3px 4px; }
+
+            /* Shareholders table: 6 columns */
+            .shareholders-table { table-layout: fixed; }
+            .shareholders-table th { font-size: 8px; }
+            .shareholders-table td { font-size: 8px; padding: 2px 3px; }
+
+            .longtext { padding: 6px 8px; min-height: 36px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; font-size: 9px; }
             .card:last-child { page-break-inside: avoid; }
             ${layoutCss}
           </style>

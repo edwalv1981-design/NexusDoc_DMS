@@ -87,8 +87,8 @@ function buildPuppeteerHeaderFooterTemplates(layout, logoDataUri) {
   const padBot = layout.RUNNING_HEADER_PADDING_BOTTOM;
   const h = layout.HEADER_LOGO_H;
   const img = logoDataUri
-    ? `<img src="${escAttrHtml(logoDataUri)}" alt="" style="height:${h}px;width:auto;max-width:200px;display:block;object-fit:contain;" />`
-    : `<span style="font-size:9px;font-weight:bold;color:#94a3b8;line-height:${h}px;display:inline-block;">PANAMA TAX LAWYERS</span>`;
+    ? `<img src="${escAttrHtml(logoDataUri)}" alt="" style="height:${h}px;width:auto;max-width:180px;display:block;object-fit:contain;" />`
+    : `<span style="font-size:10px;font-weight:bold;color:#0369a1;line-height:${h}px;display:inline-block;letter-spacing:0.5px;">PANAMA TAX LAWYERS</span>`;
   /* font-size:0 evita que Chrome infle la franja por line-height del contenedor (causa solapes “mediocres”). */
   const headerTemplate = `<div style="font-size:0;line-height:0;width:100%;box-sizing:border-box;margin:0;padding:${padTop}px ${inset} ${padBot}px ${inset};text-align:left;font-family:Arial,Helvetica,sans-serif;">${img}</div>`;
   const footerTemplate =
@@ -177,13 +177,17 @@ function getAdaptiveCss(plan) {
 
   if (plan.density === 'high' || plan.density === 'very_high') {
     rules.push(`
-      body.layout-guard--compact { font-size: 9px; }
-      .layout-guard--compact .card h2 { font-size: 11px; padding: 4px 6px; }
-      .layout-guard--compact .hint { padding: 3px 6px; line-height: 1.15; }
-      .layout-guard--compact .first-page-title h1 { font-size: 18px; }
-      .layout-guard--compact .first-page-title h2 { font-size: 14px; }
-      .layout-guard--compact th, .layout-guard--compact td { padding: 1px 2px; font-size: 8px; }
-      .layout-guard--compact th { font-size: 8px; }
+      body.layout-guard--compact { font-size: 8.5px; }
+      .layout-guard--compact .card h2 { font-size: 10px; padding: 3px 6px; }
+      .layout-guard--compact .hint { padding: 2px 6px; line-height: 1.1; font-size: 7.5px; }
+      .layout-guard--compact .first-page-title h1 { font-size: 16px; }
+      .layout-guard--compact .first-page-title h2 { font-size: 13px; }
+      .layout-guard--compact .officers-table th,
+      .layout-guard--compact .officers-table td { padding: 1px 2px; font-size: 7.5px; }
+      .layout-guard--compact .shareholders-table th,
+      .layout-guard--compact .shareholders-table td { padding: 1px 2px; font-size: 7px; }
+      .layout-guard--compact .directors-table th { font-size: 6px; padding: 1px 1px; }
+      .layout-guard--compact .directors-table td { font-size: 6.5px; padding: 1px 1px; }
     `);
   }
 
@@ -298,19 +302,19 @@ function estimateMinPages(plan, data = {}) {
 /** Constantes de maquetación PDF (una sola fuente de verdad) */
 const LAYOUT = Object.freeze({
   /** Gutter izquierdo/derecho (impresión); subir si la impresora come mucho borde. */
-  H_INSET: '18mm',
-  BOTTOM_INSET: '12mm',
-  HEADER_LOGO_H: 40,
+  H_INSET: '14mm',
+  BOTTOM_INSET: '10mm',
+  HEADER_LOGO_H: 36,
   /** Espacio interno sobre la imagen dentro de la franja fija. */
-  RUNNING_HEADER_PADDING_TOP: 16,
-  RUNNING_HEADER_PADDING_BOTTOM: 18,
+  RUNNING_HEADER_PADDING_TOP: 8,
+  RUNNING_HEADER_PADDING_BOTTOM: 6,
   /** Hueco entre la franja del logo y el inicio del contenido (como antes: 4px). */
-  DOC_BODY_GAP_BELOW_HEADER: 4,
+  DOC_BODY_GAP_BELOW_HEADER: 2,
   /**
    * Colchón extra bajo el logo → `margin-top` del PDF. Evita solapes por redondeo mm/px o escala del headerTemplate.
    * Si el logo “besa” el primer bloque, subir un poco (p. ej. 16–24).
    */
-  PDF_TOP_MARGIN_BUFFER_PX: 22,
+  PDF_TOP_MARGIN_BUFFER_PX: 10,
 });
 
 module.exports = {
