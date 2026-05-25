@@ -603,14 +603,13 @@ async function getMergedSchemaResponse(
   }
   const resolvedTemplate = resolveTemplateName(templateName);
 
-  // ENFORCE ADMIN TEMPLATE GLOBALLY FOR ALL FORMS (Except 'Fondos' which is shielded and uses a master template)
+  // ENFORCE ADMIN TEMPLATE GLOBALLY FOR ALL FORMS
   const isFondos = canonicalFormType === stablePdfForms.FORM_TYPE_FONDOS_SFAR;
   
   const dbTemplate = DocumentTemplateModel ? await DocumentTemplateModel.findOne({ where: { name: resolvedTemplate } }) : null;
   const adminUploaded = dbTemplate && dbTemplate.uploadedBy;
   
-  // Si no es Fondos y no hay plantilla de administrador, bloqueamos
-  if (!isFondos && !adminUploaded) {
+  if (!adminUploaded) {
     return {
       schema: null,
       schemaSource: 'none',
@@ -660,8 +659,10 @@ async function getMergedSchemaResponse(
   }
 
   const labelMap = buildLabelMapFromTemplatesConfig(resolvedTemplate);
+  
+  // FONDOS IS NOT DYNAMIC IN THE UI, USE STATIC SCHEMA ONLY
   const uploadedSchema =
-    acroFields.length > 0
+    acroFields.length > 0 && !isFondos
       ? buildDynamicSchema(resolvedTemplate, acroFields, staticSchema, labelMap)
       : null;
 
