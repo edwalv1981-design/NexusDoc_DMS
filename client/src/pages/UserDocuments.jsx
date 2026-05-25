@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
 
-const PRIMARY = '#0078d4';
+const PRIMARY = '#0f766e';
 const RADIUS = '8px';
 const BORDER = '#e2e8f0';
 
@@ -110,13 +110,13 @@ const UserDocuments = () => {
 
   return (
     <div style={{ padding: '30px', width: '100%' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px', color: '#0f172a' }}>{t('userDocs.title')}</h2>
+      <h2 style={{ marginBottom: '20px' }}>{t('userDocs.title')}</h2>
       
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: RADIUS, padding: '15px', marginBottom: '30px', display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
-        <AlertCircle color="#0078d4" style={{ flexShrink: 0, marginTop: '2px' }} />
+      <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: RADIUS, padding: '15px', marginBottom: '30px', display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+        <AlertCircle color="#0f766e" style={{ flexShrink: 0, marginTop: '2px' }} />
         <div>
-          <h4 style={{ color: '#1e3a8a', margin: '0 0 5px 0', fontSize: '14px' }}>{t('userDocs.safeSpaceTitle')}</h4>
-          <p style={{ color: '#3b82f6', margin: 0, fontSize: '13px', lineHeight: 1.5 }}>
+          <h4 style={{ color: '#134e4a', margin: '0 0 5px 0', fontSize: '14px' }}>{t('userDocs.safeSpaceTitle')}</h4>
+          <p style={{ color: '#0f766e', margin: 0, fontSize: '13px', lineHeight: 1.5 }}>
             {t('userDocs.safeSpaceBody')}
           </p>
         </div>
@@ -183,7 +183,7 @@ const UserDocuments = () => {
                 <tbody>
                     {documents.map(doc => (
                     <tr key={doc.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                        <td style={{ padding: '12px 15px', fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
+                        <td style={{ padding: '12px 15px', fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <FileText size={16} color="#ef4444" /> {doc.filename}
                             </div>

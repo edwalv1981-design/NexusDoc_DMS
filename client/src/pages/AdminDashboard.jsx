@@ -31,7 +31,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const PRIMARY = '#0078d4';
+  const PRIMARY = '#0f766e';
   const BORDER = '#e2e8f0';
   const RADIUS = '8px';
   const RADIUS_LG = '12px';
@@ -386,7 +386,7 @@ const AdminDashboard = () => {
                             const customTemplate = templates.find((tpl) => tpl.name === type.id);
                             return (
                               <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
-                                <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{type.label}</td>
+                                <td style={{ padding: '12px', fontWeight: 700, color: '#1e293b' }}>{type.label}</td>
                                 <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     {isAvailable ? (
                                         <>
@@ -463,7 +463,7 @@ const AdminDashboard = () => {
                             fontSize: 11,
                           }}
                         >
-                          <p style={{ fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>
+                          <p style={{ fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>
                             {t('admin.detectedFieldsTitle', { count: lastDetectedFields.fieldCount ?? 0 })}
                           </p>
                           {(lastDetectedFields.fieldCount ?? 0) === 0 &&

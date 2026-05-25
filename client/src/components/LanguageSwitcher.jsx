@@ -38,7 +38,7 @@ const LanguageSwitcher = ({ variant = 'pill', dark = false }) => {
 
   const base = dark
     ? { bg: 'rgba(255,255,255,0.12)', border: 'rgba(255,255,255,0.3)', color: 'white', active: 'rgba(255,255,255,0.3)' }
-    : { bg: 'white', border: '#e2e8f0', color: '#0f172a', active: '#0078d4' };
+    : { bg: 'white', border: '#e2e8f0', color: '#1e293b', active: '#0f766e' };
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: base.bg, border: `1px solid ${base.border}`, padding: 4, borderRadius: 999 }}>

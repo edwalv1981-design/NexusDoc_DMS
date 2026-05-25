@@ -40,7 +40,7 @@ const ClientDashboard = () => {
 
     const PRIMARY = '#0f766e';
     const BG = '#f8fafc';
-    const TEXT = '#111';
+    const TEXT = '#1e293b';
     const BORDER = '#e2e8f0';
     const RADIUS = '8px';
     const RADIUS_LG = '16px';
@@ -663,7 +663,7 @@ const ClientDashboard = () => {
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
                             <Construction size={40} />
                         </div>
-                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '15px' }}>{t('dashboard.formInDev')}</h2>
+                        <h2 style={{ marginBottom: '15px' }}>{t('dashboard.formInDev')}</h2>
                         <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '30px', maxWidth: '400px', margin: '0 auto 30px' }}>
                             {t('dashboard.formInDevBody', { type: getFormTypeLabel(currentFormType, lang) })}
                         </p>

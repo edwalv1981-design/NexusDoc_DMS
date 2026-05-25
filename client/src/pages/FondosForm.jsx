@@ -300,7 +300,7 @@ const FondosForm = () => {
                         <div style={{ width: '56px', height: '56px', background: '#ecfdf5', color: '#10b981', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', border: '1px solid #d1fae5' }}>
                             <Check size={28} />
                         </div>
-                         <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>{t('fondos.validatedTitle')}</h2>
+                         <h2 style={{ marginBottom: '8px' }}>{t('fondos.validatedTitle')}</h2>
                         <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px', maxWidth: '400px', margin: '0 auto 20px' }}>{t('fondos.validatedBody')}</p>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px', margin: '0 auto' }}>

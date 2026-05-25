@@ -50,6 +50,44 @@ h3 {
   letter-spacing: 0.02em;
 }
 
+h4 {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+p {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: 0.3px;
+}
+
+table {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+
+th {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+td {
+  font-size: 13px;
+  color: var(--text);
+}
+
 button, input, textarea, select {
   font-family: inherit;
   font-size: 13px;

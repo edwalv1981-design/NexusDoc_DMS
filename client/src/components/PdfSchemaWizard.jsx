@@ -3,7 +3,7 @@ import { useT } from '../i18n';
 import API_BASE_URL from '../config';
 import { resolveCanonicalFormType } from '../utils/formWizardRouting';
 
-const PRIMARY = '#0078d4';
+const PRIMARY = '#0f766e';
 const BORDER = '#e2e8f0';
 const RADIUS = '8px';
 const RADIUS_LG = '16px';

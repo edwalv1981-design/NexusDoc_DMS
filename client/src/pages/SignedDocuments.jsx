@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
 
-const PRIMARY = '#0078d4';
+const PRIMARY = '#0f766e';
 const RADIUS = '8px';
 const BORDER = '#e2e8f0';
 
@@ -108,7 +108,7 @@ const SignedDocuments = () => {
 
   return (
     <div style={{ padding: '30px', width: '100%' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px', color: '#0f172a' }}>{t('signedDocs.title')}</h2>
+      <h2 style={{ marginBottom: '20px' }}>{t('signedDocs.title')}</h2>
       
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: RADIUS, padding: '15px', marginBottom: '30px', display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
         <CheckCircle color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -145,7 +145,7 @@ const SignedDocuments = () => {
             </div>
             
             <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" disabled={uploading || !file} className="btn-primary" style={{ flex: 1, background: editingDocId ? '#f59e0b' : '#16a34a' }}>
+                <button type="submit" disabled={uploading || !file} className="btn-primary" style={{ flex: 1, background: editingDocId ? '#f59e0b' : PRIMARY }}>
                 {uploading ? t('signedDocs.validating') : (editingDocId ? t('signedDocs.updateAndValidate') : t('signedDocs.uploadForValidation'))}
                 </button>
                 {editingDocId && (
@@ -181,7 +181,7 @@ const SignedDocuments = () => {
                 <tbody>
                     {documents.map(doc => (
                     <tr key={doc.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                        <td style={{ padding: '12px 15px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                        <td style={{ padding: '12px 15px', fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
                             {doc.filename}
                             <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '3px', fontWeight: 400 }}>
                                 {new Date(doc.updatedAt).toLocaleDateString()}
@@ -199,10 +199,10 @@ const SignedDocuments = () => {
                             )}
                         </td>
                         <td style={{ padding: '12px 15px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#f1f5f9', color: '#0f172a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.downloadShort')}>
+                            <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#dcfce7', color: '#16a34a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.downloadShort')}>
                                 <Download size={14} />
                             </button>
-                            <button onClick={() => setEditingDocId(doc.id)} style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, color: '#0f172a', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.edit')}>
+                            <button onClick={() => setEditingDocId(doc.id)} style={{ background: '#fef3c7', color: '#d97706', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.edit')}>
                                 <RefreshCw size={14} />
                             </button>
                             <button onClick={() => handleDelete(doc.id, doc.filename)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.delete')}>

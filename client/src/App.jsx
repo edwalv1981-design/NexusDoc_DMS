@@ -149,7 +149,7 @@ function App() {
               <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#111', marginBottom: '10px' }}>{t('timeout.title')}</h2>
               <p style={{ fontSize: '14px', color: '#666', marginBottom: '30px', lineHeight: '1.5' }}>{t('timeout.body', { n: remainingTime })}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={handleStay} style={{ padding: '14px', background: '#0078d4', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>{t('timeout.continue')}</button>
+                <button onClick={handleStay} style={{ padding: '14px', background: '#0f766e', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>{t('timeout.continue')}</button>
                 <button onClick={handleLogout} style={{ padding: '14px', background: 'transparent', color: '#dc2626', border: '1px solid #fee2e2', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>{t('timeout.logoutNow')}</button>
               </div>
             </div>

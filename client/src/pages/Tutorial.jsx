@@ -28,7 +28,7 @@ const Tutorial = () => {
         <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Inter', sans-serif", paddingBottom: '60px' }}>
             
             {/* Cabecera Hero */}
-            <div style={{ background: 'linear-gradient(135deg, #0078d4 0%, #0369a1 100%)', color: 'white', padding: '50px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ background: 'linear-gradient(135deg, #0f766e 0%, #0c5e58 100%)', color: 'white', padding: '50px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', opacity: 0.1, right: '-5%', top: '-20%' }}>
                     <BookOpen size={400} />
                 </div>
@@ -59,7 +59,7 @@ const Tutorial = () => {
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                             <div style={{ background: '#f5f3ff', color: '#8b5cf6', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>1</div>
-                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{t('tutorial.step1Title')}</h2>
+                            <h2 style={{ fontWeight: 800 }}>{t('tutorial.step1Title')}</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
                             {t('tutorial.step1Body')}
@@ -75,7 +75,7 @@ const Tutorial = () => {
                         <div style={{ width: '100%', background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                                 <div style={{ background: '#8b5cf6', color: 'white', padding: '6px', borderRadius: '6px' }}><Shield size={16} /></div>
-                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{t('login.openAccount').toUpperCase()}</div>
+                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('login.openAccount').toUpperCase()}</div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>{t('register.fullName')}</div>
@@ -90,8 +90,8 @@ const Tutorial = () => {
                 <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0', flexDirection: 'row-reverse' }}>
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ background: '#eff6ff', color: '#0078d4', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>2</div>
-                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{t('tutorial.step2Title')}</h2>
+                            <div style={{ background: '#f0fdfa', color: '#0f766e', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>2</div>
+                            <h2 style={{ fontWeight: 800 }}>{t('tutorial.step2Title')}</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
                             {t('tutorial.step2Body')}
@@ -106,13 +106,13 @@ const Tutorial = () => {
                     <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderRight: '1px solid #e2e8f0' }}>
                         <div style={{ width: '100%', background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', justifyContent: 'center' }}>
-                                <div style={{ background: '#0078d4', color: 'white', padding: '6px', borderRadius: '6px' }}><Lock size={16} /></div>
-                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{t('login.recoverAccess').toUpperCase()}</div>
+                                <div style={{ background: '#0f766e', color: 'white', padding: '6px', borderRadius: '6px' }}><Lock size={16} /></div>
+                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('login.recoverAccess').toUpperCase()}</div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>{t('reset.newPassword')}</div>
                                 <div style={{ height: '30px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '10px', color: '#94a3b8' }}>{t('reset.confirmPassword')}</div>
-                                <div style={{ height: '35px', background: '#0078d4', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700, marginTop: '5px' }}>{t('common.save')}</div>
+                                <div style={{ height: '35px', background: '#0f766e', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700, marginTop: '5px' }}>{t('common.save')}</div>
                             </div>
                         </div>
                     </div>
@@ -123,7 +123,7 @@ const Tutorial = () => {
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                             <div style={{ background: '#f0fdf4', color: '#16a34a', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>3</div>
-                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{t('tutorial.step3Title')}</h2>
+                            <h2 style={{ fontWeight: 800 }}>{t('tutorial.step3Title')}</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
                             {t('tutorial.step3Body')}
@@ -137,11 +137,11 @@ const Tutorial = () => {
                     {/* Gráfico Paso 3 */}
                     <div style={{ flex: 1, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', borderLeft: '1px solid #e2e8f0' }}>
                         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            <div style={{ background: '#0078d4', color: 'white', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', width: '60%', fontWeight: 700, fontSize: '14px', boxShadow: '0 4px 10px rgba(0,120,212,0.3)' }}>
+                            <div style={{ background: '#0f766e', color: 'white', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', width: '60%', fontWeight: 700, fontSize: '14px', boxShadow: '0 4px 10px rgba(15,118,110,0.3)' }}>
                                 <LayoutGrid size={18} /> {t('sidebar.desktop')}
                             </div>
-                            <div style={{ background: 'rgba(0,120,212,0.1)', color: '#0078d4', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', width: '70%', fontWeight: 700, fontSize: '14px', border: '1px solid #bfdbfe' }}>
-                                <div style={{ background: '#0078d4', color: 'white', borderRadius: '50%', padding: '2px' }}><CheckCircle size={14} /></div> {t('sidebar.newProcess')}
+                            <div style={{ background: 'rgba(15,118,110,0.1)', color: '#0f766e', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', width: '70%', fontWeight: 700, fontSize: '14px', border: '1px solid #99f6e4' }}>
+                                <div style={{ background: '#0f766e', color: 'white', borderRadius: '50%', padding: '2px' }}><CheckCircle size={14} /></div> {t('sidebar.newProcess')}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
                                 <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '2px solid #e2e8f0', textAlign: 'center' }}><FileText size={24} color="#6366f1" /> <div style={{ fontSize: '10px', marginTop: '5px', fontWeight: 700 }}>{t('formType.Fondos Registros contables').split(' ')[0]}</div></div>
@@ -156,7 +156,7 @@ const Tutorial = () => {
                     <div style={{ flex: 1, padding: '40px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                             <div style={{ background: '#fef3c7', color: '#d97706', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>4</div>
-                            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{t('tutorial.step4Title')}</h2>
+                            <h2 style={{ fontWeight: 800 }}>{t('tutorial.step4Title')}</h2>
                         </div>
                         <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.8', marginBottom: '20px' }}>
                             {t('tutorial.step4Body')}
@@ -174,12 +174,12 @@ const Tutorial = () => {
                             </div>
                             <div style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
                                 <div>
-                                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>Incorporación Alpha</div>
+                                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b' }}>Incorporación Alpha</div>
                                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>Actualizado hoy</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 5px rgba(22,163,74,0.2)' }}><Download size={16} /></div>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#eff6ff', color: '#0078d4', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit size={16} /></div>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#f0fdfa', color: '#0f766e', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit size={16} /></div>
                                 </div>
                             </div>
                         </div>
