@@ -349,6 +349,9 @@ const es = {
     custodyAddress: 'DIRECCIÓN DE ALMACENAMIENTO',
     signerName: 'NOMBRE DEL FIRMANTE',
     date: 'FECHA DE REGISTRO',
+    beneficiaryPlaceholder: 'Escriba para buscar beneficiarios existentes…',
+    beneficiarySearching: 'Buscando…',
+    beneficiaryNoResults: 'Sin resultados — puede escribir un nombre nuevo',
     sources: {
       bienes: 'Bienes personales',
       inversiones: 'Inversiones Financieras',

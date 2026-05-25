@@ -30,35 +30,42 @@ router.get('/templates/status', auth, async (req, res) => {
 // @route   GET api/forms/beneficiaries/search
 router.get('/beneficiaries/search', auth, async (req, res) => {
     try {
-        const q = (req.query.q || '').toLowerCase().trim();
-        if (!q) return res.json([]);
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
 
-        const forms = await FormData.findAll({ attributes: ['data'] });
+        const { sequelize } = require('../config/db');
+        const [rows] = await sequelize.query(
+            `SELECT data->>'beneficiaryName' AS "beneficiaryName",
+                    data->>'birthDate'       AS "birthDate",
+                    data->>'birthPlace'      AS "birthPlace",
+                    data->>'address'         AS "address"
+             FROM "FormData"
+             WHERE data->>'beneficiaryName' ILIKE :pattern
+             ORDER BY "updatedAt" DESC
+             LIMIT 50`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
         const resultsMap = new Map();
-
-        forms.forEach(f => {
-            if (f.data && f.data.beneficiaryName) {
-                const bName = String(f.data.beneficiaryName);
-                if (bName.toLowerCase().includes(q)) {
-                    if (!resultsMap.has(bName)) {
-                        resultsMap.set(bName, {
-                            beneficiaryName: bName,
-                            birthDate: f.data.birthDate || '',
-                            birthPlace: f.data.birthPlace || '',
-                            address: f.data.address || ''
-                        });
-                    } else {
-                        const existing = resultsMap.get(bName);
-                        if (!existing.birthDate && f.data.birthDate) existing.birthDate = f.data.birthDate;
-                        if (!existing.birthPlace && f.data.birthPlace) existing.birthPlace = f.data.birthPlace;
-                        if (!existing.address && f.data.address) existing.address = f.data.address;
-                    }
-                }
+        rows.forEach(r => {
+            const name = r.beneficiaryName;
+            if (!name) return;
+            if (!resultsMap.has(name)) {
+                resultsMap.set(name, {
+                    beneficiaryName: name,
+                    birthDate: r.birthDate || '',
+                    birthPlace: r.birthPlace || '',
+                    address: r.address || '',
+                });
+            } else {
+                const existing = resultsMap.get(name);
+                if (!existing.birthDate && r.birthDate) existing.birthDate = r.birthDate;
+                if (!existing.birthPlace && r.birthPlace) existing.birthPlace = r.birthPlace;
+                if (!existing.address && r.address) existing.address = r.address;
             }
         });
 
-        const results = Array.from(resultsMap.values()).slice(0, 10);
-        res.json(results);
+        res.json(Array.from(resultsMap.values()).slice(0, 10));
     } catch (err) {
         console.error('Error searching beneficiaries:', err);
         res.status(500).json({ msg: 'Error al buscar beneficiarios' });

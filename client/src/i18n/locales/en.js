@@ -346,6 +346,9 @@ const en = {
     custodyAddress: 'STORAGE ADDRESS',
     signerName: 'SIGNER NAME',
     date: 'REGISTRATION DATE',
+    beneficiaryPlaceholder: 'Type to search existing beneficiaries…',
+    beneficiarySearching: 'Searching…',
+    beneficiaryNoResults: 'No results — you can type a new name',
     sources: {
       bienes: 'Personal assets',
       inversiones: 'Financial investments',

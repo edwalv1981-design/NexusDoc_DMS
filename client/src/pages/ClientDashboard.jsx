@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
@@ -68,6 +68,66 @@ const ClientDashboard = () => {
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
     };
     const [formData, setFormData] = useState(EMPTY_FORM);
+
+    const [beneficiarySuggestions, setBeneficiarySuggestions] = useState([]);
+    const [beneficiaryLoading, setBeneficiaryLoading] = useState(false);
+    const [showBeneficiaryDropdown, setShowBeneficiaryDropdown] = useState(false);
+    const beneficiaryRef = useRef(null);
+    const beneficiaryTimerRef = useRef(null);
+
+    const searchBeneficiaries = useCallback(async (query) => {
+        if (!query || query.length < 2) {
+            setBeneficiarySuggestions([]);
+            setShowBeneficiaryDropdown(false);
+            return;
+        }
+        setBeneficiaryLoading(true);
+        setShowBeneficiaryDropdown(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(
+                `${API_BASE_URL}/api/forms/beneficiaries/search?q=${encodeURIComponent(query)}`,
+                { headers: { 'x-auth-token': token } }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                setBeneficiarySuggestions(data);
+            }
+        } catch (e) {
+            console.error('Beneficiary search error:', e);
+        } finally {
+            setBeneficiaryLoading(false);
+        }
+    }, []);
+
+    const handleBeneficiaryChange = (e) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, beneficiaryName: val }));
+        if (beneficiaryTimerRef.current) clearTimeout(beneficiaryTimerRef.current);
+        beneficiaryTimerRef.current = setTimeout(() => searchBeneficiaries(val), 300);
+    };
+
+    const handleBeneficiarySelect = (item) => {
+        setFormData(prev => {
+            const updates = { beneficiaryName: item.beneficiaryName };
+            if (item.birthDate) updates.birthDate = item.birthDate;
+            if (item.birthPlace) updates.birthPlace = item.birthPlace;
+            if (item.address) updates.address = item.address;
+            return { ...prev, ...updates };
+        });
+        setShowBeneficiaryDropdown(false);
+        setBeneficiarySuggestions([]);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (beneficiaryRef.current && !beneficiaryRef.current.contains(e.target)) {
+                setShowBeneficiaryDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const goToFondosStep = (nextStep) => {
         setStep(nextStep);
@@ -485,7 +545,42 @@ const ClientDashboard = () => {
                                         <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></div>
                                     </div>
                                     <div className="field-group"><label>{t('fondos.activities')}</label><textarea className="input-expert" rows={2} value={formData.activities} onChange={e => setFormData({...formData, activities: e.target.value})} required /></div>
-                                    <div className="field-group"><label>{t('fondos.beneficiaryName')}</label><input className="input-expert" value={formData.beneficiaryName} onChange={e => setFormData({...formData, beneficiaryName: e.target.value})} required /></div>
+                                    <div className="field-group" ref={beneficiaryRef} style={{ position: 'relative' }}>
+                                        <label>{t('fondos.beneficiaryName')}</label>
+                                        <input
+                                            className="input-expert"
+                                            value={formData.beneficiaryName}
+                                            onChange={handleBeneficiaryChange}
+                                            onFocus={() => { if (beneficiarySuggestions.length > 0) setShowBeneficiaryDropdown(true); }}
+                                            placeholder={t('fondos.beneficiaryPlaceholder')}
+                                            autoComplete="off"
+                                            required
+                                        />
+                                        {showBeneficiaryDropdown && (
+                                            <div className="beneficiary-dropdown">
+                                                {beneficiaryLoading ? (
+                                                    <div className="beneficiary-dropdown-item beneficiary-dropdown-status">{t('fondos.beneficiarySearching')}</div>
+                                                ) : beneficiarySuggestions.length === 0 ? (
+                                                    <div className="beneficiary-dropdown-item beneficiary-dropdown-status">{t('fondos.beneficiaryNoResults')}</div>
+                                                ) : beneficiarySuggestions.map((item, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="beneficiary-dropdown-item"
+                                                        onMouseDown={(e) => { e.preventDefault(); handleBeneficiarySelect(item); }}
+                                                    >
+                                                        <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b' }}>{item.beneficiaryName}</div>
+                                                        {(item.birthDate || item.birthPlace || item.address) && (
+                                                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                                {item.birthDate && <span>{item.birthDate}</span>}
+                                                                {item.birthPlace && <span>{item.birthPlace}</span>}
+                                                                {item.address && <span style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.address}</span>}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                                         <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>
                                         <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} required /></div>
@@ -585,7 +680,22 @@ const ClientDashboard = () => {
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
                 .field-group { display: flex; flex-direction: column; gap: 4px; } 
                 .field-group label { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.5px; } 
-                .input-expert { width: 100%; padding: 10px 14px; border: 1.5px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 13px; } 
+                .input-expert { width: 100%; padding: 10px 14px; border: 1.5px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 13px; }
+                .beneficiary-dropdown {
+                    position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+                    background: white; border: 1.5px solid ${PRIMARY}; border-top: none;
+                    border-radius: 0 0 ${RADIUS} ${RADIUS};
+                    box-shadow: 0 8px 24px rgba(0,120,212,0.12);
+                    max-height: 220px; overflow-y: auto;
+                }
+                .beneficiary-dropdown-item {
+                    padding: 10px 14px; cursor: pointer;
+                    border-bottom: 1px solid ${BORDER}; transition: background 0.15s;
+                }
+                .beneficiary-dropdown-item:last-child { border-bottom: none; }
+                .beneficiary-dropdown-item:hover { background: #eef6ff; }
+                .beneficiary-dropdown-status { cursor: default; color: #94a3b8; font-size: 12px; font-style: italic; }
+                .beneficiary-dropdown-status:hover { background: transparent; }
             `}</style>
         </div>
     );
