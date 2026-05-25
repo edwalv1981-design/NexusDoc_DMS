@@ -119,9 +119,10 @@ class KyciHtmlPdfService {
     try {
       const rootDir = process.cwd().includes('server') ? path.join(process.cwd(), '..') : process.cwd();
       let logoHtml = '';
+      let logoDataUri = '';
       const logoPath = path.join(rootDir, 'templates', 'logo_empresa.png');
       if (fs.existsSync(logoPath)) {
-        const logoDataUri = toDataUri(logoPath);
+        logoDataUri = toDataUri(logoPath);
         logoHtml = `<div class="logo-wrap"><img src="${logoDataUri}" alt="" class="logo" /></div>`;
       }
 
@@ -167,11 +168,19 @@ class KyciHtmlPdfService {
       const page = await browser.newPage();
       await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      const headerTemplate = logoDataUri
+        ? `<div style="font-size:0;width:100%;padding:4px 12mm;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        : '<div style="font-size:1px;">&nbsp;</div>';
+      const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
+
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        margin: { top: '12mm', right: '10mm', bottom: '12mm', left: '10mm' },
+        margin: { top: '15mm', right: '10mm', bottom: '12mm', left: '10mm' },
+        displayHeaderFooter: true,
+        headerTemplate,
+        footerTemplate,
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {

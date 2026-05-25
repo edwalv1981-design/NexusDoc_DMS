@@ -495,13 +495,22 @@ class FundacionHtmlPdfService {
       await fundacionLayoutGuard.refineAfterRender(page);
       const chromePdf = fundacionLayoutGuard.getFundacionPuppeteerPdfChromeOptions(logoDataUri);
       const { margin: _m, ...chromePdfRest } = chromePdf;
+
+      const headerTemplate = logoDataUri
+        ? `<div style="font-size:0;width:100%;padding:4px 12mm;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        : '<div style="font-size:1px;">&nbsp;</div>';
+      const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
+
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
         scale: 1,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' },
+        margin: { top: '15mm', right: '0', bottom: '0', left: '0' },
         ...chromePdfRest,
+        displayHeaderFooter: true,
+        headerTemplate,
+        footerTemplate,
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {

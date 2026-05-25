@@ -311,11 +311,20 @@ class CorporacionHtmlPdfService {
 
       const pdfOpts = corporacionLayoutGuard.getCorporacionPuppeteerPdfChromeOptions();
 
+      const headerTemplate = logoDataUri
+        ? `<div style="font-size:0;width:100%;padding:4px 12mm;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        : '<div style="font-size:1px;">&nbsp;</div>';
+      const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
+
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
         scale: 1,
         ...pdfOpts,
+        margin: { ...pdfOpts.margin, top: '15mm' },
+        displayHeaderFooter: true,
+        headerTemplate,
+        footerTemplate,
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {
