@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     ChevronLeft, ChevronRight, Check, Save, 
@@ -6,10 +6,6 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import API_BASE_URL from '../config';
-import {
-    mergeBeneficiaryIntoCustody,
-    CUSTODY_PREFILL_TARGETS,
-} from '../utils/fondosBeneficiaryCustody';
 
 const FondosForm = () => {
     const navigate = useNavigate();
@@ -43,37 +39,9 @@ const FondosForm = () => {
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
     const [validationErrors, setValidationErrors] = useState([]);
-    const custodyTouchedRef = useRef({});
-
     useEffect(() => {
         if (editId) fetchExistingData();
     }, [editId]);
-
-    const applyBeneficiaryToCustody = useCallback((onlyEmpty = false) => {
-        setFormData((prev) =>
-            mergeBeneficiaryIntoCustody(prev, {
-                touched: custodyTouchedRef.current,
-                onlyEmpty,
-            })
-        );
-    }, []);
-
-    useEffect(() => {
-        if (step !== 3) return;
-        applyBeneficiaryToCustody(true);
-    }, [step, applyBeneficiaryToCustody]);
-
-    useEffect(() => {
-        if (step !== 3) return;
-        applyBeneficiaryToCustody(false);
-    }, [step, formData.beneficiaryName, formData.address, applyBeneficiaryToCustody]);
-
-    const setCustodyField = (field, value) => {
-        if (CUSTODY_PREFILL_TARGETS.includes(field)) {
-            custodyTouchedRef.current[field] = true;
-        }
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
 
     const validateStep = () => {
         let errors = [];
@@ -116,14 +84,6 @@ const FondosForm = () => {
     const handleNext = () => {
         if (!validateStep()) return;
         const nextStep = step + 1;
-        if (nextStep === 3) {
-            setFormData((prev) =>
-                mergeBeneficiaryIntoCustody(prev, {
-                    touched: custodyTouchedRef.current,
-                    onlyEmpty: true,
-                })
-            );
-        }
         setStep(nextStep);
         window.scrollTo(0, 0);
     };
@@ -288,9 +248,8 @@ const FondosForm = () => {
                                     autoComplete="off"
                                     value={formData.custodyName} 
                                     onChange={e => { 
-                                        const val = e.target.value;
-                                        setCustodyField('custodyName', val);
-                                        if (val) setValidationErrors(prev => prev.filter(err => err !== 'custodyName'));
+                                        setFormData(prev => ({...prev, custodyName: e.target.value}));
+                                        if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName'));
                                     }} 
                                 />
                             </div>
@@ -307,7 +266,7 @@ const FondosForm = () => {
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
-                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="off" value={formData.custodyAddress} onChange={e => { setCustodyField('custodyAddress', e.target.value); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
+                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                                 <div>
