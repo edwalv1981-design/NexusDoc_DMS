@@ -248,7 +248,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        if (stablePdfForms.isFundacionPdfForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
+        // Fundaciones SIEMPRE usa el motor HTML dinámico (ignora plantilla subida)
+        if (stablePdfForms.isFundacionPdfForm(form.formType)) {
             try {
                 const pdfBuffer = await fundacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'PTLF');
@@ -258,8 +259,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        // Para KYCI y KYCE, usar motor HTML SOLO SI el administrador NO ha subido una plantilla personalizada (uploadedBy)
-        if (stablePdfForms.isKyciHtmlForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
+        // KYCI SIEMPRE usa el motor HTML dinámico (ignora plantilla subida)
+        if (stablePdfForms.isKyciHtmlForm(form.formType)) {
             try {
                 const pdfBuffer = await kyciHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'KYCI');
@@ -269,7 +270,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        if (stablePdfForms.isKyceHtmlForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
+        // KYCE SIEMPRE usa el motor HTML dinámico (ignora plantilla subida)
+        if (stablePdfForms.isKyceHtmlForm(form.formType)) {
             try {
                 const pdfBuffer = await kyceHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'KYCE');
