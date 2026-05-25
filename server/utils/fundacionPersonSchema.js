@@ -1,9 +1,7 @@
 'use strict';
 
 const FUNDACION_PERSON_FIELDS = [
-  'firstName',
-  'secondName',
-  'lastName',
+  'fullName',
   'birthDate',
   'maritalStatus',
   'nationality',
@@ -22,41 +20,24 @@ function emptyFundacionPerson() {
 
 function normalizeFundacionPerson(raw = {}) {
   const person = { ...emptyFundacionPerson(), ...raw };
-  if (!person.firstName && !person.lastName && raw.fullName) {
-    const parts = String(raw.fullName).trim().split(/\s+/).filter(Boolean);
-    if (parts.length >= 3) {
-      person.firstName = parts[0];
-      person.secondName = parts.slice(1, -1).join(' ');
-      person.lastName = parts[parts.length - 1];
-    } else if (parts.length === 2) {
-      person.firstName = parts[0];
-      person.lastName = parts[1];
-    } else if (parts.length === 1) {
-      person.firstName = parts[0];
-    }
+  if (!person.fullName && (raw.firstName || raw.secondName || raw.lastName)) {
+    person.fullName = [raw.firstName, raw.secondName, raw.lastName].filter(Boolean).join(' ');
   }
   if (raw.birthPlace && !person.city) person.city = raw.birthPlace;
   return person;
 }
 
 function personDisplayName(person) {
+  if (person.fullName && String(person.fullName).trim()) {
+    return String(person.fullName).trim();
+  }
   const first = String(person.firstName || '').trim();
   const second = String(person.secondName || '').trim();
   const last = String(person.lastName || '').trim();
+  const fromParts = [first, second, last].filter(Boolean).join(' ');
+  if (fromParts) return fromParts;
 
-  if (first || second || last) {
-    let name = [first, second].filter(Boolean).join(' ').trim();
-    if (last) {
-      const nameLower = name.toLowerCase();
-      const lastLower = last.toLowerCase();
-      if (!nameLower || (!nameLower.endsWith(lastLower) && !nameLower.includes(` ${lastLower}`))) {
-        name = name ? `${name} ${last}` : last;
-      }
-    }
-    if (name) return name;
-  }
-
-  return String(person.fullName || person.shareholder || '').trim();
+  return String(person.shareholder || '').trim();
 }
 
 function dignitaryDisplayName(d) {

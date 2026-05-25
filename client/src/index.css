@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --primary: #0078d4;
-  --primary-hover: #005a9e;
+  --primary: #0f766e;
+  --primary-hover: #0c5e58;
   --bg: #f8fafc;
   --text: #1e293b;
   --text-light: #64748b;
   --border: #e2e8f0;
   --radius: 6px;
   --radius-lg: 10px;
-  --shadow: 0 2px 4px -1px rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow: 0 2px 4px -1px rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
   --error: #ef4444;
   --success: #10b981;
 }
@@ -30,21 +30,21 @@ body {
 }
 
 h1 {
-  color: var(--primary);
+  color: var(--text);
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 h2 {
-  color: var(--primary);
+  color: var(--text);
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 h3 {
-  color: var(--primary);
+  color: var(--text);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -64,10 +64,10 @@ input, textarea, select {
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: #0891b2;
+  border-color: var(--primary);
   background: #fff;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(8,145,178,0.1);
+  box-shadow: 0 0 0 2px rgba(15,118,110,0.08);
 }
 input[type="checkbox"], input[type="radio"] {
   border: revert;
@@ -76,7 +76,6 @@ input[type="checkbox"], input[type="radio"] {
   box-shadow: none;
 }
 
-/* Scrollbar personalizada */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -121,7 +120,7 @@ input[type="checkbox"], input[type="radio"] {
 
 .input-expert:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+  box-shadow: 0 0 0 2px rgba(15,118,110,0.08);
 }
 
 .form-content-frame {
@@ -132,7 +131,6 @@ input[type="checkbox"], input[type="radio"] {
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-/* SISTEMA DE NOTIFICACIONES TOAST - ALTA VISIBILIDAD */
 .toast-container {
   position: fixed;
   top: 20px;

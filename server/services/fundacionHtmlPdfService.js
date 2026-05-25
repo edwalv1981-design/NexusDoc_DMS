@@ -53,10 +53,9 @@ function getFounderRecord(data) {
 
 function personFieldRows(person, t, { includeEmpty = false } = {}) {
   const p = normalizeFundacionPerson(person);
+  const fullName = p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ');
   const rows = [
-    [t.poaFirstName, p.firstName],
-    [t.poaMiddleName, p.secondName],
-    [t.poaLastName, p.lastName],
+    [t.poaFullName || 'Full name / Nombre completo', fullName],
     [t.poaBirthDate, fmtDate(p.birthDate)],
     [t.poaMaritalStatus, p.maritalStatus],
     [t.poaNationality, p.nationality],
@@ -101,14 +100,17 @@ function normalizeFundacionPoaData(data = {}) {
     return undefined;
   };
 
+  const poaFirstName = pick('poaFirstName', 'firstName') || '';
+  const poaMiddleName = pick('poaMiddleName', 'middleName', 'secondName') || '';
+  const poaLastName = pick('poaLastName', 'lastName') || '';
+  const poaFullName = pick('poaFullName', 'fullName') || [poaFirstName, poaMiddleName, poaLastName].filter(Boolean).join(' ');
+
   return {
     poaIssue: normalizeYesNoFlag(pick('poaIssue', 'issuePower', 'emitirPoder', 'issue_poa')),
     poaType: String(pick('poaType', 'powerType', 'tipoPoder', 'tipo_poder') || 'GENERAL').toUpperCase(),
     poaValidityDate: pick('poaValidityDate', 'validityDate', 'fechaVigencia', 'vigencia') || '',
     poaLegalized: normalizeYesNoFlag(pick('poaLegalized', 'legalize', 'legalized', 'legalizacion')),
-    poaFirstName: pick('poaFirstName', 'firstName') || '',
-    poaMiddleName: pick('poaMiddleName', 'middleName', 'secondName') || '',
-    poaLastName: pick('poaLastName', 'lastName') || '',
+    poaFullName,
     poaBirthDate: pick('poaBirthDate', 'birthDate') || '',
     poaMaritalStatus: pick('poaMaritalStatus', 'maritalStatus') || '',
     poaNationality: pick('poaNationality', 'nationality') || '',
@@ -264,9 +266,7 @@ function buildPowersHtml(data, t) {
   const poaLegalizedNo = poa.poaLegalized === 'NO' || !poa.poaLegalized;
   const typeLabel = poaTypeLabel(poa.poaType, t);
   const grantee = normalizeFundacionPerson({
-    firstName: poa.poaFirstName,
-    secondName: poa.poaMiddleName,
-    lastName: poa.poaLastName,
+    fullName: poa.poaFullName,
     birthDate: poa.poaBirthDate,
     maritalStatus: poa.poaMaritalStatus,
     nationality: poa.poaNationality,

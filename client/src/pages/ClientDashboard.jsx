@@ -38,7 +38,7 @@ const ClientDashboard = () => {
 
     const [currentFormType, setCurrentFormType] = useState(normalizedFormTypeQuery || '');
 
-    const PRIMARY = '#0078d4';
+    const PRIMARY = '#0f766e';
     const BG = '#f8fafc';
     const TEXT = '#111';
     const BORDER = '#e2e8f0';
@@ -50,11 +50,8 @@ const ClientDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     
-    // FILTROS Y BÚSQUEDA
     const [searchTerm, setSearchTerm] = useState('');
     const [dateFilter, setDateFilter] = useState('');
-
-    // SISTEMA DE NOTIFICACIONES UX-UI
     const [toast, setToast] = useState({ show: false, msg: '', type: 'error' });
     const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
 
@@ -94,7 +91,7 @@ const ClientDashboard = () => {
                 setBeneficiarySuggestions(data);
             }
         } catch (e) {
-            console.error('Beneficiary search error:', e);
+            console.error(e);
         } finally {
             setBeneficiaryLoading(false);
         }
@@ -346,7 +343,6 @@ const ClientDashboard = () => {
         }
     };
 
-    // LÓGICA DE FILTRADO
     const filteredDocuments = documents.filter(doc => {
         const matchesSearch = doc.type.toLowerCase().includes(searchTerm.toLowerCase());
         const docDate = new Date(doc.date).toISOString().split('T')[0];
@@ -359,7 +355,7 @@ const ClientDashboard = () => {
     return (
         <div style={{ minHeight: '100vh', background: BG, display: 'flex', fontFamily: "'Inter', sans-serif", color: TEXT, position: 'relative' }}>
             
-            {/* MODAL DE CONFIRMACIÓN UX-UI */}
+            
             {modal.show && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
                     <div style={{ background: 'white', padding: '30px', borderRadius: RADIUS_LG, maxWidth: '400px', width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
@@ -374,7 +370,7 @@ const ClientDashboard = () => {
                 </div>
             )}
 
-            {/* TOAST SYSTEM (PROFESSIONAL UX) */}
+            
             {toast.show && (
                 <div style={{ position: 'fixed', top: '20px', right: '20px', background: 'white', padding: '15px 25px', borderRadius: RADIUS, boxShadow: '0 10px 25px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 12, zIndex: 3000, borderLeft: `5px solid ${toast.type === 'error' ? '#dc2626' : '#16a34a'}`, animation: 'slideIn 0.3s ease-out' }}>
                     {toast.type === 'error' ? <AlertCircle size={20} color="#dc2626" /> : <Check size={20} color="#16a34a" />}
@@ -444,7 +440,7 @@ const ClientDashboard = () => {
                             </div>
                         </div>
 
-                        {/* BARRA DE FILTROS UX-UI */}
+                        
                         <div style={{ display: 'flex', gap: 15, marginBottom: '25px' }}>
                             <div style={{ flex: 1, position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -466,7 +462,7 @@ const ClientDashboard = () => {
                                     <FileText size={16} color={PRIMARY} style={{ marginRight: 15 }} />
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 700, fontSize: '13px' }}>{getFormTypeLabel(doc.type, lang)}</div>
-                                        {/* FECHA Y HORA EXACTA (INGENIERO PROTOCOL) */}
+                                        
                                         <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 2 }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {new Date(doc.date).toLocaleDateString()}</span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(doc.date).toLocaleTimeString()}</span>
@@ -683,7 +679,7 @@ const ClientDashboard = () => {
                 .field-group { display: flex; flex-direction: column; gap: 2px; } 
                 .field-group label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; } 
                 .input-expert { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 13px; background: #f8fafc; }
-                .input-expert:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
+                .input-expert:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px rgba(15,118,110,0.08); }
                 .beneficiary-dropdown {
                     position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
                     background: white; border: 1px solid #cbd5e1;

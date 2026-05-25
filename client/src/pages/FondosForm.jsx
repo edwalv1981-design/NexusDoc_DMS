@@ -14,8 +14,7 @@ const FondosForm = () => {
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
 
-    // Color del Login
-    const PRIMARY_COLOR = '#6366f1';
+    const PRIMARY_COLOR = '#0f766e';
 
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -77,7 +76,7 @@ const FondosForm = () => {
                 setFormData(result.data);
             }
         } catch (error) {
-            console.error('Error loading data');
+            console.error(error);
         }
     };
 
@@ -323,7 +322,6 @@ const FondosForm = () => {
                     <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }}><X size={24} /></button>
                 </div>
                 
-                {/* Cabecera de Paso Estándar */}
                 <div className="standard-step-header">
                     <span className="standard-step-title">
                         {step === 1 && `I. Identificación Corporativa`}
@@ -336,7 +334,6 @@ const FondosForm = () => {
                     </span>
                 </div>
 
-                {/* Stepper Progresivo Estándar */}
                 <div className="standard-progress-stepper">
                     {[1, 2, 3].map(s => (
                         <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
@@ -385,8 +382,8 @@ const FondosForm = () => {
                     background: #f8fafc;
                 }
                 .corporate-input:focus {
-                    border-color: #0891b2;
-                    box-shadow: 0 0 0 2px rgba(8,145,178,0.1);
+                    border-color: ${PRIMARY_COLOR};
+                    box-shadow: 0 0 0 2px rgba(15,118,110,0.08);
                     background: white;
                 }
                 .corporate-btn-primary {

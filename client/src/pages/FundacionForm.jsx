@@ -1,3 +1,8 @@
+/**
+ * FundacionForm — Formulario de Constitución de Fundación de Interés Privado (Panamá).
+ * 10 secciones: Nombre, Capital, Fundador, Protectores, Directores, Dignatarios,
+ * Beneficiarios, Poderes, Actividades, Declaración.
+ */
 import React, { useState, useEffect } from 'react';
 
 import { 
@@ -86,11 +91,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
         poaLegalized: 'NO', // 'YES', 'NO'
 
-        poaFirstName: '',
-
-        poaMiddleName: '',
-
-        poaLastName: '',
+        poaFullName: '',
 
         poaBirthDate: '',
 
@@ -164,11 +165,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             if (cleanData.poaLegalized === undefined) cleanData.poaLegalized = formData.poaLegalized;
 
-            if (cleanData.poaFirstName === undefined) cleanData.poaFirstName = formData.poaFirstName;
-
-            if (cleanData.poaMiddleName === undefined) cleanData.poaMiddleName = formData.poaMiddleName;
-
-            if (cleanData.poaLastName === undefined) cleanData.poaLastName = formData.poaLastName;
+            if (cleanData.poaFullName === undefined) {
+                cleanData.poaFullName = cleanData.poaFirstName
+                    ? [cleanData.poaFirstName, cleanData.poaMiddleName, cleanData.poaLastName].filter(Boolean).join(' ')
+                    : formData.poaFullName;
+            }
 
             if (cleanData.poaBirthDate === undefined) cleanData.poaBirthDate = formData.poaBirthDate;
 
@@ -196,7 +197,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
         } catch (err) {
 
-            console.error('FundacionForm: failed to load saved data', err);
+            console.error(err);
 
         }
 
@@ -264,17 +265,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    const PRIMARY = '#0078d4';
+    const PRIMARY = '#0f766e';
 
     const SECONDARY = '#1e293b';
 
 
-
-    // RENDER DE LOS 10 PASOS SOLICITADOS POR EL USUARIO
-
-
-
-    // Paso 1: Nombre de la fundación (colocar 3 nombres)
 
     const renderStep1 = () => (
 
@@ -286,9 +281,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             <div className="expert-hint-box">
 
-                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <Info size={14} color="#475569" style={{ flexShrink: 0, marginTop: '2px' }} />
 
-                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
 
                     <strong>
 
@@ -302,7 +297,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                     </strong>
 
-                    <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#475569' }}>
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#64748b' }}>
 
                         {lang === 'en'
 
@@ -354,8 +349,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    // Paso 2: Capital social (Patrimonio inicial)
-
     const renderStep2 = () => (
 
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -366,9 +359,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             <div className="expert-hint-box">
 
-                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <Info size={14} color="#475569" style={{ flexShrink: 0, marginTop: '2px' }} />
 
-                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
 
                     {lang === 'en'
 
@@ -441,8 +434,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     );
 
 
-
-    // Paso 3: Fundador
 
     const renderStep3 = () => (
 
@@ -520,8 +511,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    // Paso 4: Protectores
-
     const renderStep4 = () => (
 
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -563,8 +552,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     );
 
 
-
-    // Paso 5: Directores (Consejo de Fundación)
 
     const renderStep5 = () => (
 
@@ -658,8 +645,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    // Paso 6: Dignatarios
-
     const renderStep6 = () => (
 
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -739,8 +724,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     );
 
 
-
-    // Paso 7: Beneficiarios
 
     const renderStep7 = () => (
 
@@ -834,8 +817,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    // Paso 8: Poderes (Power of Attorney)
-
     const renderStep8 = () => (
 
             <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -852,27 +833,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         <div className="expert-grid" style={{ padding: '12px' }}>
 
-                            <div className="expert-field">
-
-                                <label>{L('firstName')}</label>
-
-                                <input className="expert-input" value={formData.poaFirstName} onChange={e => setFormData({...formData, poaFirstName: e.target.value})} />
-
-                            </div>
-
-                            <div className="expert-field">
-
-                                <label>{L('secondName')}</label>
-
-                                <input className="expert-input" value={formData.poaMiddleName} onChange={e => setFormData({...formData, poaMiddleName: e.target.value})} />
-
-                            </div>
-
                             <div className="expert-field full-width">
 
-                                <label>{L('lastName')}</label>
+                                <label>{L('fullName')}</label>
 
-                                <input className="expert-input" value={formData.poaLastName} onChange={e => setFormData({...formData, poaLastName: e.target.value})} />
+                                <input className="expert-input" value={formData.poaFullName} onChange={e => setFormData({...formData, poaFullName: e.target.value})} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
 
                             </div>
 
@@ -984,19 +949,17 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-                    {/* Configuración de poderes (debajo del apoderado) */}
+                    
 
                     <div className="poa-column-card">
 
-                        <div className="poa-column-header" style={{ background: '#0e7490' }}>
+                        <div className="poa-column-header">
 
                             {t('fundacion.poa.settingsHeader')}
 
                         </div>
 
                         <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-                            {/* Question 1: Emitir poder? */}
 
                             <div className="poa-question-box">
 
@@ -1030,8 +993,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-                            {/* Question 2: Tipo de Poder */}
-
                             <div className="poa-question-box">
 
                                 <div className="poa-question-text">
@@ -1052,8 +1013,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-                            {/* Question 3: Fecha de vigencia */}
-
                             <div className="poa-question-box">
 
                                 <div className="poa-question-text">
@@ -1067,8 +1026,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                             </div>
 
 
-
-                            {/* Question 4: Legalizado? */}
 
                             <div className="poa-question-box">
 
@@ -1112,8 +1069,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    // Paso 9: Actividades de la fundación (foundationObjects / fines)
-
     const renderStep9 = () => (
 
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
@@ -1124,9 +1079,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             <div className="expert-hint-box">
 
-                <Info size={20} color="#0369a1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <Info size={14} color="#475569" style={{ flexShrink: 0, marginTop: '2px' }} />
 
-                <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
 
                     {lang === 'en'
 
@@ -1159,8 +1114,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     );
 
 
-
-    // Paso 10: Declaraciones (Declaración Jurada y Firmantes)
 
     const renderStep10 = () => (
 
@@ -1266,8 +1219,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-            {/* Cabecera de Paso Estándar */}
-
             <div className="standard-step-header">
 
                 <span className="standard-step-title">
@@ -1303,8 +1254,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             </div>
 
 
-
-            {/* Stepper Progresivo Estándar de 10 Pasos */}
 
             <div className="standard-progress-stepper">
 
@@ -1385,18 +1334,18 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-subtitle { font-size: 10px; color: #64748b; margin: 2px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
 
                 .expert-btn-save-master { padding: 5px 14px; background: white; color: ${PRIMARY}; border: 1.5px solid ${PRIMARY}; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s; font-size: 11px; }
-                .expert-btn-save-master:hover { background: ${PRIMARY}; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px ${PRIMARY}30; }
+                .expert-btn-save-master:hover { background: ${PRIMARY}; color: white; }
 
                 .standard-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px; }
                 .standard-step-title { font-size: 11px; font-weight: 700; color: ${SECONDARY}; text-transform: uppercase; letter-spacing: 0.5px; }
-                .standard-step-badge { font-size: 9px; font-weight: 800; color: ${PRIMARY}; background: ${PRIMARY}12; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
+                .standard-step-badge { font-size: 9px; font-weight: 800; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
 
                 .standard-progress-stepper { display: flex; gap: 3px; margin-bottom: 10px; }
                 .standard-progress-bar { flex: 1; height: 3px; background: #e2e8f0; border-radius: 3px; transition: all 0.3s ease; }
                 .standard-progress-bar.active { background: ${PRIMARY}; }
 
                 .expert-main-panel { background: white; border-radius: 8px; padding: 16px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-                .expert-step-title { font-size: 13px; font-weight: 700; color: ${SECONDARY}; margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+                .expert-step-title { font-size: 13px; font-weight: 700; color: ${SECONDARY}; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
 
                 .expert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
                 .full-width { grid-column: span 2; }
@@ -1404,42 +1353,42 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .expert-field label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; }
 
                 .expert-input { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 13px; font-weight: 500; color: ${SECONDARY}; transition: all 0.15s; background: #f8fafc; }
-                .expert-input:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
+                .expert-input:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px rgba(15,118,110,0.08); }
 
                 .expert-hint { font-size: 10px; color: #64748b; font-style: italic; font-weight: 500; }
-                .expert-hint-box { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 6px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; line-height: 1.3; }
+                .expert-hint-box { background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; padding: 6px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; line-height: 1.3; }
 
                 .expert-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-                .expert-btn-add { padding: 4px 10px; background: ${PRIMARY}0a; color: ${PRIMARY}; border: 1px solid ${PRIMARY}30; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 10px; transition: 0.15s; }
+                .expert-btn-add { padding: 4px 10px; background: transparent; color: ${PRIMARY}; border: 1px solid ${PRIMARY}40; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 10px; transition: 0.15s; }
                 .expert-btn-add:hover { background: ${PRIMARY}; color: white; }
 
-                .expert-card-legal { background: #fafbfc; border: 1px solid #e8edf2; border-radius: 6px; padding: 12px 12px 10px; position: relative; margin-bottom: 8px; }
-                .expert-card-label { position: absolute; top: -7px; left: 12px; background: ${SECONDARY}; color: white; font-size: 8px; font-weight: 800; padding: 1px 6px; border-radius: 3px; letter-spacing: 0.3px; }
-                .expert-btn-remove { position: absolute; top: 6px; right: 6px; color: #ef4444; background: #fee2e2; border: none; padding: 4px; border-radius: 3px; cursor: pointer; transition: 0.15s; }
-                .expert-btn-remove:hover { transform: rotate(90deg); }
+                .expert-card-legal { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 12px 10px; position: relative; margin-bottom: 8px; }
+                .expert-card-label { position: absolute; top: -7px; left: 12px; background: #475569; color: white; font-size: 8px; font-weight: 800; padding: 1px 6px; border-radius: 3px; letter-spacing: 0.3px; }
+                .expert-btn-remove { position: absolute; top: 6px; right: 6px; color: #ef4444; background: #fef2f2; border: none; padding: 4px; border-radius: 3px; cursor: pointer; transition: 0.15s; }
+                .expert-btn-remove:hover { background: #fee2e2; }
 
-                .expert-legal-box { background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 6px; padding: 12px; color: ${SECONDARY}; margin-top: 10px; }
-                .expert-legal-text { font-size: 11px; line-height: 1.4; color: #334155; margin-bottom: 8px; font-style: italic; border-left: 3px solid ${PRIMARY}; padding: 6px 10px; background: #eff6ff; border-radius: 4px; font-weight: 500; }
+                .expert-legal-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; color: ${SECONDARY}; margin-top: 10px; }
+                .expert-legal-text { font-size: 11px; line-height: 1.4; color: #334155; margin-bottom: 8px; font-style: italic; border-left: 3px solid #e2e8f0; padding: 6px 10px; background: #f1f5f9; border-radius: 4px; font-weight: 500; }
                 .expert-input-legal { width: 100%; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: ${SECONDARY}; outline: none; font-size: 13px; font-weight: 500; transition: all 0.15s; }
-                .expert-input-legal:focus { border-color: #0891b2; background: white; box-shadow: 0 0 0 2px rgba(8,145,178,0.1); }
+                .expert-input-legal:focus { border-color: ${PRIMARY}; background: white; box-shadow: 0 0 0 2px rgba(15,118,110,0.08); }
 
-                .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e8edf2; }
+                .expert-nav-footer { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; }
                 .expert-btn-nav-prev { padding: 7px 16px; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.15s; font-size: 12px; }
                 .expert-btn-nav-prev:hover:not(:disabled) { background: #f1f5f9; }
-                .expert-btn-nav-next { padding: 7px 16px; background: ${PRIMARY}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px ${PRIMARY}25; transition: 0.15s; font-size: 12px; }
-                .expert-btn-nav-next:hover { transform: translateY(-1px); box-shadow: 0 4px 12px ${PRIMARY}30; }
-                .expert-btn-nav-finish { padding: 7px 16px; background: #16a34a; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); transition: 0.15s; font-size: 12px; }
+                .expert-btn-nav-next { padding: 7px 16px; background: ${PRIMARY}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.15s; font-size: 12px; }
+                .expert-btn-nav-next:hover { opacity: 0.9; }
+                .expert-btn-nav-finish { padding: 7px 16px; background: ${PRIMARY}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.15s; font-size: 12px; }
 
                 .poa-original-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
-                .poa-column-card { background: #ffffff; border: 1.5px solid #40a2be; border-radius: 8px; overflow: hidden; }
-                .poa-column-header { background: #40a2be; color: white; padding: 8px 14px; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.3; }
-                .poa-question-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 10px 12px; }
+                .poa-column-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+                .poa-column-header { background: #475569; color: white; padding: 8px 14px; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.3; }
+                .poa-question-box { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; }
                 .poa-question-text { font-size: 11.5px; color: #1e293b; line-height: 1.4; }
                 .poa-check-row { display: flex; gap: 16px; margin-top: 8px; }
-                .poa-check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: #0e7490; }
-                .poa-radio { width: 16px; height: 16px; accent-color: #0e7490; cursor: pointer; }
+                .poa-check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: #334155; }
+                .poa-radio { width: 16px; height: 16px; accent-color: ${PRIMARY}; cursor: pointer; }
                 .person-copy-box { margin-bottom: 10px; padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
-                .person-copy-box label { font-size: 10px; font-weight: 700; color: ${PRIMARY}; text-transform: uppercase; margin-bottom: 4px; display: block; }
+                .person-copy-box label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 4px; display: block; }
 
                 @media (max-width: 768px) {
                     .poa-original-grid .expert-grid { grid-template-columns: 1fr; }

@@ -57,6 +57,13 @@ const S = {
   fieldVal: `min-height:16px;border:1px solid ${C.hintBorder};padding:3px 4px;background:${C.fieldBg};font-size:9px;word-break:break-word;`,
 };
 
+/* ── Backward-compatible name helper ──────────────────────────────── */
+
+function getFullName(person) {
+  if (person.fullName) return person.fullName;
+  return [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+}
+
 /* ── Director blocks ─────────────────────────────────────────────── */
 
 function directorFieldRow(label, value) {
@@ -68,9 +75,7 @@ function directorFieldRow(label, value) {
 
 function buildDirectorTable(d, index) {
   const fields = [
-    ['First name / Nombre', d.firstName],
-    ['Middle name / Segundo nombre', d.secondName],
-    ['Surname(s) / Apellidos', d.lastName],
+    ['Full name / Nombre completo', getFullName(d)],
     ['Date of birth / Fecha de nacimiento', fmtDate(d.birthDate)],
     ['Marital Status / Estado civil', d.maritalStatus],
     ['Citizenship / Nacionalidad', d.nationality],

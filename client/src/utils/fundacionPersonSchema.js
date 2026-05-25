@@ -1,8 +1,6 @@
 /** Campos estándar de persona (fundador, protector, director, apoderado). */
 export const FUNDACION_PERSON_FIELDS = [
-  'firstName',
-  'secondName',
-  'lastName',
+  'fullName',
   'birthDate',
   'maritalStatus',
   'nationality',
@@ -46,21 +44,11 @@ export function ensurePersonArray(value, fallback = []) {
   return Array.isArray(fallback) ? [...fallback] : fallback;
 }
 
-/** Migra registros legacy (fullName) al esquema de nombre dividido. */
+/** Migra registros legacy (firstName/secondName/lastName) al campo único fullName. */
 export function normalizeFundacionPerson(raw = {}) {
   const person = { ...emptyFundacionPerson(), ...raw };
-  if (!person.firstName && !person.lastName && raw.fullName) {
-    const parts = String(raw.fullName).trim().split(/\s+/).filter(Boolean);
-    if (parts.length >= 3) {
-      person.firstName = parts[0];
-      person.secondName = parts.slice(1, -1).join(' ');
-      person.lastName = parts[parts.length - 1];
-    } else if (parts.length === 2) {
-      person.firstName = parts[0];
-      person.lastName = parts[1];
-    } else if (parts.length === 1) {
-      person.firstName = parts[0];
-    }
+  if (!person.fullName && (raw.firstName || raw.secondName || raw.lastName)) {
+    person.fullName = [raw.firstName, raw.secondName, raw.lastName].filter(Boolean).join(' ');
   }
   if (raw.birthPlace && !person.city) person.city = raw.birthPlace;
   return person;
@@ -92,9 +80,7 @@ function pickRoleFields(obj, allowed) {
 
 /** Maps canonical person fields to flat POA keys on FundacionForm state. */
 export const POA_FORM_FIELD_MAP = {
-  firstName: 'poaFirstName',
-  secondName: 'poaMiddleName',
-  lastName: 'poaLastName',
+  fullName: 'poaFullName',
   birthDate: 'poaBirthDate',
   maritalStatus: 'poaMaritalStatus',
   nationality: 'poaNationality',
@@ -109,9 +95,7 @@ export const POA_FORM_FIELD_MAP = {
 
 export function poaPersonFromFormData(formData = {}) {
   return normalizeFundacionPerson({
-    firstName: formData.poaFirstName,
-    secondName: formData.poaMiddleName,
-    lastName: formData.poaLastName,
+    fullName: formData.poaFullName || [formData.poaFirstName, formData.poaMiddleName, formData.poaLastName].filter(Boolean).join(' '),
     birthDate: formData.poaBirthDate,
     maritalStatus: formData.poaMaritalStatus,
     nationality: formData.poaNationality,
@@ -126,23 +110,16 @@ export function poaPersonFromFormData(formData = {}) {
 }
 
 export function personDisplayName(person) {
+  if (person.fullName && String(person.fullName).trim()) {
+    return String(person.fullName).trim();
+  }
   const first = String(person.firstName || '').trim();
   const second = String(person.secondName || '').trim();
   const last = String(person.lastName || '').trim();
+  const fromParts = [first, second, last].filter(Boolean).join(' ');
+  if (fromParts) return fromParts;
 
-  if (first || second || last) {
-    let name = [first, second].filter(Boolean).join(' ').trim();
-    if (last) {
-      const nameLower = name.toLowerCase();
-      const lastLower = last.toLowerCase();
-      if (!nameLower || (!nameLower.endsWith(lastLower) && !nameLower.includes(` ${lastLower}`))) {
-        name = name ? `${name} ${last}` : last;
-      }
-    }
-    if (name) return name;
-  }
-
-  return String(person.fullName || person.shareholder || '').trim();
+  return String(person.shareholder || '').trim();
 }
 
 export function dignitaryDisplayName(d) {
@@ -265,14 +242,12 @@ export function buildPersonRegistry(formData, exclude = null) {
     }
   });
 
-  const poaName = [formData.poaFirstName, formData.poaMiddleName, formData.poaLastName]
+  const poaName = formData.poaFullName || [formData.poaFirstName, formData.poaMiddleName, formData.poaLastName]
     .filter(Boolean)
     .join(' ');
   if (poaName && !(exclude && exclude.arrayName === 'poa')) {
     addPerson({
-      firstName: formData.poaFirstName,
-      secondName: formData.poaMiddleName,
-      lastName: formData.poaLastName,
+      fullName: poaName,
       birthDate: formData.poaBirthDate,
       maritalStatus: formData.poaMaritalStatus,
       nationality: formData.poaNationality,

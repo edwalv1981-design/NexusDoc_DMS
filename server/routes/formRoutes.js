@@ -82,6 +82,7 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
 
         const [directorRows] = await sequelize.query(
             `SELECT DISTINCT ON (elem->>'passport')
+                    elem->>'fullName'      AS "fullName",
                     elem->>'firstName'     AS "firstName",
                     elem->>'secondName'    AS "secondName",
                     elem->>'lastName'      AS "lastName",
@@ -125,6 +126,9 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
         directorRows.forEach(r => {
             const key = (r.passport || '').trim();
             if (!key) return;
+            if (!r.fullName) {
+                r.fullName = [r.firstName, r.secondName, r.lastName].filter(Boolean).join(' ');
+            }
             if (!resultsMap.has(key)) {
                 resultsMap.set(key, { ...r });
             } else {
@@ -260,7 +264,6 @@ router.post('/save', auth, async (req, res) => {
 
       await form.update({ formType: formTypeLabel, data: data });
       
-      // BITÁCORA: Registro de actualización
       AuditLog.create({
         userId: req.user.id,
         action: 'FORM_UPDATED',
@@ -280,7 +283,6 @@ router.post('/save', auth, async (req, res) => {
       data: data
     });
 
-    // BITÁCORA: Registro de creación
     AuditLog.create({
       userId: req.user.id,
       action: 'FORM_CREATED',
@@ -289,7 +291,7 @@ router.post('/save', auth, async (req, res) => {
 
     res.json({ msg: 'Guardado con éxito', data: newForm });
   } catch (err) {
-    console.error('❌ ERROR AL GUARDAR:', err.message);
+    console.error('Error al guardar formulario:', err.message);
     res.status(500).json({ msg: 'Error de servidor: ' + err.message });
   }
 });
@@ -300,12 +302,12 @@ router.get('/my-forms', auth, async (req, res) => {
   try {
     const forms = await FormData.findAll({
       where: { userId: req.user.id },
-      order: [['updatedAt', 'DESC']] // ORDENAR POR ÚLTIMA EDICIÓN (INGENIERO PROTOCOL)
+      order: [['updatedAt', 'DESC']]
     });
     const mapped = forms.map(f => ({
         id: f.id,
         type: f.formType,
-        date: f.updatedAt, // DEVOLVER ÚLTIMA FECHA DE MODIFICACIÓN
+        date: f.updatedAt,
         data: f.data
     }));
     res.json(mapped);
@@ -330,7 +332,6 @@ router.delete('/:id', auth, async (req, res) => {
         if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
         await form.destroy();
         
-        // BITÁCORA: Registro de eliminación
         AuditLog.create({
             userId: req.user.id,
             action: 'FORM_DELETED',
@@ -372,7 +373,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'PTLC');
             } catch (htmlErr) {
-                console.error('❌ Corporación HTML falló:', htmlErr);
+                console.error('Error generando PDF Corporación:', htmlErr);
                 return res.status(500).json({ msg: `ERROR CORPORACION HTML: ${htmlErr.message}` });
             }
         }
@@ -383,7 +384,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 const pdfBuffer = await fundacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'PTLF');
             } catch (htmlErr) {
-                console.error('❌ Fundaciones HTML falló:', htmlErr);
+                console.error('Error generando PDF Fundaciones:', htmlErr);
                 return res.status(500).json({ msg: `ERROR FUNDACION HTML: ${htmlErr.message}` });
             }
         }
@@ -394,7 +395,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 const pdfBuffer = await kyciHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'KYCI');
             } catch (htmlErr) {
-                console.error('❌ KYCI HTML falló:', htmlErr);
+                console.error('Error generando PDF KYCI:', htmlErr);
                 return res.status(500).json({ msg: `ERROR KYCI HTML: ${htmlErr.message}` });
             }
         }
@@ -405,19 +406,19 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 const pdfBuffer = await kyceHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'KYCE');
             } catch (htmlErr) {
-                console.error('❌ KYCE HTML falló:', htmlErr);
+                console.error('Error generando PDF KYCE:', htmlErr);
                 return res.status(500).json({ msg: `ERROR KYCE HTML: ${htmlErr.message}` });
             }
         }
         
-        // AUTO-HEALING: Si no existe en DB, intentamos cargar desde el disco maestro
+        
         if (!dbTemplate || !dbTemplate.fileData) {
             const masterPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
             const localSpecificPath = path.join(__dirname, `../../templates/${templateName}.pdf`);
             const pathToImport = fs.existsSync(localSpecificPath) ? localSpecificPath : (fs.existsSync(masterPath) ? masterPath : null);
 
             if (pathToImport) {
-                console.log(`🛠️ Auto-Healing: Cargando plantilla ${templateName} desde disco a la DB...`);
+                console.log(`Cargando plantilla ${templateName} desde disco a la DB...`);
                 const fileBuffer = fs.readFileSync(pathToImport);
                 if (dbTemplate) {
                     await dbTemplate.update({ fileData: fileBuffer });
@@ -448,12 +449,12 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
 
         pythonProcess.on('close', async (code) => {
             if (code !== 0) {
-                console.error(`❌ Error motor Python: ${stderrData}`);
+                console.error(`Error motor Python: ${stderrData}`);
                 return res.status(500).json({ msg: `ERROR MOTOR: ${stderrData.substring(0, 150)}` });
             }
             if (!fs.existsSync(outputPath)) return res.status(500).json({ msg: 'No se generó el PDF' });
 
-            // LOG ACCTION IN BITACORA
+            
             AuditLog.create({
                 userId: req.user.id,
                 action: 'DOCUMENT_DOWNLOAD',

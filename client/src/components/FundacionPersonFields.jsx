@@ -15,17 +15,9 @@ const FundacionPersonFields = ({ person, onChange, lang, t }) => {
 
   return (
     <div className="expert-grid person-fields-grid">
-      <div className="expert-field">
-        <label>{L('firstName')}</label>
-        <input className="expert-input" value={person.firstName || ''} onChange={(e) => set('firstName', e.target.value)} autoComplete="off" />
-      </div>
-      <div className="expert-field">
-        <label>{L('secondName')}</label>
-        <input className="expert-input" value={person.secondName || ''} onChange={(e) => set('secondName', e.target.value)} autoComplete="off" />
-      </div>
-      <div className="expert-field">
-        <label>{L('lastName')}</label>
-        <input className="expert-input" value={person.lastName || ''} onChange={(e) => set('lastName', e.target.value)} autoComplete="off" />
+      <div className="expert-field full-width">
+        <label>{L('fullName')}</label>
+        <input className="expert-input" value={person.fullName || ''} onChange={(e) => set('fullName', e.target.value)} autoComplete="off" placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
       </div>
       <div className="expert-field">
         <label>{L('birthDate')}</label>

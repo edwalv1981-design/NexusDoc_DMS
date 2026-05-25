@@ -63,8 +63,8 @@ function bodyClassForPlan(plan) {
   return c.join(' ');
 }
 
-function getFundacionPuppeteerPdfChromeOptions(logoDataUri = '') {
-  return corporacionLayoutGuard.getCorporacionPuppeteerPdfChromeOptions(LAYOUT, logoDataUri);
+function getFundacionPuppeteerPdfChromeOptions(_logoDataUri = '') {
+  return corporacionLayoutGuard.getCorporacionPuppeteerPdfChromeOptions(LAYOUT);
 }
 
 module.exports = {
