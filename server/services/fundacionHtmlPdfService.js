@@ -496,21 +496,17 @@ class FundacionHtmlPdfService {
       await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
       await fundacionLayoutGuard.refineAfterRender(page);
-      const chromePdf = fundacionLayoutGuard.getFundacionPuppeteerPdfChromeOptions(logoDataUri);
-      const { margin: _m, ...chromePdfRest } = chromePdf;
 
       const headerTemplate = logoDataUri
-        ? `<div style="font-size:0;width:100%;padding:4px 12mm;text-align:left;"><img src="${logoDataUri}" style="height:36px;width:auto;" /></div>`
+        ? `<div style="font-size:10px;width:100%;padding:6px 14mm 0 14mm;text-align:left;"><img src="${logoDataUri}" style="height:36px;width:auto;display:block;" /></div>`
         : '<div style="font-size:1px;">&nbsp;</div>';
       const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
 
       const pdfBytes = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: false,
         scale: 1,
         margin: { top: '20mm', bottom: '12mm', left: '14mm', right: '14mm' },
-        ...chromePdfRest,
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate,
