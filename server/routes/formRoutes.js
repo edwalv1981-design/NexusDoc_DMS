@@ -237,8 +237,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
 
         let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
 
-        // Para TODOS los formularios con motor HTML, se usan SOLO SI el administrador NO ha subido una plantilla personalizada
-        if (stablePdfForms.isCorporacionPdfForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
+        // Corporación SIEMPRE usa el motor HTML dinámico (ignora plantilla subida)
+        if (stablePdfForms.isCorporacionPdfForm(form.formType)) {
             try {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'PTLC');
