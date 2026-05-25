@@ -315,7 +315,7 @@ const FondosForm = () => {
                                     <input 
                                         className="corporate-input" 
                                         style={getErrorStyle('signerName')} 
-                                        autoComplete="name"
+                                        autoComplete="off"
                                         value={formData.signerName} 
                                         onChange={e => { setFormData({...formData, signerName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'signerName')); }} 
                                     />
