@@ -190,7 +190,9 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             return res.send(pdfBuffer);
         };
 
-        // Corporación / Fundaciones / KYCI: motor HTML (sin plantilla AcroForm obligatoria).
+        let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
+
+        // Corporación / Fundaciones: motor HTML (sin plantilla AcroForm obligatoria).
         if (stablePdfForms.isCorporacionPdfForm(form.formType)) {
             try {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
@@ -211,7 +213,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        if (stablePdfForms.isKyciHtmlForm(form.formType)) {
+        // Para KYCI y KYCE, usar motor HTML SOLO SI el administrador NO ha subido una plantilla personalizada (uploadedBy)
+        if (stablePdfForms.isKyciHtmlForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
             try {
                 const pdfBuffer = await kyciHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'KYCI');
@@ -221,7 +224,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        if (stablePdfForms.isKyceHtmlForm(form.formType)) {
+        if (stablePdfForms.isKyceHtmlForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
             try {
                 const pdfBuffer = await kyceHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'KYCE');
@@ -230,8 +233,6 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 return res.status(500).json({ msg: `ERROR KYCE HTML: ${htmlErr.message}` });
             }
         }
-
-        let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
         
         // AUTO-HEALING: Si no existe en DB, intentamos cargar desde el disco maestro
         if (!dbTemplate || !dbTemplate.fileData) {
