@@ -305,7 +305,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     <div className="corp-grid">
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label><input className="corp-input" value={d.fullName} onChange={e => updateDirector(i, 'fullName', e.target.value)} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} /></div>
+                        <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-name-${i}`] = el}>
+                            <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
+                            <input className="corp-input" value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director'); }} onFocus={() => { if (directorSuggestions[i]?.length) setActiveDirectorIdx(i); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                            {activeDirectorIdx === i && directorSuggestions[i]?.length > 0 && (
+                                <div className="corp-autocomplete-dropdown">
+                                    {directorSuggestions[i].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p); }}>
+                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                            <span className="corp-ac-detail">{p.passport || ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="corp-field">
                             <label>{lang === 'en' ? 'Marital Status' : 'Estado civil'}</label>
                             <select className="corp-input" value={d.maritalStatus} onChange={e => updateDirector(i, 'maritalStatus', e.target.value)}>
@@ -364,7 +377,20 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     <div className="corp-grid">
                         <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label><input className="corp-input" value={dig.fullName} onChange={e => updateDignitary(i, 'fullName', e.target.value)} /></div>
+                        <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-name-${i}`] = el}>
+                            <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
+                            <input className="corp-input" value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary'); }} onFocus={() => { if (dignitarySuggestions[i]?.length) setActiveDignitaryIdx(i); }} />
+                            {activeDignitaryIdx === i && dignitarySuggestions[i]?.length > 0 && (
+                                <div className="corp-autocomplete-dropdown">
+                                    {dignitarySuggestions[i].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
+                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                            <span className="corp-ac-detail">{p.passport || ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-${i}`] = el}>
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
                             <input className="corp-input" value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary'); }} onFocus={() => { if (dignitarySuggestions[i]?.length) setActiveDignitaryIdx(i); }} />
@@ -588,7 +614,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 .corp-btn-nav-next:hover { opacity: 0.9; }
                 .corp-btn-nav-finish { padding: 7px 16px; background: ${ACCENT}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.15s; font-size: 12px; }
 
-                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white; border: 1px solid ${BORDER}; border-radius: 5px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-height: 180px; overflow-y: auto; margin-top: 1px; }
+                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 200; background: white; border: 1px solid ${BORDER}; border-radius: 5px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-height: 180px; overflow-y: auto; margin-top: 1px; }
                 .corp-autocomplete-item { padding: 5px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
                 .corp-autocomplete-item:last-child { border-bottom: none; }
                 .corp-autocomplete-item:hover { background: #f1f5f9; }

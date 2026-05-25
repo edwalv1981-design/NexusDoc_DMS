@@ -97,9 +97,12 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
                     elem->>'country'       AS "country"
              FROM "FormData",
                   jsonb_array_elements(data->'directors') AS elem
-             WHERE elem->>'passport' ILIKE :pattern
-               AND elem->>'passport' IS NOT NULL
-               AND elem->>'passport' != ''
+             WHERE (elem->>'passport' ILIKE :pattern
+                    OR elem->>'fullName' ILIKE :pattern
+                    OR elem->>'firstName' ILIKE :pattern
+                    OR elem->>'lastName' ILIKE :pattern)
+               AND (elem->>'passport' IS NOT NULL AND elem->>'passport' != ''
+                    OR elem->>'fullName' IS NOT NULL AND elem->>'fullName' != '')
              ORDER BY elem->>'passport', "updatedAt" DESC
              LIMIT 50`,
             { replacements: { pattern: `%${q}%` } }
@@ -113,9 +116,10 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
                     elem->>'registrationNumber' AS "registrationNumber"
              FROM "FormData",
                   jsonb_array_elements(data->'dignitaries') AS elem
-             WHERE elem->>'passport' ILIKE :pattern
-               AND elem->>'passport' IS NOT NULL
-               AND elem->>'passport' != ''
+             WHERE (elem->>'passport' ILIKE :pattern
+                    OR elem->>'fullName' ILIKE :pattern)
+               AND (elem->>'passport' IS NOT NULL AND elem->>'passport' != ''
+                    OR elem->>'fullName' IS NOT NULL AND elem->>'fullName' != '')
              ORDER BY elem->>'passport', "updatedAt" DESC
              LIMIT 50`,
             { replacements: { pattern: `%${q}%` } }
@@ -124,11 +128,11 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
         const resultsMap = new Map();
 
         directorRows.forEach(r => {
-            const key = (r.passport || '').trim();
-            if (!key) return;
             if (!r.fullName) {
                 r.fullName = [r.firstName, r.secondName, r.lastName].filter(Boolean).join(' ');
             }
+            const key = (r.passport || r.fullName || '').trim();
+            if (!key) return;
             if (!resultsMap.has(key)) {
                 resultsMap.set(key, { ...r });
             } else {
@@ -140,10 +144,10 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
         });
 
         dignitaryRows.forEach(r => {
-            const key = (r.passport || '').trim();
+            const key = (r.passport || r.fullName || '').trim();
             if (!key) return;
             if (!resultsMap.has(key)) {
-                resultsMap.set(key, { passport: key, fullName: r.fullName, birthDate: r.birthDate, registrationNumber: r.registrationNumber });
+                resultsMap.set(key, { passport: r.passport, fullName: r.fullName, birthDate: r.birthDate, registrationNumber: r.registrationNumber });
             } else {
                 const existing = resultsMap.get(key);
                 if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
@@ -202,6 +206,142 @@ router.get('/corporacion/search-shareholder', auth, async (req, res) => {
     } catch (err) {
         console.error('Error searching corporacion shareholders:', err);
         res.status(500).json({ msg: 'Error al buscar accionistas' });
+    }
+});
+
+// @route   GET api/forms/fundacion/search-person
+router.get('/fundacion/search-person', auth, async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const { sequelize } = require('../config/db');
+
+        const personArrays = ['founders', 'protectors', 'councilMembers', 'directors'];
+        const allRows = [];
+
+        for (const arr of personArrays) {
+            const [rows] = await sequelize.query(
+                `SELECT elem->>'fullName'      AS "fullName",
+                        elem->>'firstName'     AS "firstName",
+                        elem->>'secondName'    AS "secondName",
+                        elem->>'lastName'      AS "lastName",
+                        elem->>'birthDate'     AS "birthDate",
+                        elem->>'maritalStatus' AS "maritalStatus",
+                        elem->>'nationality'   AS "nationality",
+                        elem->>'passport'      AS "passport",
+                        elem->>'idCard'        AS "idCard",
+                        elem->>'phone'         AS "phone",
+                        elem->>'email'         AS "email",
+                        elem->>'address'       AS "address",
+                        elem->>'city'          AS "city",
+                        elem->>'country'       AS "country"
+                 FROM "FormData",
+                      jsonb_array_elements(CASE WHEN jsonb_typeof(data->:arrName) = 'array' THEN data->:arrName ELSE '[]'::jsonb END) AS elem
+                 WHERE (elem->>'passport' ILIKE :pattern
+                        OR elem->>'fullName' ILIKE :pattern
+                        OR elem->>'firstName' ILIKE :pattern
+                        OR elem->>'lastName' ILIKE :pattern)
+                 ORDER BY "updatedAt" DESC
+                 LIMIT 30`,
+                { replacements: { pattern: `%${q}%`, arrName: arr } }
+            );
+            allRows.push(...rows);
+        }
+
+        const [dignitaryRows] = await sequelize.query(
+            `SELECT elem->>'fullName'           AS "fullName",
+                    elem->>'birthDate'          AS "birthDate",
+                    elem->>'passport'           AS "passport",
+                    elem->>'registrationNumber' AS "registrationNumber",
+                    elem->>'address'            AS "address"
+             FROM "FormData",
+                  jsonb_array_elements(CASE WHEN jsonb_typeof(data->'dignitaries') = 'array' THEN data->'dignitaries' ELSE '[]'::jsonb END) AS elem
+             WHERE (elem->>'passport' ILIKE :pattern
+                    OR elem->>'fullName' ILIKE :pattern)
+             ORDER BY "updatedAt" DESC
+             LIMIT 30`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
+        const resultsMap = new Map();
+
+        allRows.forEach(r => {
+            if (!r.fullName) {
+                r.fullName = [r.firstName, r.secondName, r.lastName].filter(Boolean).join(' ');
+            }
+            const key = (r.passport || r.fullName || '').trim();
+            if (!key) return;
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, { ...r });
+            } else {
+                const existing = resultsMap.get(key);
+                Object.keys(r).forEach(k => {
+                    if (!existing[k] && r[k]) existing[k] = r[k];
+                });
+            }
+        });
+
+        dignitaryRows.forEach(r => {
+            const key = (r.passport || r.fullName || '').trim();
+            if (!key) return;
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, { fullName: r.fullName, passport: r.passport, birthDate: r.birthDate, registrationNumber: r.registrationNumber, address: r.address });
+            } else {
+                const existing = resultsMap.get(key);
+                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
+                if (!existing.birthDate && r.birthDate) existing.birthDate = r.birthDate;
+                if (!existing.registrationNumber && r.registrationNumber) existing.registrationNumber = r.registrationNumber;
+            }
+        });
+
+        res.json(Array.from(resultsMap.values()).slice(0, 10));
+    } catch (err) {
+        console.error('Error searching fundacion persons:', err);
+        res.status(500).json({ msg: 'Error al buscar personas' });
+    }
+});
+
+// @route   GET api/forms/fundacion/search-beneficiary
+router.get('/fundacion/search-beneficiary', auth, async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const { sequelize } = require('../config/db');
+
+        const [rows] = await sequelize.query(
+            `SELECT elem->>'shareholder' AS "shareholder",
+                    elem->>'birthDate'   AS "birthDate",
+                    elem->>'address'     AS "address"
+             FROM "FormData",
+                  jsonb_array_elements(CASE WHEN jsonb_typeof(data->'beneficiaries') = 'array' THEN data->'beneficiaries' ELSE '[]'::jsonb END) AS elem
+             WHERE elem->>'shareholder' ILIKE :pattern
+               AND elem->>'shareholder' IS NOT NULL
+               AND elem->>'shareholder' != ''
+             ORDER BY "updatedAt" DESC
+             LIMIT 50`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
+        const resultsMap = new Map();
+        rows.forEach(r => {
+            const name = (r.shareholder || '').trim();
+            if (!name) return;
+            if (!resultsMap.has(name)) {
+                resultsMap.set(name, { ...r });
+            } else {
+                const existing = resultsMap.get(name);
+                Object.keys(r).forEach(k => {
+                    if (!existing[k] && r[k]) existing[k] = r[k];
+                });
+            }
+        });
+
+        res.json(Array.from(resultsMap.values()).slice(0, 10));
+    } catch (err) {
+        console.error('Error searching fundacion beneficiaries:', err);
+        res.status(500).json({ msg: 'Error al buscar beneficiarios' });
     }
 });
 

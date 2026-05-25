@@ -3,7 +3,8 @@
  * 10 secciones: Nombre, Capital, Fundador, Protectores, Directores, Dignatarios,
  * Beneficiarios, Poderes, Actividades, Declaración.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import API_BASE_URL from '../config';
 
 import { 
 
@@ -205,6 +206,185 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
+    /* ── Autocomplete state ── */
+    const [personSuggestions, setPersonSuggestions] = useState({});
+    const [activePersonKey, setActivePersonKey] = useState(null);
+    const [beneficiarySuggestions, setBeneficiarySuggestions] = useState({});
+    const [activeBeneficiaryIdx, setActiveBeneficiaryIdx] = useState(null);
+    const [poaSuggestions, setPoaSuggestions] = useState([]);
+    const [showPoaDropdown, setShowPoaDropdown] = useState(false);
+    const debounceTimers = useRef({});
+    const autocompleteRefs = useRef({});
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            const isInsideAny = Object.values(autocompleteRefs.current).some(
+                ref => ref && ref.contains(e.target)
+            );
+            if (!isInsideAny) {
+                setActivePersonKey(null);
+                setActiveBeneficiaryIdx(null);
+                setShowPoaDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const searchFundacionPerson = useCallback((query, arrayName, index) => {
+        const timerKey = `${arrayName}-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setPersonSuggestions(prev => ({ ...prev, [timerKey]: [] }));
+            setActivePersonKey(null);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/fundacion/search-person?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setPersonSuggestions(prev => ({ ...prev, [timerKey]: data }));
+                    setActivePersonKey(data.length > 0 ? timerKey : null);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const selectPersonSuggestion = (arrayName, index, person) => {
+        const newArray = [...formData[arrayName]];
+        const p = newArray[index];
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) p.fullName = fn;
+        const fields = ['birthDate', 'maritalStatus', 'nationality', 'passport', 'idCard', 'phone', 'email', 'address', 'city', 'country'];
+        fields.forEach(f => { if (person[f]) p[f] = person[f]; });
+        setFormData(prev => ({ ...prev, [arrayName]: newArray }));
+        const timerKey = `${arrayName}-${index}`;
+        setPersonSuggestions(prev => ({ ...prev, [timerKey]: [] }));
+        setActivePersonKey(null);
+    };
+
+    const searchDignitaryPerson = useCallback((query, index) => {
+        const timerKey = `dignitaries-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setPersonSuggestions(prev => ({ ...prev, [timerKey]: [] }));
+            setActivePersonKey(null);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/fundacion/search-person?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setPersonSuggestions(prev => ({ ...prev, [timerKey]: data }));
+                    setActivePersonKey(data.length > 0 ? timerKey : null);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const selectDignitarySuggestion = (index, person) => {
+        const newDigs = [...formData.dignitaries];
+        const d = newDigs[index];
+        if (person.fullName) d.fullName = person.fullName;
+        else if (person.firstName) d.fullName = [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (person.passport) d.passport = person.passport;
+        if (person.birthDate) d.birthDate = person.birthDate;
+        if (person.registrationNumber) d.registrationNumber = person.registrationNumber;
+        if (person.address) d.address = person.address;
+        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
+        const timerKey = `dignitaries-${index}`;
+        setPersonSuggestions(prev => ({ ...prev, [timerKey]: [] }));
+        setActivePersonKey(null);
+    };
+
+    const searchBeneficiary = useCallback((query, index) => {
+        const timerKey = `beneficiary-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setBeneficiarySuggestions(prev => ({ ...prev, [index]: [] }));
+            setActiveBeneficiaryIdx(null);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/fundacion/search-beneficiary?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setBeneficiarySuggestions(prev => ({ ...prev, [index]: data }));
+                    setActiveBeneficiaryIdx(data.length > 0 ? index : null);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const selectBeneficiarySuggestion = (index, person) => {
+        const newBen = [...formData.beneficiaries];
+        const b = newBen[index];
+        if (person.shareholder) b.shareholder = person.shareholder;
+        if (person.birthDate) b.birthDate = person.birthDate;
+        if (person.address) b.address = person.address;
+        setFormData(prev => ({ ...prev, beneficiaries: newBen }));
+        setBeneficiarySuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveBeneficiaryIdx(null);
+    };
+
+    const searchPoaPerson = useCallback((query) => {
+        const timerKey = 'poa';
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setPoaSuggestions([]);
+            setShowPoaDropdown(false);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/fundacion/search-person?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setPoaSuggestions(data);
+                    setShowPoaDropdown(data.length > 0);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const selectPoaSuggestion = (person) => {
+        const updates = {};
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) updates.poaFullName = fn;
+        if (person.birthDate) updates.poaBirthDate = person.birthDate;
+        if (person.maritalStatus) updates.poaMaritalStatus = person.maritalStatus;
+        if (person.nationality) updates.poaNationality = person.nationality;
+        if (person.passport) updates.poaPassport = person.passport;
+        if (person.idCard) updates.poaIdCard = person.idCard;
+        if (person.phone) updates.poaPhone = person.phone;
+        if (person.email) updates.poaEmail = person.email;
+        if (person.address) updates.poaAddress = person.address;
+        if (person.city) updates.poaCity = person.city;
+        if (person.country) updates.poaCountry = person.country;
+        setFormData(prev => ({ ...prev, ...updates }));
+        setPoaSuggestions([]);
+        setShowPoaDropdown(false);
+    };
+
     const updateArrayField = (arrayName, index, field, value) => {
 
         const newArray = [...formData[arrayName]];
@@ -401,37 +581,30 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
 
-    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => (
-
-        <div key={index} className="expert-card-legal">
-
-            <div className="expert-card-label">{cardLabel}</div>
-
-            {canRemove && (
-
-                <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove">
-
-                    <Trash2 size={16} />
-
-                </button>
-
-            )}
-
-            <FundacionPersonFields
-
-                person={formData[arrayName][index]}
-
-                lang={lang}
-
-                t={t}
-
-                onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
-
-            />
-
-        </div>
-
-    );
+    const renderPersonCard = (arrayName, index, cardLabel, excludeStep, canRemove, minItems) => {
+        const timerKey = `${arrayName}-${index}`;
+        return (
+            <div key={index} className="expert-card-legal">
+                <div className="expert-card-label">{cardLabel}</div>
+                {canRemove && (
+                    <button type="button" onClick={() => removeArrayItem(arrayName, index, minItems)} className="expert-btn-remove">
+                        <Trash2 size={16} />
+                    </button>
+                )}
+                <FundacionPersonFields
+                    person={formData[arrayName][index]}
+                    lang={lang}
+                    t={t}
+                    onChange={(field, value) => updateArrayField(arrayName, index, field, value)}
+                    suggestions={personSuggestions[timerKey] || []}
+                    showDropdown={activePersonKey === timerKey}
+                    onSearch={(query) => searchFundacionPerson(query, arrayName, index)}
+                    onSelect={(person) => selectPersonSuggestion(arrayName, index, person)}
+                    dropdownRef={el => autocompleteRefs.current[timerKey] = el}
+                />
+            </div>
+        );
+    };
 
 
 
@@ -661,9 +834,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             </div>
 
-            {formData.dignitaries.map((d, i) => (
-
-                <div key={i} className="expert-card-legal">
+            {formData.dignitaries.map((d, i) => {
+                const digKey = `dignitaries-${i}`;
+                return (
+                <div key={i} className="expert-card-legal" ref={el => autocompleteRefs.current[digKey] = el}>
 
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
 
@@ -679,21 +853,28 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         </div>
 
-                        <div className="expert-field full-width">
+                        <div className="expert-field full-width" style={{ position: 'relative' }}>
 
                             <label>{t('fundacion.dignitary.fullName')}</label>
 
                             <input
-
                                 className="expert-input"
-
                                 value={d.fullName || ''}
-
-                                onChange={(e) => updateArrayField('dignitaries', i, 'fullName', e.target.value)}
-
+                                autoComplete="off"
+                                onChange={(e) => { updateArrayField('dignitaries', i, 'fullName', e.target.value); searchDignitaryPerson(e.target.value, i); }}
+                                onFocus={() => { if (personSuggestions[digKey]?.length) setActivePersonKey(digKey); }}
                                 placeholder={t('fundacion.dignitary.fullNamePlaceholder')}
-
                             />
+                            {activePersonKey === digKey && personSuggestions[digKey]?.length > 0 && (
+                                <div className="fund-autocomplete-dropdown">
+                                    {personSuggestions[digKey].map((p, j) => (
+                                        <div key={j} className="fund-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
+                                            <span className="fund-ac-name">{p.fullName || ''}</span>
+                                            <span className="fund-ac-detail">{p.passport || ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                         </div>
 
@@ -716,8 +897,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     </div>
 
                 </div>
-
-            ))}
+                );
+            })}
 
         </div>
 
@@ -743,7 +924,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             {formData.beneficiaries.map((b, i) => (
 
-                <div key={i} className="expert-card-legal">
+                <div key={i} className="expert-card-legal" ref={el => autocompleteRefs.current[`ben-${i}`] = el}>
 
                     <div className="expert-card-label">{lang === 'en' ? `BENEFICIARY #${i+1}` : `BENEFICIARIO #${i+1}`}</div>
 
@@ -759,21 +940,28 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         </div>
 
-                        <div className="expert-field full-width">
+                        <div className="expert-field full-width" style={{ position: 'relative' }}>
 
                             <label>{t('fundacion.beneficiary.shareholder')}</label>
 
                             <input
-
                                 className="expert-input"
-
                                 value={b.shareholder || ''}
-
-                                onChange={(e) => updateArrayField('beneficiaries', i, 'shareholder', e.target.value)}
-
+                                autoComplete="off"
+                                onChange={(e) => { updateArrayField('beneficiaries', i, 'shareholder', e.target.value); searchBeneficiary(e.target.value, i); }}
+                                onFocus={() => { if (beneficiarySuggestions[i]?.length) setActiveBeneficiaryIdx(i); }}
                                 placeholder={t('fundacion.beneficiary.shareholderPlaceholder')}
-
                             />
+                            {activeBeneficiaryIdx === i && beneficiarySuggestions[i]?.length > 0 && (
+                                <div className="fund-autocomplete-dropdown">
+                                    {beneficiarySuggestions[i].map((p, j) => (
+                                        <div key={j} className="fund-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectBeneficiarySuggestion(i, p); }}>
+                                            <span className="fund-ac-name">{p.shareholder || ''}</span>
+                                            {p.address && <span className="fund-ac-detail">{p.address}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                         </div>
 
@@ -831,13 +1019,23 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         <div className="poa-column-header">{t('fundacion.poa.granteeHeader')}</div>
 
-                        <div className="expert-grid" style={{ padding: '12px' }}>
+                        <div className="expert-grid" style={{ padding: '12px' }} ref={el => autocompleteRefs.current['poa'] = el}>
 
-                            <div className="expert-field full-width">
+                            <div className="expert-field full-width" style={{ position: 'relative' }}>
 
                                 <label>{L('fullName')}</label>
 
-                                <input className="expert-input" value={formData.poaFullName} onChange={e => setFormData({...formData, poaFullName: e.target.value})} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                                <input className="expert-input" value={formData.poaFullName} autoComplete="off" onChange={e => { setFormData({...formData, poaFullName: e.target.value}); searchPoaPerson(e.target.value); }} onFocus={() => { if (poaSuggestions.length) setShowPoaDropdown(true); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                                {showPoaDropdown && poaSuggestions.length > 0 && (
+                                    <div className="fund-autocomplete-dropdown">
+                                        {poaSuggestions.map((p, j) => (
+                                            <div key={j} className="fund-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectPoaSuggestion(p); }}>
+                                                <span className="fund-ac-name">{p.fullName || ''}</span>
+                                                <span className="fund-ac-detail">{p.passport || ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
                             </div>
 
@@ -879,11 +1077,11 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             </div>
 
-                            <div className="expert-field">
+                            <div className="expert-field" style={{ position: 'relative' }}>
 
                                 <label>{L('passport')}</label>
 
-                                <input className="expert-input" value={formData.poaPassport} onChange={e => setFormData({...formData, poaPassport: e.target.value})} />
+                                <input className="expert-input" value={formData.poaPassport} autoComplete="off" onChange={e => { setFormData({...formData, poaPassport: e.target.value}); searchPoaPerson(e.target.value); }} onFocus={() => { if (poaSuggestions.length) setShowPoaDropdown(true); }} />
 
                             </div>
 
@@ -1389,6 +1587,13 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 .poa-radio { width: 16px; height: 16px; accent-color: ${PRIMARY}; cursor: pointer; }
                 .person-copy-box { margin-bottom: 10px; padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
                 .person-copy-box label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 4px; display: block; }
+
+                .fund-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 200; background: white; border: 1px solid #e2e8f0; border-radius: 5px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-height: 180px; overflow-y: auto; margin-top: 2px; }
+                .fund-autocomplete-item { padding: 6px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
+                .fund-autocomplete-item:last-child { border-bottom: none; }
+                .fund-autocomplete-item:hover { background: #f1f5f9; }
+                .fund-ac-name { font-size: 11px; font-weight: 700; color: #1e293b; }
+                .fund-ac-detail { font-size: 10px; color: #64748b; font-weight: 500; }
 
                 @media (max-width: 768px) {
                     .poa-original-grid .expert-grid { grid-template-columns: 1fr; }
