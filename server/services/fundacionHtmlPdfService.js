@@ -366,16 +366,26 @@ class FundacionHtmlPdfService {
         `<div class="hint">${esc(t.sectionDirectorsHint)}</div>`
       );
 
+      const logoImg = logoDataUri
+        ? `<img src="${logoDataUri}" alt="Logo" style="max-height:40px;width:auto;display:block;" />`
+        : `<span style="font-size:12px;font-weight:bold;color:#0369a1;">PANAMA TAX LAWYERS</span>`;
+
       const content = `
         <main class="doc-body">
+          <div style="display:flex;align-items:center;margin-bottom:8px;">
+            <div style="flex:0 0 auto;">${logoImg}</div>
+            <div style="flex:1;text-align:center;">
+              <div class="first-page-title"><h1>${esc(t.docTitle)}</h1></div>
+            </div>
+          </div>
+
           <section class="card">
-            <div class="first-page-title"><h1>${esc(t.docTitle)}</h1></div>
             <h2>${esc(t.sectionName)}</h2>
             <div class="hint">${esc(t.sectionNameHint)}</div>
             <div class="grid3">
-              <div><label>${esc(t.choice1)}</label><div class="value">${esc(data.foundationNameOption1)}</div>
-              <div><label>${esc(t.choice2)}</label><div class="value">${esc(data.foundationNameOption2)}</div>
-              <div><label>${esc(t.choice3)}</label><div class="value">${esc(data.foundationNameOption3)}</div>
+              <div><label>${esc(t.choice1)}</label><div class="value">${esc(data.foundationNameOption1)}</div></div>
+              <div><label>${esc(t.choice2)}</label><div class="value">${esc(data.foundationNameOption2)}</div></div>
+              <div><label>${esc(t.choice3)}</label><div class="value">${esc(data.foundationNameOption3)}</div></div>
             </div>
           </section>
 
@@ -454,7 +464,7 @@ class FundacionHtmlPdfService {
             html, body { margin: 0; padding: 0; }
             body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; font-size: 10px; }
             .doc-body { padding: 0; margin: 0; box-sizing: border-box; }
-            .first-page-title { text-align: center; margin: 0 0 6px 0; }
+            .first-page-title { text-align: center; margin: 0; }
             .first-page-title h1 { margin: 0; color: #0369a1; font-size: 20px; line-height: 1.02; font-weight: 800; }
             .card { border: 1px solid #7dd3fc; margin: 8px 0; page-break-inside: auto; break-inside: auto; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
