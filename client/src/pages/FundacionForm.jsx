@@ -1379,7 +1379,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
 
             <style>{`
-                .expert-container { width: 100%; max-width: 900px; margin: 0 auto; padding: 8px 0 24px; font-family: 'Inter', sans-serif; }
+                .expert-container { width: 100%; padding: 8px 0 24px; font-family: 'Inter', sans-serif; }
                 .expert-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
                 .expert-title { font-size: 18px; font-weight: 800; color: ${SECONDARY}; margin: 0; letter-spacing: -0.5px; }
                 .expert-subtitle { font-size: 10px; color: #64748b; margin: 2px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }

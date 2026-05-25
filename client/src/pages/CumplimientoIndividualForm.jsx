@@ -225,7 +225,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
   );
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '12px 0' }}>
+    <div style={{ width: '100%', padding: '12px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h1 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY }}>{t('formType.Cumplimiento Individual')}</h1>
         <button type="button" onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save">

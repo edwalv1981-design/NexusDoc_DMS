@@ -107,7 +107,7 @@ const SignedDocuments = () => {
   };
 
   return (
-    <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ padding: '30px', width: '100%' }}>
       <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px', color: '#0f172a' }}>{t('signedDocs.title')}</h2>
       
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: RADIUS, padding: '15px', marginBottom: '30px', display: 'flex', gap: '15px', alignItems: 'flex-start' }}>

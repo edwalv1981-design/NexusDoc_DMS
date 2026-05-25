@@ -409,12 +409,13 @@ const ClientDashboard = () => {
             </aside>
 
             <main style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
+              <div className="form-content-frame">
                 {showSignedDocs ? (
                     <SignedDocuments />
                 ) : showDocuments ? (
                     <UserDocuments />
                 ) : !showForm ? (
-                    <div style={{ maxWidth: '900px' }}>
+                    <div>
                         <div style={{ background: PRIMARY, borderRadius: RADIUS_LG, padding: '30px 35px', color: 'white', marginBottom: '35px', boxShadow: '0 10px 25px rgba(0, 120, 212, 0.1)', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ position: 'relative', zIndex: 2 }}>
                                 <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px' }}>{t('dashboard.clientPortal')}</span>
@@ -487,7 +488,7 @@ const ClientDashboard = () => {
                         </div>
                     </div>
                 ) : !currentFormType ? (
-                    <div style={{ maxWidth: '900px' }}>
+                    <div>
                         <h1 style={{ marginBottom: '25px', color: '#1e293b' }}>{t('dashboard.selectType')}</h1>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                           {formOptions.map((opt) => (
@@ -511,11 +512,11 @@ const ClientDashboard = () => {
                         </div>
                     </div>
                 ) : templateStatusLoading && currentFormType && !isHtmlFormType(currentFormType) ? (
-                    <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', color: '#64748b' }} aria-busy="true">
+                    <div style={{ textAlign: 'center', padding: '50px', color: '#64748b' }} aria-busy="true">
                         <p>{t('dashboard.syncing')}</p>
                     </div>
                 ) : usesSchemaWizard(currentFormType) && isFormReady(currentFormType) ? (
-                    <div style={{ maxWidth: '800px' }}>
+                    <div>
                         <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <PdfSchemaWizard
                             formType={currentFormType}
@@ -526,7 +527,7 @@ const ClientDashboard = () => {
                         />
                     </div>
                 ) : usesFondosWizard(currentFormType) && isFormReady(currentFormType) ? (
-                    <div style={{ maxWidth: '800px' }}>
+                    <div>
                         <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
@@ -662,7 +663,7 @@ const ClientDashboard = () => {
                         saving={saving}
                     />
                 ) : (
-                    <div style={{ maxWidth: '800px', textAlign: 'center', padding: '50px', background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG }}>
+                    <div style={{ textAlign: 'center', padding: '50px' }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
                             <Construction size={40} />
                         </div>
@@ -675,6 +676,7 @@ const ClientDashboard = () => {
                         </button>
                     </div>
                 )}
+              </div>
             </main>
             <style>{`
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
