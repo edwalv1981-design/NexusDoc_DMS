@@ -1,149 +1,83 @@
+'use strict';
+
 /**
- * Agente interno de maquetación para PDF Corporación (HTML).
- * Objetivo: reducir saltos de página "feos" (huérfanos, bloques imposibles de mantener juntos).
- * No afecta SFAR ni otros formularios.
+ * Layout-analysis helper for Corporación / Incorporación PDF (HTML).
  *
- * PDF / logo (evitar errores recurrentes):
- * - Logo solo vía `headerTemplate` de Puppeteer (`getCorporacionPuppeteerPdfChromeOptions`), no `position:fixed` en el HTML.
- * - `getPdfBodyTopMarginPx` = altura cabecera + buffer; debe coincidir con el cálculo de altura útil en `refineAfterRender`.
- * - Márgenes: definidos en **@page** (mm) para que se repitan en **cada** hoja al imprimir; `page.pdf({ margin:0 })`.
- * - `preferCSSPageSize: true` para que Chromium respete @page (si margin>0 en API + @page 0, el contenido iba a borde).
- * - Asset `templates/logo_empresa.png`: preferir PNG con transparencia; si el fondo es blanco “quemado”, seguirá tapando el teal.
+ * Provides:
+ *  - Adaptive CSS for high-density forms (many directors/shareholders).
+ *  - Page-break heuristics for the tail block (activities + declaration).
+ *  - Puppeteer `page.pdf()` margin options (simple, no header/footer template).
+ *  - Runtime refinement after DOM render (optional).
  */
 
-const A4_HEIGHT_PX = 1123; // ~297mm @ 96dpi
-const DEFAULT_BOTTOM_PX = 48;
+const A4_HEIGHT_PX = 1123; // ~297 mm @ 96 dpi
 
-function pxToMmString(px, decimals = 2) {
-  const mm = (px * 25.4) / 96;
-  return `${mm.toFixed(decimals)}mm`;
-}
+/** Margins handed to Puppeteer's `page.pdf({ margin })`. */
+const LAYOUT = Object.freeze({
+  TOP_INSET: '10mm',
+  BOTTOM_INSET: '10mm',
+  H_INSET: '12mm',
+});
 
-function insetMmToPx(mmStr) {
+/* ── Margin helpers ──────────────────────────────────────────────── */
+
+function mmToPx(mmStr) {
   const n = parseFloat(String(mmStr).replace(/mm\s*$/i, ''));
-  if (Number.isNaN(n)) return DEFAULT_BOTTOM_PX;
+  if (Number.isNaN(n)) return 38;
   return (n * 96) / 25.4;
 }
 
-/** Altura total (px) de la franja fija del logo (padding + imagen + reserva inferior). */
-function getHeaderBandPx(layout) {
-  return (
-    layout.RUNNING_HEADER_PADDING_TOP +
-    layout.HEADER_LOGO_H +
-    layout.RUNNING_HEADER_PADDING_BOTTOM
-  );
+function pxToMmString(px, decimals = 2) {
+  return `${((px * 25.4) / 96).toFixed(decimals)}mm`;
 }
 
-/** Desde el borde superior del papel hasta donde debe empezar el flujo del documento (igual en todas las páginas). */
-function getContentStartPx(layout) {
-  return getHeaderBandPx(layout) + layout.DOC_BODY_GAP_BELOW_HEADER;
-}
-
-/**
- * Margen superior del **cuerpo** del PDF (px): reserva cabecera + hueco; incluye buffer anti-solape Chrome.
- * Debe usarse igual en `page.pdf({ margin.top })` y en `refineAfterRender` (altura útil).
- */
-function getPdfBodyTopMarginPx(layout = LAYOUT) {
-  return getContentStartPx(layout) + layout.PDF_TOP_MARGIN_BUFFER_PX;
-}
-
-/**
- * Márgenes del `page.pdf()` de Puppeteer (área del cuerpo). Misma geometría en **cada** hoja.
- */
 function getPuppeteerPdfMargins(layout = LAYOUT) {
   return {
-    top: pxToMmString(getPdfBodyTopMarginPx(layout)),
+    top: layout.TOP_INSET,
+    bottom: layout.BOTTOM_INSET,
     left: layout.H_INSET,
     right: layout.H_INSET,
-    bottom: layout.BOTTOM_INSET,
   };
 }
 
 /**
- * Cadena `margin` para regla `@page` (orden CSS: top right bottom left).
+ * CSS `margin` shorthand (top right bottom left) for @page rules.
+ * Kept for backward compat with fundacionLayoutGuard.
  */
 function getPrintPageMarginCss(layout = LAYOUT) {
   const m = getPuppeteerPdfMargins(layout);
   return `${m.top} ${m.right} ${m.bottom} ${m.left}`;
 }
 
-function escAttrHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;');
-}
+/* ── Puppeteer PDF options ───────────────────────────────────────── */
 
 /**
- * Logo en **todas** las páginas sin `position:fixed` en el HTML (Chromium lo trata mal en PDF).
- * Usa `displayHeaderFooter` + `headerTemplate`: es el mecanismo nativo de impresión de Chrome.
- *
- * @param {object} layout
- * @param {string} logoDataUri data URI o cadena vacía
+ * Returns options for `page.pdf({ ... })`: margins only, no displayHeaderFooter.
+ * The logo is rendered directly inside the HTML body.
  */
-function buildPuppeteerHeaderFooterTemplates(layout, logoDataUri) {
-  const inset = layout.H_INSET;
-  const padTop = layout.RUNNING_HEADER_PADDING_TOP;
-  const padBot = layout.RUNNING_HEADER_PADDING_BOTTOM;
-  const h = layout.HEADER_LOGO_H;
-  const img = logoDataUri
-    ? `<img src="${escAttrHtml(logoDataUri)}" alt="" style="height:${h}px;width:auto;max-width:180px;display:block;object-fit:contain;" />`
-    : `<span style="font-size:10px;font-weight:bold;color:#0369a1;line-height:${h}px;display:inline-block;letter-spacing:0.5px;">PANAMA TAX LAWYERS</span>`;
-  /* font-size:0 evita que Chrome infle la franja por line-height del contenedor (causa solapes “mediocres”). */
-  const headerTemplate = `<div style="font-size:0;line-height:0;width:100%;box-sizing:border-box;margin:0;padding:${padTop}px ${inset} ${padBot}px ${inset};text-align:left;font-family:Arial,Helvetica,sans-serif;">${img}</div>`;
-  const footerTemplate =
-    '<div style="height:1px;margin:0;padding:0;font-size:1px;">&nbsp;</div>';
-  return {
-    displayHeaderFooter: true,
-    headerTemplate,
-    footerTemplate,
-  };
-}
-
-/**
- * Opciones listas para `page.pdf({ ... })`: márgenes + cabecera repetible (logo).
- * El HTML del formulario ya **no** debe incluir `<header class="running-header">`.
- */
-function getCorporacionPuppeteerPdfChromeOptions(layout = LAYOUT, logoDataUri = '') {
+function getCorporacionPuppeteerPdfChromeOptions(layout = LAYOUT) {
   return {
     margin: getPuppeteerPdfMargins(layout),
-    ...buildPuppeteerHeaderFooterTemplates(layout, logoDataUri),
   };
 }
 
-/**
- * Falla rápido en CI o al arrancar checks si alguien rompe la geometría PDF/logo.
- * @param {object} [layout]
- */
+/* ── Layout invariant assertion ──────────────────────────────────── */
+
 function assertCorporacionPdfLayoutInvariants(layout = LAYOUT) {
-  const band = getHeaderBandPx(layout);
-  const start = getContentStartPx(layout);
-  const bodyTop = getPdfBodyTopMarginPx(layout);
-  if (!(band > 0 && layout.HEADER_LOGO_H > 0)) {
-    throw new Error('corporacionLayoutGuard: HEADER_LOGO_H / band inválidos');
-  }
-  if (!(bodyTop >= start)) {
-    throw new Error('corporacionLayoutGuard: getPdfBodyTopMarginPx debe ser >= getContentStartPx');
-  }
-  if (!(layout.DOC_BODY_GAP_BELOW_HEADER >= 0 && layout.PDF_TOP_MARGIN_BUFFER_PX >= 0)) {
-    throw new Error('corporacionLayoutGuard: gaps/buffer no pueden ser negativos');
-  }
-  const opts = getCorporacionPuppeteerPdfChromeOptions(layout, 'data:image/png;base64,AA==');
-  const m = opts.margin;
-  if (!m || typeof m.top !== 'string' || !m.top.endsWith('mm')) {
-    throw new Error('corporacionLayoutGuard: margin.top debe ser string en mm');
-  }
-  if (!opts.displayHeaderFooter || typeof opts.headerTemplate !== 'string') {
-    throw new Error('corporacionLayoutGuard: falta headerTemplate / displayHeaderFooter');
-  }
-  if (!/src="data:image\/png;base64,/.test(opts.headerTemplate)) {
-    throw new Error('corporacionLayoutGuard: headerTemplate debe incluir img con data URI');
+  const m = getPuppeteerPdfMargins(layout);
+  for (const side of ['top', 'bottom', 'left', 'right']) {
+    if (typeof m[side] !== 'string' || !m[side].endsWith('mm')) {
+      throw new Error(`corporacionLayoutGuard: margin.${side} must be a string ending in mm`);
+    }
+    const val = parseFloat(m[side]);
+    if (Number.isNaN(val) || val < 0 || val > 50) {
+      throw new Error(`corporacionLayoutGuard: margin.${side} out of range (${m[side]})`);
+    }
   }
 }
 
-/**
- * @param {object} data - Mismo payload que CorporacionForm guarda
- */
+/* ── Form data analysis ──────────────────────────────────────────── */
+
 function analyzeFormData(data = {}) {
   const directors = Array.isArray(data.directors) ? data.directors.length : 0;
   const shareholders = Array.isArray(data.shareholders) ? data.shareholders.length : 0;
@@ -155,71 +89,29 @@ function analyzeFormData(data = {}) {
   if (directors > 6 || shareholders > 12 || dignitaries > 5 || actLen > 2200) density = 'high';
   if (directors > 10 || shareholders > 22 || dignitaries > 10 || actLen > 5000) density = 'very_high';
 
-  /** Si el bloque final es enorme, forzar política de ruptura permisiva (evita cortar mal el PDF). */
   const tailKeepTogether = actLen < 3200 && directors <= 8 && shareholders <= 16 && signers <= 3;
 
-  return {
-    density,
-    tailKeepTogether,
-    directors,
-    shareholders,
-    dignitaries,
-    signers,
-    activitiesChars: actLen,
-  };
+  return { density, tailKeepTogether, directors, shareholders, dignitaries, signers, activitiesChars: actLen };
 }
 
-/**
- * CSS adicional según análisis (inyectado en <head>).
- */
+/* ── Adaptive CSS ────────────────────────────────────────────────── */
+
 function getAdaptiveCss(plan) {
   const rules = [];
 
   if (plan.density === 'high' || plan.density === 'very_high') {
     rules.push(`
       body.layout-guard--compact { font-size: 8.5px; }
-      .layout-guard--compact .card h2 { font-size: 10px; padding: 3px 6px; }
-      .layout-guard--compact .hint { padding: 2px 6px; line-height: 1.1; font-size: 7.5px; }
-      .layout-guard--compact .first-page-title h1 { font-size: 16px; }
-      .layout-guard--compact .first-page-title h2 { font-size: 13px; }
-      .layout-guard--compact .officers-table th,
-      .layout-guard--compact .officers-table td { padding: 1px 2px; font-size: 7.5px; }
-      .layout-guard--compact .shareholders-table th,
-      .layout-guard--compact .shareholders-table td { padding: 1px 2px; font-size: 7px; }
-      .layout-guard--compact .director-single tbody td { font-size: 6.5px; padding: 1px 3px; }
-      .layout-guard--compact .director-single thead th { font-size: 7.5px; padding: 2px 4px; }
+      .layout-guard--compact table th { padding: 1px 2px; font-size: 7.5px; }
+      .layout-guard--compact table td { padding: 1px 2px; font-size: 7px; }
     `);
   }
 
   if (!plan.tailKeepTogether) {
     rules.push(`
-      body.layout-guard--split-tail .tail-block {
+      body.layout-guard--split-tail .card--activities {
         page-break-inside: auto !important;
         break-inside: auto !important;
-      }
-      body.layout-guard--split-tail .tail-block > .card:first-child {
-        page-break-inside: auto;
-        break-inside: auto;
-      }
-      /* Que no se pierdan título + ayuda de actividades en otra página sin el cuerpo. */
-      body.layout-guard--split-tail .tail-block > .card.card--activities h2 {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-      }
-      body.layout-guard--split-tail .tail-block > .card.card--activities .hint {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-      }
-      body.layout-guard--split-tail .tail-block > .card.card--activities .longtext {
-        page-break-before: avoid !important;
-        break-before: avoid !important;
-        page-break-inside: auto !important;
-        break-inside: auto !important;
-      }
-      body.layout-guard--split-tail .tail-block > .card:last-child {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-before: avoid !important;
       }
     `);
   }
@@ -234,62 +126,31 @@ function bodyClassForPlan(plan) {
   return c.join(' ');
 }
 
+/* ── Post-render refinement ──────────────────────────────────────── */
+
 /**
- * Tras pintar el DOM: si el bloque final no cabe razonablemente en una página,
- * aplicar reglas de ruptura (evita que el motor imprima recortes absurdos).
- * @param {import('puppeteer').Page} page
+ * After DOM is painted: if the activities section is taller than one page,
+ * allow it to break across pages instead of forcing a bad clip.
  */
 async function refineAfterRender(page) {
-  const bodyTopPx = getPdfBodyTopMarginPx(LAYOUT);
-  const bottomPx = insetMmToPx(LAYOUT.BOTTOM_INSET);
-  /** Altura útil por página A4 (px @96dpi), sin depender de innerHeight del headless. */
-  const usablePerPage = A4_HEIGHT_PX - bodyTopPx - Math.max(bottomPx, DEFAULT_BOTTOM_PX);
+  const topPx = mmToPx(LAYOUT.TOP_INSET);
+  const bottomPx = mmToPx(LAYOUT.BOTTOM_INSET);
+  const usable = A4_HEIGHT_PX - topPx - bottomPx;
 
-  await page.evaluate((usable) => {
-    const tail = document.querySelector('.tail-block');
-    if (!tail) return;
-
-    const old = document.getElementById('layout-guard-runtime');
-    if (old) old.remove();
-
-    const h = tail.offsetHeight;
-
-    if (h > usable * 0.92) {
+  await page.evaluate((usableHeight) => {
+    const activities = document.querySelector('.card--activities');
+    if (!activities) return;
+    if (activities.offsetHeight > usableHeight * 0.92) {
       const s = document.createElement('style');
       s.id = 'layout-guard-runtime';
-      s.textContent = `
-        .tail-block {
-          page-break-inside: auto !important;
-          break-inside: auto !important;
-        }
-        .tail-block > .card.card--activities h2 {
-          page-break-after: avoid !important;
-          break-after: avoid !important;
-        }
-        .tail-block > .card.card--activities .hint {
-          page-break-after: avoid !important;
-          break-after: avoid !important;
-        }
-        .tail-block > .card.card--activities .longtext {
-          page-break-before: avoid !important;
-          break-before: avoid !important;
-          page-break-inside: auto !important;
-          break-inside: auto !important;
-        }
-        .tail-block > .card:last-child {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          page-break-before: avoid !important;
-        }
-      `;
+      s.textContent = `.card--activities { page-break-inside: auto !important; break-inside: auto !important; }`;
       document.head.appendChild(s);
     }
-  }, usablePerPage);
+  }, usable);
 }
 
-/**
- * Estimación grosera de si el documento probablemente supera una página A4 (solo logging / futuro).
- */
+/* ── Page estimate (logging / testing) ───────────────────────────── */
+
 function estimateMinPages(plan, data = {}) {
   let units = 12;
   units += (plan.directors || 0) * 2.2;
@@ -299,41 +160,20 @@ function estimateMinPages(plan, data = {}) {
   return { estimatePages: pages, units: Math.round(units * 10) / 10 };
 }
 
-/** Constantes de maquetación PDF (una sola fuente de verdad) */
-const LAYOUT = Object.freeze({
-  /** Gutter izquierdo/derecho (impresión); subir si la impresora come mucho borde. */
-  H_INSET: '14mm',
-  BOTTOM_INSET: '10mm',
-  HEADER_LOGO_H: 36,
-  /** Espacio interno sobre la imagen dentro de la franja fija. */
-  RUNNING_HEADER_PADDING_TOP: 8,
-  RUNNING_HEADER_PADDING_BOTTOM: 6,
-  /** Hueco entre la franja del logo y el inicio del contenido (como antes: 4px). */
-  DOC_BODY_GAP_BELOW_HEADER: 2,
-  /**
-   * Colchón extra bajo el logo → `margin-top` del PDF. Evita solapes por redondeo mm/px o escala del headerTemplate.
-   * Si el logo “besa” el primer bloque, subir un poco (p. ej. 16–24).
-   */
-  PDF_TOP_MARGIN_BUFFER_PX: 10,
-});
+/* ── Exports ─────────────────────────────────────────────────────── */
 
 module.exports = {
   LAYOUT,
-  getHeaderBandPx,
-  getContentStartPx,
-  getPdfBodyTopMarginPx,
   getPuppeteerPdfMargins,
   getPrintPageMarginCss,
-  buildPuppeteerHeaderFooterTemplates,
   getCorporacionPuppeteerPdfChromeOptions,
   assertCorporacionPdfLayoutInvariants,
-  pxToMmString,
-  insetMmToPx,
   analyzeFormData,
   getAdaptiveCss,
   bodyClassForPlan,
   refineAfterRender,
   estimateMinPages,
-  /** Referencia para pruebas */
-  _constants: { A4_HEIGHT_PX, LAYOUT, getContentStartPx, getPdfBodyTopMarginPx, getPrintPageMarginCss },
+  pxToMmString,
+  mmToPx,
+  _constants: { A4_HEIGHT_PX, LAYOUT },
 };
