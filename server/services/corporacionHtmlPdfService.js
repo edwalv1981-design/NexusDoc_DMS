@@ -38,37 +38,39 @@ function toDataUri(filePath) {
   return `data:${mime};base64,${b64}`;
 }
 
-function buildDirectorBlocks(directors, t) {
+function buildSingleDirector(d, i, t) {
   const fieldDefs = [
-    ['dirFirstName',   'firstName'],
-    ['dirMiddleName',  'secondName'],
-    ['dirSurnames',    'lastName'],
-    ['dirBirthDate',   'birthDate',      true],
-    ['dirMarital',     'maritalStatus'],
-    ['dirNationality', 'nationality'],
-    ['dirPassport',    'passport'],
-    ['dirPhone',       'phone'],
-    ['dirEmail',       'email'],
-    ['dirAddress',     'address'],
-    ['dirCity',        'city'],
-    ['dirCountry',     'country'],
+    ['First name / Nombre',              'firstName'],
+    ['Middle name / Segundo nombre',     'secondName'],
+    ['Surname(s) / Apellidos',           'lastName'],
+    ['Date of birth/ Fecha de nacimiento','birthDate',      true],
+    ['Marital Status / Estado civil',    'maritalStatus'],
+    ['Citizenship / Nacionalidad',       'nationality'],
+    ['Passport/Pasaporte',               'passport'],
+    ['Phone/Telefono',                   'phone'],
+    ['Email',                            'email'],
+    ['Address / Dirección',              'address'],
+    ['City / ciudad',                    'city'],
+    ['Country / Pais',                   'country'],
   ];
 
-  return directors.map((d, i) => {
-    const rows = fieldDefs.map(([labelKey, dataKey, isDate]) => {
-      const val = isDate ? fmtDate(d[dataKey]) : (d[dataKey] || '');
-      return `<tr><td class="dlabel">${esc(t[labelKey])}</td><td class="dval">${esc(val)}</td></tr>`;
-    }).join('');
-
-    return `
-    <div class="director-block">
-      <div class="director-num">Director #${i + 1}</div>
-      <table class="director-fields">
-        <colgroup><col style="width:28%"/><col style="width:72%"/></colgroup>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+  const rows = fieldDefs.map(([label, dataKey, isDate]) => {
+    const val = isDate ? fmtDate(d[dataKey]) : (d[dataKey] || '');
+    return `<tr><td class="dlabel">${esc(label)}</td><td class="dval">${esc(val)}</td></tr>`;
   }).join('');
+
+  return `<table class="director-single"><thead><tr><th colspan="2">Director ${i + 1}</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function buildDirectorBlocks(directors, t) {
+  let html = '';
+  for (let i = 0; i < directors.length; i += 2) {
+    const left = buildSingleDirector(directors[i], i, t);
+    const hasRight = i + 1 < directors.length;
+    const right = hasRight ? buildSingleDirector(directors[i + 1], i + 1, t) : '';
+    html += `<table class="directors-pair"><tr><td class="dir-cell">${left}</td>${hasRight ? `<td class="dir-cell">${right}</td>` : ''}</tr></table>`;
+  }
+  return html;
 }
 
 function buildShareholdersRows(shareholders) {
@@ -275,14 +277,14 @@ class CorporacionHtmlPdfService {
             th, td { border: 1px solid #7dd3fc; padding: 2px 3px; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #ecfeff; font-size: 7.5px; text-align: center; line-height: 1.15; }
 
-            /* Director blocks: 2-column label|value rows */
-            .director-block { border-bottom: 1.5px solid #bae6fd; }
-            .director-block:last-child { border-bottom: none; }
-            .director-num { background: #f0f9ff; padding: 3px 8px; font-weight: 700; font-size: 8.5px; color: #0369a1; border-bottom: 1px solid #e0f2fe; }
-            .director-fields { width: 100%; border-collapse: collapse; }
-            .director-fields td { padding: 2px 6px; vertical-align: middle; border: 1px solid #e0f2fe; font-size: 8.5px; line-height: 1.3; }
-            .director-fields .dlabel { font-weight: 700; color: #334155; background: #f8fdff; white-space: nowrap; }
-            .director-fields .dval { color: #0f172a; word-break: break-word; overflow-wrap: anywhere; }
+            /* Directors: side-by-side pairs matching original template */
+            .directors-pair { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; border: none; }
+            .directors-pair > tbody > tr > td.dir-cell { width: 50%; vertical-align: top; padding: 0; border: none !important; }
+            .director-single { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .director-single thead th { background: #ecfeff; font-size: 9px; font-weight: 700; padding: 4px 6px; text-align: center; border: 1px solid #7dd3fc; color: #0369a1; }
+            .director-single tbody td { border: 1px solid #7dd3fc; padding: 2px 4px; font-size: 7.5px; line-height: 1.3; vertical-align: middle; }
+            .director-single .dlabel { width: 48%; font-weight: 600; color: #334155; background: #f8fdff; white-space: normal; }
+            .director-single .dval { width: 52%; color: #0f172a; word-break: break-word; }
 
             /* Officers table: 5 columns, comfortable */
             .officers-table { table-layout: fixed; }
