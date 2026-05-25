@@ -603,11 +603,14 @@ async function getMergedSchemaResponse(
   }
   const resolvedTemplate = resolveTemplateName(templateName);
 
-  // ENFORCE ADMIN TEMPLATE GLOBALLY FOR ALL FORMS
+  // ENFORCE ADMIN TEMPLATE GLOBALLY FOR ALL FORMS (Except 'Fondos' which is shielded and uses a master template)
+  const isFondos = canonicalFormType === stablePdfForms.FORM_TYPE_FONDOS_SFAR;
+  
   const dbTemplate = DocumentTemplateModel ? await DocumentTemplateModel.findOne({ where: { name: resolvedTemplate } }) : null;
   const adminUploaded = dbTemplate && dbTemplate.uploadedBy;
   
-  if (!adminUploaded) {
+  // Si no es Fondos y no hay plantilla de administrador, bloqueamos
+  if (!isFondos && !adminUploaded) {
     return {
       schema: null,
       schemaSource: 'none',
