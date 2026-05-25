@@ -320,7 +320,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             {activeDirectorIdx === i && directorSuggestions[i]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {directorSuggestions[i].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onClick={() => selectDirectorSuggestion(i, p)}>
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p); }}>
                                             <span className="corp-ac-passport">{p.passport}</span>
                                             <span className="corp-ac-name">{[p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || p.fullName || ''}</span>
                                         </div>
@@ -368,7 +368,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             {activeDignitaryIdx === i && dignitarySuggestions[i]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {dignitarySuggestions[i].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onClick={() => selectDignitarySuggestion(i, p)}>
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
                                             <span className="corp-ac-passport">{p.passport}</span>
                                             <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
                                         </div>
@@ -413,7 +413,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             {activeShareholderIdx === i && shareholderSuggestions[i]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {shareholderSuggestions[i].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onClick={() => selectShareholderSuggestion(i, p)}>
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectShareholderSuggestion(i, p); }}>
                                             <span className="corp-ac-name">{p.name}</span>
                                             {p.address && <span className="corp-ac-detail">{p.address}</span>}
                                         </div>
@@ -592,7 +592,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 .expert-btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 15px 30px ${PRIMARY}40; }
                 .expert-btn-nav-finish { padding: 14px 28px; background: #16a34a; color: white; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3); transition: 0.3s; font-size: 13px; }
 
-                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: white; border: 2px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-height: 220px; overflow-y: auto; margin-top: 4px; }
+                .corp-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white; border: 2px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-height: 220px; overflow-y: auto; margin-top: 4px; }
                 .corp-autocomplete-item { padding: 10px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
                 .corp-autocomplete-item:last-child { border-bottom: none; }
                 .corp-autocomplete-item:hover { background: #f0f9ff; }
