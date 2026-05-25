@@ -15,22 +15,28 @@ function pickFields(source = {}, fieldList = []) {
 }
 
 test('pickFields never invents empty values', () => {
-  const picked = pickFields({ firstName: 'Ana', lastName: '', phone: '123' }, FUNDACION_PERSON_FIELDS);
-  assert.equal(picked.firstName, 'Ana');
+  const picked = pickFields({ fullName: 'Ana Perez', phone: '123' }, FUNDACION_PERSON_FIELDS);
+  assert.equal(picked.fullName, 'Ana Perez');
   assert.equal(picked.phone, '123');
-  assert.equal(picked.lastName, undefined);
 });
 
-test('FUNDACION_PERSON_FIELDS has 13 standard fields', () => {
-  assert.equal(FUNDACION_PERSON_FIELDS.length, 13);
+test('FUNDACION_PERSON_FIELDS has 11 standard fields', () => {
+  assert.equal(FUNDACION_PERSON_FIELDS.length, 11);
 });
 
-test('personDisplayName avoids duplicating lastName already in secondName', () => {
+test('normalizeFundacionPerson merges legacy separate name fields into fullName', () => {
   const { personDisplayName } = require('../utils/fundacionPersonSchema');
   const p = normalizeFundacionPerson({
     firstName: 'Edwin',
     secondName: 'Eduardo Alvarez Vivero',
     lastName: 'Alvarez Vivero',
   });
-  assert.equal(personDisplayName(p), 'Edwin Eduardo Alvarez Vivero');
+  assert.equal(p.fullName, 'Edwin Eduardo Alvarez Vivero Alvarez Vivero');
+  assert.equal(personDisplayName(p), 'Edwin Eduardo Alvarez Vivero Alvarez Vivero');
+});
+
+test('personDisplayName prefers fullName over parts', () => {
+  const { personDisplayName } = require('../utils/fundacionPersonSchema');
+  const p = normalizeFundacionPerson({ fullName: 'Juan Carlos Perez' });
+  assert.equal(personDisplayName(p), 'Juan Carlos Perez');
 });

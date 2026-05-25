@@ -44,10 +44,9 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
   const t = getKyciPdfDict(lang);
   const pepYes = isPepYes(data.pep);
 
+  const fullName = data.fullName || [data.firstName, data.secondName, data.lastName].filter(Boolean).join(' ');
   const personalRows = [
-    kvRow(t.firstName, data.firstName),
-    kvRow(t.secondName, data.secondName),
-    kvRow(t.lastName, data.lastName),
+    kvRow(t.fullName || 'Full name / Nombre completo', fullName),
     kvRow(t.birthDate, fmtDate(data.birthDate)),
     kvRow(t.birthPlace, data.birthPlace),
     kvRow(t.maritalStatus, data.maritalStatus),

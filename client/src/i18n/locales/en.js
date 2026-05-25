@@ -239,6 +239,7 @@ const en = {
       other: 'Other PDF fields',
     },
     fields: {
+      fullName: 'Full Name / Nombre completo',
       firstName: 'First Name / Nombre',
       secondName: 'Middle Name / Segundo nombre',
       lastName: 'Surname(s) / Apellidos',
@@ -412,6 +413,7 @@ const en = {
     },
     person: {
       registrationNumber: 'Registration number (if company)',
+      fullName: 'Full name / Nombre completo',
       firstName: 'First name',
       secondName: 'Middle name',
       lastName: 'Surname(s)',

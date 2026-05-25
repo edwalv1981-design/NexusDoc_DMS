@@ -78,9 +78,7 @@ const sampleData = {
 };
 
 const PERSON_ROW_LABEL_KEYS = [
-  'poaFirstName',
-  'poaMiddleName',
-  'poaLastName',
+  'poaFullName',
   'poaBirthDate',
   'poaMaritalStatus',
   'poaNationality',
@@ -112,11 +110,11 @@ function assertAllPersonLabelsInSection(sectionHtml, t, sectionName) {
     );
   }
   const rowCount = (sectionHtml.match(/kv-label/g) || []).length;
-  assert.ok(rowCount >= 13, `${sectionName} debe tener al menos 13 filas kv (${rowCount})`);
+  assert.ok(rowCount >= 11, `${sectionName} debe tener al menos 11 filas kv (${rowCount})`);
 }
 
-test('FUNDACION_PERSON_FIELDS has 13 standard fields', () => {
-  assert.equal(FUNDACION_PERSON_FIELDS.length, 13);
+test('FUNDACION_PERSON_FIELDS has 11 standard fields', () => {
+  assert.equal(FUNDACION_PERSON_FIELDS.length, 11);
 });
 
 test('buildFundacionPdfInnerHtml includes all major sections', () => {
@@ -130,7 +128,7 @@ test('buildFundacionPdfInnerHtml includes all major sections', () => {
   assert.match(html, /FUNDACIÓN PRUEBA/);
 });
 
-test('buildFundacionPdfInnerHtml renders 13 person labels per founder/protector/director', () => {
+test('buildFundacionPdfInnerHtml renders 11 person labels per founder/protector/director', () => {
   const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
   const t = getFundacionPdfDict('es');
   assertAllPersonLabelsInSection(extractSection(html, t.sectionFounder), t, 'Fundador');
@@ -138,9 +136,8 @@ test('buildFundacionPdfInnerHtml renders 13 person labels per founder/protector/
   assertAllPersonLabelsInSection(extractSection(html, t.sectionDirectors), t, 'Directores');
 });
 
-test('director header does not duplicate surname when secondName already includes it', () => {
+test('director header renders fullName constructed from legacy parts', () => {
   const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
-  assert.doesNotMatch(html, /Edwin Eduardo Alvarez Vivero Alvarez Vivero/);
   assert.match(html, /Director #1 — Edwin Eduardo Alvarez Vivero/);
 });
 

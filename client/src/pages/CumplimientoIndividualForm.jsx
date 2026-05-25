@@ -27,9 +27,7 @@ import { FUNDS_SOURCE_OPTIONS, MARITAL_STATUS_OPTIONS } from '../utils/kyciMaste
 const FUNDS_OPTIONS = FUNDS_SOURCE_OPTIONS;
 
 const emptyKyciState = () => ({
-  firstName: '',
-  secondName: '',
-  lastName: '',
+  fullName: '',
   birthDate: '',
   birthPlace: '',
   maritalStatus: '',
@@ -59,11 +57,15 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
 
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
+      const loaded = { ...initialData };
+      if (!loaded.fullName && (loaded.firstName || loaded.secondName || loaded.lastName)) {
+        loaded.fullName = [loaded.firstName, loaded.secondName, loaded.lastName].filter(Boolean).join(' ');
+      }
       setFormData((prev) => ({
         ...prev,
-        ...initialData,
-        fundsSource: Array.isArray(initialData.fundsSource) ? initialData.fundsSource : prev.fundsSource,
-        pep: initialData.pep || prev.pep,
+        ...loaded,
+        fundsSource: Array.isArray(loaded.fundsSource) ? loaded.fundsSource : prev.fundsSource,
+        pep: loaded.pep || prev.pep,
       }));
     }
   }, [initialData]);
@@ -76,8 +78,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
     const req = (v) => v !== undefined && v !== null && String(v).trim() !== '';
     if (s === 1) {
       return (
-        req(formData.firstName) &&
-        req(formData.lastName) &&
+        req(formData.fullName) &&
         req(formData.birthDate) &&
         req(formData.birthPlace) &&
         req(formData.nationality) &&
@@ -141,9 +142,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyci.hints.personal')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group"><label>{L('firstName')}</label><input className="expert-input" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('secondName')}</label><input className="expert-input" value={formData.secondName} onChange={(e) => setFormData({ ...formData, secondName: e.target.value })} /></div>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('lastName')}</label><input className="expert-input" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required /></div>
+        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('fullName') || (lang === 'en' ? 'Full name' : 'Nombre completo')}</label><input className="expert-input" value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} required /></div>
         <div className="expert-group"><label>{L('birthDate')}</label><input type="date" className="expert-input" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} required /></div>
         <div className="expert-group"><label>{L('birthPlace')}</label><input className="expert-input" value={formData.birthPlace} onChange={(e) => setFormData({ ...formData, birthPlace: e.target.value })} required /></div>
         <div className="expert-group"><label>{L('maritalStatus')}</label>

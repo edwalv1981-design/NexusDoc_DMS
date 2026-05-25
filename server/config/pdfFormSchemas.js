@@ -19,9 +19,7 @@ const CUMPLIMIENTO_INDIVIDUAL_SCHEMA = Object.freeze({
       id: 'personal',
       titleKey: 'steps.personal',
       fields: Object.freeze([
-        { key: 'firstName', type: 'text', required: true, col: 'half' },
-        { key: 'secondName', type: 'text', col: 'half' },
-        { key: 'lastName', type: 'text', required: true, col: 'full' },
+        { key: 'fullName', type: 'text', required: true, col: 'full' },
         { key: 'birthDate', type: 'date', required: true, col: 'half' },
         { key: 'birthPlace', type: 'text', required: true, col: 'half' },
         { key: 'maritalStatus', type: 'select', options: MARITAL_OPTIONS, col: 'half' },

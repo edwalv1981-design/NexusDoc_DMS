@@ -26,9 +26,7 @@ const CorporacionPreview = ({ data }) => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
                     <tbody>
                         {[
-                            ['First name / Nombre', d.firstName],
-                            ['Middle name / Segundo nombre', d.secondName],
-                            ['Surname(s) / Apellidos', d.lastName],
+                            ['Full name / Nombre completo', d.fullName || [d.firstName, d.secondName, d.lastName].filter(Boolean).join(' ')],
                             ['Date of birth / Fecha de nacimiento', d.birthDate],
                             ['Marital Status / Estado civil', d.maritalStatus],
                             ['Citizenship / Nacionalidad', d.nationality],

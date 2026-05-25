@@ -241,6 +241,7 @@ const es = {
       other: 'Otros campos del PDF',
     },
     fields: {
+      fullName: 'Nombre completo / Full Name',
       firstName: 'Nombre / First Name',
       secondName: 'Segundo nombre / Middle Name',
       lastName: 'Apellidos / Surname(s)',
@@ -415,6 +416,7 @@ const es = {
     },
     person: {
       registrationNumber: 'Número de registro (si es empresa)',
+      fullName: 'Nombre completo / Full name',
       firstName: 'Nombre',
       secondName: 'Segundo nombre',
       lastName: 'Apellidos',
