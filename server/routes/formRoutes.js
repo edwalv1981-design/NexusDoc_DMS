@@ -192,8 +192,8 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
 
         let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
 
-        // Corporación / Fundaciones: motor HTML (sin plantilla AcroForm obligatoria).
-        if (stablePdfForms.isCorporacionPdfForm(form.formType)) {
+        // Para TODOS los formularios con motor HTML, se usan SOLO SI el administrador NO ha subido una plantilla personalizada
+        if (stablePdfForms.isCorporacionPdfForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
             try {
                 const pdfBuffer = await corporacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'PTLC');
@@ -203,7 +203,7 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             }
         }
 
-        if (stablePdfForms.isFundacionPdfForm(form.formType)) {
+        if (stablePdfForms.isFundacionPdfForm(form.formType) && (!dbTemplate || !dbTemplate.uploadedBy)) {
             try {
                 const pdfBuffer = await fundacionHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
                 return sendHtmlPdf(pdfBuffer, 'PTLF');
