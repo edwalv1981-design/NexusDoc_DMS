@@ -579,7 +579,7 @@ const AdminDashboard = () => {
                   <button
                     onClick={() => setSqlOpen(!sqlOpen)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: `1px solid ${BORDER}`,
+                      display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${BORDER}`,
                       padding: '10px 18px', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700,
                       color: '#475569', width: '100%', justifyContent: 'space-between',
                       background: sqlOpen ? '#f8fafc' : 'white',

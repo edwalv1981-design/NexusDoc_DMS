@@ -28,6 +28,12 @@ console.log(
     `[start] NexusDoc API NODE_ENV=${process.env.NODE_ENV || 'development'} PORT=${PORT} DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'missing'} JWT_SECRET=${JWT_SECRET ? 'set' : 'MISSING'}`
 );
 
+const helmet = require('helmet');
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+}));
+
 let apiReady = false;
 let routesRegistered = false;
 
@@ -97,14 +103,8 @@ function registerApiRoutes() {
     routesRegistered = true;
 
     const cors = require('cors');
-    const helmet = require('helmet');
     const compression = require('compression');
     const rateLimit = require('express-rate-limit');
-
-    app.use(helmet({
-        contentSecurityPolicy: false,
-        crossOriginEmbedderPolicy: false,
-    }));
 
     app.use(compression());
 
