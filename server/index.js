@@ -118,6 +118,13 @@ function registerApiRoutes() {
     }));
     app.use(express.json({ limit: '2mb' }));
 
+    app.use((err, req, res, next) => {
+        if (err.type === 'entity.parse.failed') {
+            return res.status(400).json({ msg: 'JSON malformado en el cuerpo de la solicitud.' });
+        }
+        next(err);
+    });
+
     app.use((req, res, next) => {
         console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
         next();
