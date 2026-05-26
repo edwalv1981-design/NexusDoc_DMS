@@ -118,20 +118,20 @@ const Login = () => {
         </div>
 
         {/* Right Side: Login Form */}
-        <div style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a', color: 'white' }}>
           <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5 }}>{t('login.welcome')}</h3>
-            <p style={{ color: '#64748b', fontSize: '13px' }}>{t('login.subtitle')}</p>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5, color: 'white' }}>{t('login.welcome')}</h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{t('login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#475569' }}>{t('login.emailUser')}</label>
-              <input type="text" className="input-expert" placeholder="ejemplo@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.85)' }}>{t('login.emailUser')}</label>
+              <input type="text" className="input-expert" placeholder="ejemplo@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: 'white' }} />
             </div>
             <div style={{ position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#475569' }}>{t('login.password')}</label>
-              <input type={showPassword ? "text" : "password"} className="input-expert" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '45px' }} />
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.85)' }}>{t('login.password')}</label>
+              <input type={showPassword ? "text" : "password"} className="input-expert" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '45px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: 'white' }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '34px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -139,7 +139,7 @@ const Login = () => {
 
             {error && <p style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>{error}</p>}
 
-            <button type="button" onClick={() => { setError(''); setRecoveryStep(1); }} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '-5px' }}>
+            <button type="button" onClick={() => { setError(''); setRecoveryStep(1); }} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '-5px' }}>
               {t('login.forgotPassword')}
             </button>
 
