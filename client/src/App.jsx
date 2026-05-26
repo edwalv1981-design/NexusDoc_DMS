@@ -21,15 +21,14 @@ function App() {
   const countdownIntervalRef = useRef(null);
 
   // 1. LÓGICA DE INACTIVIDAD (PERSISTENTE EN LOCALSTORAGE)
-  const TIMEOUT_DURATION = 60000; // 60 segundos de inactividad antes de advertir
+  const TIMEOUT_DURATION = 300000; // 5 minutos de inactividad antes de advertir
 
   const lastUpdateRef = useRef(0);
   const updateActivity = () => {
     const now = Date.now();
     if (now - lastUpdateRef.current < 2000) return;
     lastUpdateRef.current = now;
-    const token = localStorage.getItem('token');
-    if (!token || showTimeoutModal) return;
+    if (showTimeoutModal) return;
     localStorage.setItem('lastActivityTime', now.toString());
   };
 
