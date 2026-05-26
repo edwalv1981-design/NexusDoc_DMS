@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
-import Onboarding from './pages/Onboarding';
-import Register from './pages/Register';
-import Verify from './pages/Verify';
-import AdminDashboard from './pages/AdminDashboard';
-import ClientDashboard from './pages/ClientDashboard';
-import FondosForm from './pages/FondosForm';
-import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastProvider } from './components/Toast';
 import { useT } from './i18n';
+
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Register = lazy(() => import('./pages/Register'));
+const Verify = lazy(() => import('./pages/Verify'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const FondosForm = lazy(() => import('./pages/FondosForm'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 function App() {
   const t = useT();
@@ -22,10 +23,14 @@ function App() {
   // 1. LÓGICA DE INACTIVIDAD (PERSISTENTE EN LOCALSTORAGE)
   const TIMEOUT_DURATION = 60000; // 60 segundos de inactividad antes de advertir
 
+  const lastUpdateRef = useRef(0);
   const updateActivity = () => {
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 2000) return;
+    lastUpdateRef.current = now;
     const token = localStorage.getItem('token');
     if (!token || showTimeoutModal) return;
-    localStorage.setItem('lastActivityTime', Date.now().toString());
+    localStorage.setItem('lastActivityTime', now.toString());
   };
 
   // 2. MANEJO DE CIERRE DE SESIÓN
@@ -104,6 +109,7 @@ function App() {
   return (
     <ToastProvider>
       <Router>
+        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Cargando...</div>}>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
@@ -137,6 +143,7 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
 
         {showTimeoutModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>

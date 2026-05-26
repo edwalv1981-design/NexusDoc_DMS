@@ -98,12 +98,15 @@ function registerApiRoutes() {
 
     const cors = require('cors');
     const helmet = require('helmet');
+    const compression = require('compression');
     const rateLimit = require('express-rate-limit');
 
     app.use(helmet({
         contentSecurityPolicy: false,
         crossOriginEmbedderPolicy: false,
     }));
+
+    app.use(compression());
 
     app.use(cors({
         origin: (origin, callback) => {
