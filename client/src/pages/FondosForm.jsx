@@ -154,7 +154,7 @@ const FondosForm = () => {
     const fetchExistingData = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/forms/${editId}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             if (response.ok) {
                 const result = await response.json();
@@ -202,7 +202,7 @@ const FondosForm = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'x-auth-token': localStorage.getItem('token')
                 },
                 body: JSON.stringify({
                     id: editId,

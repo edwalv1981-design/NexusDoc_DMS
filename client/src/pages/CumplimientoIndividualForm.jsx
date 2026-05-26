@@ -14,7 +14,7 @@ import {
   Save,
   CheckCircle2,
 } from 'lucide-react';
-import { useT } from '../i18n';
+import { useT, useLang } from '../i18n';
 import {
   KYC_PRIMARY,
   KycHintBox,
@@ -52,6 +52,7 @@ const emptyKyciState = () => ({
 
 const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
   const t = useT();
+  const { lang } = useLang();
   const L = (key) => t(`kyci.fields.${key}`);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(emptyKyciState);
