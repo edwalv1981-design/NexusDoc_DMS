@@ -105,7 +105,7 @@ const Login = () => {
       <div style={{ maxWidth: '900px', width: '100%', display: 'flex', overflow: 'hidden', background: 'white', borderRadius: '16px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
         
         {/* Left Side: Branding */}
-        <div style={{ flex: 1, padding: '50px', background: 'var(--primary)', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="login-left-panel" style={{ flex: 1, padding: '50px', background: 'var(--primary)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 35, color: 'white' }}>
             <ShieldCheck size={24} />
             <span style={{ fontSize: '18px', fontWeight: 700 }}>NexusDoc DMS</span>
@@ -121,7 +121,7 @@ const Login = () => {
             {t('login.brandSubtitle2')}
           </p>
           
-          <button onClick={() => navigate('/onboarding')} style={{ marginTop: '30px', background: 'white', color: 'var(--primary)', border: 'none', padding: '12px 25px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, width: 'fit-content' }}>
+          <button className="btn-open-account" onClick={() => navigate('/onboarding')} style={{ marginTop: '30px', background: 'white', color: 'var(--primary)', border: 'none', padding: '12px 25px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, width: 'fit-content' }}>
             <UserPlus size={16} /> {t('login.openAccount')}
           </button>
         </div>

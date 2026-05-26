@@ -146,6 +146,18 @@ input[type="checkbox"], input[type="radio"] {
   transform: translateY(-1px);
 }
 
+.login-left-panel {
+  --text: #ffffff;
+  --text-light: rgba(255,255,255,0.9);
+  color: #ffffff !important;
+}
+.login-left-panel * {
+  color: #ffffff !important;
+}
+.login-left-panel .btn-open-account {
+  color: var(--primary) !important;
+}
+
 .login-right-panel {
   --text: #ffffff;
   --text-light: rgba(255,255,255,0.7);
