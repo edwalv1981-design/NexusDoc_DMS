@@ -91,12 +91,10 @@ const Login = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f8fafc', position: 'relative' }}>
       <style>{`
-        .login-right-panel, .login-right-panel h2, .login-right-panel h3,
-        .login-right-panel h4, .login-right-panel p, .login-right-panel label,
-        .login-right-panel span, .login-right-panel a { color: #fff !important; }
-        .login-right-panel .input-expert { background: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.25) !important; color: #fff !important; }
-        .login-right-panel .input-expert::placeholder { color: rgba(255,255,255,0.5) !important; }
-        .login-right-panel .input-expert:focus { border-color: rgba(255,255,255,0.6) !important; box-shadow: 0 0 0 2px rgba(255,255,255,0.1) !important; }
+        .login-right-panel, .login-right-panel * { color: #fff !important; }
+        .login-right-panel input { background: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.25) !important; color: #fff !important; }
+        .login-right-panel input::placeholder { color: rgba(255,255,255,0.5) !important; }
+        .login-right-panel input:focus { border-color: rgba(255,255,255,0.6) !important; box-shadow: 0 0 0 2px rgba(255,255,255,0.1) !important; }
       `}</style>
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 5 }}>
         <LanguageSwitcher />
