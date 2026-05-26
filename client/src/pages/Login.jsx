@@ -126,20 +126,20 @@ const Login = () => {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="login-right-panel" style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a', color: 'white' }}>
+        <div className="login-right-panel" style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a' }}>
           <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5, color: 'white' }}>{t('login.welcome')}</h3>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{t('login.subtitle')}</p>
+            <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5, color: '#ffffff' }}>{t('login.welcome')}</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{t('login.subtitle')}</div>
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.85)' }}>{t('login.emailUser')}</label>
-              <input type="text" className="input-expert" placeholder="ejemplo@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: 'white' }} />
+              <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#ffffff', letterSpacing: '0.3px' }}>{t('login.emailUser')}</span>
+              <input type="text" placeholder="ejemplo@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '7px 10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '4px', color: '#ffffff', fontSize: '13px', outline: 'none' }} />
             </div>
             <div style={{ position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.85)' }}>{t('login.password')}</label>
-              <input type={showPassword ? "text" : "password"} className="input-expert" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '45px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: 'white' }} />
+              <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#ffffff', letterSpacing: '0.3px' }}>{t('login.password')}</span>
+              <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '7px 10px', paddingRight: '45px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '4px', color: '#ffffff', fontSize: '13px', outline: 'none' }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '34px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
