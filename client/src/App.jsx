@@ -8,7 +8,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import FondosForm from './pages/FondosForm';
 import ResetPassword from './pages/ResetPassword';
-import Tutorial from './pages/Tutorial';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastProvider } from './components/Toast';
 import { useT } from './i18n';
@@ -111,7 +110,6 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/tutorial" element={<ProtectedRoute><Tutorial /></ProtectedRoute>} />
 
           <Route 
             path="/admin" 
