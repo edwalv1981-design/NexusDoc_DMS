@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { User, AuditLog, PendingRegistration } = require('../models');
 const { sendSecurityCode, sendTemporaryPassword } = require('../services/emailService');
@@ -12,6 +13,22 @@ const stablePdfForms = require('../config/stablePdfForms');
 const userLanguageStore = require('../services/userLanguageStore');
 const { sequelize } = require('../config/db');
 const { normalizeLoginEmail, mapLoginInfrastructureError } = require('../utils/loginAuth');
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { msg: 'Demasiados intentos. Espere 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { msg: 'Demasiadas solicitudes de recuperación. Espere 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 const generateUniqueCode = async (formType) => {
     const prefix = stablePdfForms.UNIQUE_CODE_PREFIX_BY_FORM_TYPE[formType] || 'NDOC';
@@ -73,7 +90,7 @@ router.post('/register', async (req, res) => {
         await PendingRegistration.destroy({ where: { email } });
 
         // Generate Security Code
-        const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const securityCode = crypto.randomInt(100000, 999999).toString();
 
         // Update or create pending registration
         await PendingRegistration.upsert({
@@ -110,7 +127,7 @@ router.post('/resend-code', async (req, res) => {
             return res.status(400).json({ msg: 'No hay un registro pendiente para este correo.' });
         }
 
-        const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const securityCode = crypto.randomInt(100000, 999999).toString();
         pending.code = securityCode;
         pending.codeExpiresAt = new Date(Date.now() + 3 * 60000);
         pending.attempts = 0; // reset attempts
@@ -247,7 +264,7 @@ router.patch('/me/language', auth, async (req, res) => {
 
 // @route   POST api/auth/login
 // @desc    Authenticate user & get token
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
     const email = normalizeLoginEmail(req.body && req.body.email);
     const password = req.body && req.body.password;
 
@@ -268,7 +285,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        console.log(`🔐 Intento de login para: ${email}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔐 Intento de login para: ${email}`);
 
         let user;
         try {
@@ -317,7 +334,7 @@ router.post('/login', async (req, res) => {
         }
 
         const isMatch = await user.comparePassword(password);
-        console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
 
         if (!isMatch) {
             user.loginAttempts += 1;
@@ -420,15 +437,13 @@ router.put('/update-profile', auth, async (req, res) => {
     } catch (err) {
         console.error('❌ CRITICAL PROFILE UPDATE ERROR:', err);
         res.status(500).json({ 
-            msg: 'Error interno del servidor al actualizar perfil', 
-            error: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+            msg: 'Error interno del servidor al actualizar perfil',
         });
     }
 });
 
 // @route   POST api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     try {
         const rawEmail = req.body.email || '';
         const email = rawEmail.toLowerCase().trim();
@@ -439,7 +454,7 @@ router.post('/forgot-password', async (req, res) => {
         });
         
         if (!user) {
-            return res.status(404).json({ msg: 'No se encontró ninguna cuenta registrada.' });
+            return res.json({ msg: 'Si el correo está registrado, recibirá un código de seguridad.' });
         }
         
         // DESBLOQUEO PROACTIVO: Si es admin, limpiamos su estado al momento de pedir el código
@@ -450,7 +465,7 @@ router.post('/forgot-password', async (req, res) => {
         }
 
         // Generamos SOLO el código de 6 dígitos
-        const securityCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const securityCode = crypto.randomInt(100000, 999999).toString();
         user.securityCode = securityCode;
         user.codeExpiresAt = new Date(Date.now() + 3 * 60000);
         

@@ -97,6 +97,13 @@ function registerApiRoutes() {
     routesRegistered = true;
 
     const cors = require('cors');
+    const helmet = require('helmet');
+    const rateLimit = require('express-rate-limit');
+
+    app.use(helmet({
+        contentSecurityPolicy: false,
+        crossOriginEmbedderPolicy: false,
+    }));
 
     app.use(cors({
         origin: (origin, callback) => {
@@ -106,7 +113,7 @@ function registerApiRoutes() {
         },
         credentials: true,
     }));
-    app.use(express.json());
+    app.use(express.json({ limit: '2mb' }));
 
     app.use((req, res, next) => {
         console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -118,14 +125,16 @@ function registerApiRoutes() {
     app.use('/api/forms', require('./routes/formRoutes'));
     app.use('/api/documents', require('./routes/documents'));
     app.use('/api/signed-docs', require('./routes/signedDocuments'));
-    app.get('/api/debug-pdf', (req, res) => {
-        const logPath = path.join(__dirname, 'last_pdf_error.txt');
-        if (fs.existsSync(logPath)) {
-            res.sendFile(logPath);
-        } else {
-            res.status(404).send('No logs available yet.');
-        }
-    });
+    if (process.env.NODE_ENV !== 'production') {
+        app.get('/api/debug-pdf', (req, res) => {
+            const logPath = path.join(__dirname, 'last_pdf_error.txt');
+            if (fs.existsSync(logPath)) {
+                res.sendFile(logPath);
+            } else {
+                res.status(404).send('No logs available yet.');
+            }
+        });
+    }
     app.use('/templates', express.static(path.join(__dirname, '../templates')));
 
     app.use((req, res) => {
@@ -147,7 +156,6 @@ function registerErrorHandler() {
         if (res.headersSent) return next(err);
         res.status(500).json({
             msg: 'Error crítico en el servidor',
-            error: err.message,
         });
     });
 }
