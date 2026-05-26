@@ -91,10 +91,13 @@ const Login = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f8fafc', position: 'relative' }}>
       <style>{`
-        .login-right-panel, .login-right-panel * { color: #fff !important; }
-        .login-right-panel input { background: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.25) !important; color: #fff !important; }
+        .login-right-panel { --text: #ffffff !important; --text-light: rgba(255,255,255,0.7) !important; }
+        .login-right-panel, .login-right-panel div, .login-right-panel span,
+        .login-right-panel p, .login-right-panel h1, .login-right-panel h2,
+        .login-right-panel h3, .login-right-panel h4, .login-right-panel label,
+        .login-right-panel a, .login-right-panel button:not(.btn-primary) { color: #ffffff !important; }
+        .login-right-panel input { background: rgba(255,255,255,0.1) !important; border: 1px solid rgba(255,255,255,0.25) !important; color: #ffffff !important; }
         .login-right-panel input::placeholder { color: rgba(255,255,255,0.5) !important; }
-        .login-right-panel input:focus { border-color: rgba(255,255,255,0.6) !important; box-shadow: 0 0 0 2px rgba(255,255,255,0.1) !important; }
       `}</style>
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 5 }}>
         <LanguageSwitcher />
@@ -124,7 +127,7 @@ const Login = () => {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="login-right-panel" style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a' }}>
+        <div className="login-right-panel" style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a', color: '#ffffff' }}>
           <div style={{ marginBottom: '30px' }}>
             <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5, color: '#ffffff' }}>{t('login.welcome')}</div>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{t('login.subtitle')}</div>

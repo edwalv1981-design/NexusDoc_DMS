@@ -146,14 +146,21 @@ input[type="checkbox"], input[type="radio"] {
   transform: translateY(-1px);
 }
 
-.login-right-panel,
-.login-right-panel * {
-  color: #fff !important;
+.login-right-panel {
+  --text: #ffffff;
+  --text-light: rgba(255,255,255,0.7);
+  --border: rgba(255,255,255,0.25);
+  color: #ffffff !important;
 }
-.login-right-panel input {
+.login-right-panel *:not(.btn-primary) {
+  color: #ffffff !important;
+}
+.login-right-panel input,
+.login-right-panel input:focus {
   background: rgba(255,255,255,0.1) !important;
   border-color: rgba(255,255,255,0.25) !important;
-  color: #fff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
 }
 .login-right-panel input::placeholder {
   color: rgba(255,255,255,0.5) !important;
