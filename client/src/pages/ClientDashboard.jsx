@@ -22,6 +22,7 @@ import {
   isKyciFormType,
   isKyceFormType,
 } from '../utils/formWizardRouting';
+import { validateField, validateFields } from '../utils/fieldValidators';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -65,6 +66,26 @@ const ClientDashboard = () => {
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
     };
     const [formData, setFormData] = useState(EMPTY_FORM);
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    const handleFieldBlur = (fieldName) => {
+        const error = validateField(fieldName, formData[fieldName]);
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (error) next[fieldName] = error;
+            else delete next[fieldName];
+            return next;
+        });
+    };
+
+    const getFieldErrorStyle = (fieldName) => fieldErrors[fieldName] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+
+    const handleFieldChange = (fieldName, value) => {
+        if (fieldErrors[fieldName]) {
+            const err = validateField(fieldName, value);
+            if (!err) setFieldErrors(prev => { const next = {...prev}; delete next[fieldName]; return next; });
+        }
+    };
 
     const [beneficiarySuggestions, setBeneficiarySuggestions] = useState([]);
     const [beneficiaryLoading, setBeneficiaryLoading] = useState(false);
@@ -100,6 +121,7 @@ const ClientDashboard = () => {
     const handleBeneficiaryChange = (e) => {
         const val = e.target.value;
         setFormData(prev => ({ ...prev, beneficiaryName: val }));
+        handleFieldChange('beneficiaryName', val);
         if (beneficiaryTimerRef.current) clearTimeout(beneficiaryTimerRef.current);
         beneficiaryTimerRef.current = setTimeout(() => searchBeneficiaries(val), 300);
     };
@@ -237,6 +259,15 @@ const ClientDashboard = () => {
         const { custodyName, custodyPhone, custodyEmail, custodyAddress, signerName, date } = formData;
         if (!custodyName || !custodyPhone || !custodyEmail || !custodyAddress || !signerName || !date) {
             return showToast(t('toast.completeStep3'));
+        }
+
+        const allFields = ['companyName', 'country', 'activities', 'beneficiaryName', 'birthDate', 'birthPlace', 'address', 'custodyName', 'custodyPhone', 'custodyEmail', 'custodyAddress', 'signerName', 'date'];
+        if (formData.fundsOther) allFields.push('fundsOther');
+        const fieldErrs = validateFields(formData, allFields);
+        if (Object.keys(fieldErrs).length > 0) {
+            setFieldErrors(fieldErrs);
+            showToast('Corrige los campos marcados antes de guardar');
+            return;
         }
 
         setSaving(true);
@@ -538,21 +569,24 @@ const ClientDashboard = () => {
                             {step === 1 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.companyName')}</label><input className="input-expert" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.companyName')}</label><input className="input-expert" style={getFieldErrorStyle('companyName')} value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); handleFieldChange('companyName', e.target.value); }} onBlur={() => handleFieldBlur('companyName')} required />{fieldErrors.companyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.companyName}</span>}</div>
+                                        <div className="field-group"><label>{t('fondos.country')}</label><input className="input-expert" style={getFieldErrorStyle('country')} value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); handleFieldChange('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} required />{fieldErrors.country && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.country}</span>}</div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.activities')}</label><textarea className="input-expert" rows={2} value={formData.activities} onChange={e => setFormData({...formData, activities: e.target.value})} required /></div>
+                                    <div className="field-group"><label>{t('fondos.activities')}</label><textarea className="input-expert" style={getFieldErrorStyle('activities')} rows={2} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); handleFieldChange('activities', e.target.value); }} onBlur={() => handleFieldBlur('activities')} required />{fieldErrors.activities && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.activities}</span>}</div>
                                     <div className="field-group" ref={beneficiaryRef} style={{ position: 'relative' }}>
                                         <label>{t('fondos.beneficiaryName')}</label>
                                         <input
                                             className="input-expert"
+                                            style={getFieldErrorStyle('beneficiaryName')}
                                             value={formData.beneficiaryName}
                                             onChange={handleBeneficiaryChange}
                                             onFocus={() => { if (beneficiarySuggestions.length > 0) setShowBeneficiaryDropdown(true); }}
+                                            onBlur={() => handleFieldBlur('beneficiaryName')}
                                             placeholder={t('fondos.beneficiaryPlaceholder')}
                                             autoComplete="off"
                                             required
                                         />
+                                        {fieldErrors.beneficiaryName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.beneficiaryName}</span>}
                                         {showBeneficiaryDropdown && (
                                             <div className="beneficiary-dropdown">
                                                 {beneficiaryLoading ? (
@@ -579,10 +613,10 @@ const ClientDashboard = () => {
                                         )}
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.birthDate')}</label><input type="date" className="input-expert" style={getFieldErrorStyle('birthDate')} value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); handleFieldChange('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} required />{fieldErrors.birthDate && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.birthDate}</span>}</div>
+                                        <div className="field-group"><label>{t('fondos.birthPlace')}</label><input className="input-expert" style={getFieldErrorStyle('birthPlace')} value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); handleFieldChange('birthPlace', e.target.value); }} onBlur={() => handleFieldBlur('birthPlace')} required />{fieldErrors.birthPlace && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.birthPlace}</span>}</div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.address')}</label><input className="input-expert" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required /></div>
+                                    <div className="field-group"><label>{t('fondos.address')}</label><input className="input-expert" style={getFieldErrorStyle('address')} value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); handleFieldChange('address', e.target.value); }} onBlur={() => handleFieldBlur('address')} required />{fieldErrors.address && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.address}</span>}</div>
                                     <button type="button" onClick={() => validateStep(1) && goToFondosStep(2)} style={{ padding: '12px 30px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, alignSelf: 'flex-end', cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
                                 </div>
                             )}
@@ -605,7 +639,7 @@ const ClientDashboard = () => {
                                             </label>
                                         ))}
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.fundsOther')}</label><input className="input-expert" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} placeholder={t('fondos.fundsOtherPlaceholder')} /></div>
+                                    <div className="field-group"><label>{t('fondos.fundsOther')}</label><input className="input-expert" style={getFieldErrorStyle('fundsOther')} value={formData.fundsOther} onChange={e => { setFormData({...formData, fundsOther: e.target.value}); handleFieldChange('fundsOther', e.target.value); }} onBlur={() => handleFieldBlur('fundsOther')} placeholder={t('fondos.fundsOtherPlaceholder')} />{fieldErrors.fundsOther && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.fundsOther}</span>}</div>
                                     <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
                                         <button type="button" onClick={() => goToFondosStep(1)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>
                                         <button type="button" onClick={() => validateStep(2) && goToFondosStep(3)} style={{ flex: 1, padding: '12px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.continue')}</button>
@@ -615,14 +649,14 @@ const ClientDashboard = () => {
                             {step === 3 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.custodyName')}</label><input className="input-expert" value={formData.custodyName} onChange={e => setFormData(prev => ({...prev, custodyName: e.target.value}))} required /></div>
-                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" value={formData.custodyPhone} onChange={e => setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.custodyName')}</label><input className="input-expert" style={getFieldErrorStyle('custodyName')} value={formData.custodyName} onChange={e => { setFormData(prev => ({...prev, custodyName: e.target.value})); handleFieldChange('custodyName', e.target.value); }} onBlur={() => handleFieldBlur('custodyName')} required />{fieldErrors.custodyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyName}</span>}</div>
+                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" style={getFieldErrorStyle('custodyPhone')} value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); handleFieldChange('custodyPhone', e.target.value.replace(/\D/g,'')); }} onBlur={() => handleFieldBlur('custodyPhone')} required />{fieldErrors.custodyPhone && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyPhone}</span>}</div>
                                     </div>
-                                    <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" value={formData.custodyEmail} onChange={e => setFormData({...formData, custodyEmail: e.target.value})} required placeholder="ejemplo@correo.com" /></div>
-                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" value={formData.custodyAddress} onChange={e => setFormData(prev => ({...prev, custodyAddress: e.target.value}))} required /></div>
+                                    <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" style={getFieldErrorStyle('custodyEmail')} value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); handleFieldChange('custodyEmail', e.target.value); }} onBlur={() => handleFieldBlur('custodyEmail')} required placeholder="ejemplo@correo.com" />{fieldErrors.custodyEmail && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyEmail}</span>}</div>
+                                    <div className="field-group"><label>{t('fondos.custodyAddress')}</label><input className="input-expert" style={getFieldErrorStyle('custodyAddress')} value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); handleFieldChange('custodyAddress', e.target.value); }} onBlur={() => handleFieldBlur('custodyAddress')} required />{fieldErrors.custodyAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyAddress}</span>}</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                                        <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" value={formData.signerName} onChange={e => setFormData({...formData, signerName: e.target.value})} required /></div>
-                                        <div className="field-group"><label>{t('fondos.date')}</label><input type="date" className="input-expert" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
+                                        <div className="field-group"><label>{t('fondos.signerName')}</label><input className="input-expert" style={getFieldErrorStyle('signerName')} value={formData.signerName} onChange={e => { setFormData({...formData, signerName: e.target.value}); handleFieldChange('signerName', e.target.value); }} onBlur={() => handleFieldBlur('signerName')} required />{fieldErrors.signerName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.signerName}</span>}</div>
+                                        <div className="field-group"><label>{t('fondos.date')}</label><input type="date" className="input-expert" style={getFieldErrorStyle('date')} value={formData.date} onChange={e => { setFormData({...formData, date: e.target.value}); handleFieldChange('date', e.target.value); }} onBlur={() => handleFieldBlur('date')} required />{fieldErrors.date && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.date}</span>}</div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
                                         <button type="button" onClick={() => goToFondosStep(2)} style={{ flex: 1, padding: '12px', background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>{t('common.back')}</button>

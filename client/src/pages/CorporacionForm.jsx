@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useLang } from '../i18n';
 import { normalizeLoadedCorporacionData } from '../utils/corporacionPersonRegistry';
+import { validateField } from '../utils/fieldValidators';
 import API_BASE_URL from '../config';
 
 const ACCENT = '#0f766e';
@@ -23,6 +24,7 @@ const BG_CARD = '#ffffff';
 const CorporacionForm = ({ initialData, onSave, saving }) => {
     const { lang, t } = useLang();
     const [step, setStep] = useState(1);
+    const [fieldErrors, setFieldErrors] = useState({});
     const [formData, setFormData] = useState({
         corpNameSA: '', corpNameCorp: '', corpNameInc: '',
         capitalSocial: '10000', 
@@ -162,6 +164,35 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         setActiveShareholderIdx(null);
     };
 
+    /* ── Field validation handlers ── */
+    const handleFieldBlur = (fieldName) => {
+        const error = validateField(fieldName, formData[fieldName]);
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (error) next[fieldName] = error;
+            else delete next[fieldName];
+            return next;
+        });
+    };
+
+    const handleArrayFieldBlur = (arrayName, index, fieldName) => {
+        const key = `${arrayName}.${index}.${fieldName}`;
+        const value = formData[arrayName][index]?.[fieldName];
+        const error = validateField(fieldName, value);
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (error) next[key] = error;
+            else delete next[key];
+            return next;
+        });
+    };
+
+    const getErrorStyle = (key) => fieldErrors[key] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+    const getArrayErrorStyle = (arrayName, index, fieldName) => getErrorStyle(`${arrayName}.${index}.${fieldName}`);
+
+    const FieldError = ({ name }) => fieldErrors[name] ? <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors[name]}</span> : null;
+    const ArrayFieldError = ({ array, index, field }) => <FieldError name={`${array}.${index}.${field}`} />;
+
     /* ── Array operations ── */
     const addDignitary = () => {
         setFormData(prev => ({
@@ -179,6 +210,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const newDigs = [...formData.dignitaries];
         newDigs[index][field] = value;
         setFormData(prev => ({ ...prev, dignitaries: newDigs }));
+        const key = `dignitaries.${index}.${field}`;
+        if (fieldErrors[key]) {
+            const error = validateField(field, value);
+            if (!error) setFieldErrors(prev => { const next = { ...prev }; delete next[key]; return next; });
+        }
     };
 
     const addDirector = () => {
@@ -197,6 +233,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const newDirectors = [...formData.directors];
         newDirectors[index][field] = value;
         setFormData(prev => ({ ...prev, directors: newDirectors }));
+        const key = `directors.${index}.${field}`;
+        if (fieldErrors[key]) {
+            const error = validateField(field, value);
+            if (!error) setFieldErrors(prev => { const next = { ...prev }; delete next[key]; return next; });
+        }
     };
 
     const addShareholder = () => {
@@ -215,6 +256,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const newShareholders = [...formData.shareholders];
         newShareholders[index][field] = value;
         setFormData(prev => ({ ...prev, shareholders: newShareholders }));
+        const key = `shareholders.${index}.${field}`;
+        if (fieldErrors[key]) {
+            const error = validateField(field, value);
+            if (!error) setFieldErrors(prev => { const next = { ...prev }; delete next[key]; return next; });
+        }
     };
 
     const addSigner = () => {
@@ -233,6 +279,63 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             newSigners[index].signature = value;
         }
         setFormData(prev => ({ ...prev, signers: newSigners }));
+        const key = `signers.${index}.${field}`;
+        if (fieldErrors[key]) {
+            const error = validateField(field, value);
+            if (!error) setFieldErrors(prev => { const next = { ...prev }; delete next[key]; return next; });
+        }
+    };
+
+    /* ── Full form validation on submit ── */
+    const validateAllFields = () => {
+        const errors = {};
+        const simpleFields = ['corpNameSA', 'corpNameCorp', 'corpNameInc', 'capitalSocial', 'companyActivities', 'declarationDate'];
+        simpleFields.forEach(field => {
+            const error = validateField(field, formData[field]);
+            if (error) errors[field] = error;
+        });
+        const directorFields = ['fullName', 'nationality', 'passport', 'birthDate', 'phone', 'email', 'address', 'city', 'country'];
+        formData.directors.forEach((d, i) => {
+            directorFields.forEach(field => {
+                const error = validateField(field, d[field]);
+                if (error) errors[`directors.${i}.${field}`] = error;
+            });
+        });
+        const dignitaryFields = ['role', 'fullName', 'passport', 'birthDate', 'registrationNumber'];
+        formData.dignitaries.forEach((d, i) => {
+            dignitaryFields.forEach(field => {
+                const error = validateField(field, d[field]);
+                if (error) errors[`dignitaries.${i}.${field}`] = error;
+            });
+        });
+        const shareholderFields = ['certificate', 'value', 'shares', 'name', 'address'];
+        formData.shareholders.forEach((s, i) => {
+            shareholderFields.forEach(field => {
+                const error = validateField(field, s[field]);
+                if (error) errors[`shareholders.${i}.${field}`] = error;
+            });
+        });
+        const signerFields = ['name', 'signature'];
+        formData.signers.forEach((s, i) => {
+            signerFields.forEach(field => {
+                const error = validateField(field, s[field]);
+                if (error) errors[`signers.${i}.${field}`] = error;
+            });
+        });
+        return errors;
+    };
+
+    const handleFinalSave = () => {
+        const errors = validateAllFields();
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            alert(lang === 'en'
+                ? `There are ${Object.keys(errors).length} field(s) with format errors. Please review and correct them before submitting.`
+                : `Hay ${Object.keys(errors).length} campo(s) con errores de formato. Por favor revise y corríjalos antes de enviar.`
+            );
+            return;
+        }
+        onSave(formData, true);
     };
 
     /* ── Step renderers ── */
@@ -262,15 +365,18 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             <div className="corp-grid">
                 <div className="corp-field full-width">
                     <label>{lang === 'en' ? 'Commercial Name (S.A.) - 1st Choice' : 'Nombre Comercial (S.A.) - Opción 1'}</label>
-                    <input className="corp-input" value={formData.corpNameSA} onChange={e => setFormData({...formData, corpNameSA: e.target.value})} placeholder="NEXUS SOLUTIONS S.A." />
+                    <input className="corp-input" style={getErrorStyle('corpNameSA')} value={formData.corpNameSA} onChange={e => { setFormData({...formData, corpNameSA: e.target.value}); if (fieldErrors.corpNameSA) { const err = validateField('corpNameSA', e.target.value); if (!err) setFieldErrors(prev => { const next = { ...prev }; delete next.corpNameSA; return next; }); } }} onBlur={() => handleFieldBlur('corpNameSA')} placeholder="NEXUS SOLUTIONS S.A." />
+                    <FieldError name="corpNameSA" />
                 </div>
                 <div className="corp-field">
                     <label>{lang === 'en' ? 'Optional Name (CORP.) - 2nd Choice' : 'Nombre Opcional (CORP.) - Opción 2'}</label>
-                    <input className="corp-input" value={formData.corpNameCorp} onChange={e => setFormData({...formData, corpNameCorp: e.target.value})} placeholder="NEXUS SOLUTIONS CORP." />
+                    <input className="corp-input" style={getErrorStyle('corpNameCorp')} value={formData.corpNameCorp} onChange={e => { setFormData({...formData, corpNameCorp: e.target.value}); if (fieldErrors.corpNameCorp) { const err = validateField('corpNameCorp', e.target.value); if (!err) setFieldErrors(prev => { const next = { ...prev }; delete next.corpNameCorp; return next; }); } }} onBlur={() => handleFieldBlur('corpNameCorp')} placeholder="NEXUS SOLUTIONS CORP." />
+                    <FieldError name="corpNameCorp" />
                 </div>
                 <div className="corp-field">
                     <label>{lang === 'en' ? 'Optional Name (INC.) - 3rd Choice' : 'Nombre Opcional (INC.) - Opción 3'}</label>
-                    <input className="corp-input" value={formData.corpNameInc} onChange={e => setFormData({...formData, corpNameInc: e.target.value})} placeholder="NEXUS SOLUTIONS INC." />
+                    <input className="corp-input" style={getErrorStyle('corpNameInc')} value={formData.corpNameInc} onChange={e => { setFormData({...formData, corpNameInc: e.target.value}); if (fieldErrors.corpNameInc) { const err = validateField('corpNameInc', e.target.value); if (!err) setFieldErrors(prev => { const next = { ...prev }; delete next.corpNameInc; return next; }); } }} onBlur={() => handleFieldBlur('corpNameInc')} placeholder="NEXUS SOLUTIONS INC." />
+                    <FieldError name="corpNameInc" />
                 </div>
                 <div className="corp-field full-width">
                     <label>{lang === 'en' ? 'Authorized Capital (MIN $10,000)' : 'Capital Social Autorizado (MÍN $10,000)'}</label>
@@ -280,7 +386,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             : 'El capital mínimo autorizado de la sociedad es US$10,000.00.'
                         }
                     </div>
-                    <input className="corp-input" value={formData.capitalSocial} onChange={e => setFormData({...formData, capitalSocial: e.target.value})} placeholder="$10,000.00" />
+                    <input className="corp-input" style={getErrorStyle('capitalSocial')} value={formData.capitalSocial} onChange={e => { setFormData({...formData, capitalSocial: e.target.value}); if (fieldErrors.capitalSocial) { const err = validateField('capitalSocial', e.target.value); if (!err) setFieldErrors(prev => { const next = { ...prev }; delete next.capitalSocial; return next; }); } }} onBlur={() => handleFieldBlur('capitalSocial')} placeholder="$10,000.00" />
+                    <FieldError name="capitalSocial" />
                 </div>
             </div>
         </div>
@@ -308,7 +415,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-grid">
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-name-${i}`] = el}>
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="corp-input" value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director', 'name'); }} onFocus={() => { if (directorSuggestions[`${i}-name`]?.length) setActiveDirectorKey(`${i}-name`); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                            <input className="corp-input" style={getArrayErrorStyle('directors', i, 'fullName')} value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director', 'name'); }} onFocus={() => { if (directorSuggestions[`${i}-name`]?.length) setActiveDirectorKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('directors', i, 'fullName')} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                            <ArrayFieldError array="directors" index={i} field="fullName" />
                             {activeDirectorKey === `${i}-name` && directorSuggestions[`${i}-name`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {directorSuggestions[`${i}-name`].map((p, j) => (
@@ -330,10 +438,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 <option value="Viudo(a)">{lang === 'en' ? 'Widowed' : 'Viudo(a)'}</option>
                             </select>
                         </div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="corp-input" value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'nationality')} value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'nationality')} /><ArrayFieldError array="directors" index={i} field="nationality" /></div>
                         <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-pass-${i}`] = el}>
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="corp-input" value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director', 'passport'); }} onFocus={() => { if (directorSuggestions[`${i}-passport`]?.length) setActiveDirectorKey(`${i}-passport`); }} />
+                            <input className="corp-input" style={getArrayErrorStyle('directors', i, 'passport')} value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director', 'passport'); }} onFocus={() => { if (directorSuggestions[`${i}-passport`]?.length) setActiveDirectorKey(`${i}-passport`); }} onBlur={() => handleArrayFieldBlur('directors', i, 'passport')} />
+                            <ArrayFieldError array="directors" index={i} field="passport" />
                             {activeDirectorKey === `${i}-passport` && directorSuggestions[`${i}-passport`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {directorSuggestions[`${i}-passport`].map((p, j) => (
@@ -345,12 +454,12 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Phone' : 'Teléfono'}</label><input className="corp-input" value={d.phone} onChange={e => updateDirector(i, 'phone', e.target.value)} placeholder={lang === 'en' ? '+1-555-0100' : '+507-6000-0000'} /></div>
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Email' : 'Correo electrónico'}</label><input type="email" className="corp-input" value={d.email} onChange={e => updateDirector(i, 'email', e.target.value)} placeholder="name@example.com" /></div>
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="corp-input" value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'City' : 'Ciudad'}</label><input className="corp-input" value={d.city} onChange={e => updateDirector(i, 'city', e.target.value)} /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Country' : 'País'}</label><input className="corp-input" value={d.country} onChange={e => updateDirector(i, 'country', e.target.value)} /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" style={getArrayErrorStyle('directors', i, 'birthDate')} value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'birthDate')} /><ArrayFieldError array="directors" index={i} field="birthDate" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Phone' : 'Teléfono'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'phone')} value={d.phone} onChange={e => updateDirector(i, 'phone', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'phone')} placeholder={lang === 'en' ? '+1-555-0100' : '+507-6000-0000'} /><ArrayFieldError array="directors" index={i} field="phone" /></div>
+                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Email' : 'Correo electrónico'}</label><input type="email" className="corp-input" style={getArrayErrorStyle('directors', i, 'email')} value={d.email} onChange={e => updateDirector(i, 'email', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'email')} placeholder="name@example.com" /><ArrayFieldError array="directors" index={i} field="email" /></div>
+                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'address')} value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'address')} /><ArrayFieldError array="directors" index={i} field="address" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'City' : 'Ciudad'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'city')} value={d.city} onChange={e => updateDirector(i, 'city', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'city')} /><ArrayFieldError array="directors" index={i} field="city" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Country' : 'País'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'country')} value={d.country} onChange={e => updateDirector(i, 'country', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'country')} /><ArrayFieldError array="directors" index={i} field="country" /></div>
                     </div>
                 </div>
             ))}
@@ -377,10 +486,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">{lang === 'en' ? 'DIGNITARY' : 'DIGNATARIO'} #{i+1}</div>
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     <div className="corp-grid">
-                        <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'role')} value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'role')} placeholder="EJ: PRESIDENTE" /><ArrayFieldError array="dignitaries" index={i} field="role" /></div>
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-name-${i}`] = el}>
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="corp-input" value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'name'); }} onFocus={() => { if (dignitarySuggestions[`${i}-name`]?.length) setActiveDignitaryKey(`${i}-name`); }} />
+                            <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'fullName')} value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'name'); }} onFocus={() => { if (dignitarySuggestions[`${i}-name`]?.length) setActiveDignitaryKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'fullName')} />
+                            <ArrayFieldError array="dignitaries" index={i} field="fullName" />
                             {activeDignitaryKey === `${i}-name` && dignitarySuggestions[`${i}-name`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {dignitarySuggestions[`${i}-name`].map((p, j) => (
@@ -394,7 +504,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         </div>
                         <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-pass-${i}`] = el}>
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="corp-input" value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'passport'); }} onFocus={() => { if (dignitarySuggestions[`${i}-passport`]?.length) setActiveDignitaryKey(`${i}-passport`); }} />
+                            <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'passport')} value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'passport'); }} onFocus={() => { if (dignitarySuggestions[`${i}-passport`]?.length) setActiveDignitaryKey(`${i}-passport`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'passport')} />
+                            <ArrayFieldError array="dignitaries" index={i} field="passport" />
                             {activeDignitaryKey === `${i}-passport` && dignitarySuggestions[`${i}-passport`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {dignitarySuggestions[`${i}-passport`].map((p, j) => (
@@ -406,8 +517,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label><input className="corp-input" value={dig.registrationNumber || ''} onChange={e => updateDignitary(i, 'registrationNumber', e.target.value)} placeholder={lang === 'en' ? 'Reg. number' : 'No. Registro'} /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'birthDate')} value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'birthDate')} /><ArrayFieldError array="dignitaries" index={i} field="birthDate" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'registrationNumber')} value={dig.registrationNumber || ''} onChange={e => updateDignitary(i, 'registrationNumber', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'registrationNumber')} placeholder={lang === 'en' ? 'Reg. number' : 'No. Registro'} /><ArrayFieldError array="dignitaries" index={i} field="registrationNumber" /></div>
                     </div>
                 </div>
             ))}
@@ -434,12 +545,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">{lang === 'en' ? 'SHAREHOLDER' : 'ACCIONISTA'} #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     <div className="corp-grid">
-                        <div className="corp-field"><label>{lang === 'en' ? 'Share Certificate Number' : 'No. de Certificado'}</label><input className="corp-input" value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? "Share's value (USD)" : 'Valor por acción (USD)'}</label><input className="corp-input" value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Number of shares' : 'Cantidad de acciones'}</label><input className="corp-input" value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Share Certificate Number' : 'No. de Certificado'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'certificate')} value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'certificate')} /><ArrayFieldError array="shareholders" index={i} field="certificate" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? "Share's value (USD)" : 'Valor por acción (USD)'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'value')} value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'value')} /><ArrayFieldError array="shareholders" index={i} field="value" /></div>
+                        <div className="corp-field"><label>{lang === 'en' ? 'Number of shares' : 'Cantidad de acciones'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'shares')} value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'shares')} /><ArrayFieldError array="shareholders" index={i} field="shares" /></div>
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`sh-${i}`] = el}>
                             <label>{lang === 'en' ? 'Shareholder (Full name)' : 'Accionista (Nombre completo)'}</label>
-                            <input className="corp-input" value={s.name} autoComplete="off" onChange={e => { updateShareholder(i, 'name', e.target.value); searchShareholder(e.target.value, i); }} onFocus={() => { if (shareholderSuggestions[i]?.length) setActiveShareholderIdx(i); }} />
+                            <input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'name')} value={s.name} autoComplete="off" onChange={e => { updateShareholder(i, 'name', e.target.value); searchShareholder(e.target.value, i); }} onFocus={() => { if (shareholderSuggestions[i]?.length) setActiveShareholderIdx(i); }} onBlur={() => handleArrayFieldBlur('shareholders', i, 'name')} />
+                            <ArrayFieldError array="shareholders" index={i} field="name" />
                             {activeShareholderIdx === i && shareholderSuggestions[i]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
                                     {shareholderSuggestions[i].map((p, j) => (
@@ -451,7 +563,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección residencial'}</label><input className="corp-input" value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} /></div>
+                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección residencial'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'address')} value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'address')} /><ArrayFieldError array="shareholders" index={i} field="address" /></div>
                     </div>
                 </div>
             ))}
@@ -469,7 +581,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         : 'Favor provea una explicación de la actividad de la sociedad.'
                     }
                 </div>
-                <textarea className="corp-input" rows={4} value={formData.companyActivities} onChange={e => setFormData({...formData, companyActivities: e.target.value})} placeholder={lang === 'en' ? 'Describe company activities...' : 'Describa las actividades...'} />
+                <textarea className="corp-input" style={getErrorStyle('companyActivities')} rows={4} value={formData.companyActivities} onChange={e => { setFormData({...formData, companyActivities: e.target.value}); if (fieldErrors.companyActivities) { const err = validateField('companyActivities', e.target.value); if (!err) setFieldErrors(prev => { const next = { ...prev }; delete next.companyActivities; return next; }); } }} onBlur={() => handleFieldBlur('companyActivities')} placeholder={lang === 'en' ? 'Describe company activities...' : 'Describa las actividades...'} />
+                <FieldError name="companyActivities" />
             </div>
 
             <div className="corp-declaration-box">
@@ -497,11 +610,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div className="corp-grid">
                             <div className="corp-field full-width">
                                 <label>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
-                                <input className="corp-input" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <input className="corp-input" style={getArrayErrorStyle('signers', i, 'name')} value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} onBlur={() => handleArrayFieldBlur('signers', i, 'name')} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <ArrayFieldError array="signers" index={i} field="name" />
                             </div>
                             <div className="corp-field full-width">
                                 <label>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
-                                <input className="corp-input" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} />
+                                <input className="corp-input" style={getArrayErrorStyle('signers', i, 'signature')} value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} onBlur={() => handleArrayFieldBlur('signers', i, 'signature')} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} />
+                                <ArrayFieldError array="signers" index={i} field="signature" />
                             </div>
                         </div>
                     </div>
@@ -509,7 +624,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 
                 <div className="corp-field" style={{ marginTop: '12px' }}>
                     <label>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaración'}</label>
-                    <input type="date" className="corp-input" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
+                    <input type="date" className="corp-input" style={getErrorStyle('declarationDate')} value={formData.declarationDate} onChange={e => { setFormData({...formData, declarationDate: e.target.value}); if (fieldErrors.declarationDate) { const err = validateField('declarationDate', e.target.value); if (!err) setFieldErrors(prev => { const next = { ...prev }; delete next.declarationDate; return next; }); } }} onBlur={() => handleFieldBlur('declarationDate')} />
+                    <FieldError name="declarationDate" />
                 </div>
             </div>
         </div>
@@ -558,7 +674,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     {step < 5 ? (
                         <button onClick={() => setStep(prev => prev + 1)} className="corp-btn-nav-next">{t('corporacion.nextStep')} <ChevronRight size={16} /></button>
                     ) : (
-                        <button onClick={() => onSave(formData, true)} disabled={saving} className="corp-btn-nav-finish"><CheckCircle2 size={16} /> {saving ? t('corporacion.finalizing') : t('corporacion.registerCorp')}</button>
+                        <button onClick={handleFinalSave} disabled={saving} className="corp-btn-nav-finish"><CheckCircle2 size={16} /> {saving ? t('corporacion.finalizing') : t('corporacion.registerCorp')}</button>
                     )}
                 </div>
             </div>

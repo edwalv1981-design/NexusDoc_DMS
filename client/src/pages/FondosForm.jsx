@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import API_BASE_URL from '../config';
+import { validateField, validateFields } from '../utils/fieldValidators';
 
 const FondosForm = () => {
     const navigate = useNavigate();
@@ -51,6 +52,7 @@ const FondosForm = () => {
         const val = e.target.value;
         setFormData(prev => ({ ...prev, beneficiaryName: val }));
         setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName'));
+        handleFieldChange('beneficiaryName', val);
         if (beneficiaryTimerRef.current) clearTimeout(beneficiaryTimerRef.current);
         beneficiaryTimerRef.current = setTimeout(() => searchBeneficiaries(val), 300);
     };
@@ -100,6 +102,27 @@ const FondosForm = () => {
     const [loading, setLoading] = useState(false);
     const [submittedId, setSubmittedId] = useState(editId || null);
     const [validationErrors, setValidationErrors] = useState([]);
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    const handleFieldBlur = (fieldName) => {
+        const error = validateField(fieldName, formData[fieldName]);
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (error) next[fieldName] = error;
+            else delete next[fieldName];
+            return next;
+        });
+    };
+
+    const getFieldErrorStyle = (fieldName) => fieldErrors[fieldName] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+
+    const handleFieldChange = (fieldName, value) => {
+        if (fieldErrors[fieldName]) {
+            const err = validateField(fieldName, value);
+            if (!err) setFieldErrors(prev => { const next = {...prev}; delete next[fieldName]; return next; });
+        }
+    };
+
     useEffect(() => {
         if (editId) fetchExistingData();
     }, [editId]);
@@ -164,6 +187,15 @@ const FondosForm = () => {
 
     const handleFinish = async () => {
         if (!validateStep()) return;
+
+        const allFields = ['companyName', 'country', 'activities', 'beneficiaryName', 'birthDate', 'birthPlace', 'address', 'custodyName', 'custodyPhone', 'custodyEmail', 'custodyAddress', 'signerName', 'date'];
+        if (formData.fundsOther) allFields.push('fundsOther');
+        const fieldErrs = validateFields(formData, allFields);
+        if (Object.keys(fieldErrs).length > 0) {
+            setFieldErrors(fieldErrs);
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
@@ -210,28 +242,33 @@ const FondosForm = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
-                                <input className="corporate-input" style={getErrorStyle('companyName')} autoComplete="off" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); }} placeholder={t('fondos.companyPlaceholder')} />
+                                <input className="corporate-input" style={{...getErrorStyle('companyName'), ...getFieldErrorStyle('companyName')}} autoComplete="off" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); handleFieldChange('companyName', e.target.value); }} onBlur={() => handleFieldBlur('companyName')} placeholder={t('fondos.companyPlaceholder')} />
+                                {fieldErrors.companyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.companyName}</span>}
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.activities')}</label>
-                                <textarea className="corporate-input" style={getErrorStyle('activities')} rows={3} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'activities')); }} />
+                                <textarea className="corporate-input" style={{...getErrorStyle('activities'), ...getFieldErrorStyle('activities')}} rows={3} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'activities')); handleFieldChange('activities', e.target.value); }} onBlur={() => handleFieldBlur('activities')} />
+                                {fieldErrors.activities && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.activities}</span>}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.country')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('country')} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
+                                    <input className="corporate-input" style={{...getErrorStyle('country'), ...getFieldErrorStyle('country')}} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); handleFieldChange('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} />
+                                    {fieldErrors.country && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.country}</span>}
                                 </div>
                                 <div ref={beneficiaryRef} style={{ position: 'relative' }}>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
                                     <input
                                         className="corporate-input"
-                                        style={getErrorStyle('beneficiaryName')}
+                                        style={{...getErrorStyle('beneficiaryName'), ...getFieldErrorStyle('beneficiaryName')}}
                                         autoComplete="off"
                                         value={formData.beneficiaryName}
                                         onChange={handleBeneficiaryInputChange}
                                         onFocus={() => { if (beneficiarySuggestions.length > 0) setShowBeneficiaryDropdown(true); }}
+                                        onBlur={() => handleFieldBlur('beneficiaryName')}
                                         placeholder={t('fondos.beneficiaryPlaceholder') || ''}
                                     />
+                                    {fieldErrors.beneficiaryName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.beneficiaryName}</span>}
                                     {showBeneficiaryDropdown && (
                                         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'white', border: '1px solid #cbd5e1', borderRadius: '0 0 5px 5px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', maxHeight: '180px', overflowY: 'auto' }}>
                                             {beneficiaryLoading ? (
@@ -263,16 +300,19 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
-                                    <input type="date" className="corporate-input" style={getErrorStyle('birthDate')} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); }} />
+                                    <input type="date" className="corporate-input" style={{...getErrorStyle('birthDate'), ...getFieldErrorStyle('birthDate')}} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); handleFieldChange('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} />
+                                    {fieldErrors.birthDate && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.birthDate}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthPlace')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('birthPlace')} autoComplete="off" value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); }} />
+                                    <input className="corporate-input" style={{...getErrorStyle('birthPlace'), ...getFieldErrorStyle('birthPlace')}} autoComplete="off" value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); handleFieldChange('birthPlace', e.target.value); }} onBlur={() => handleFieldBlur('birthPlace')} />
+                                    {fieldErrors.birthPlace && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.birthPlace}</span>}
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.address')}</label>
-                                <input className="corporate-input" style={getErrorStyle('address')} autoComplete="off" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); }} />
+                                <input className="corporate-input" style={{...getErrorStyle('address'), ...getFieldErrorStyle('address')}} autoComplete="off" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); handleFieldChange('address', e.target.value); }} onBlur={() => handleFieldBlur('address')} />
+                                {fieldErrors.address && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.address}</span>}
                             </div>
                         </div>
                         {validationErrors.length > 0 && (
@@ -315,7 +355,8 @@ const FondosForm = () => {
 
                          <div>
                             <label style={labelStyle}>{t('fondos.fundsOther')}</label>
-                            <input className="corporate-input" autoComplete="off" value={formData.fundsOther} onChange={e => setFormData({...formData, fundsOther: e.target.value})} />
+                            <input className="corporate-input" style={getFieldErrorStyle('fundsOther')} autoComplete="off" value={formData.fundsOther} onChange={e => { setFormData({...formData, fundsOther: e.target.value}); handleFieldChange('fundsOther', e.target.value); }} onBlur={() => handleFieldBlur('fundsOther')} />
+                            {fieldErrors.fundsOther && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.fundsOther}</span>}
                         </div>
 
                          {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '11px', fontWeight: 700, marginTop: '10px' }}>{t('fondos.fundsError')}</p>}
@@ -339,44 +380,53 @@ const FondosForm = () => {
                                 <label style={labelStyle}>{t('fondos.custodyName')}</label>
                                 <input 
                                     className="corporate-input" 
-                                    style={getErrorStyle('custodyName')} 
+                                    style={{...getErrorStyle('custodyName'), ...getFieldErrorStyle('custodyName')}} 
                                     autoComplete="off"
                                     value={formData.custodyName} 
                                     onChange={e => { 
                                         setFormData(prev => ({...prev, custodyName: e.target.value}));
                                         if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyName'));
+                                        handleFieldChange('custodyName', e.target.value);
                                     }} 
+                                    onBlur={() => handleFieldBlur('custodyName')}
                                 />
+                                {fieldErrors.custodyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyName}</span>}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
-                                    <input type="text" className="corporate-input" style={getErrorStyle('custodyPhone')} autoComplete="off" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); }} />
+                                    <input type="text" className="corporate-input" style={{...getErrorStyle('custodyPhone'), ...getFieldErrorStyle('custodyPhone')}} autoComplete="off" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); handleFieldChange('custodyPhone', e.target.value.replace(/\D/g,'')); }} onBlur={() => handleFieldBlur('custodyPhone')} />
+                                    {fieldErrors.custodyPhone && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyPhone}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyEmail')}</label>
-                                    <input type="email" className="corporate-input" style={getErrorStyle('custodyEmail')} autoComplete="off" value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); }} placeholder="ejemplo@correo.com" />
+                                    <input type="email" className="corporate-input" style={{...getErrorStyle('custodyEmail'), ...getFieldErrorStyle('custodyEmail')}} autoComplete="off" value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); handleFieldChange('custodyEmail', e.target.value); }} onBlur={() => handleFieldBlur('custodyEmail')} placeholder="ejemplo@correo.com" />
+                                    {fieldErrors.custodyEmail && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyEmail}</span>}
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
-                                <input className="corporate-input" style={getErrorStyle('custodyAddress')} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); }} />
+                                <input className="corporate-input" style={{...getErrorStyle('custodyAddress'), ...getFieldErrorStyle('custodyAddress')}} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); handleFieldChange('custodyAddress', e.target.value); }} onBlur={() => handleFieldBlur('custodyAddress')} />
+                                {fieldErrors.custodyAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyAddress}</span>}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.signerName')}</label>
                                     <input 
                                         className="corporate-input" 
-                                        style={getErrorStyle('signerName')} 
+                                        style={{...getErrorStyle('signerName'), ...getFieldErrorStyle('signerName')}} 
                                         autoComplete="off"
                                         value={formData.signerName} 
-                                        onChange={e => { setFormData({...formData, signerName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'signerName')); }} 
+                                        onChange={e => { setFormData({...formData, signerName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'signerName')); handleFieldChange('signerName', e.target.value); }} 
+                                        onBlur={() => handleFieldBlur('signerName')}
                                     />
+                                    {fieldErrors.signerName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.signerName}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.date')}</label>
-                                    <input type="date" className="corporate-input" style={getErrorStyle('date')} value={formData.date} onChange={e => { setFormData({...formData, date: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'date')); }} />
+                                    <input type="date" className="corporate-input" style={{...getErrorStyle('date'), ...getFieldErrorStyle('date')}} value={formData.date} onChange={e => { setFormData({...formData, date: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'date')); handleFieldChange('date', e.target.value); }} onBlur={() => handleFieldBlur('date')} />
+                                    {fieldErrors.date && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.date}</span>}
                                 </div>
                             </div>
                         </div>

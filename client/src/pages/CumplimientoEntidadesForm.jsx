@@ -16,6 +16,7 @@ import {
   KycFundsSourceGroup,
   kycFormSharedStyles,
 } from '../components/KycFormShared';
+import { validateField } from '../utils/fieldValidators';
 
 const ENTITY_TYPE_OPTIONS = ['S.A.', 'S. de R.L.', 'LLC', 'Fundación', 'Trust', 'Otra'];
 
@@ -59,6 +60,25 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
   const L = (key) => t(`kyce.fields.${key}`);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(emptyKyceState);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const handleFieldBlur = (fieldName) => {
+    const error = validateField(fieldName, formData[fieldName]);
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      if (error) next[fieldName] = error;
+      else delete next[fieldName];
+      return next;
+    });
+  };
+  const clearErrorIfValid = (fieldName, newValue) => {
+    if (fieldErrors[fieldName]) {
+      const err = validateField(fieldName, newValue);
+      if (!err) setFieldErrors(prev => { const n = { ...prev }; delete n[fieldName]; return n; });
+    }
+  };
+  const getErrorStyle = (name) => fieldErrors[name] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+  const FieldError = ({ name }) => fieldErrors[name] ? <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600, display: 'block', marginTop: '1px' }}>{fieldErrors[name]}</span> : null;
 
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
@@ -149,8 +169,8 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyce.hints.entity')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('legalName')}</label><input className="expert-input" value={formData.legalName} onChange={(e) => setFormData({ ...formData, legalName: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('tradeName')}</label><input className="expert-input" value={formData.tradeName} onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })} /></div>
+        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('legalName')}</label><input className="expert-input" style={getErrorStyle('legalName')} value={formData.legalName} onChange={(e) => { setFormData({ ...formData, legalName: e.target.value }); clearErrorIfValid('legalName', e.target.value); }} onBlur={() => handleFieldBlur('legalName')} required /><FieldError name="legalName" /></div>
+        <div className="expert-group"><label>{L('tradeName')}</label><input className="expert-input" style={getErrorStyle('tradeName')} value={formData.tradeName} onChange={(e) => { setFormData({ ...formData, tradeName: e.target.value }); clearErrorIfValid('tradeName', e.target.value); }} onBlur={() => handleFieldBlur('tradeName')} /><FieldError name="tradeName" /></div>
         <div className="expert-group"><label>{L('entityType')}</label>
           <select className="expert-input" value={formData.entityType} onChange={(e) => setFormData({ ...formData, entityType: e.target.value })} required>
             <option value="">—</option>
@@ -159,11 +179,11 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
             ))}
           </select>
         </div>
-        <div className="expert-group"><label>{L('incorporationDate')}</label><input type="date" className="expert-input" value={formData.incorporationDate} onChange={(e) => setFormData({ ...formData, incorporationDate: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('jurisdiction')}</label><input className="expert-input" value={formData.jurisdiction} onChange={(e) => setFormData({ ...formData, jurisdiction: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('taxId')}</label><input className="expert-input" value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('registrationNumber')}</label><input className="expert-input" value={formData.registrationNumber} onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })} /></div>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('registeredAddress')}</label><input className="expert-input" value={formData.registeredAddress} onChange={(e) => setFormData({ ...formData, registeredAddress: e.target.value })} required /></div>
+        <div className="expert-group"><label>{L('incorporationDate')}</label><input type="date" className="expert-input" style={getErrorStyle('incorporationDate')} value={formData.incorporationDate} onChange={(e) => { setFormData({ ...formData, incorporationDate: e.target.value }); clearErrorIfValid('incorporationDate', e.target.value); }} onBlur={() => handleFieldBlur('incorporationDate')} required /><FieldError name="incorporationDate" /></div>
+        <div className="expert-group"><label>{L('jurisdiction')}</label><input className="expert-input" style={getErrorStyle('jurisdiction')} value={formData.jurisdiction} onChange={(e) => { setFormData({ ...formData, jurisdiction: e.target.value }); clearErrorIfValid('jurisdiction', e.target.value); }} onBlur={() => handleFieldBlur('jurisdiction')} required /><FieldError name="jurisdiction" /></div>
+        <div className="expert-group"><label>{L('taxId')}</label><input className="expert-input" style={getErrorStyle('taxId')} value={formData.taxId} onChange={(e) => { setFormData({ ...formData, taxId: e.target.value }); clearErrorIfValid('taxId', e.target.value); }} onBlur={() => handleFieldBlur('taxId')} required /><FieldError name="taxId" /></div>
+        <div className="expert-group"><label>{L('registrationNumber')}</label><input className="expert-input" style={getErrorStyle('registrationNumber')} value={formData.registrationNumber} onChange={(e) => { setFormData({ ...formData, registrationNumber: e.target.value }); clearErrorIfValid('registrationNumber', e.target.value); }} onBlur={() => handleFieldBlur('registrationNumber')} /><FieldError name="registrationNumber" /></div>
+        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('registeredAddress')}</label><input className="expert-input" style={getErrorStyle('registeredAddress')} value={formData.registeredAddress} onChange={(e) => { setFormData({ ...formData, registeredAddress: e.target.value }); clearErrorIfValid('registeredAddress', e.target.value); }} onBlur={() => handleFieldBlur('registeredAddress')} required /><FieldError name="registeredAddress" /></div>
       </div>
     </div>
   );
@@ -175,12 +195,12 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyce.hints.contact')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group"><label>{L('phone')}</label><input className="expert-input" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('email')}</label><input type="email" className="expert-input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('city')}</label><input className="expert-input" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('country')}</label><input className="expert-input" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} required /></div>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('businessActivity')}</label><textarea className="expert-input" rows={2} value={formData.businessActivity} onChange={(e) => setFormData({ ...formData, businessActivity: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('website')}</label><input className="expert-input" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} /></div>
+        <div className="expert-group"><label>{L('phone')}</label><input className="expert-input" style={getErrorStyle('phone')} value={formData.phone} onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); clearErrorIfValid('phone', e.target.value); }} onBlur={() => handleFieldBlur('phone')} required /><FieldError name="phone" /></div>
+        <div className="expert-group"><label>{L('email')}</label><input type="email" className="expert-input" style={getErrorStyle('email')} value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); clearErrorIfValid('email', e.target.value); }} onBlur={() => handleFieldBlur('email')} required /><FieldError name="email" /></div>
+        <div className="expert-group"><label>{L('city')}</label><input className="expert-input" style={getErrorStyle('city')} value={formData.city} onChange={(e) => { setFormData({ ...formData, city: e.target.value }); clearErrorIfValid('city', e.target.value); }} onBlur={() => handleFieldBlur('city')} required /><FieldError name="city" /></div>
+        <div className="expert-group"><label>{L('country')}</label><input className="expert-input" style={getErrorStyle('country')} value={formData.country} onChange={(e) => { setFormData({ ...formData, country: e.target.value }); clearErrorIfValid('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} required /><FieldError name="country" /></div>
+        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('businessActivity')}</label><textarea className="expert-input" style={getErrorStyle('businessActivity')} rows={2} value={formData.businessActivity} onChange={(e) => { setFormData({ ...formData, businessActivity: e.target.value }); clearErrorIfValid('businessActivity', e.target.value); }} onBlur={() => handleFieldBlur('businessActivity')} required /><FieldError name="businessActivity" /></div>
+        <div className="expert-group"><label>{L('website')}</label><input className="expert-input" style={getErrorStyle('website')} value={formData.website} onChange={(e) => { setFormData({ ...formData, website: e.target.value }); clearErrorIfValid('website', e.target.value); }} onBlur={() => handleFieldBlur('website')} /><FieldError name="website" /></div>
       </div>
     </div>
   );
@@ -193,11 +213,11 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
       <KycHintBox>{t('kyce.hints.compliance')}</KycHintBox>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-          <div className="expert-group"><label>{L('legalRepName')}</label><input className="expert-input" value={formData.legalRepName} onChange={(e) => setFormData({ ...formData, legalRepName: e.target.value })} required /></div>
-          <div className="expert-group"><label>{L('legalRepId')}</label><input className="expert-input" value={formData.legalRepId} onChange={(e) => setFormData({ ...formData, legalRepId: e.target.value })} required /></div>
-          <div className="expert-group"><label>{L('legalRepNationality')}</label><input className="expert-input" value={formData.legalRepNationality} onChange={(e) => setFormData({ ...formData, legalRepNationality: e.target.value })} /></div>
+          <div className="expert-group"><label>{L('legalRepName')}</label><input className="expert-input" style={getErrorStyle('legalRepName')} value={formData.legalRepName} onChange={(e) => { setFormData({ ...formData, legalRepName: e.target.value }); clearErrorIfValid('legalRepName', e.target.value); }} onBlur={() => handleFieldBlur('legalRepName')} required /><FieldError name="legalRepName" /></div>
+          <div className="expert-group"><label>{L('legalRepId')}</label><input className="expert-input" style={getErrorStyle('legalRepId')} value={formData.legalRepId} onChange={(e) => { setFormData({ ...formData, legalRepId: e.target.value }); clearErrorIfValid('legalRepId', e.target.value); }} onBlur={() => handleFieldBlur('legalRepId')} required /><FieldError name="legalRepId" /></div>
+          <div className="expert-group"><label>{L('legalRepNationality')}</label><input className="expert-input" style={getErrorStyle('legalRepNationality')} value={formData.legalRepNationality} onChange={(e) => { setFormData({ ...formData, legalRepNationality: e.target.value }); clearErrorIfValid('legalRepNationality', e.target.value); }} onBlur={() => handleFieldBlur('legalRepNationality')} /><FieldError name="legalRepNationality" /></div>
         </div>
-        <div className="expert-group"><label>{L('beneficialOwners')}</label><textarea className="expert-input" rows={3} value={formData.beneficialOwners} onChange={(e) => setFormData({ ...formData, beneficialOwners: e.target.value })} required placeholder={t('kyce.hints.beneficialOwners')} /></div>
+        <div className="expert-group"><label>{L('beneficialOwners')}</label><textarea className="expert-input" style={getErrorStyle('beneficialOwners')} rows={3} value={formData.beneficialOwners} onChange={(e) => { setFormData({ ...formData, beneficialOwners: e.target.value }); clearErrorIfValid('beneficialOwners', e.target.value); }} onBlur={() => handleFieldBlur('beneficialOwners')} required placeholder={t('kyce.hints.beneficialOwners')} /><FieldError name="beneficialOwners" /></div>
                 <KycPepQuestion
           label={L('pep')}
           hint={t('kyce.hints.pep')}
@@ -218,10 +238,10 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
           getOptionLabel={(opt) => t(`kyce.sources.${opt.labelKey}`)}
           primary={PRIMARY}
         />
-<div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" value={formData.fundsOther} onChange={(e) => setFormData({ ...formData, fundsOther: e.target.value })} /></div>
+<div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" style={getErrorStyle('fundsOther')} value={formData.fundsOther} onChange={(e) => { setFormData({ ...formData, fundsOther: e.target.value }); clearErrorIfValid('fundsOther', e.target.value); }} onBlur={() => handleFieldBlur('fundsOther')} /><FieldError name="fundsOther" /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-          <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" value={formData.declarationName} onChange={(e) => setFormData({ ...formData, declarationName: e.target.value })} required /></div>
-          <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" value={formData.declarationDate} onChange={(e) => setFormData({ ...formData, declarationDate: e.target.value })} required /></div>
+          <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" style={getErrorStyle('declarationName')} value={formData.declarationName} onChange={(e) => { setFormData({ ...formData, declarationName: e.target.value }); clearErrorIfValid('declarationName', e.target.value); }} onBlur={() => handleFieldBlur('declarationName')} required /><FieldError name="declarationName" /></div>
+          <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" style={getErrorStyle('declarationDate')} value={formData.declarationDate} onChange={(e) => { setFormData({ ...formData, declarationDate: e.target.value }); clearErrorIfValid('declarationDate', e.target.value); }} onBlur={() => handleFieldBlur('declarationDate')} required /><FieldError name="declarationDate" /></div>
         </div>
       </div>
     </div>

@@ -20,6 +20,8 @@ import { useLang } from '../i18n';
 
 import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
 
+import { validateField } from '../utils/fieldValidators';
+
 import {
 
     emptyFundacionPerson,
@@ -205,6 +207,37 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     }, [initialData]);
 
 
+
+    /* ── Field validation ── */
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    const handleFieldBlur = (fieldName) => {
+        const error = validateField(fieldName, formData[fieldName]);
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (error) next[fieldName] = error;
+            else delete next[fieldName];
+            return next;
+        });
+    };
+
+    const handleArrayFieldBlur = (arrayName, index, fieldName) => {
+        const key = `${arrayName}.${index}.${fieldName}`;
+        const value = formData[arrayName][index]?.[fieldName];
+        const error = validateField(fieldName, value);
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (error) next[key] = error;
+            else delete next[key];
+            return next;
+        });
+    };
+
+    const getErrorStyle = (key) => fieldErrors[key] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+    const getArrayErrorStyle = (arrayName, index, fieldName) => getErrorStyle(`${arrayName}.${index}.${fieldName}`);
+
+    const FieldError = ({ name }) => fieldErrors[name] ? <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors[name]}</span> : null;
+    const ArrayFieldError = ({ array, index, field }) => <FieldError name={`${array}.${index}.${field}`} />;
 
     /* ── Autocomplete state ── */
     const [personSuggestions, setPersonSuggestions] = useState({});
@@ -393,6 +426,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
         setFormData(prev => ({ ...prev, [arrayName]: newArray }));
 
+        const key = `${arrayName}.${index}.${field}`;
+        if (fieldErrors[key]) {
+            const error = validateField(field, value);
+            if (!error) setFieldErrors(prev => { const next = { ...prev }; delete next[key]; return next; });
+        }
+
     };
 
 
@@ -501,7 +540,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                     <label>{lang === 'en' ? 'Foundation Name - 1st Choice (Required)' : 'Opción 1 de Nombre (Requerido)'}</label>
 
-                    <input className="expert-input" value={formData.foundationNameOption1} onChange={e => setFormData({...formData, foundationNameOption1: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN ESPERANZA" required />
+                    <input className="expert-input" style={getErrorStyle('foundationNameOption1')} value={formData.foundationNameOption1} onChange={e => { setFormData({...formData, foundationNameOption1: e.target.value.toUpperCase()}); if (fieldErrors.foundationNameOption1) { const er = validateField('foundationNameOption1', e.target.value.toUpperCase()); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.foundationNameOption1; return n; }); } }} onBlur={() => handleFieldBlur('foundationNameOption1')} placeholder="EJ: FUNDACIÓN ESPERANZA" required />
+
+                    <FieldError name="foundationNameOption1" />
 
                 </div>
 
@@ -509,7 +550,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                     <label>{lang === 'en' ? 'Foundation Name - 2nd Choice' : 'Opción 2 de Nombre'}</label>
 
-                    <input className="expert-input" value={formData.foundationNameOption2} onChange={e => setFormData({...formData, foundationNameOption2: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN PROGRESO" />
+                    <input className="expert-input" style={getErrorStyle('foundationNameOption2')} value={formData.foundationNameOption2} onChange={e => { setFormData({...formData, foundationNameOption2: e.target.value.toUpperCase()}); if (fieldErrors.foundationNameOption2) { const er = validateField('foundationNameOption2', e.target.value.toUpperCase()); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.foundationNameOption2; return n; }); } }} onBlur={() => handleFieldBlur('foundationNameOption2')} placeholder="EJ: FUNDACIÓN PROGRESO" />
+
+                    <FieldError name="foundationNameOption2" />
 
                 </div>
 
@@ -517,7 +560,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                     <label>{lang === 'en' ? 'Foundation Name - 3rd Choice' : 'Opción 3 de Nombre'}</label>
 
-                    <input className="expert-input" value={formData.foundationNameOption3} onChange={e => setFormData({...formData, foundationNameOption3: e.target.value.toUpperCase()})} placeholder="EJ: FUNDACIÓN FUTURO" />
+                    <input className="expert-input" style={getErrorStyle('foundationNameOption3')} value={formData.foundationNameOption3} onChange={e => { setFormData({...formData, foundationNameOption3: e.target.value.toUpperCase()}); if (fieldErrors.foundationNameOption3) { const er = validateField('foundationNameOption3', e.target.value.toUpperCase()); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.foundationNameOption3; return n; }); } }} onBlur={() => handleFieldBlur('foundationNameOption3')} placeholder="EJ: FUNDACIÓN FUTURO" />
+
+                    <FieldError name="foundationNameOption3" />
 
                 </div>
 
@@ -567,7 +612,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         <span style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', fontWeight: 900, color: '#94a3b8' }}>$</span>
 
-                        <input type="number" className="expert-input" style={{ paddingLeft: '32px' }} value={formData.initialPatrimony} onChange={e => setFormData({...formData, initialPatrimony: e.target.value})} placeholder="10000" />
+                        <input type="number" className="expert-input" style={{ paddingLeft: '32px', ...getErrorStyle('initialPatrimony') }} value={formData.initialPatrimony} onChange={e => { setFormData({...formData, initialPatrimony: e.target.value}); if (fieldErrors.initialPatrimony) { const er = validateField('initialPatrimony', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.initialPatrimony; return n; }); } }} onBlur={() => handleFieldBlur('initialPatrimony')} placeholder="10000" />
+
+                        <FieldError name="initialPatrimony" />
 
                     </div>
 
@@ -849,7 +896,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <label>{t('fundacion.dignitary.role')}</label>
 
-                            <input className="expert-input" list="roles-dignitaries" value={d.role || ''} onChange={e => updateArrayField('dignitaries', i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" />
+                            <input className="expert-input" style={getArrayErrorStyle('dignitaries', i, 'role')} list="roles-dignitaries" value={d.role || ''} onChange={e => updateArrayField('dignitaries', i, 'role', e.target.value.toUpperCase())} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'role')} placeholder="EJ: PRESIDENTE" />
+
+                            <ArrayFieldError array="dignitaries" index={i} field="role" />
 
                         </div>
 
@@ -859,12 +908,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <input
                                 className="expert-input"
+                                style={getArrayErrorStyle('dignitaries', i, 'fullName')}
                                 value={d.fullName || ''}
                                 autoComplete="off"
                                 onChange={(e) => { updateArrayField('dignitaries', i, 'fullName', e.target.value); searchDignitaryPerson(e.target.value, i); }}
+                                onBlur={() => handleArrayFieldBlur('dignitaries', i, 'fullName')}
                                 onFocus={() => { if (personSuggestions[digKey]?.length) setActivePersonKey(digKey); }}
                                 placeholder={t('fundacion.dignitary.fullNamePlaceholder')}
                             />
+                            <ArrayFieldError array="dignitaries" index={i} field="fullName" />
                             {activePersonKey === digKey && personSuggestions[digKey]?.length > 0 && (
                                 <div className="fund-autocomplete-dropdown">
                                     {personSuggestions[digKey].map((p, j) => (
@@ -882,7 +934,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <label>{t('fundacion.dignitary.birthDate')}</label>
 
-                            <input type="date" className="expert-input" value={d.birthDate || ''} onChange={e => updateArrayField('dignitaries', i, 'birthDate', e.target.value)} />
+                            <input type="date" className="expert-input" style={getArrayErrorStyle('dignitaries', i, 'birthDate')} value={d.birthDate || ''} onChange={e => updateArrayField('dignitaries', i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'birthDate')} />
+
+                            <ArrayFieldError array="dignitaries" index={i} field="birthDate" />
 
                         </div>
 
@@ -890,7 +944,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <label>{t('fundacion.dignitary.address')}</label>
 
-                            <input className="expert-input" value={d.address || ''} onChange={e => updateArrayField('dignitaries', i, 'address', e.target.value)} placeholder={t('fundacion.dignitary.addressPlaceholder')} />
+                            <input className="expert-input" style={getArrayErrorStyle('dignitaries', i, 'address')} value={d.address || ''} onChange={e => updateArrayField('dignitaries', i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'address')} placeholder={t('fundacion.dignitary.addressPlaceholder')} />
+
+                            <ArrayFieldError array="dignitaries" index={i} field="address" />
 
                         </div>
 
@@ -936,7 +992,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <label>{t('fundacion.beneficiary.percentage')}</label>
 
-                            <input className="expert-input" placeholder={t('fundacion.beneficiary.percentagePlaceholder')} value={b.percentage || ''} onChange={e => updateArrayField('beneficiaries', i, 'percentage', e.target.value)} />
+                            <input className="expert-input" style={getArrayErrorStyle('beneficiaries', i, 'percentage')} placeholder={t('fundacion.beneficiary.percentagePlaceholder')} value={b.percentage || ''} onChange={e => updateArrayField('beneficiaries', i, 'percentage', e.target.value)} onBlur={() => handleArrayFieldBlur('beneficiaries', i, 'percentage')} />
+
+                            <ArrayFieldError array="beneficiaries" index={i} field="percentage" />
 
                         </div>
 
@@ -946,12 +1004,15 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <input
                                 className="expert-input"
+                                style={getArrayErrorStyle('beneficiaries', i, 'shareholder')}
                                 value={b.shareholder || ''}
                                 autoComplete="off"
                                 onChange={(e) => { updateArrayField('beneficiaries', i, 'shareholder', e.target.value); searchBeneficiary(e.target.value, i); }}
+                                onBlur={() => handleArrayFieldBlur('beneficiaries', i, 'shareholder')}
                                 onFocus={() => { if (beneficiarySuggestions[i]?.length) setActiveBeneficiaryIdx(i); }}
                                 placeholder={t('fundacion.beneficiary.shareholderPlaceholder')}
                             />
+                            <ArrayFieldError array="beneficiaries" index={i} field="shareholder" />
                             {activeBeneficiaryIdx === i && beneficiarySuggestions[i]?.length > 0 && (
                                 <div className="fund-autocomplete-dropdown">
                                     {beneficiarySuggestions[i].map((p, j) => (
@@ -969,7 +1030,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <label>{t('fundacion.beneficiary.birthDate')}</label>
 
-                            <input type="date" className="expert-input" value={b.birthDate || ''} onChange={e => updateArrayField('beneficiaries', i, 'birthDate', e.target.value)} />
+                            <input type="date" className="expert-input" style={getArrayErrorStyle('beneficiaries', i, 'birthDate')} value={b.birthDate || ''} onChange={e => updateArrayField('beneficiaries', i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('beneficiaries', i, 'birthDate')} />
+
+                            <ArrayFieldError array="beneficiaries" index={i} field="birthDate" />
 
                         </div>
 
@@ -977,7 +1040,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                             <label>{t('fundacion.beneficiary.address')}</label>
 
-                            <input className="expert-input" value={b.address || ''} onChange={e => updateArrayField('beneficiaries', i, 'address', e.target.value)} placeholder={t('fundacion.beneficiary.addressPlaceholder')} />
+                            <input className="expert-input" style={getArrayErrorStyle('beneficiaries', i, 'address')} value={b.address || ''} onChange={e => updateArrayField('beneficiaries', i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('beneficiaries', i, 'address')} placeholder={t('fundacion.beneficiary.addressPlaceholder')} />
+
+                            <ArrayFieldError array="beneficiaries" index={i} field="address" />
 
                         </div>
 
@@ -1025,7 +1090,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('fullName')}</label>
 
-                                <input className="expert-input" value={formData.poaFullName} autoComplete="off" onChange={e => { setFormData({...formData, poaFullName: e.target.value}); searchPoaPerson(e.target.value); }} onFocus={() => { if (poaSuggestions.length) setShowPoaDropdown(true); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                                <input className="expert-input" style={getErrorStyle('poaFullName')} value={formData.poaFullName} autoComplete="off" onChange={e => { setFormData({...formData, poaFullName: e.target.value}); searchPoaPerson(e.target.value); if (fieldErrors.poaFullName) { const er = validateField('poaFullName', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaFullName; return n; }); } }} onBlur={() => handleFieldBlur('poaFullName')} onFocus={() => { if (poaSuggestions.length) setShowPoaDropdown(true); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                                <FieldError name="poaFullName" />
                                 {showPoaDropdown && poaSuggestions.length > 0 && (
                                     <div className="fund-autocomplete-dropdown">
                                         {poaSuggestions.map((p, j) => (
@@ -1045,7 +1111,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('birthDate')}</label>
 
-                                <input type="date" className="expert-input" value={formData.poaBirthDate} onChange={e => setFormData({...formData, poaBirthDate: e.target.value})} />
+                                <input type="date" className="expert-input" style={getErrorStyle('poaBirthDate')} value={formData.poaBirthDate} onChange={e => { setFormData({...formData, poaBirthDate: e.target.value}); if (fieldErrors.poaBirthDate) { const er = validateField('poaBirthDate', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaBirthDate; return n; }); } }} onBlur={() => handleFieldBlur('poaBirthDate')} />
+
+                                <FieldError name="poaBirthDate" />
 
                             </div>
 
@@ -1073,7 +1141,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('nationality')}</label>
 
-                                <input className="expert-input" value={formData.poaNationality} onChange={e => setFormData({...formData, poaNationality: e.target.value})} />
+                                <input className="expert-input" style={getErrorStyle('poaNationality')} value={formData.poaNationality} onChange={e => { setFormData({...formData, poaNationality: e.target.value}); if (fieldErrors.poaNationality) { const er = validateField('poaNationality', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaNationality; return n; }); } }} onBlur={() => handleFieldBlur('poaNationality')} />
+
+                                <FieldError name="poaNationality" />
 
                             </div>
 
@@ -1081,7 +1151,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('passport')}</label>
 
-                                <input className="expert-input" value={formData.poaPassport} autoComplete="off" onChange={e => { setFormData({...formData, poaPassport: e.target.value}); searchPoaPerson(e.target.value); }} onFocus={() => { if (poaSuggestions.length) setShowPoaDropdown(true); }} />
+                                <input className="expert-input" style={getErrorStyle('poaPassport')} value={formData.poaPassport} autoComplete="off" onChange={e => { setFormData({...formData, poaPassport: e.target.value}); searchPoaPerson(e.target.value); if (fieldErrors.poaPassport) { const er = validateField('poaPassport', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaPassport; return n; }); } }} onBlur={() => handleFieldBlur('poaPassport')} onFocus={() => { if (poaSuggestions.length) setShowPoaDropdown(true); }} />
+
+                                <FieldError name="poaPassport" />
 
                             </div>
 
@@ -1091,7 +1163,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('idCard')}</label>
 
-                                <input className="expert-input" value={formData.poaIdCard} onChange={e => setFormData({...formData, poaIdCard: e.target.value})} />
+                                <input className="expert-input" style={getErrorStyle('poaIdCard')} value={formData.poaIdCard} onChange={e => { setFormData({...formData, poaIdCard: e.target.value}); if (fieldErrors.poaIdCard) { const er = validateField('poaIdCard', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaIdCard; return n; }); } }} onBlur={() => handleFieldBlur('poaIdCard')} />
+
+                                <FieldError name="poaIdCard" />
 
                             </div>
 
@@ -1099,7 +1173,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('phone')}</label>
 
-                                <input className="expert-input" value={formData.poaPhone} onChange={e => setFormData({...formData, poaPhone: e.target.value})} />
+                                <input className="expert-input" style={getErrorStyle('poaPhone')} value={formData.poaPhone} onChange={e => { setFormData({...formData, poaPhone: e.target.value}); if (fieldErrors.poaPhone) { const er = validateField('poaPhone', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaPhone; return n; }); } }} onBlur={() => handleFieldBlur('poaPhone')} />
+
+                                <FieldError name="poaPhone" />
 
                             </div>
 
@@ -1109,7 +1185,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('email')}</label>
 
-                                <input type="email" className="expert-input" value={formData.poaEmail} onChange={e => setFormData({...formData, poaEmail: e.target.value})} />
+                                <input type="email" className="expert-input" style={getErrorStyle('poaEmail')} value={formData.poaEmail} onChange={e => { setFormData({...formData, poaEmail: e.target.value}); if (fieldErrors.poaEmail) { const er = validateField('poaEmail', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaEmail; return n; }); } }} onBlur={() => handleFieldBlur('poaEmail')} />
+
+                                <FieldError name="poaEmail" />
 
                             </div>
 
@@ -1119,7 +1197,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('address')}</label>
 
-                                <input className="expert-input" value={formData.poaAddress} onChange={e => setFormData({...formData, poaAddress: e.target.value})} />
+                                <input className="expert-input" style={getErrorStyle('poaAddress')} value={formData.poaAddress} onChange={e => { setFormData({...formData, poaAddress: e.target.value}); if (fieldErrors.poaAddress) { const er = validateField('poaAddress', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaAddress; return n; }); } }} onBlur={() => handleFieldBlur('poaAddress')} />
+
+                                <FieldError name="poaAddress" />
 
                             </div>
 
@@ -1129,7 +1209,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('city')}</label>
 
-                                <input className="expert-input" value={formData.poaCity} onChange={e => setFormData({...formData, poaCity: e.target.value})} />
+                                <input className="expert-input" style={getErrorStyle('poaCity')} value={formData.poaCity} onChange={e => { setFormData({...formData, poaCity: e.target.value}); if (fieldErrors.poaCity) { const er = validateField('poaCity', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaCity; return n; }); } }} onBlur={() => handleFieldBlur('poaCity')} />
+
+                                <FieldError name="poaCity" />
 
                             </div>
 
@@ -1137,7 +1219,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label>{L('country')}</label>
 
-                                <input className="expert-input" value={formData.poaCountry} onChange={e => setFormData({...formData, poaCountry: e.target.value})} />
+                                <input className="expert-input" style={getErrorStyle('poaCountry')} value={formData.poaCountry} onChange={e => { setFormData({...formData, poaCountry: e.target.value}); if (fieldErrors.poaCountry) { const er = validateField('poaCountry', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaCountry; return n; }); } }} onBlur={() => handleFieldBlur('poaCountry')} />
+
+                                <FieldError name="poaCountry" />
 
                             </div>
 
@@ -1219,7 +1303,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 </div>
 
-                                <input className="expert-input" style={{ marginTop: '10px' }} value={formData.poaValidityDate} onChange={e => setFormData({...formData, poaValidityDate: e.target.value})} placeholder={t('fundacion.poa.validityPlaceholder')} />
+                                <input className="expert-input" style={{ marginTop: '10px', ...getErrorStyle('poaValidityDate') }} value={formData.poaValidityDate} onChange={e => { setFormData({...formData, poaValidityDate: e.target.value}); if (fieldErrors.poaValidityDate) { const er = validateField('poaValidityDate', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.poaValidityDate; return n; }); } }} onBlur={() => handleFieldBlur('poaValidityDate')} placeholder={t('fundacion.poa.validityPlaceholder')} />
+
+                                <FieldError name="poaValidityDate" />
 
                             </div>
 
@@ -1301,7 +1387,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                     <label>{lang === 'en' ? 'Foundation Objects (Text Box)' : 'Fines de la Fundación (Detallar)'}</label>
 
-                    <textarea className="expert-input" rows={6} value={formData.foundationObjects} onChange={e => setFormData({...formData, foundationObjects: e.target.value})} placeholder={lang === 'en' ? 'e.g. The objectives of the foundation are estate planning, family protection, holding shares...' : 'Ej: Los fines de la fundación consisten en velar por el patrimonio familiar, la planificación sucesoria, la tenencia de activos...'} required />
+                    <textarea className="expert-input" style={getErrorStyle('foundationObjects')} rows={6} value={formData.foundationObjects} onChange={e => { setFormData({...formData, foundationObjects: e.target.value}); if (fieldErrors.foundationObjects) { const er = validateField('foundationObjects', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.foundationObjects; return n; }); } }} onBlur={() => handleFieldBlur('foundationObjects')} placeholder={lang === 'en' ? 'e.g. The objectives of the foundation are estate planning, family protection, holding shares...' : 'Ej: Los fines de la fundación consisten en velar por el patrimonio familiar, la planificación sucesoria, la tenencia de activos...'} required />
+
+                    <FieldError name="foundationObjects" />
 
                 </div>
 
@@ -1357,7 +1445,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label style={{ color: '#64748b', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
 
-                                <input className="expert-input-legal" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <input className="expert-input-legal" style={getErrorStyle('declarationName')} value={s.name} onChange={e => { updateSigner(i, 'name', e.target.value); if (fieldErrors.declarationName) { const er = validateField('declarationName', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.declarationName; return n; }); } }} onBlur={() => handleFieldBlur('declarationName')} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+
+                                <FieldError name="declarationName" />
 
                             </div>
 
@@ -1365,7 +1455,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                                 <label style={{ color: '#64748b', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>
 
-                                <input className="expert-input-legal" value={s.signature} onChange={e => updateSigner(i, 'signature', e.target.value)} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} style={{ fontFamily: 'monospace' }} />
+                                <input className="expert-input-legal" style={{ fontFamily: 'monospace', ...getErrorStyle('declarationSignature') }} value={s.signature} onChange={e => { updateSigner(i, 'signature', e.target.value); if (fieldErrors.declarationSignature) { const er = validateField('declarationSignature', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.declarationSignature; return n; }); } }} onBlur={() => handleFieldBlur('declarationSignature')} placeholder={lang === 'en' ? 'As it appears on ID...' : 'Como aparece en su identificación...'} />
+
+                                <FieldError name="declarationSignature" />
 
                             </div>
 
@@ -1381,7 +1473,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                     <label style={{ color: '#475569', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Date of Declaration' : 'Fecha de Declaración'}</label>
 
-                    <input type="date" className="expert-input-legal" value={formData.declarationDate} onChange={e => setFormData({...formData, declarationDate: e.target.value})} />
+                    <input type="date" className="expert-input-legal" style={getErrorStyle('declarationDate')} value={formData.declarationDate} onChange={e => { setFormData({...formData, declarationDate: e.target.value}); if (fieldErrors.declarationDate) { const er = validateField('declarationDate', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.declarationDate; return n; }); } }} onBlur={() => handleFieldBlur('declarationDate')} />
+
+                    <FieldError name="declarationDate" />
 
                 </div>
 

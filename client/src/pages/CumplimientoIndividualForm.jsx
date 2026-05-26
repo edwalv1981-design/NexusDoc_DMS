@@ -23,6 +23,7 @@ import {
   kycFormSharedStyles,
 } from '../components/KycFormShared';
 import { FUNDS_SOURCE_OPTIONS, MARITAL_STATUS_OPTIONS } from '../utils/kyciMasterSpec';
+import { validateField } from '../utils/fieldValidators';
 
 const FUNDS_OPTIONS = FUNDS_SOURCE_OPTIONS;
 
@@ -54,6 +55,25 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
   const L = (key) => t(`kyci.fields.${key}`);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(emptyKyciState);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const handleFieldBlur = (fieldName) => {
+    const error = validateField(fieldName, formData[fieldName]);
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      if (error) next[fieldName] = error;
+      else delete next[fieldName];
+      return next;
+    });
+  };
+  const clearErrorIfValid = (fieldName, newValue) => {
+    if (fieldErrors[fieldName]) {
+      const err = validateField(fieldName, newValue);
+      if (!err) setFieldErrors(prev => { const n = { ...prev }; delete n[fieldName]; return n; });
+    }
+  };
+  const getErrorStyle = (name) => fieldErrors[name] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+  const FieldError = ({ name }) => fieldErrors[name] ? <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600, display: 'block', marginTop: '1px' }}>{fieldErrors[name]}</span> : null;
 
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
@@ -142,9 +162,9 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyci.hints.personal')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('fullName') || (lang === 'en' ? 'Full name' : 'Nombre completo')}</label><input className="expert-input" value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} required /></div>
-        <div className="expert-group"><label>{L('birthDate')}</label><input type="date" className="expert-input" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('birthPlace')}</label><input className="expert-input" value={formData.birthPlace} onChange={(e) => setFormData({ ...formData, birthPlace: e.target.value })} required /></div>
+        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('fullName') || (lang === 'en' ? 'Full name' : 'Nombre completo')}</label><input className="expert-input" style={getErrorStyle('fullName')} value={formData.fullName} onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); clearErrorIfValid('fullName', e.target.value); }} onBlur={() => handleFieldBlur('fullName')} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} required /><FieldError name="fullName" /></div>
+        <div className="expert-group"><label>{L('birthDate')}</label><input type="date" className="expert-input" style={getErrorStyle('birthDate')} value={formData.birthDate} onChange={(e) => { setFormData({ ...formData, birthDate: e.target.value }); clearErrorIfValid('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} required /><FieldError name="birthDate" /></div>
+        <div className="expert-group"><label>{L('birthPlace')}</label><input className="expert-input" style={getErrorStyle('birthPlace')} value={formData.birthPlace} onChange={(e) => { setFormData({ ...formData, birthPlace: e.target.value }); clearErrorIfValid('birthPlace', e.target.value); }} onBlur={() => handleFieldBlur('birthPlace')} required /><FieldError name="birthPlace" /></div>
         <div className="expert-group"><label>{L('maritalStatus')}</label>
           <select className="expert-input" value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}>
             <option value="">—</option>
@@ -153,9 +173,9 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
             ))}
           </select>
         </div>
-        <div className="expert-group"><label>{L('nationality')}</label><input className="expert-input" value={formData.nationality} onChange={(e) => setFormData({ ...formData, nationality: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('passport')}</label><input className="expert-input" value={formData.passport} onChange={(e) => setFormData({ ...formData, passport: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('idCard')}</label><input className="expert-input" value={formData.idCard} onChange={(e) => setFormData({ ...formData, idCard: e.target.value })} /></div>
+        <div className="expert-group"><label>{L('nationality')}</label><input className="expert-input" style={getErrorStyle('nationality')} value={formData.nationality} onChange={(e) => { setFormData({ ...formData, nationality: e.target.value }); clearErrorIfValid('nationality', e.target.value); }} onBlur={() => handleFieldBlur('nationality')} required /><FieldError name="nationality" /></div>
+        <div className="expert-group"><label>{L('passport')}</label><input className="expert-input" style={getErrorStyle('passport')} value={formData.passport} onChange={(e) => { setFormData({ ...formData, passport: e.target.value }); clearErrorIfValid('passport', e.target.value); }} onBlur={() => handleFieldBlur('passport')} required /><FieldError name="passport" /></div>
+        <div className="expert-group"><label>{L('idCard')}</label><input className="expert-input" style={getErrorStyle('idCard')} value={formData.idCard} onChange={(e) => { setFormData({ ...formData, idCard: e.target.value }); clearErrorIfValid('idCard', e.target.value); }} onBlur={() => handleFieldBlur('idCard')} /><FieldError name="idCard" /></div>
       </div>
     </div>
   );
@@ -167,13 +187,13 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyci.hints.contact')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group"><label>{L('phone')}</label><input className="expert-input" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('email')}</label><input type="email" className="expert-input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required /></div>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('address')}</label><input className="expert-input" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('city')}</label><input className="expert-input" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('country')}</label><input className="expert-input" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('occupation')}</label><input className="expert-input" value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('employer')}</label><input className="expert-input" value={formData.employer} onChange={(e) => setFormData({ ...formData, employer: e.target.value })} /></div>
+        <div className="expert-group"><label>{L('phone')}</label><input className="expert-input" style={getErrorStyle('phone')} value={formData.phone} onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); clearErrorIfValid('phone', e.target.value); }} onBlur={() => handleFieldBlur('phone')} required /><FieldError name="phone" /></div>
+        <div className="expert-group"><label>{L('email')}</label><input type="email" className="expert-input" style={getErrorStyle('email')} value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); clearErrorIfValid('email', e.target.value); }} onBlur={() => handleFieldBlur('email')} required /><FieldError name="email" /></div>
+        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('address')}</label><input className="expert-input" style={getErrorStyle('address')} value={formData.address} onChange={(e) => { setFormData({ ...formData, address: e.target.value }); clearErrorIfValid('address', e.target.value); }} onBlur={() => handleFieldBlur('address')} required /><FieldError name="address" /></div>
+        <div className="expert-group"><label>{L('city')}</label><input className="expert-input" style={getErrorStyle('city')} value={formData.city} onChange={(e) => { setFormData({ ...formData, city: e.target.value }); clearErrorIfValid('city', e.target.value); }} onBlur={() => handleFieldBlur('city')} required /><FieldError name="city" /></div>
+        <div className="expert-group"><label>{L('country')}</label><input className="expert-input" style={getErrorStyle('country')} value={formData.country} onChange={(e) => { setFormData({ ...formData, country: e.target.value }); clearErrorIfValid('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} required /><FieldError name="country" /></div>
+        <div className="expert-group"><label>{L('occupation')}</label><input className="expert-input" style={getErrorStyle('occupation')} value={formData.occupation} onChange={(e) => { setFormData({ ...formData, occupation: e.target.value }); clearErrorIfValid('occupation', e.target.value); }} onBlur={() => handleFieldBlur('occupation')} required /><FieldError name="occupation" /></div>
+        <div className="expert-group"><label>{L('employer')}</label><input className="expert-input" style={getErrorStyle('employer')} value={formData.employer} onChange={(e) => { setFormData({ ...formData, employer: e.target.value }); clearErrorIfValid('employer', e.target.value); }} onBlur={() => handleFieldBlur('employer')} /><FieldError name="employer" /></div>
       </div>
     </div>
   );
@@ -205,7 +225,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
           getOptionLabel={(opt) => t(`kyci.sources.${opt.labelKey}`)}
           primary={PRIMARY}
         />
-        <div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" value={formData.fundsOther} onChange={(e) => setFormData({ ...formData, fundsOther: e.target.value })} /></div>
+        <div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" style={getErrorStyle('fundsOther')} value={formData.fundsOther} onChange={(e) => { setFormData({ ...formData, fundsOther: e.target.value }); clearErrorIfValid('fundsOther', e.target.value); }} onBlur={() => handleFieldBlur('fundsOther')} /><FieldError name="fundsOther" /></div>
       </div>
     </div>
   );
@@ -217,8 +237,8 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyci.hints.declaration')}</KycHintBox>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" value={formData.declarationName} onChange={(e) => setFormData({ ...formData, declarationName: e.target.value })} required /></div>
-        <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" value={formData.declarationDate} onChange={(e) => setFormData({ ...formData, declarationDate: e.target.value })} required /></div>
+        <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" style={getErrorStyle('declarationName')} value={formData.declarationName} onChange={(e) => { setFormData({ ...formData, declarationName: e.target.value }); clearErrorIfValid('declarationName', e.target.value); }} onBlur={() => handleFieldBlur('declarationName')} required /><FieldError name="declarationName" /></div>
+        <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" style={getErrorStyle('declarationDate')} value={formData.declarationDate} onChange={(e) => { setFormData({ ...formData, declarationDate: e.target.value }); clearErrorIfValid('declarationDate', e.target.value); }} onBlur={() => handleFieldBlur('declarationDate')} required /><FieldError name="declarationDate" /></div>
       </div>
     </div>
   );
