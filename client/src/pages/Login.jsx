@@ -118,7 +118,7 @@ const Login = () => {
         </div>
 
         {/* Right Side: Login Form */}
-        <div style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a', color: 'white' }}>
+        <div className="login-right-panel" style={{ flex: 0.8, padding: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#134e4a', color: 'white' }}>
           <div style={{ marginBottom: '30px' }}>
             <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: 5, color: 'white' }}>{t('login.welcome')}</h3>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{t('login.subtitle')}</p>
