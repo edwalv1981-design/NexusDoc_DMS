@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>NexusDoc DMS — Manual Completo de Usuario</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.65; padding: 30px; max-width: 900px; margin: 0 auto; font-size: 12.5px; }
+
+  /* PORTADA */
+  .cover { text-align: center; padding: 120px 40px 60px; page-break-after: always; }
+  .cover h1 { font-size: 36px; color: #0f766e; margin-bottom: 10px; }
+  .cover h2 { font-size: 18px; color: #475569; font-weight: 400; margin-bottom: 40px; }
+  .cover .version { font-size: 13px; color: #94a3b8; margin-top: 60px; }
+  .cover .logo-box { display: inline-block; background: #0f766e; color: white; font-size: 48px; font-weight: 800; width: 100px; height: 100px; line-height: 100px; border-radius: 20px; margin-bottom: 30px; }
+
+  /* ENCABEZADOS */
+  h1 { font-size: 22px; color: #0f766e; border-bottom: 3px solid #0f766e; padding-bottom: 8px; margin: 30px 0 15px; }
+  h2 { font-size: 17px; color: #134e4a; margin: 25px 0 10px; border-left: 4px solid #0f766e; padding-left: 10px; }
+  h3 { font-size: 14px; color: #0f766e; margin: 18px 0 8px; }
+  h4 { font-size: 12.5px; color: #334155; margin: 12px 0 6px; }
+
+  p { margin-bottom: 8px; }
+  ul, ol { margin: 8px 0 12px 20px; }
+  li { margin-bottom: 5px; }
+
+  /* ESTILOS ESPECIALES */
+  .step-box { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 14px 16px; margin: 10px 0 16px; }
+  .step-box .step-num { display: inline-block; background: #0f766e; color: white; width: 24px; height: 24px; text-align: center; line-height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; margin-right: 8px; }
+  .step-box p { margin: 6px 0 0 32px; }
+
+  .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .warning strong { color: #92400e; }
+
+  .tip { background: #ecfdf5; border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .tip strong { color: #065f46; }
+
+  .info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .info strong { color: #1e40af; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .badge-admin { background: #0f766e; color: white; }
+  .badge-client { background: #3b82f6; color: white; }
+  .badge-both { background: #8b5cf6; color: white; }
+
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 11.5px; }
+  th { background: #134e4a; color: white; padding: 7px 10px; text-align: left; font-weight: 600; }
+  td { padding: 6px 10px; border: 1px solid #e2e8f0; }
+  tr:nth-child(even) { background: #f8fafc; }
+
+  .page-break { page-break-before: always; }
+  .toc a { color: #0f766e; text-decoration: none; }
+  .toc li { margin-bottom: 4px; }
+  .section-divider { border: none; border-top: 2px solid #e2e8f0; margin: 25px 0; }
+
+  .screenshot-placeholder { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 30px; text-align: center; color: #94a3b8; font-size: 12px; margin: 12px 0; }
+
+  .key { display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+  .menu-path { color: #0f766e; font-weight: 600; }
+
+  .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 40px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+
+<!-- ============================== PORTADA ============================== -->
+<div class="cover">
+  <div class="logo-box">N</div>
+  <h1>NexusDoc DMS</h1>
+  <h2>Manual Completo de Usuario</h2>
+  <p style="color: #64748b; font-size: 14px;">
+    Guía paso a paso para administradores y usuarios del sistema<br>
+    de gestión documental NexusDoc DMS
+  </p>
+  <div class="version">
+    Versión 1.0 — Mayo 2026<br>
+    Documento confidencial — Solo para uso interno
+  </div>
+</div>
+
+<!-- ======================== TABLA DE CONTENIDO ========================= -->
+<h1>Tabla de Contenido</h1>
+<div class="toc">
+<ol>
+  <li><a href="#intro">Introducción — ¿Qué es NexusDoc DMS?</a></li>
+  <li><a href="#roles">Roles del Sistema</a></li>
+  <li><a href="#registro">Registro de una Cuenta Nueva</a></li>
+  <li><a href="#login">Inicio de Sesión</a></li>
+  <li><a href="#reset">Recuperar Contraseña</a></li>
+  <li><a href="#client">Panel del Cliente (Usuario)</a>
+    <ol style="margin-top:4px">
+      <li>Vista general del dashboard</li>
+      <li>Llenar un formulario</li>
+      <li>Descargar tu PDF</li>
+      <li>Subir documentos</li>
+      <li>Subir documentos firmados</li>
+      <li>Editar tu perfil</li>
+    </ol>
+  </li>
+  <li><a href="#admin">Panel del Administrador</a>
+    <ol style="margin-top:4px">
+      <li>Vista general</li>
+      <li>Gestión de usuarios</li>
+      <li>Ver formularios de clientes</li>
+      <li>Gestión de documentos</li>
+      <li>Plantillas PDF</li>
+      <li>Bitácora de auditoría</li>
+      <li>Configuración del sistema</li>
+    </ol>
+  </li>
+  <li><a href="#formularios">Guía de Formularios</a>
+    <ol style="margin-top:4px">
+      <li>Declaración de Fondos (SFAR)</li>
+      <li>Corporación (PTLC)</li>
+      <li>Fundaciones (PTLF)</li>
+      <li>Cumplimiento Individual (KYCI)</li>
+      <li>Cumplimiento Entidades (KYCE)</li>
+    </ol>
+  </li>
+  <li><a href="#seguridad">Seguridad y Sesiones</a></li>
+  <li><a href="#idioma">Cambio de Idioma</a></li>
+  <li><a href="#faq">Preguntas Frecuentes</a></li>
+  <li><a href="#glosario">Glosario de Términos</a></li>
+</ol>
+</div>
+
+<!-- ========================= 1. INTRODUCCION ========================== -->
+<div class="page-break"></div>
+<h1 id="intro">1. Introducción — ¿Qué es NexusDoc DMS?</h1>
+
+<p><strong>NexusDoc DMS</strong> (Document Management System) es un sistema en línea que te permite:</p>
+
+<ul>
+  <li><strong>Llenar formularios</strong> legales y financieros desde tu computadora o celular</li>
+  <li><strong>Generar PDFs</strong> profesionales automáticamente con los datos que ingresaste</li>
+  <li><strong>Subir documentos</strong> personales (cédula, pasaporte, etc.)</li>
+  <li><strong>Firmar documentos</strong> y subirlos de vuelta al sistema</li>
+  <li><strong>Que un administrador revise</strong> todo de forma organizada</li>
+</ul>
+
+<div class="tip">
+  <strong>En palabras simples:</strong> Es como llenar papeles en una oficina, pero todo se hace desde tu navegador de internet. No necesitas instalar nada.
+</div>
+
+<h3>¿Qué necesito para usar el sistema?</h3>
+<ul>
+  <li>Un navegador web moderno (Chrome, Edge, Firefox, Safari)</li>
+  <li>Conexión a internet</li>
+  <li>Un correo electrónico válido</li>
+</ul>
+
+<!-- ========================= 2. ROLES ========================== -->
+<h1 id="roles">2. Roles del Sistema</h1>
+
+<p>El sistema tiene <strong>dos tipos de usuario</strong>. Cada uno ve pantallas diferentes:</p>
+
+<table>
+  <tr>
+    <th>Rol</th>
+    <th>¿Quién es?</th>
+    <th>¿Qué puede hacer?</th>
+  </tr>
+  <tr>
+    <td><span class="badge badge-client">CLIENTE</span></td>
+    <td>La persona que necesita llenar formularios y enviar documentos</td>
+    <td>
+      • Llenar formularios<br>
+      • Descargar sus PDFs<br>
+      • Subir documentos personales<br>
+      • Subir documentos firmados<br>
+      • Editar su perfil
+    </td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-admin">ADMIN</span></td>
+    <td>La persona que administra el sistema y revisa los trámites</td>
+    <td>
+      • Todo lo del cliente, MÁS:<br>
+      • Aprobar o rechazar cuentas nuevas<br>
+      • Ver formularios de todos los usuarios<br>
+      • Gestionar plantillas PDF<br>
+      • Ver la bitácora de auditoría<br>
+      • Bloquear/desbloquear usuarios<br>
+      • Resetear contraseñas
+    </td>
+  </tr>
+</table>
+
+<!-- ========================= 3. REGISTRO ========================== -->
+<div class="page-break"></div>
+<h1 id="registro">3. Registro de una Cuenta Nueva</h1>
+
+<p>Antes de usar el sistema, necesitas crear una cuenta. Este es el proceso completo:</p>
+
+<h3>Paso 1 — Ir a la página de registro</h3>
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Abre el sistema en tu navegador</strong>
+  <p>Verás la página de inicio de sesión. Busca el botón que dice <strong>"Abre tu cuenta"</strong> (en la parte izquierda de la pantalla) y haz clic en él.</p>
+</div>
+
+<h3>Paso 2 — Seleccionar el tipo de trámite</h3>
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Elige el formulario que necesitas</strong>
+  <p>Verás una pantalla llamada <strong>"Onboarding"</strong> donde puedes elegir entre varios tipos de trámite:</p>
+  <ul style="margin-left: 32px;">
+    <li><strong>Fondos Registros contables</strong> (Código: SFAR)</li>
+    <li><strong>Corporación</strong> (Código: PTLC)</li>
+    <li><strong>Fundaciones</strong> (Código: PTLF)</li>
+    <li><strong>Cumplimiento Individual</strong> (Código: KYCI)</li>
+    <li><strong>Cumplimiento Entidades</strong> (Código: KYCE)</li>
+  </ul>
+  <p>Selecciona el que necesites y haz clic en <strong>"Siguiente"</strong>.</p>
+</div>
+
+<h3>Paso 3 — Llenar tus datos personales</h3>
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Completa el formulario de registro</strong>
+  <p>Deberás ingresar:</p>
+  <ul style="margin-left: 32px;">
+    <li><strong>Nombre completo</strong></li>
+    <li><strong>Correo electrónico</strong> (será tu usuario para iniciar sesión)</li>
+    <li><strong>Contraseña</strong> (mínimo 8 caracteres)</li>
+    <li><strong>Confirmar contraseña</strong> (repite la misma)</li>
+    <li><strong>Nacionalidad</strong></li>
+    <li><strong>Número de identificación</strong> (cédula o pasaporte)</li>
+  </ul>
+  <p>Haz clic en <strong>"Registrarse"</strong>.</p>
+</div>
+
+<h3>Paso 4 — Verificar tu correo</h3>
+<div class="step-box">
+  <span class="step-num">4</span> <strong>Revisa tu bandeja de entrada</strong>
+  <p>El sistema te enviará un <strong>código de verificación de 6 dígitos</strong> a tu correo electrónico. Ingresa ese código en la pantalla de verificación y haz clic en <strong>"Verificar"</strong>.</p>
+</div>
+
+<div class="warning">
+  <strong>Importante:</strong> Después de registrarte, tu cuenta quedará en estado <strong>"Pendiente"</strong>. Un administrador debe aprobar tu cuenta antes de que puedas acceder al sistema. Recibirás una notificación cuando sea aprobada.
+</div>
+
+<h3>Paso 5 — Esperar aprobación</h3>
+<div class="step-box">
+  <span class="step-num">5</span> <strong>Tu cuenta está pendiente</strong>
+  <p>Si intentas iniciar sesión antes de que te aprueben, verás un mensaje que dice que tu cuenta aún no ha sido autorizada. Ten paciencia, el administrador revisará tu solicitud.</p>
+</div>
+
+<!-- ========================= 4. LOGIN ========================== -->
+<h1 id="login">4. Inicio de Sesión</h1>
+
+<p>Una vez que tu cuenta está aprobada, puedes entrar al sistema:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Abre la página del sistema</strong>
+  <p>Verás la pantalla de inicio de sesión con el logo de NexusDoc.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Ingresa tus datos</strong>
+  <p>Escribe tu <strong>correo electrónico</strong> y tu <strong>contraseña</strong>.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Haz clic en "Iniciar Sesión"</strong>
+  <p>Si los datos son correctos, entrarás a tu panel. Si eres <strong>cliente</strong>, verás el Panel del Cliente. Si eres <strong>admin</strong>, verás el Panel del Administrador.</p>
+</div>
+
+<div class="info">
+  <strong>¿Sabías que?</strong> El sistema solo permite <strong>una sesión activa a la vez</strong>. Si inicias sesión en otra computadora, la sesión anterior se cerrará automáticamente.
+</div>
+
+<h3>¿Qué pasa si me equivoco muchas veces?</h3>
+<p>Si escribes la contraseña incorrecta <strong>varias veces seguidas</strong>, tu cuenta se bloqueará temporalmente por seguridad. Deberás contactar al administrador para desbloquearla.</p>
+
+<h3>¿Qué pasa si es mi primera vez?</h3>
+<p>Si el administrador creó tu cuenta y te dio una contraseña temporal, el sistema te pedirá que <strong>cambies tu contraseña</strong> antes de continuar.</p>
+
+<!-- ========================= 5. RESET PASSWORD ========================== -->
+<div class="page-break"></div>
+<h1 id="reset">5. Recuperar Contraseña</h1>
+
+<p>Si olvidaste tu contraseña, no te preocupes. Puedes recuperarla fácilmente:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>En la pantalla de inicio de sesión, haz clic en "¿Olvidaste tu contraseña?"</strong>
+  <p>Se abrirá una nueva pantalla.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Escribe tu correo electrónico</strong>
+  <p>Ingresa el correo con el que te registraste y haz clic en <strong>"Enviar código"</strong>.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Revisa tu correo</strong>
+  <p>Recibirás un <strong>código de 6 dígitos</strong>. Ingrésalo en la pantalla.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">4</span> <strong>Escribe tu nueva contraseña</strong>
+  <p>Ingresa una nueva contraseña (mínimo 8 caracteres), confírmala y haz clic en <strong>"Cambiar contraseña"</strong>.</p>
+</div>
+
+<div class="tip">
+  <strong>Consejo:</strong> Usa una contraseña que combine letras, números y un símbolo especial (como @, #, !). Así será más segura.
+</div>
+
+<!-- ========================= 6. PANEL CLIENTE ========================== -->
+<div class="page-break"></div>
+<h1 id="client">6. Panel del Cliente (Usuario)</h1>
+
+<p>Cuando inicias sesión como <strong>cliente</strong>, llegas a tu panel personal. Aquí es donde haces todo tu trabajo. Veamos cada sección:</p>
+
+<h2>6.1 — Vista General del Dashboard</h2>
+
+<p>Tu panel se divide en dos partes:</p>
+<ul>
+  <li><strong>Barra lateral izquierda (menú):</strong> Tiene botones para navegar entre las secciones</li>
+  <li><strong>Área principal (derecha):</strong> Aquí se muestra el contenido de cada sección</li>
+</ul>
+
+<p>En el menú lateral encontrarás estas opciones:</p>
+
+<table>
+  <tr><th>Botón del Menú</th><th>¿Qué hace?</th></tr>
+  <tr><td>📋 MIS FORMULARIOS</td><td>Ver y llenar tus formularios</td></tr>
+  <tr><td>📁 DOCUMENTOS</td><td>Subir y ver tus documentos personales (cédula, pasaporte, etc.)</td></tr>
+  <tr><td>✍️ DOCS FIRMADOS</td><td>Subir documentos que ya firmaste</td></tr>
+  <tr><td>👤 MI PERFIL</td><td>Ver y editar tu información personal</td></tr>
+  <tr><td>🔑 CAMBIAR CONTRASEÑA</td><td>Cambiar tu contraseña actual</td></tr>
+  <tr><td>🌐 IDIOMA</td><td>Cambiar entre Español e Inglés</td></tr>
+  <tr><td>🚪 CERRAR SESIÓN</td><td>Salir del sistema de forma segura</td></tr>
+</table>
+
+<!-- FORMULARIOS -->
+<h2>6.2 — Llenar un Formulario</h2>
+
+<p>Esta es la función principal del sistema. Así es como llenas un formulario:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "MIS FORMULARIOS" en el menú lateral</strong>
+  <p>Verás la lista de formularios disponibles para ti. El tipo de formulario depende del trámite que seleccionaste al registrarte.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en el formulario que quieres llenar</strong>
+  <p>Se abrirá el formulario con todos sus campos. Los campos marcados con <strong>*</strong> son obligatorios.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Completa todos los campos</strong>
+  <p>Llena la información solicitada con cuidado. Si algún campo tiene opciones, selecciona la correcta del menú desplegable.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">4</span> <strong>Haz clic en "Guardar" o "Enviar"</strong>
+  <p>Tus datos quedarán guardados en el sistema. Podrás volver a editarlos más adelante si es necesario.</p>
+</div>
+
+<div class="tip">
+  <strong>Consejo:</strong> No necesitas llenar todo de una vez. Puedes guardar tu progreso y continuar después. Los datos se guardan automáticamente.
+</div>
+
+<!-- DESCARGAR PDF -->
+<h2>6.3 — Descargar tu PDF</h2>
+
+<p>Una vez que guardas tu formulario, puedes descargar un PDF profesional con toda tu información:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Ve a "MIS FORMULARIOS"</strong>
+  <p>Busca el formulario que ya llenaste.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en el botón "Descargar PDF"</strong>
+  <p>El sistema generará automáticamente un PDF con tus datos y lo descargará a tu computadora.</p>
+</div>
+
+<div class="info">
+  <strong>Nota:</strong> El PDF se genera con una plantilla profesional. Dependiendo del tipo de formulario, el PDF puede tener varias páginas con información organizada.
+</div>
+
+<!-- DOCUMENTOS -->
+<h2>6.4 — Subir Documentos Personales</h2>
+
+<p>El sistema te permite subir copias de tus documentos personales (cédula, pasaporte, comprobantes, etc.):</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "DOCUMENTOS" en el menú lateral</strong>
+  <p>Verás la sección de documentos.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en "Subir documento" o arrastra el archivo</strong>
+  <p>Selecciona el archivo desde tu computadora. Se aceptan archivos PDF e imágenes.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Confirma la subida</strong>
+  <p>El archivo se guardará en el sistema y el administrador podrá verlo.</p>
+</div>
+
+<div class="warning">
+  <strong>Importante:</strong> Asegúrate de que los documentos sean legibles (buena calidad) antes de subirlos. Documentos borrosos podrían ser rechazados.
+</div>
+
+<!-- DOCS FIRMADOS -->
+<h2>6.5 — Subir Documentos Firmados</h2>
+
+<p>Cuando el administrador te envíe un documento para firmar, deberás:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Descargar el documento</strong> que necesita tu firma
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Firmarlo</strong> (puede ser firma digital o firma en papel y escaneo)
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Ir a "DOCS FIRMADOS" en el menú lateral</strong>
+</div>
+
+<div class="step-box">
+  <span class="step-num">4</span> <strong>Subir el documento firmado</strong>
+  <p>El sistema detectará automáticamente si el documento tiene una firma y mostrará el estado: <strong>"Firma Detectada"</strong> o <strong>"Firma Pendiente"</strong>.</p>
+</div>
+
+<!-- PERFIL -->
+<h2>6.6 — Editar tu Perfil</h2>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "MI PERFIL" en el menú lateral</strong>
+  <p>Verás tu información actual: nombre, correo, nacionalidad, número de identificación.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Modifica los campos que necesites</strong>
+  <p>Puedes cambiar tu nombre, nacionalidad y otros datos personales.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Haz clic en "Guardar cambios"</strong>
+  <p>Los cambios se aplicarán inmediatamente.</p>
+</div>
+
+<div class="info">
+  <strong>Nota:</strong> Tu correo electrónico y tu código único <strong>no se pueden cambiar</strong>. Si necesitas cambiar tu correo, contacta al administrador.
+</div>
+
+<!-- ========================= 7. PANEL ADMIN ========================== -->
+<div class="page-break"></div>
+<h1 id="admin">7. Panel del Administrador</h1>
+
+<p>Cuando inicias sesión como <strong>administrador</strong>, tienes acceso a todas las funciones del sistema. Tu panel tiene más opciones que el del cliente.</p>
+
+<h2>7.1 — Vista General</h2>
+
+<p>El menú lateral del administrador incluye:</p>
+
+<table>
+  <tr><th>Botón del Menú</th><th>¿Qué hace?</th></tr>
+  <tr><td>📊 DASHBOARD</td><td>Resumen general con estadísticas del sistema</td></tr>
+  <tr><td>👥 USUARIOS</td><td>Ver, aprobar, bloquear y gestionar todos los usuarios</td></tr>
+  <tr><td>📋 FORMULARIOS</td><td>Ver los formularios de TODOS los clientes</td></tr>
+  <tr><td>📁 DOCUMENTOS</td><td>Ver documentos subidos por los clientes</td></tr>
+  <tr><td>✍️ DOCS FIRMADOS</td><td>Ver documentos firmados de todos los usuarios</td></tr>
+  <tr><td>📄 PLANTILLAS</td><td>Gestionar plantillas PDF del sistema</td></tr>
+  <tr><td>📝 AUDITORÍA</td><td>Ver el registro de todas las acciones del sistema</td></tr>
+  <tr><td>⚙️ CONFIGURACIÓN</td><td>Ajustes generales del sistema</td></tr>
+  <tr><td>🌐 IDIOMA</td><td>Cambiar idioma</td></tr>
+  <tr><td>🚪 CERRAR SESIÓN</td><td>Salir del sistema</td></tr>
+</table>
+
+<!-- GESTION DE USUARIOS -->
+<h2>7.2 — Gestión de Usuarios</h2>
+
+<p>Esta es una de las funciones más importantes del administrador. Aquí controlas quién puede acceder al sistema.</p>
+
+<h3>Ver la lista de usuarios</h3>
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "USUARIOS" en el menú lateral</strong>
+  <p>Verás una tabla con todos los usuarios registrados. La tabla muestra:</p>
+  <ul style="margin-left: 32px;">
+    <li><strong>Nombre</strong> del usuario</li>
+    <li><strong>Correo electrónico</strong></li>
+    <li><strong>Cédula / Identificación</strong></li>
+    <li><strong>Código único</strong> (ej: SFAR-001)</li>
+    <li><strong>Estado</strong> (Pendiente, Autorizado, Bloqueado, Revocado)</li>
+    <li><strong>Rol</strong> (admin o cliente)</li>
+    <li><strong>Fecha de registro</strong></li>
+  </ul>
+</div>
+
+<h3>Aprobar un usuario nuevo</h3>
+<p>Cuando alguien se registra, su cuenta queda en estado <strong>"Pendiente"</strong>. Para aprobarla:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Busca al usuario en la lista</strong> (puedes filtrar por estado "Pendiente")
+</div>
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en el botón "Aprobar" (✓)</strong> junto al usuario
+</div>
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Confirma la acción</strong>
+  <p>El estado del usuario cambiará a <strong>"Autorizado"</strong> y podrá iniciar sesión.</p>
+</div>
+
+<h3>Bloquear un usuario</h3>
+<p>Si necesitas impedir que un usuario acceda al sistema:</p>
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Busca al usuario en la lista</strong>
+</div>
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en el botón "Bloquear" (🔒)</strong>
+</div>
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Confirma la acción</strong>
+  <p>El usuario ya no podrá iniciar sesión hasta que lo desbloquees.</p>
+</div>
+
+<h3>Desbloquear un usuario</h3>
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Busca al usuario bloqueado</strong> (filtra por estado "Bloqueado")
+</div>
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en "Desbloquear" (🔓)</strong>
+  <p>El usuario volverá al estado "Autorizado" y sus intentos de login se reiniciarán a 0.</p>
+</div>
+
+<h3>Resetear la contraseña de un usuario</h3>
+<p>Si un usuario olvidó su contraseña y no puede recuperarla por correo:</p>
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Busca al usuario</strong>
+</div>
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic en "Resetear contraseña" (🔑)</strong>
+</div>
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Se generará una contraseña temporal</strong>
+  <p>El sistema generará una contraseña temporal segura. Compártela con el usuario de forma segura. Cuando inicie sesión, el sistema le pedirá que cambie la contraseña.</p>
+</div>
+
+<div class="warning">
+  <strong>Cuidado:</strong> Nunca envíes contraseñas temporales por canales inseguros. Usa un medio de comunicación seguro o dásela en persona.
+</div>
+
+<!-- VER FORMULARIOS -->
+<div class="page-break"></div>
+<h2>7.3 — Ver Formularios de Clientes</h2>
+
+<p>El administrador puede ver todos los formularios que los clientes han llenado:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "FORMULARIOS" en el menú lateral</strong>
+  <p>Verás una lista con todos los formularios del sistema.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Puedes filtrar por:</strong>
+  <ul style="margin-left: 32px;">
+    <li>Tipo de formulario (Fondos, Corporación, etc.)</li>
+    <li>Nombre del usuario</li>
+    <li>Código único del trámite</li>
+  </ul>
+</div>
+
+<div class="step-box">
+  <span class="step-num">3</span> <strong>Haz clic en un formulario para ver su contenido</strong>
+  <p>Se abrirá un panel con todos los datos que el cliente ingresó.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">4</span> <strong>Descarga el PDF</strong>
+  <p>Puedes descargar el PDF generado del formulario haciendo clic en <strong>"Descargar PDF"</strong>.</p>
+</div>
+
+<!-- DOCUMENTOS -->
+<h2>7.4 — Gestión de Documentos</h2>
+
+<p>En la sección de documentos puedes ver todos los archivos que los clientes han subido:</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "DOCUMENTOS" o "DOCS FIRMADOS"</strong>
+  <p>Verás una tabla con los documentos organizados por usuario.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Para cada documento puedes:</strong>
+  <ul style="margin-left: 32px;">
+    <li><strong>Ver / Descargar</strong> — Abrir o descargar el documento</li>
+    <li><strong>Ver estado de firma</strong> — Para docs firmados, verás si la firma fue detectada</li>
+  </ul>
+</div>
+
+<!-- PLANTILLAS -->
+<h2>7.5 — Plantillas PDF</h2>
+
+<p>Las plantillas son los documentos PDF "en blanco" que el sistema usa para generar los PDFs de cada formulario.</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "PLANTILLAS"</strong>
+  <p>Verás las plantillas actuales del sistema.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Para subir o actualizar una plantilla:</strong>
+  <p>Selecciona el archivo PDF y haz clic en <strong>"Subir plantilla"</strong>. La plantilla anterior será reemplazada.</p>
+</div>
+
+<div class="warning">
+  <strong>Importante:</strong> Cambiar una plantilla afecta a TODOS los PDFs generados a partir de ese momento. Asegúrate de que la nueva plantilla tenga los mismos campos que la anterior.
+</div>
+
+<!-- AUDITORIA -->
+<h2>7.6 — Bitácora de Auditoría</h2>
+
+<p>La bitácora registra <strong>todas las acciones</strong> que ocurren en el sistema. Es como una "cámara de seguridad" digital.</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>Haz clic en "AUDITORÍA"</strong>
+  <p>Verás una tabla cronológica con:</p>
+  <ul style="margin-left: 32px;">
+    <li><strong>Fecha y hora</strong> de la acción</li>
+    <li><strong>Usuario</strong> que realizó la acción</li>
+    <li><strong>Acción</strong> (LOGIN, FORM_SUBMIT, USER_APPROVED, PROFILE_UPDATE, etc.)</li>
+    <li><strong>Descripción</strong> detallada de lo que ocurrió</li>
+  </ul>
+</div>
+
+<p>Acciones comunes que verás en la bitácora:</p>
+<table>
+  <tr><th>Acción</th><th>Significado</th></tr>
+  <tr><td>LOGIN</td><td>Un usuario inició sesión</td></tr>
+  <tr><td>LOGOUT</td><td>Un usuario cerró sesión</td></tr>
+  <tr><td>FORM_SUBMIT</td><td>Se guardó un formulario</td></tr>
+  <tr><td>USER_APPROVED</td><td>Un admin aprobó una cuenta</td></tr>
+  <tr><td>USER_BLOCKED</td><td>Un admin bloqueó una cuenta</td></tr>
+  <tr><td>PASSWORD_RESET</td><td>Se reseteó una contraseña</td></tr>
+  <tr><td>PROFILE_UPDATE</td><td>Un usuario actualizó su perfil</td></tr>
+  <tr><td>DOCUMENT_UPLOAD</td><td>Se subió un documento</td></tr>
+</table>
+
+<div class="tip">
+  <strong>Consejo:</strong> La bitácora es <strong>inmutable</strong> — nadie puede borrar o modificar estos registros. Esto garantiza la trazabilidad de todas las acciones.
+</div>
+
+<!-- ========================= 8. FORMULARIOS DETALLADOS ========================== -->
+<div class="page-break"></div>
+<h1 id="formularios">8. Guía de Formularios</h1>
+
+<p>El sistema maneja 5 tipos de formularios. Aquí explicamos cada uno con sus campos:</p>
+
+<!-- FONDOS -->
+<h2>8.1 — Declaración de Fondos (SFAR)</h2>
+
+<p><strong>¿Para qué sirve?</strong> Para declarar el origen de fondos y registrar información del beneficiario final de una cuenta de custodia.</p>
+
+<table>
+  <tr><th>Campo</th><th>¿Qué poner?</th><th>Ejemplo</th></tr>
+  <tr><td>Nombre del beneficiario</td><td>Nombre completo de la persona</td><td>Pedro González López</td></tr>
+  <tr><td>Fecha de nacimiento</td><td>Fecha en formato día/mes/año</td><td>15/03/1985</td></tr>
+  <tr><td>País</td><td>País de residencia</td><td>Panamá</td></tr>
+  <tr><td>Dirección</td><td>Dirección completa</td><td>Calle 50, Torre Global, Piso 12</td></tr>
+  <tr><td>Nombre de custodia</td><td>Entidad que custodia los fondos</td><td>Banco Nacional de Panamá</td></tr>
+  <tr><td>Cuenta de custodia</td><td>Número de cuenta</td><td>001-234567-89</td></tr>
+  <tr><td>Origen de fondos</td><td>De dónde proviene el dinero</td><td>Actividad comercial / Herencia</td></tr>
+</table>
+
+<!-- CORPORACION -->
+<h2>8.2 — Corporación (PTLC)</h2>
+
+<p><strong>¿Para qué sirve?</strong> Para registrar la incorporación de una sociedad o corporación.</p>
+
+<table>
+  <tr><th>Sección</th><th>Campos</th><th>Descripción</th></tr>
+  <tr><td>Nombres de la empresa</td><td>companyNames (hasta 3 opciones)</td><td>Nombres propuestos para la corporación, en orden de preferencia</td></tr>
+  <tr><td>Capital</td><td>capital</td><td>Capital autorizado de la empresa</td></tr>
+  <tr><td>Directores</td><td>directors[] (nombre, cédula, cargo)</td><td>Lista de directores con su información</td></tr>
+  <tr><td>Oficiales</td><td>officers[] (presidente, secretario, tesorero)</td><td>Cargos dentro de la empresa</td></tr>
+  <tr><td>Accionistas</td><td>shareholders[] (nombre, porcentaje)</td><td>Quiénes son los dueños y qué porcentaje tienen</td></tr>
+  <tr><td>Actividades</td><td>activities</td><td>Descripción de lo que hará la empresa</td></tr>
+  <tr><td>Agente residente</td><td>terminator</td><td>Agente registrado de la empresa</td></tr>
+</table>
+
+<!-- FUNDACIONES -->
+<h2>8.3 — Fundaciones (PTLF)</h2>
+
+<p><strong>¿Para qué sirve?</strong> Para registrar la creación de una fundación de interés privado.</p>
+
+<table>
+  <tr><th>Sección</th><th>Campos</th><th>Descripción</th></tr>
+  <tr><td>Nombre de la fundación</td><td>foundationName</td><td>Nombre propuesto</td></tr>
+  <tr><td>Propósito</td><td>purpose</td><td>Para qué se crea la fundación</td></tr>
+  <tr><td>Fundadores</td><td>founders[]</td><td>Quiénes crean la fundación</td></tr>
+  <tr><td>Consejo</td><td>boardMembers[]</td><td>Miembros del consejo de la fundación</td></tr>
+  <tr><td>Protector</td><td>protector</td><td>Persona designada como protector</td></tr>
+  <tr><td>Beneficiarios</td><td>beneficiaries[]</td><td>Personas beneficiarias de la fundación</td></tr>
+</table>
+
+<!-- CUMPLIMIENTO INDIVIDUAL -->
+<h2>8.4 — Cumplimiento Individual (KYCI)</h2>
+
+<p><strong>¿Para qué sirve?</strong> Formulario KYC (Know Your Customer) para personas naturales. Recopila información para cumplir con regulaciones anti-lavado de dinero.</p>
+
+<table>
+  <tr><th>Sección</th><th>¿Qué se pide?</th></tr>
+  <tr><td>Información personal</td><td>Nombre, cédula, fecha de nacimiento, dirección, teléfono</td></tr>
+  <tr><td>Empleo</td><td>Lugar de trabajo, cargo, ingresos mensuales</td></tr>
+  <tr><td>PEP</td><td>¿Es usted una Persona Expuesta Políticamente? (Sí/No + detalles)</td></tr>
+  <tr><td>Origen de fondos</td><td>De dónde provienen sus fondos o ingresos</td></tr>
+  <tr><td>Referencias bancarias</td><td>Banco, número de cuenta, años de relación</td></tr>
+  <tr><td>Declaraciones</td><td>Aceptación de términos y condiciones legales</td></tr>
+</table>
+
+<!-- CUMPLIMIENTO ENTIDADES -->
+<h2>8.5 — Cumplimiento Entidades (KYCE)</h2>
+
+<p><strong>¿Para qué sirve?</strong> Formulario KYC para empresas y personas jurídicas.</p>
+
+<table>
+  <tr><th>Sección</th><th>¿Qué se pide?</th></tr>
+  <tr><td>Información de la entidad</td><td>Nombre legal, RUC, país de constitución, dirección</td></tr>
+  <tr><td>Representante legal</td><td>Nombre, cédula, cargo del representante</td></tr>
+  <tr><td>Accionistas</td><td>Lista de accionistas con porcentaje de participación</td></tr>
+  <tr><td>Directores</td><td>Lista de directores de la empresa</td></tr>
+  <tr><td>Origen de fondos</td><td>Fuente de ingresos de la empresa</td></tr>
+</table>
+
+<!-- ========================= 9. SEGURIDAD ========================== -->
+<div class="page-break"></div>
+<h1 id="seguridad">9. Seguridad y Sesiones</h1>
+
+<p>NexusDoc DMS tiene varias medidas de seguridad para proteger tu información:</p>
+
+<h3>Sesión única</h3>
+<p>Solo puedes tener <strong>una sesión activa</strong> a la vez. Si inicias sesión en otro dispositivo, la sesión anterior se cierra automáticamente.</p>
+
+<h3>Tiempo de inactividad</h3>
+<p>Si dejas el sistema abierto sin hacer nada durante un periodo de tiempo, se cerrará tu sesión automáticamente por seguridad. Verás un mensaje avisándote antes de que ocurra.</p>
+
+<div class="tip">
+  <strong>Consejo:</strong> Si ves un aviso de inactividad, simplemente mueve el mouse o haz clic en cualquier parte para mantener tu sesión activa.
+</div>
+
+<h3>Bloqueo por intentos fallidos</h3>
+<p>Si escribes la contraseña incorrecta varias veces, tu cuenta se bloqueará. Esto evita que alguien intente adivinar tu contraseña.</p>
+
+<h3>Contraseña segura</h3>
+<p>Recomendaciones para tu contraseña:</p>
+<ul>
+  <li>Mínimo 8 caracteres</li>
+  <li>Incluir al menos una letra mayúscula</li>
+  <li>Incluir al menos un número</li>
+  <li>Incluir al menos un símbolo especial (@, #, !, etc.)</li>
+  <li>NO usar tu nombre, correo o datos personales como contraseña</li>
+</ul>
+
+<h3>Bitácora de auditoría</h3>
+<p>Toda acción que realizas en el sistema queda registrada. Esto incluye inicio de sesión, envío de formularios, subida de documentos, etc. Estos registros no se pueden borrar.</p>
+
+<!-- ========================= 10. IDIOMA ========================== -->
+<h1 id="idioma">10. Cambio de Idioma</h1>
+
+<p>El sistema está disponible en <strong>Español</strong> e <strong>Inglés</strong>.</p>
+
+<div class="step-box">
+  <span class="step-num">1</span> <strong>En el menú lateral, busca la opción de idioma (🌐)</strong>
+</div>
+
+<div class="step-box">
+  <span class="step-num">2</span> <strong>Haz clic para alternar entre:</strong>
+  <ul style="margin-left: 32px;">
+    <li><strong>ES</strong> — Español</li>
+    <li><strong>EN</strong> — English</li>
+  </ul>
+  <p>El cambio se aplica inmediatamente a todo el sistema.</p>
+</div>
+
+<!-- ========================= 11. FAQ ========================== -->
+<div class="page-break"></div>
+<h1 id="faq">11. Preguntas Frecuentes</h1>
+
+<h3>¿Puedo acceder desde mi celular?</h3>
+<p>Sí. El sistema funciona en cualquier navegador moderno, incluyendo celulares y tablets. Sin embargo, para llenar formularios largos, recomendamos usar una computadora.</p>
+
+<h3>¿Mis datos están seguros?</h3>
+<p>Sí. El sistema usa encriptación para proteger tus datos, conexiones seguras (HTTPS), y todas las contraseñas se almacenan de forma encriptada. Además, toda acción queda en la bitácora de auditoría.</p>
+
+<h3>¿Puedo editar un formulario que ya envié?</h3>
+<p>Sí. Puedes volver a abrir el formulario, hacer cambios y guardarlo nuevamente. El sistema actualizará los datos.</p>
+
+<h3>¿Qué hago si mi cuenta está bloqueada?</h3>
+<p>Contacta al administrador del sistema. Él podrá desbloquear tu cuenta y resetear tus intentos de login.</p>
+
+<h3>¿Puedo tener dos sesiones abiertas al mismo tiempo?</h3>
+<p>No. El sistema solo permite una sesión activa por usuario. Si inicias sesión en otro lugar, la sesión anterior se cerrará.</p>
+
+<h3>¿Qué pasa si el código de verificación no llega a mi correo?</h3>
+<p>Revisa tu carpeta de spam/correo no deseado. Si aún no llega, espera unos minutos y solicita un nuevo código. Si el problema persiste, contacta al administrador.</p>
+
+<h3>¿Qué formatos de archivo puedo subir?</h3>
+<p>Se aceptan archivos <strong>PDF</strong> e <strong>imágenes</strong> (JPG, PNG). El tamaño máximo recomendado es 2 MB por archivo.</p>
+
+<h3>¿Cómo sé si el administrador ya aprobó mi cuenta?</h3>
+<p>Intenta iniciar sesión. Si tu cuenta fue aprobada, podrás acceder normalmente. Si aún está pendiente, verás un mensaje indicándolo.</p>
+
+<h3>¿Puedo eliminar un documento que subí?</h3>
+<p>No directamente. Contacta al administrador si necesitas que se elimine un documento.</p>
+
+<h3>¿Qué es el "Código Único" que aparece en mi perfil?</h3>
+<p>Es un identificador que el sistema te asigna automáticamente (ej: SFAR-001, PTLC-003). Se usa para identificar tus trámites de forma rápida.</p>
+
+<!-- ========================= 12. GLOSARIO ========================== -->
+<h1 id="glosario">12. Glosario de Términos</h1>
+
+<table>
+  <tr><th>Término</th><th>Significado</th></tr>
+  <tr><td>Dashboard</td><td>Panel principal. Es la pantalla que ves cuando inicias sesión.</td></tr>
+  <tr><td>PDF</td><td>Formato de documento portátil. Es el tipo de archivo que se genera con tus datos.</td></tr>
+  <tr><td>KYC</td><td>Know Your Customer (Conoce a Tu Cliente). Proceso regulatorio de identificación.</td></tr>
+  <tr><td>PEP</td><td>Persona Expuesta Políticamente. Persona con cargo público o relación cercana.</td></tr>
+  <tr><td>JSONB</td><td>Formato interno en que se guardan los datos. No necesitas preocuparte por esto.</td></tr>
+  <tr><td>Sesión</td><td>Tu conexión activa con el sistema desde que inicias sesión hasta que la cierras.</td></tr>
+  <tr><td>Token</td><td>Código interno que el sistema usa para mantener tu sesión activa. Es invisible.</td></tr>
+  <tr><td>Auditoría</td><td>Registro de todas las acciones realizadas en el sistema.</td></tr>
+  <tr><td>Plantilla</td><td>Documento PDF base que el sistema llena con tus datos para generar tu PDF final.</td></tr>
+  <tr><td>Hash</td><td>Forma segura de guardar contraseñas. Ni siquiera el administrador puede ver tu contraseña real.</td></tr>
+  <tr><td>Onboarding</td><td>Proceso de registro inicial como nuevo usuario.</td></tr>
+  <tr><td>SFAR</td><td>Código del formulario de Declaración de Fondos.</td></tr>
+  <tr><td>PTLC</td><td>Código del formulario de Corporación.</td></tr>
+  <tr><td>PTLF</td><td>Código del formulario de Fundaciones.</td></tr>
+  <tr><td>KYCI</td><td>Código del formulario de Cumplimiento Individual.</td></tr>
+  <tr><td>KYCE</td><td>Código del formulario de Cumplimiento de Entidades.</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<div class="footer">
+  <strong>NexusDoc DMS</strong> — Manual Completo de Usuario v1.0<br>
+  Generado el 25/05/2026 — Documento confidencial — Solo para uso interno<br>
+  Para soporte técnico, contacte al administrador del sistema
+</div>
+
+</body>
+</html>

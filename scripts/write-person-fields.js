@@ -1,4 +1,9 @@
-import React from 'react';
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+
+const fields = `import React from 'react';
 
 export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Soltero', en: 'Single', es: 'Soltero(a)' },
@@ -7,39 +12,25 @@ export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Viudo', en: 'Widowed', es: 'Viudo(a)' },
 ];
 
-const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDropdown, onSearch, onSelect, dropdownRef }) => {
-  const L = (key) => (t?.(`fundacion.person.${key}`) ?? key);
+const FundacionPersonFields = ({ person, onChange, lang, t }) => {
+  const L = (key) => (t?.(\`fundacion.person.\${key}\`) ?? key);
   const set = (field, value) => onChange(field, value);
   const selectPlaceholder =
     t?.('fundacion.poa.selectPlaceholder') || (lang === 'en' ? 'Select...' : 'Seleccione...');
 
-  const handleFieldChange = (field, value) => {
-    set(field, value);
-    if (onSearch && (field === 'fullName' || field === 'passport')) {
-      onSearch(value);
-    }
-  };
-
-  const renderDropdown = () => {
-    if (!showDropdown || !suggestions || suggestions.length === 0) return null;
-    return (
-      <div className="fund-autocomplete-dropdown">
-        {suggestions.map((p, j) => (
-          <div key={j} className="fund-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); onSelect(p); }}>
-            <span className="fund-ac-name">{p.fullName || ''}</span>
-            <span className="fund-ac-detail">{p.passport || ''}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className="expert-grid person-fields-grid" ref={dropdownRef}>
-      <div className="expert-field full-width" style={{ position: 'relative' }}>
-        <label>{L('fullName')}</label>
-        <input className="expert-input" value={person.fullName || ''} onChange={(e) => handleFieldChange('fullName', e.target.value)} autoComplete="off" placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
-        {renderDropdown()}
+    <div className="expert-grid person-fields-grid">
+      <div className="expert-field">
+        <label>{L('firstName')}</label>
+        <input className="expert-input" value={person.firstName || ''} onChange={(e) => set('firstName', e.target.value)} autoComplete="off" />
+      </div>
+      <div className="expert-field">
+        <label>{L('secondName')}</label>
+        <input className="expert-input" value={person.secondName || ''} onChange={(e) => set('secondName', e.target.value)} autoComplete="off" />
+      </div>
+      <div className="expert-field">
+        <label>{L('lastName')}</label>
+        <input className="expert-input" value={person.lastName || ''} onChange={(e) => set('lastName', e.target.value)} autoComplete="off" />
       </div>
       <div className="expert-field">
         <label>{L('birthDate')}</label>
@@ -58,10 +49,9 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
         <label>{L('nationality')}</label>
         <input className="expert-input" value={person.nationality || ''} onChange={(e) => set('nationality', e.target.value)} />
       </div>
-      <div className="expert-field" style={{ position: 'relative' }}>
+      <div className="expert-field">
         <label>{L('passport')}</label>
-        <input className="expert-input" value={person.passport || ''} onChange={(e) => handleFieldChange('passport', e.target.value)} autoComplete="off" />
-        {!showDropdown && null}
+        <input className="expert-input" value={person.passport || ''} onChange={(e) => set('passport', e.target.value)} />
       </div>
       <div className="expert-field">
         <label>{L('idCard')}</label>
@@ -92,3 +82,15 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
 };
 
 export default FundacionPersonFields;
+`;
+
+fs.writeFileSync(path.join(root, 'client/src/components/FundacionPersonFields.jsx'), fields);
+
+let fondos = fs.readFileSync(path.join(root, 'client/src/pages/FondosForm.jsx'), 'utf8');
+fondos = fondos.replace(/\s*list="form-names-suggestions"/g, '');
+fondos = fondos.replace(
+  /\r?\n\s*\{\/\* DATALIST PARA AUTOCOMPLETADO INTERNO DEL SISTEMA \*\/\}\r?\n\s*<datalist id="form-names-suggestions">[\s\S]*?<\/datalist>\r?\n/,
+  '\n'
+);
+fs.writeFileSync(path.join(root, 'client/src/pages/FondosForm.jsx'), fondos);
+console.log('ok', !fondos.includes('form-names-suggestions'));

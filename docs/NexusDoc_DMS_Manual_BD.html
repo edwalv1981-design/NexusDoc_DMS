@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>NexusDoc DMS — Manual de Base de Datos y Consultas SQL</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.5; padding: 30px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; color: #0f766e; border-bottom: 3px solid #0f766e; padding-bottom: 8px; margin-bottom: 20px; }
+  h2 { font-size: 17px; color: #134e4a; margin: 30px 0 10px; border-left: 4px solid #0f766e; padding-left: 10px; }
+  h3 { font-size: 14px; color: #0f766e; margin: 20px 0 8px; }
+  p, li { font-size: 12px; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 20px; font-size: 11px; }
+  th { background: #134e4a; color: white; padding: 6px 8px; text-align: left; font-weight: 600; }
+  td { padding: 5px 8px; border: 1px solid #e2e8f0; }
+  tr:nth-child(even) { background: #f8fafc; }
+  .relation { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 12px; }
+  .relation code { background: #d1fae5; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
+  pre { background: #1e293b; color: #e2e8f0; padding: 14px; border-radius: 6px; font-size: 11.5px; overflow-x: auto; margin: 8px 0 18px; line-height: 1.6; font-family: 'Cascadia Code', 'Consolas', monospace; }
+  .keyword { color: #7dd3fc; font-weight: 600; }
+  .comment { color: #94a3b8; font-style: italic; }
+  .string { color: #86efac; }
+  .header-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .header-meta span { font-size: 11px; color: #64748b; }
+  .badge { display: inline-block; background: #0f766e; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .page-break { page-break-before: always; }
+  .tip { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 8px 12px; font-size: 11px; margin: 10px 0; border-radius: 0 4px 4px 0; }
+  .flow-table td:first-child { font-weight: 700; color: #0f766e; text-align: center; width: 40px; }
+  .section-num { display: inline-block; background: #0f766e; color: white; width: 22px; height: 22px; text-align: center; line-height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header-meta">
+  <span>NexusDoc DMS — Documento Interno</span>
+  <span>Fecha: 25/05/2026</span>
+</div>
+
+<h1>Manual de Base de Datos y Consultas SQL</h1>
+<p>Este documento describe la estructura completa de la base de datos de NexusDoc DMS, las relaciones entre tablas, y ejemplos prácticos de consultas SQL para administración y soporte.</p>
+
+<!-- ============================================================ -->
+<h2><span class="section-num">1</span> Resumen del Esquema</h2>
+
+<table>
+  <tr><th>Tabla</th><th>Descripción</th><th>Registros clave</th></tr>
+  <tr><td>Users</td><td>Usuarios del sistema (admin y clientes)</td><td>email, role, status, uniqueCode</td></tr>
+  <tr><td>FormData</td><td>Datos de TODOS los formularios (JSONB)</td><td>userId, formType, data, userUniqueCode</td></tr>
+  <tr><td>DocumentTemplates</td><td>Plantillas PDF para llenado automático</td><td>name, fileData (BYTEA)</td></tr>
+  <tr><td>TemplateFieldSchemas</td><td>Mapeo de campos PDF ↔ formulario</td><td>templateName, acroFields, fieldMapping</td></tr>
+  <tr><td>UserDocuments</td><td>Documentos personales subidos</td><td>userId, filename, fileData</td></tr>
+  <tr><td>SignedDocuments</td><td>Formularios firmados subidos</td><td>userId, filename, signatureStatus</td></tr>
+  <tr><td>AuditLogs</td><td>Bitácora inmutable de acciones</td><td>action, userId, description</td></tr>
+  <tr><td>PendingRegistrations</td><td>Registros temporales (pre-verificación)</td><td>email, code, codeExpiresAt</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2><span class="section-num">2</span> Relaciones entre Tablas</h2>
+
+<div class="relation">
+  <strong>Users</strong> es la tabla central. Todas las relaciones son 1:N (un usuario tiene muchos registros):<br><br>
+  <code>Users</code> → <code>FormData</code> (userId) — Formularios del usuario<br>
+  <code>Users</code> → <code>UserDocuments</code> (userId) — Documentos personales<br>
+  <code>Users</code> → <code>SignedDocuments</code> (userId) — Documentos firmados<br>
+  <code>Users</code> → <code>AuditLogs</code> (userId) — Registro de actividad<br><br>
+  <strong>Tablas independientes:</strong> DocumentTemplates, TemplateFieldSchemas, PendingRegistrations
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="section-num">3</span> Detalle de Tablas</h2>
+
+<h3>3.1 — Users</h3>
+<table>
+  <tr><th>Columna</th><th>Tipo</th><th>Restricción</th><th>Descripción</th></tr>
+  <tr><td>id</td><td>UUID</td><td>PK, Auto</td><td>Identificador único</td></tr>
+  <tr><td>name</td><td>STRING</td><td>NOT NULL</td><td>Nombre completo</td></tr>
+  <tr><td>email</td><td>STRING</td><td>UNIQUE, NOT NULL</td><td>Correo electrónico</td></tr>
+  <tr><td>password</td><td>STRING</td><td>NOT NULL</td><td>Hash bcrypt (10 rounds)</td></tr>
+  <tr><td>role</td><td>ENUM</td><td>admin | client</td><td>Rol del usuario</td></tr>
+  <tr><td>status</td><td>ENUM</td><td>pending | authorized | revoked | blocked</td><td>Estado de la cuenta</td></tr>
+  <tr><td>nationality</td><td>STRING</td><td>Opcional</td><td>Nacionalidad</td></tr>
+  <tr><td>idNumber</td><td>STRING</td><td>UNIQUE</td><td>Cédula / pasaporte</td></tr>
+  <tr><td>uniqueCode</td><td>STRING</td><td>UNIQUE</td><td>Código del usuario (ej: SFAR-001)</td></tr>
+  <tr><td>initialForm</td><td>STRING</td><td>Opcional</td><td>Formulario inicial seleccionado</td></tr>
+  <tr><td>loginAttempts</td><td>INTEGER</td><td>Default: 0</td><td>Intentos fallidos de login</td></tr>
+  <tr><td>activeToken</td><td>TEXT</td><td>Opcional</td><td>JWT de sesión activa</td></tr>
+  <tr><td>mustChangePassword</td><td>BOOLEAN</td><td>Default: false</td><td>Fuerza cambio de contraseña</td></tr>
+  <tr><td>language</td><td>VARCHAR(2)</td><td>Default: es</td><td>Idioma preferido</td></tr>
+</table>
+
+<h3>3.2 — FormData</h3>
+<table>
+  <tr><th>Columna</th><th>Tipo</th><th>Restricción</th><th>Descripción</th></tr>
+  <tr><td>id</td><td>UUID</td><td>PK, Auto</td><td>Identificador único</td></tr>
+  <tr><td>userId</td><td>UUID</td><td>FK → Users</td><td>Usuario que llenó el formulario</td></tr>
+  <tr><td>formType</td><td>STRING</td><td>NOT NULL</td><td>Tipo de formulario</td></tr>
+  <tr><td>userUniqueCode</td><td>STRING</td><td>Opcional</td><td>Código único del trámite</td></tr>
+  <tr><td>data</td><td>JSONB</td><td>NOT NULL</td><td>Datos del formulario (estructura variable)</td></tr>
+  <tr><td>createdAt</td><td>TIMESTAMP</td><td>Auto</td><td>Fecha de creación</td></tr>
+  <tr><td>updatedAt</td><td>TIMESTAMP</td><td>Auto</td><td>Última modificación</td></tr>
+</table>
+
+<h3>3.3 — Tipos de Formulario (formType)</h3>
+<table>
+  <tr><th>formType (valor en BD)</th><th>Código</th><th>Motor PDF</th><th>Campos principales en data (JSONB)</th></tr>
+  <tr><td>Fondos Registros contables</td><td>SFAR</td><td>Python (fill_pdf_expert.py)</td><td>beneficiaryName, birthDate, country, address, custodyName, custodyAccount, fundsOrigin</td></tr>
+  <tr><td>Corporación</td><td>PTLC</td><td>HTML → Puppeteer</td><td>companyNames[], terminator, capital, directors[], officers[], shareholders[], activities</td></tr>
+  <tr><td>Fundaciones</td><td>PTLF</td><td>HTML → Puppeteer</td><td>foundationName, purpose, founders[], boardMembers[], protector, beneficiaries[]</td></tr>
+  <tr><td>Cumplimiento Individual</td><td>KYCI</td><td>HTML → Puppeteer</td><td>personalInfo, employment, pep, fundsSource, bankReferences, declarations</td></tr>
+  <tr><td>Cumplimiento Entidades</td><td>KYCE</td><td>HTML → Puppeteer</td><td>entityInfo, legalRepresentative, shareholders[], directors[], fundsSource</td></tr>
+</table>
+
+<h3>3.4 — DocumentTemplates</h3>
+<table>
+  <tr><th>Columna</th><th>Tipo</th><th>Restricción</th><th>Descripción</th></tr>
+  <tr><td>id</td><td>UUID</td><td>PK</td><td>Identificador único</td></tr>
+  <tr><td>name</td><td>STRING</td><td>UNIQUE, NOT NULL</td><td>Nombre (ej: fondos, corporacion)</td></tr>
+  <tr><td>fileData</td><td>BYTEA</td><td>NOT NULL</td><td>Archivo PDF binario</td></tr>
+  <tr><td>uploadedBy</td><td>UUID</td><td>NOT NULL</td><td>Admin que lo subió</td></tr>
+</table>
+
+<h3>3.5 — UserDocuments / SignedDocuments</h3>
+<table>
+  <tr><th>Columna</th><th>Aplica a</th><th>Tipo</th><th>Descripción</th></tr>
+  <tr><td>id</td><td>Ambos</td><td>UUID (PK)</td><td>Identificador único</td></tr>
+  <tr><td>userId</td><td>Ambos</td><td>UUID (FK)</td><td>Usuario propietario</td></tr>
+  <tr><td>filename</td><td>Ambos</td><td>STRING</td><td>Nombre del archivo</td></tr>
+  <tr><td>fileData</td><td>Ambos</td><td>BYTEA</td><td>Archivo binario</td></tr>
+  <tr><td>signatureStatus</td><td>Solo SignedDocuments</td><td>STRING</td><td>Firma Pendiente | Firma Detectada</td></tr>
+</table>
+
+<h3>3.6 — AuditLogs</h3>
+<table>
+  <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+  <tr><td>action</td><td>STRING</td><td>LOGIN, PROFILE_UPDATE, FORM_SUBMIT, USER_APPROVED, etc.</td></tr>
+  <tr><td>description</td><td>TEXT</td><td>Detalle de la acción</td></tr>
+  <tr><td>userId</td><td>UUID (FK)</td><td>Usuario que realizó la acción</td></tr>
+  <tr><td>createdAt</td><td>TIMESTAMP</td><td>Fecha/hora inmutable</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<div class="page-break"></div>
+<h2><span class="section-num">4</span> Flujo de Datos</h2>
+
+<table class="flow-table">
+  <tr><th>#</th><th>Acción</th><th>Tablas involucradas</th></tr>
+  <tr><td>1</td><td>Usuario se registra (onboarding)</td><td>PendingRegistrations → Users</td></tr>
+  <tr><td>2</td><td>Admin aprueba cuenta</td><td>Users (pending → authorized) + AuditLogs</td></tr>
+  <tr><td>3</td><td>Usuario llena un formulario</td><td>FormData (data JSONB)</td></tr>
+  <tr><td>4</td><td>Usuario descarga PDF</td><td>FormData + DocumentTemplates + TemplateFieldSchemas</td></tr>
+  <tr><td>5</td><td>Usuario sube documento firmado</td><td>SignedDocuments</td></tr>
+  <tr><td>6</td><td>Usuario sube documento personal</td><td>UserDocuments</td></tr>
+  <tr><td>7</td><td>Admin consulta trámites</td><td>FormData + Users (JOIN)</td></tr>
+  <tr><td>8</td><td>Toda acción se registra</td><td>AuditLogs</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2><span class="section-num">5</span> Consultas SQL — Ejemplos Prácticos</h2>
+
+<div class="tip">
+  <strong>Nota:</strong> Estas consultas se ejecutan desde el <strong>SQL Editor de Supabase</strong> 
+  (Dashboard → SQL Editor). Los nombres de tabla usan comillas dobles porque Sequelize los crea en PascalCase.
+</div>
+
+<!-- ----- USUARIOS ----- -->
+<h3>5.1 — Consultas de Usuarios</h3>
+
+<p><strong>Listar todos los usuarios con su estado:</strong></p>
+<pre><span class="keyword">SELECT</span> "id", "name", "email", "role", "status", "idNumber",
+       "uniqueCode", "nationality", "createdAt"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">ORDER BY</span> "createdAt" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Buscar usuario por cédula / identificación:</strong></p>
+<pre><span class="keyword">SELECT</span> "id", "name", "email", "role", "status", "idNumber", "uniqueCode"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "idNumber" = <span class="string">'8-888-1234'</span>;</pre>
+
+<p><strong>Buscar usuario por nombre (parcial, sin importar mayúsculas):</strong></p>
+<pre><span class="keyword">SELECT</span> "id", "name", "email", "status", "idNumber"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "name" <span class="keyword">ILIKE</span> <span class="string">'%pedro%'</span>;</pre>
+
+<p><strong>Buscar usuario por correo electrónico:</strong></p>
+<pre><span class="keyword">SELECT</span> *
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "email" <span class="keyword">ILIKE</span> <span class="string">'%ejemplo@empresa%'</span>;</pre>
+
+<p><strong>Ver usuarios bloqueados:</strong></p>
+<pre><span class="keyword">SELECT</span> "name", "email", "idNumber", "loginAttempts", "updatedAt"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "status" = <span class="string">'blocked'</span>;</pre>
+
+<p><strong>Ver usuarios pendientes de aprobación:</strong></p>
+<pre><span class="keyword">SELECT</span> "name", "email", "nationality", "initialForm", "createdAt"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "status" = <span class="string">'pending'</span>
+<span class="keyword">ORDER BY</span> "createdAt" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Contar usuarios por rol y estado:</strong></p>
+<pre><span class="keyword">SELECT</span> "role", "status", <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> total
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">GROUP BY</span> "role", "status"
+<span class="keyword">ORDER BY</span> "role", "status";</pre>
+
+<!-- ----- FORMULARIOS ----- -->
+<h3>5.2 — Consultas de Formularios</h3>
+
+<p><strong>Todos los formularios con nombre del usuario:</strong></p>
+<pre><span class="keyword">SELECT</span> f."id", f."formType", f."userUniqueCode",
+       u."name" <span class="keyword">AS</span> usuario, u."email", u."idNumber",
+       f."createdAt"
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">ORDER BY</span> f."createdAt" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Formularios de un usuario por cédula:</strong></p>
+<pre><span class="keyword">SELECT</span> f."formType", f."userUniqueCode", f."createdAt",
+       f."data"->><span class="string">'beneficiaryName'</span> <span class="keyword">AS</span> beneficiario
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">WHERE</span> u."idNumber" = <span class="string">'8-888-1234'</span>
+<span class="keyword">ORDER BY</span> f."createdAt" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Formularios por nombre de usuario:</strong></p>
+<pre><span class="keyword">SELECT</span> f."formType", f."userUniqueCode", f."createdAt",
+       u."name", u."email"
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">WHERE</span> u."name" <span class="keyword">ILIKE</span> <span class="string">'%juan carlos%'</span>;</pre>
+
+<p><strong>Formularios por tipo (ej: solo Corporaciones):</strong></p>
+<pre><span class="keyword">SELECT</span> f."userUniqueCode", u."name", u."idNumber",
+       f."data"->><span class="string">'companyNames'</span> <span class="keyword">AS</span> empresas,
+       f."createdAt"
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">WHERE</span> f."formType" <span class="keyword">ILIKE</span> <span class="string">'%corporaci%'</span>
+<span class="keyword">ORDER BY</span> f."createdAt" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Buscar formulario por nombre de empresa (dentro del JSONB):</strong></p>
+<pre><span class="comment">-- Busca en el campo JSONB data donde companyNames contenga "Panama Global"</span>
+<span class="keyword">SELECT</span> f."userUniqueCode", u."name", u."email",
+       f."data"->><span class="string">'companyNames'</span> <span class="keyword">AS</span> empresas,
+       f."createdAt"
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">WHERE</span> f."data"::text <span class="keyword">ILIKE</span> <span class="string">'%panama global%'</span>;</pre>
+
+<p><strong>Buscar beneficiario en formularios de Fondos:</strong></p>
+<pre><span class="keyword">SELECT</span> f."userUniqueCode", u."name",
+       f."data"->><span class="string">'beneficiaryName'</span> <span class="keyword">AS</span> beneficiario,
+       f."data"->><span class="string">'country'</span> <span class="keyword">AS</span> pais,
+       f."data"->><span class="string">'address'</span> <span class="keyword">AS</span> direccion
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">WHERE</span> f."formType" <span class="keyword">ILIKE</span> <span class="string">'%fondos%'</span>
+  <span class="keyword">AND</span> f."data"->><span class="string">'beneficiaryName'</span> <span class="keyword">ILIKE</span> <span class="string">'%pedro%'</span>;</pre>
+
+<p><strong>Contar formularios por tipo:</strong></p>
+<pre><span class="keyword">SELECT</span> "formType", <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> total
+<span class="keyword">FROM</span> "FormData"
+<span class="keyword">GROUP BY</span> "formType"
+<span class="keyword">ORDER BY</span> total <span class="keyword">DESC</span>;</pre>
+
+<!-- ----- PERMISOS Y SEGURIDAD ----- -->
+<div class="page-break"></div>
+<h3>5.3 — Consultas de Permisos y Seguridad</h3>
+
+<p><strong>Ver administradores del sistema:</strong></p>
+<pre><span class="keyword">SELECT</span> "name", "email", "status", "createdAt"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "role" = <span class="string">'admin'</span>;</pre>
+
+<p><strong>Usuarios con sesión activa (conectados):</strong></p>
+<pre><span class="keyword">SELECT</span> "name", "email", "role"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "activeToken" <span class="keyword">IS NOT NULL</span>;</pre>
+
+<p><strong>Últimos intentos de login fallidos:</strong></p>
+<pre><span class="keyword">SELECT</span> "name", "email", "loginAttempts", "status", "updatedAt"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "loginAttempts" > 0
+<span class="keyword">ORDER BY</span> "loginAttempts" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Bitácora de auditoría por usuario:</strong></p>
+<pre><span class="keyword">SELECT</span> a."action", a."description", a."createdAt",
+       u."name", u."email"
+<span class="keyword">FROM</span> "AuditLogs" a
+<span class="keyword">LEFT JOIN</span> "Users" u <span class="keyword">ON</span> a."userId" = u."id"
+<span class="keyword">ORDER BY</span> a."createdAt" <span class="keyword">DESC</span>
+<span class="keyword">LIMIT</span> 50;</pre>
+
+<p><strong>Acciones de un usuario específico:</strong></p>
+<pre><span class="keyword">SELECT</span> a."action", a."description", a."createdAt"
+<span class="keyword">FROM</span> "AuditLogs" a
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> a."userId" = u."id"
+<span class="keyword">WHERE</span> u."email" <span class="keyword">ILIKE</span> <span class="string">'%ejemplo@empresa%'</span>
+<span class="keyword">ORDER BY</span> a."createdAt" <span class="keyword">DESC</span>;</pre>
+
+<!-- ----- DOCUMENTOS ----- -->
+<h3>5.4 — Consultas de Documentos</h3>
+
+<p><strong>Documentos firmados por usuario:</strong></p>
+<pre><span class="keyword">SELECT</span> s."filename", s."signatureStatus", s."createdAt",
+       u."name", u."email"
+<span class="keyword">FROM</span> "SignedDocuments" s
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> s."userId" = u."id"
+<span class="keyword">ORDER BY</span> s."createdAt" <span class="keyword">DESC</span>;</pre>
+
+<p><strong>Documentos con firma pendiente:</strong></p>
+<pre><span class="keyword">SELECT</span> s."filename", u."name", u."email", s."createdAt"
+<span class="keyword">FROM</span> "SignedDocuments" s
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> s."userId" = u."id"
+<span class="keyword">WHERE</span> s."signatureStatus" = <span class="string">'Firma Pendiente'</span>;</pre>
+
+<p><strong>Documentos personales de un usuario por cédula:</strong></p>
+<pre><span class="keyword">SELECT</span> d."filename", d."createdAt"
+<span class="keyword">FROM</span> "UserDocuments" d
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> d."userId" = u."id"
+<span class="keyword">WHERE</span> u."idNumber" = <span class="string">'8-888-1234'</span>;</pre>
+
+<!-- ----- RESUMEN COMPLETO ----- -->
+<h3>5.5 — Consulta Maestra: Resumen completo de un usuario</h3>
+
+<pre><span class="comment">-- Reemplazar 'ejemplo@empresa.com' por el correo del usuario</span>
+
+<span class="comment">-- 1. Datos del usuario</span>
+<span class="keyword">SELECT</span> "name", "email", "role", "status", "idNumber",
+       "uniqueCode", "nationality", "createdAt"
+<span class="keyword">FROM</span> "Users"
+<span class="keyword">WHERE</span> "email" <span class="keyword">ILIKE</span> <span class="string">'ejemplo@empresa.com'</span>;
+
+<span class="comment">-- 2. Sus formularios</span>
+<span class="keyword">SELECT</span> f."formType", f."userUniqueCode", f."createdAt"
+<span class="keyword">FROM</span> "FormData" f
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> f."userId" = u."id"
+<span class="keyword">WHERE</span> u."email" <span class="keyword">ILIKE</span> <span class="string">'ejemplo@empresa.com'</span>;
+
+<span class="comment">-- 3. Sus documentos firmados</span>
+<span class="keyword">SELECT</span> s."filename", s."signatureStatus", s."createdAt"
+<span class="keyword">FROM</span> "SignedDocuments" s
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> s."userId" = u."id"
+<span class="keyword">WHERE</span> u."email" <span class="keyword">ILIKE</span> <span class="string">'ejemplo@empresa.com'</span>;
+
+<span class="comment">-- 4. Su actividad en bitácora</span>
+<span class="keyword">SELECT</span> a."action", a."description", a."createdAt"
+<span class="keyword">FROM</span> "AuditLogs" a
+<span class="keyword">JOIN</span> "Users" u <span class="keyword">ON</span> a."userId" = u."id"
+<span class="keyword">WHERE</span> u."email" <span class="keyword">ILIKE</span> <span class="string">'ejemplo@empresa.com'</span>
+<span class="keyword">ORDER BY</span> a."createdAt" <span class="keyword">DESC</span> <span class="keyword">LIMIT</span> 20;</pre>
+
+<!-- ----- OPERACIONES ADMIN ----- -->
+<h3>5.6 — Operaciones Administrativas (usar con precaución)</h3>
+
+<div class="tip">
+  <strong>Precaución:</strong> Estas consultas modifican datos. Ejecutar solo en el SQL Editor de Supabase con confirmación.
+</div>
+
+<p><strong>Desbloquear un usuario:</strong></p>
+<pre><span class="keyword">UPDATE</span> "Users"
+<span class="keyword">SET</span> "status" = <span class="string">'authorized'</span>, "loginAttempts" = 0
+<span class="keyword">WHERE</span> "email" <span class="keyword">ILIKE</span> <span class="string">'usuario@empresa.com'</span>;</pre>
+
+<p><strong>Cambiar rol de un usuario a admin:</strong></p>
+<pre><span class="keyword">UPDATE</span> "Users"
+<span class="keyword">SET</span> "role" = <span class="string">'admin'</span>
+<span class="keyword">WHERE</span> "email" <span class="keyword">ILIKE</span> <span class="string">'usuario@empresa.com'</span>;</pre>
+
+<p><strong>Cerrar todas las sesiones (logout global):</strong></p>
+<pre><span class="keyword">UPDATE</span> "Users"
+<span class="keyword">SET</span> "activeToken" = <span class="keyword">NULL</span>;</pre>
+
+<br>
+<p style="text-align: center; font-size: 10px; color: #94a3b8; margin-top: 30px;">
+  NexusDoc DMS — Manual de Base de Datos v1.0 — Generado el 25/05/2026<br>
+  Documento confidencial — Solo para uso interno del equipo de administración
+</p>
+
+</body>
+</html>

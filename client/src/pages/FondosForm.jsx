@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     ChevronLeft, ChevronRight, Check, Save, 
@@ -15,6 +15,68 @@ const FondosForm = () => {
     const editId = queryParams.get('id');
 
     const PRIMARY_COLOR = '#0f766e';
+
+    const [beneficiarySuggestions, setBeneficiarySuggestions] = useState([]);
+    const [beneficiaryLoading, setBeneficiaryLoading] = useState(false);
+    const [showBeneficiaryDropdown, setShowBeneficiaryDropdown] = useState(false);
+    const beneficiaryRef = useRef(null);
+    const beneficiaryTimerRef = useRef(null);
+
+    const searchBeneficiaries = useCallback(async (query) => {
+        if (!query || query.length < 2) {
+            setBeneficiarySuggestions([]);
+            setShowBeneficiaryDropdown(false);
+            return;
+        }
+        setBeneficiaryLoading(true);
+        setShowBeneficiaryDropdown(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(
+                `${API_BASE_URL}/api/forms/beneficiaries/search?q=${encodeURIComponent(query)}`,
+                { headers: { 'x-auth-token': token } }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                setBeneficiarySuggestions(data);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setBeneficiaryLoading(false);
+        }
+    }, []);
+
+    const handleBeneficiaryInputChange = (e) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, beneficiaryName: val }));
+        setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName'));
+        if (beneficiaryTimerRef.current) clearTimeout(beneficiaryTimerRef.current);
+        beneficiaryTimerRef.current = setTimeout(() => searchBeneficiaries(val), 300);
+    };
+
+    const handleBeneficiarySelect = (item) => {
+        setFormData(prev => {
+            const updates = { beneficiaryName: item.beneficiaryName };
+            if (item.birthDate) updates.birthDate = item.birthDate;
+            if (item.birthPlace) updates.birthPlace = item.birthPlace;
+            if (item.address) updates.address = item.address;
+            return { ...prev, ...updates };
+        });
+        setValidationErrors(prev => prev.filter(err => !['beneficiaryName','birthDate','birthPlace','address'].includes(err)));
+        setShowBeneficiaryDropdown(false);
+        setBeneficiarySuggestions([]);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (beneficiaryRef.current && !beneficiaryRef.current.contains(e.target)) {
+                setShowBeneficiaryDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -159,9 +221,43 @@ const FondosForm = () => {
                                     <label style={labelStyle}>{t('fondos.country')}</label>
                                     <input className="corporate-input" style={getErrorStyle('country')} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); }} />
                                 </div>
-                                <div>
+                                <div ref={beneficiaryRef} style={{ position: 'relative' }}>
                                     <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
-                                    <input className="corporate-input" style={getErrorStyle('beneficiaryName')} autoComplete="off" value={formData.beneficiaryName} onChange={e => { setFormData({...formData, beneficiaryName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'beneficiaryName')); }} />
+                                    <input
+                                        className="corporate-input"
+                                        style={getErrorStyle('beneficiaryName')}
+                                        autoComplete="off"
+                                        value={formData.beneficiaryName}
+                                        onChange={handleBeneficiaryInputChange}
+                                        onFocus={() => { if (beneficiarySuggestions.length > 0) setShowBeneficiaryDropdown(true); }}
+                                        placeholder={t('fondos.beneficiaryPlaceholder') || ''}
+                                    />
+                                    {showBeneficiaryDropdown && (
+                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'white', border: '1px solid #cbd5e1', borderRadius: '0 0 5px 5px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', maxHeight: '180px', overflowY: 'auto' }}>
+                                            {beneficiaryLoading ? (
+                                                <div style={{ padding: '7px 10px', color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>{t('fondos.beneficiarySearching')}</div>
+                                            ) : beneficiarySuggestions.length === 0 ? (
+                                                <div style={{ padding: '7px 10px', color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>{t('fondos.beneficiaryNoResults')}</div>
+                                            ) : beneficiarySuggestions.map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onMouseDown={(e) => { e.preventDefault(); handleBeneficiarySelect(item); }}
+                                                    style={{ padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.1s' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#eef6ff'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                                                >
+                                                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b' }}>{item.beneficiaryName}</div>
+                                                    {(item.birthDate || item.birthPlace || item.address) && (
+                                                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                            {item.birthDate && <span>{item.birthDate}</span>}
+                                                            {item.birthPlace && <span>{item.birthPlace}</span>}
+                                                            {item.address && <span style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.address}</span>}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

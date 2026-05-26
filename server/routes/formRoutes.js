@@ -81,7 +81,7 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
         const { sequelize } = require('../config/db');
 
         const [directorRows] = await sequelize.query(
-            `SELECT DISTINCT ON (elem->>'passport')
+            `SELECT DISTINCT ON (COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'))
                     elem->>'fullName'      AS "fullName",
                     elem->>'firstName'     AS "firstName",
                     elem->>'secondName'    AS "secondName",
@@ -101,15 +101,15 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
                     OR elem->>'fullName' ILIKE :pattern
                     OR elem->>'firstName' ILIKE :pattern
                     OR elem->>'lastName' ILIKE :pattern)
-               AND (elem->>'passport' IS NOT NULL AND elem->>'passport' != ''
-                    OR elem->>'fullName' IS NOT NULL AND elem->>'fullName' != '')
-             ORDER BY elem->>'passport', "updatedAt" DESC
+               AND (NULLIF(elem->>'passport','') IS NOT NULL
+                    OR NULLIF(elem->>'fullName','') IS NOT NULL)
+             ORDER BY COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'), "updatedAt" DESC
              LIMIT 50`,
             { replacements: { pattern: `%${q}%` } }
         );
 
         const [dignitaryRows] = await sequelize.query(
-            `SELECT DISTINCT ON (elem->>'passport')
+            `SELECT DISTINCT ON (COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'))
                     elem->>'fullName'           AS "fullName",
                     elem->>'birthDate'          AS "birthDate",
                     elem->>'passport'           AS "passport",
@@ -118,9 +118,9 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
                   jsonb_array_elements(data->'dignitaries') AS elem
              WHERE (elem->>'passport' ILIKE :pattern
                     OR elem->>'fullName' ILIKE :pattern)
-               AND (elem->>'passport' IS NOT NULL AND elem->>'passport' != ''
-                    OR elem->>'fullName' IS NOT NULL AND elem->>'fullName' != '')
-             ORDER BY elem->>'passport', "updatedAt" DESC
+               AND (NULLIF(elem->>'passport','') IS NOT NULL
+                    OR NULLIF(elem->>'fullName','') IS NOT NULL)
+             ORDER BY COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'), "updatedAt" DESC
              LIMIT 50`,
             { replacements: { pattern: `%${q}%` } }
         );

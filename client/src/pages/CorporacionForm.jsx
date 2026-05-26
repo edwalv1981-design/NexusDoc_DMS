@@ -57,8 +57,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const [directorSuggestions, setDirectorSuggestions] = useState({});
     const [dignitarySuggestions, setDignitarySuggestions] = useState({});
     const [shareholderSuggestions, setShareholderSuggestions] = useState({});
-    const [activeDirectorIdx, setActiveDirectorIdx] = useState(null);
-    const [activeDignitaryIdx, setActiveDignitaryIdx] = useState(null);
+    const [activeDirectorKey, setActiveDirectorKey] = useState(null);
+    const [activeDignitaryKey, setActiveDignitaryKey] = useState(null);
     const [activeShareholderIdx, setActiveShareholderIdx] = useState(null);
     const debounceTimers = useRef({});
     const autocompleteRefs = useRef({});
@@ -69,8 +69,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 ref => ref && ref.contains(e.target)
             );
             if (!isInsideAny) {
-                setActiveDirectorIdx(null);
-                setActiveDignitaryIdx(null);
+                setActiveDirectorKey(null);
+                setActiveDignitaryKey(null);
                 setActiveShareholderIdx(null);
             }
         };
@@ -78,12 +78,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const searchPerson = useCallback((query, index, type) => {
-        const timerKey = `${type}-${index}`;
+    const searchPerson = useCallback((query, index, type, field = 'name') => {
+        const timerKey = `${type}-${index}-${field}`;
+        const activeKey = `${index}-${field}`;
         if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
         if (!query || query.trim().length < 2) {
-            if (type === 'director') { setDirectorSuggestions(prev => ({ ...prev, [index]: [] })); setActiveDirectorIdx(null); }
-            if (type === 'dignitary') { setDignitarySuggestions(prev => ({ ...prev, [index]: [] })); setActiveDignitaryIdx(null); }
+            if (type === 'director') { setDirectorSuggestions(prev => ({ ...prev, [activeKey]: [] })); setActiveDirectorKey(null); }
+            if (type === 'dignitary') { setDignitarySuggestions(prev => ({ ...prev, [activeKey]: [] })); setActiveDignitaryKey(null); }
             return;
         }
         debounceTimers.current[timerKey] = setTimeout(async () => {
@@ -95,8 +96,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 );
                 if (res.ok) {
                     const data = await res.json();
-                    if (type === 'director') { setDirectorSuggestions(prev => ({ ...prev, [index]: data })); setActiveDirectorIdx(data.length > 0 ? index : null); }
-                    if (type === 'dignitary') { setDignitarySuggestions(prev => ({ ...prev, [index]: data })); setActiveDignitaryIdx(data.length > 0 ? index : null); }
+                    if (type === 'director') { setDirectorSuggestions(prev => ({ ...prev, [activeKey]: data })); setActiveDirectorKey(data.length > 0 ? activeKey : null); }
+                    if (type === 'dignitary') { setDignitarySuggestions(prev => ({ ...prev, [activeKey]: data })); setActiveDignitaryKey(data.length > 0 ? activeKey : null); }
                 }
             } catch (err) { /* silent */ }
         }, 300);
@@ -126,7 +127,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }, 300);
     }, []);
 
-    const selectDirectorSuggestion = (index, person) => {
+    const selectDirectorSuggestion = (index, person, field) => {
         const newDirectors = [...formData.directors];
         const d = newDirectors[index];
         const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
@@ -134,8 +135,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const fields = ['birthDate', 'maritalStatus', 'nationality', 'passport', 'phone', 'email', 'address', 'city', 'country'];
         fields.forEach(f => { if (person[f]) d[f] = person[f]; });
         setFormData(prev => ({ ...prev, directors: newDirectors }));
-        setDirectorSuggestions(prev => ({ ...prev, [index]: [] }));
-        setActiveDirectorIdx(null);
+        setDirectorSuggestions(prev => ({ ...prev, [`${index}-name`]: [], [`${index}-passport`]: [] }));
+        setActiveDirectorKey(null);
     };
 
     const selectDignitarySuggestion = (index, person) => {
@@ -147,8 +148,8 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         if (person.birthDate) d.birthDate = person.birthDate;
         if (person.registrationNumber) d.registrationNumber = person.registrationNumber;
         setFormData(prev => ({ ...prev, dignitaries: newDigs }));
-        setDignitarySuggestions(prev => ({ ...prev, [index]: [] }));
-        setActiveDignitaryIdx(null);
+        setDignitarySuggestions(prev => ({ ...prev, [`${index}-name`]: [], [`${index}-passport`]: [] }));
+        setActiveDignitaryKey(null);
     };
 
     const selectShareholderSuggestion = (index, person) => {
@@ -307,11 +308,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-grid">
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-name-${i}`] = el}>
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="corp-input" value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director'); }} onFocus={() => { if (directorSuggestions[i]?.length) setActiveDirectorIdx(i); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
-                            {activeDirectorIdx === i && directorSuggestions[i]?.length > 0 && (
+                            <input className="corp-input" value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director', 'name'); }} onFocus={() => { if (directorSuggestions[`${i}-name`]?.length) setActiveDirectorKey(`${i}-name`); }} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                            {activeDirectorKey === `${i}-name` && directorSuggestions[`${i}-name`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
-                                    {directorSuggestions[i].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p); }}>
+                                    {directorSuggestions[`${i}-name`].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p, 'name'); }}>
                                             <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
                                             <span className="corp-ac-detail">{p.passport || ''}</span>
                                         </div>
@@ -330,13 +331,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                             </select>
                         </div>
                         <div className="corp-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="corp-input" value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} /></div>
-                        <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-${i}`] = el}>
+                        <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-pass-${i}`] = el}>
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="corp-input" value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director'); }} onFocus={() => { if (directorSuggestions[i]?.length) setActiveDirectorIdx(i); }} />
-                            {activeDirectorIdx === i && directorSuggestions[i]?.length > 0 && (
+                            <input className="corp-input" value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director', 'passport'); }} onFocus={() => { if (directorSuggestions[`${i}-passport`]?.length) setActiveDirectorKey(`${i}-passport`); }} />
+                            {activeDirectorKey === `${i}-passport` && directorSuggestions[`${i}-passport`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
-                                    {directorSuggestions[i].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p); }}>
+                                    {directorSuggestions[`${i}-passport`].map((p, j) => (
+                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p, 'passport'); }}>
                                             <span className="corp-ac-passport">{p.passport}</span>
                                             <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
                                         </div>
@@ -379,10 +380,10 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                         <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" /></div>
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-name-${i}`] = el}>
                             <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
-                            <input className="corp-input" value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary'); }} onFocus={() => { if (dignitarySuggestions[i]?.length) setActiveDignitaryIdx(i); }} />
-                            {activeDignitaryIdx === i && dignitarySuggestions[i]?.length > 0 && (
+                            <input className="corp-input" value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'name'); }} onFocus={() => { if (dignitarySuggestions[`${i}-name`]?.length) setActiveDignitaryKey(`${i}-name`); }} />
+                            {activeDignitaryKey === `${i}-name` && dignitarySuggestions[`${i}-name`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
-                                    {dignitarySuggestions[i].map((p, j) => (
+                                    {dignitarySuggestions[`${i}-name`].map((p, j) => (
                                         <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
                                             <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
                                             <span className="corp-ac-detail">{p.passport || ''}</span>
@@ -391,12 +392,12 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-${i}`] = el}>
+                        <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-pass-${i}`] = el}>
                             <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="corp-input" value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary'); }} onFocus={() => { if (dignitarySuggestions[i]?.length) setActiveDignitaryIdx(i); }} />
-                            {activeDignitaryIdx === i && dignitarySuggestions[i]?.length > 0 && (
+                            <input className="corp-input" value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'passport'); }} onFocus={() => { if (dignitarySuggestions[`${i}-passport`]?.length) setActiveDignitaryKey(`${i}-passport`); }} />
+                            {activeDignitaryKey === `${i}-passport` && dignitarySuggestions[`${i}-passport`]?.length > 0 && (
                                 <div className="corp-autocomplete-dropdown">
-                                    {dignitarySuggestions[i].map((p, j) => (
+                                    {dignitarySuggestions[`${i}-passport`].map((p, j) => (
                                         <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
                                             <span className="corp-ac-passport">{p.passport}</span>
                                             <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
