@@ -462,7 +462,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                        u."uniqueCode" AS "userCode",
                        ${search.nameFields[0]} AS "personName",
                        ${search.passportField || 'NULL'} AS "personPassport",
-                       elem::text   AS "personData"
+                       elem::text   AS "personData",
+                       f.data       AS "formData"
                 FROM "FormData" f
                 JOIN "Users" u ON u.id = f."userId"
                 CROSS JOIN LATERAL jsonb_array_elements(
@@ -483,6 +484,15 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                     const displayName = parsed.fullName
                         || [parsed.firstName, parsed.secondName, parsed.lastName].filter(Boolean).join(' ')
                         || parsed.name || parsed.beneficiaryName || r.personName || '';
+                    
+                    let entityName = '';
+                    let d = {};
+                    try {
+                        d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
+                    } catch (_) {}
+                    if (d) {
+                        entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || '';
+                    }
 
                     results.push({
                         formId: r.formId,
@@ -495,6 +505,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                         personName: displayName,
                         personPassport: parsed.passport || r.personPassport || '',
                         personDetails: parsed,
+                        entityName: entityName,
+                        formData: d,
                         formDate: r.updatedAt
                     });
                 });
@@ -514,7 +526,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    u."uniqueCode" AS "userCode",
                    f.data->>'beneficiaryName' AS "beneficiaryName",
                    f.data->>'fullName'        AS "fullName",
-                   f.data->>'name'            AS "topName"
+                   f.data->>'name'            AS "topName",
+                   f.data                     AS "formData"
             FROM "FormData" f
             JOIN "Users" u ON u.id = f."userId"
             WHERE (f.data->>'beneficiaryName' ILIKE :pattern
@@ -530,6 +543,15 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 const existsAlready = results.some(x => x.formId === r.formId);
                 if (existsAlready) return;
 
+                let entityName = '';
+                let d = {};
+                try {
+                    d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
+                } catch (_) {}
+                if (d) {
+                    entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || '';
+                }
+
                 results.push({
                     formId: r.formId,
                     formType: r.formType,
@@ -541,6 +563,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                     personName: r.beneficiaryName || r.fullName || r.topName || '',
                     personPassport: '',
                     personDetails: {},
+                    entityName: entityName,
+                    formData: d,
                     formDate: r.updatedAt
                 });
             });

@@ -35,7 +35,7 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserForms, setSelectedUserForms] = useState(null);
   const [expandedPerson, setExpandedPerson] = useState(null);
-
+  const [viewingFormData, setViewingFormData] = useState(null);
 
   const itemsPerPage = 15;
   const navigate = useNavigate();
@@ -471,12 +471,13 @@ const AdminDashboard = () => {
                     <thead style={{ background: '#f9f9f9', borderBottom: `1px solid ${BORDER}` }}>
                       <tr style={{ fontSize: 10, color: '#666', fontWeight: 800 }}>
                         <th style={{ padding: '12px 12px' }}>PERSONA</th>
+                        <th style={{ padding: '12px 12px' }}>ENTIDAD</th>
                         <th style={{ padding: '12px 12px' }}>PASAPORTE/CÉDULA</th>
                         <th style={{ padding: '12px 12px' }}>ROL</th>
                         <th style={{ padding: '12px 12px' }}>FORMULARIO</th>
                         <th style={{ padding: '12px 12px' }}>USUARIO</th>
                         <th style={{ padding: '12px 12px' }}>FECHA</th>
-                        <th style={{ padding: '12px 8px', width: 40 }}></th>
+                        <th style={{ padding: '12px 8px', width: 80 }}>ACCIONES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -488,6 +489,7 @@ const AdminDashboard = () => {
                           <React.Fragment key={`${r.formId}-${r.role}-${idx}`}>
                             <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${BORDER}`, fontSize: 11, background: isExpanded ? '#f8fafc' : 'white' }}>
                               <td style={{ padding: '10px 12px', fontWeight: 700, color: '#1e293b' }}>{r.personName || '—'}</td>
+                              <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0f766e' }}>{r.entityName || '—'}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: '#475569' }}>{r.personPassport || '—'}</td>
                               <td style={{ padding: '10px 12px' }}>
                                 <span style={{
@@ -507,9 +509,14 @@ const AdminDashboard = () => {
                               </td>
                               <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(r.formDate).toLocaleDateString()}</td>
                               <td style={{ padding: '10px 8px' }}>
-                                <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 4, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b', display: 'flex' }}>
-                                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                </button>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  <button title="Ver Formulario Completo" onClick={() => setViewingFormData(r)} style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: 4, borderRadius: RADIUS, cursor: 'pointer', color: '#15803d', display: 'flex' }}>
+                                    <Eye size={12} />
+                                  </button>
+                                  <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 4, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b', display: 'flex' }}>
+                                    {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                             {isExpanded && detailKeys.length > 0 && (
@@ -537,6 +544,32 @@ const AdminDashboard = () => {
                   <div style={{ textAlign: 'center', padding: 50, color: '#cbd5e1' }}>
                     <Building2 size={48} style={{ marginBottom: 12, opacity: 0.3 }} />
                     <p style={{ fontSize: 13, color: '#94a3b8' }}>Busque una persona por nombre, pasaporte o cédula para ver en qué empresas y formularios aparece.</p>
+                  </div>
+                )}
+
+                {viewingFormData && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                      <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h2 style={{ fontSize: 18, margin: 0, color: '#0f766e', fontWeight: 800 }}>
+                            {viewingFormData.entityName || 'Datos del Formulario'}
+                          </h2>
+                          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>
+                            {viewingFormData.formType} &middot; Subido por: {viewingFormData.userName} ({viewingFormData.userEmail})
+                          </p>
+                        </div>
+                        <button onClick={() => setViewingFormData(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={24} /></button>
+                      </div>
+                      <div style={{ padding: '24px', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
+                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, color: '#334155', fontFamily: 'monospace' }}>
+                          {JSON.stringify(viewingFormData.formData, null, 2)}
+                        </pre>
+                      </div>
+                      <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, textAlign: 'right' }}>
+                        <button onClick={() => setViewingFormData(null)} className="btn-primary" style={{ padding: '8px 16px' }}>Cerrar</button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
