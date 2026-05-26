@@ -236,11 +236,7 @@ router.get('/me', auth, async (req, res) => {
         res.json(payload);
     } catch (err) {
         console.error('🔥 ERROR CRÍTICO EN /ME:', err);
-        res.status(500).json({ 
-            msg: 'Error interno al recuperar perfil', 
-            error: err.message,
-            stack: err.stack 
-        });
+        res.status(500).json({ msg: 'Error interno al recuperar perfil' });
     }
 });
 
@@ -546,7 +542,7 @@ router.post('/verify-forgot-password', async (req, res) => {
         }
     } catch (err) {
         console.error('❌ ERROR CRÍTICO EN VERIFICACIÓN:', err);
-        res.status(500).json({ msg: 'Error interno del servidor', error: err.message });
+        res.status(500).json({ msg: 'Error interno del servidor' });
     }
 });
 

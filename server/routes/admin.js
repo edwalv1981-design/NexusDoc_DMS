@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { User, AuditLog, FormData, DocumentTemplate, TemplateFieldSchema } = require('../models');
@@ -98,7 +99,7 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
-        const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + '@RESET';
+        const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '@RESET';
         user.password = tempPassword;
         user.mustChangePassword = true;
         user.loginAttempts = 0; // Limpiar intentos fallidos al resetear
@@ -568,56 +569,6 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     }
 });
 
-// ---------------------------------------------------------------------------
-// ADVANCED SQL QUERY — Admin raw SELECT endpoint
-// ---------------------------------------------------------------------------
-
-// @route   POST api/admin/query
-// @desc    Execute a raw SELECT query against the database (admin only)
-router.post('/query', [auth, isAdmin], async (req, res) => {
-    const { sql } = req.body;
-    if (!sql || typeof sql !== 'string' || !sql.trim()) {
-        return res.status(400).json({ msg: 'Se requiere un query SQL' });
-    }
-
-    const normalized = sql.replace(/\s+/g, ' ').trim();
-
-    const forbidden = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXEC|EXECUTE|MERGE|CALL)\b/i;
-    if (forbidden.test(normalized)) {
-        return res.status(403).json({ msg: 'Solo se permiten consultas SELECT. Operaciones de escritura están bloqueadas.' });
-    }
-
-    if (!/^\s*SELECT\b/i.test(normalized)) {
-        return res.status(403).json({ msg: 'La consulta debe comenzar con SELECT.' });
-    }
-
-    let finalSql = normalized;
-    if (!/\bLIMIT\s+\d+/i.test(finalSql)) {
-        finalSql = finalSql.replace(/;?\s*$/, '') + ' LIMIT 100';
-    }
-
-    console.log(`[SQL-QUERY] Admin ${req.user.id} ejecutó: ${finalSql}`);
-
-    try {
-        const [rows] = await sequelize.query(finalSql, {
-            timeout: 10000,
-            raw: true,
-        });
-
-        const resultRows = Array.isArray(rows) ? rows : [];
-
-        res.json({
-            rows: resultRows,
-            rowCount: resultRows.length,
-            query: finalSql,
-        });
-    } catch (err) {
-        console.error('[SQL-QUERY] Error:', err.message);
-        const userMessage = err.message?.includes('timeout')
-            ? 'La consulta excedió el tiempo límite de 10 segundos.'
-            : `Error en la consulta: ${err.message}`;
-        res.status(400).json({ msg: userMessage });
-    }
-});
+// RAW SQL endpoint removed for security — use Supabase dashboard for ad-hoc queries.
 
 module.exports = router;

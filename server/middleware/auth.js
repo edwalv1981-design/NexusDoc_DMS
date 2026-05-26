@@ -11,7 +11,7 @@ module.exports = async function (req, res, next) {
 
   try {
     // 1. Verificar integridad del JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     req.user = decoded.user;
 
     // 2. BLINDAJE: Verificar sesión única (Concurrent Sessions)

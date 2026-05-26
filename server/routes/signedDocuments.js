@@ -5,7 +5,7 @@ const multer = require('multer');
 const { SignedDocument, AuditLog } = require('../models');
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 
 const storage = multer.memoryStorage();
 const upload = multer({ 
@@ -35,7 +35,7 @@ const checkSignatureAgent = (fileBuffer) => {
             const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
             const scriptPath = path.join(__dirname, '../scripts/signature_agent.py');
             
-            exec(`${pythonCommand} "${scriptPath}" "${tempPath}"`, (error, stdout, stderr) => {
+            execFile(pythonCommand, [scriptPath, tempPath], (error, stdout, stderr) => {
                 try { fs.unlinkSync(tempPath); } catch (e) {} // Clean up immediately
                 
                 if (error) {

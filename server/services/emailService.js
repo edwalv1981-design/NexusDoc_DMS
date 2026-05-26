@@ -12,9 +12,10 @@ const hasEmailConfig = () => {
 const sendSecurityCode = async (toEmail, code) => {
     if (!hasEmailConfig()) return false;
 
-    console.log(`--------------------------------------------------`);
-    console.log(`🔑 CÓDIGO DE EMERGENCIA: ${code}`);
-    console.log(`📡 Enviando vía RESEND a: ${toEmail}...`);
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔑 CÓDIGO DE EMERGENCIA: ${code}`);
+    }
+    console.log(`📡 Enviando código de seguridad a: ${toEmail.substring(0, 3)}***`);
     
     try {
         const response = await fetch('https://api.resend.com/emails', {
