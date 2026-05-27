@@ -5,7 +5,7 @@
  *
  * **Blindado (no renombrar sin actualizar cliente + CI):**
  * - `FORM_TYPE_CORPORACION` → motor HTML `corporacionHtmlPdfService`.
- * - `FORM_TYPE_FONDOS_SFAR` → plantilla `fondos` + `scripts/fill_pdf_expert.py`.
+ * - `FORM_TYPE_FONDOS_SFAR` → motor HTML `fondosHtmlPdfService`.
  *
  * Otros tipos siguen en los mapas para no romper trámites ya guardados en BD.
  */
@@ -55,6 +55,10 @@ function isKyceHtmlForm(formType) {
   return resolveCanonicalFormType(formType) === 'Cumplimiento Entidades';
 }
 
+function isFondosHtmlForm(formType) {
+  return resolveCanonicalFormType(formType) === FORM_TYPE_FONDOS_SFAR;
+}
+
 /**
  * Prefijo del nombre de archivo al descargar PDF (lógica tolerante a variantes de texto).
  */
@@ -86,5 +90,6 @@ module.exports = {
   isFundacionPdfForm,
   isKyciHtmlForm,
   isKyceHtmlForm,
+  isFondosHtmlForm,
   getPdfDownloadFilenamePrefix,
 };

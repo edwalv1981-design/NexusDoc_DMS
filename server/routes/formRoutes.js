@@ -8,6 +8,7 @@ const corporacionHtmlPdfService = require('../services/corporacionHtmlPdfService
 const fundacionHtmlPdfService = require('../services/fundacionHtmlPdfService');
 const kyciHtmlPdfService = require('../services/kyciHtmlPdfService');
 const kyceHtmlPdfService = require('../services/kyceHtmlPdfService');
+const fondosHtmlPdfService = require('../services/fondosHtmlPdfService');
 const userLanguageStore = require('../services/userLanguageStore');
 const stablePdfForms = require('../config/stablePdfForms');
 const pdfFormSchemas = require('../config/pdfFormSchemas');
@@ -550,8 +551,18 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
                 return res.status(500).json({ msg: `ERROR KYCE HTML: ${htmlErr.message}` });
             }
         }
-        
-        
+
+        // Fondos SIEMPRE usa el motor HTML dinámico (ignora plantilla subida)
+        if (stablePdfForms.isFondosHtmlForm(form.formType)) {
+            try {
+                const pdfBuffer = await fondosHtmlPdfService.generatePdf(form.data || {}, { language: userLanguage });
+                return sendHtmlPdf(pdfBuffer, 'SFAR');
+            } catch (htmlErr) {
+                console.error('Error generando PDF Fondos:', htmlErr);
+                return res.status(500).json({ msg: `ERROR FONDOS HTML: ${htmlErr.message}` });
+            }
+        }
+
         if (!dbTemplate || !dbTemplate.fileData) {
             const masterPath = path.join(__dirname, `../../templates/referencia_maestra.pdf`);
             const localSpecificPath = path.join(__dirname, `../../templates/${templateName}.pdf`);

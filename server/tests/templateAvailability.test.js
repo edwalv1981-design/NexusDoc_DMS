@@ -6,12 +6,12 @@ const t = require('../utils/templateAvailability');
 const stablePdfForms = require('../config/stablePdfForms');
 
 describe('templateAvailability', () => {
-  it('Corporación, Fundaciones, KYCI y KYCE usan motor HTML sin PDF obligatorio', () => {
+  it('Corporación, Fundaciones, Fondos, KYCI y KYCE usan motor HTML sin PDF obligatorio', () => {
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_CORPORACION), true);
     assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FUNDACION), true);
     assert.equal(t.isHtmlEngineForm('Cumplimiento Individual'), true);
     assert.equal(t.isHtmlEngineForm('Cumplimiento Entidades'), true);
-    assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FONDOS_SFAR), false);
+    assert.equal(t.isHtmlEngineForm(stablePdfForms.FORM_TYPE_FONDOS_SFAR), true);
   });
 
   it('isInteractiveFormAvailable respeta mapa de estado del cliente', () => {
@@ -23,7 +23,7 @@ describe('templateAvailability', () => {
       'Cumplimiento Entidades': false,
     };
     assert.equal(t.isInteractiveFormAvailable(stablePdfForms.FORM_TYPE_CORPORACION, map), true);
-    assert.equal(t.isInteractiveFormAvailable(stablePdfForms.FORM_TYPE_FONDOS_SFAR, map), false);
+    assert.equal(t.isInteractiveFormAvailable(stablePdfForms.FORM_TYPE_FONDOS_SFAR, map), true);
     assert.equal(t.isInteractiveFormAvailable('Cumplimiento Individual', map), true);
     assert.equal(t.isInteractiveFormAvailable('Cumplimiento Entidades', map), true);
   });
@@ -44,6 +44,12 @@ describe('templateAvailability', () => {
   it('checkTemplateExists KYCE siempre true (motor HTML)', async () => {
     const mockModel = { findOne: async () => null };
     const ok = await t.checkTemplateExists('Cumplimiento Entidades', mockModel);
+    assert.equal(ok, true);
+  });
+
+  it('checkTemplateExists Fondos siempre true (motor HTML)', async () => {
+    const mockModel = { findOne: async () => null };
+    const ok = await t.checkTemplateExists(stablePdfForms.FORM_TYPE_FONDOS_SFAR, mockModel);
     assert.equal(ok, true);
   });
 });

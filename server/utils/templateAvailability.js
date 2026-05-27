@@ -16,7 +16,7 @@ const CLIENT_FORM_TYPES = Object.freeze([
 
 /** Filas del panel admin: id interno de plantilla → formType del cliente. */
 const ADMIN_TEMPLATE_ROWS = Object.freeze([
-  { id: 'fondos', formType: stablePdfForms.FORM_TYPE_FONDOS_SFAR, kind: 'pdf' },
+  { id: 'fondos', formType: stablePdfForms.FORM_TYPE_FONDOS_SFAR, kind: 'html' },
   { id: 'corporacion', formType: stablePdfForms.FORM_TYPE_CORPORACION, kind: 'html' },
   { id: 'fundaciones', formType: stablePdfForms.FORM_TYPE_FUNDACION, kind: 'html' },
   { id: 'cumplimiento_individual', formType: 'Cumplimiento Individual', kind: 'html' },
@@ -28,7 +28,8 @@ function resolveTemplateLookup(formType) {
     stablePdfForms.isCorporacionPdfForm(formType) ||
     stablePdfForms.isFundacionPdfForm(formType) ||
     stablePdfForms.isKyciHtmlForm(formType) ||
-    stablePdfForms.isKyceHtmlForm(formType)
+    stablePdfForms.isKyceHtmlForm(formType) ||
+    stablePdfForms.isFondosHtmlForm(formType)
   ) {
     return { htmlEngine: true, prefix: null, dbNames: [] };
   }
@@ -45,7 +46,7 @@ function resolveTemplateLookup(formType) {
     return { htmlEngine: true, prefix: 'PTLF', dbNames: ['fundaciones'] };
   }
   if (norm.includes('fondos') || norm.includes('funds')) {
-    return { htmlEngine: false, prefix: 'SFAR', dbNames: ['referencia_maestra', 'fondos'] };
+    return { htmlEngine: true, prefix: 'SFAR', dbNames: [] };
   }
   if (norm.includes('cumplimiento individual') || norm.includes('individual compliance')) {
     return { htmlEngine: true, prefix: 'KYCI', dbNames: ['cumplimiento_individual'] };
