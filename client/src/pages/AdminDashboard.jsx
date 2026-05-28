@@ -7,6 +7,15 @@ import API_BASE_URL from '../config';
 import { useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
+/** Trámites que generan PDF con motor HTML (no dependen de AcroForm). */
+const HTML_ENGINE_TEMPLATES = Object.freeze([
+  'fondos',
+  'corporacion',
+  'fundaciones',
+  'cumplimiento_individual',
+  'cumplimiento_entidades',
+]);
+
 const AdminDashboard = () => {
   const t = useT();
   const [activeTab, setActiveTab] = useState('users');
@@ -158,12 +167,14 @@ const AdminDashboard = () => {
       const detected = res.data?.detectedFields;
       setLastDetectedFields(detected || null);
       const count = detected?.fieldCount ?? 0;
-      const htmlArchiveTemplates = ['corporacion', 'fundaciones', 'cumplimiento_individual', 'cumplimiento_entidades'];
+      const isHtmlTemplate =
+        HTML_ENGINE_TEMPLATES.includes(templateName) ||
+        templateStatus.find((s) => s.id === templateName)?.kind === 'html';
       if (detected && !detected.extractError) {
         toast.success(
           count > 0
             ? t('admin.fieldsDetected', { count, type: label })
-            : htmlArchiveTemplates.includes(templateName)
+            : isHtmlTemplate
               ? t('admin.templateSavedArchive', { type: label })
               : t('admin.flatPdfWarning', { type: label })
         );
@@ -672,13 +683,27 @@ const AdminDashboard = () => {
                     <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                       <div className="field-group-admin">
                         <label style={{ fontSize: '10px', fontWeight: 700 }}>TIPO DE TRÁMITE A VINCULAR</label>
-                        <select className="input-modern-admin" value={templateName} onChange={(e) => setTemplateName(e.target.value)} style={{ cursor: 'pointer' }}>
+                        <select
+                          className="input-modern-admin"
+                          value={templateName}
+                          onChange={(e) => {
+                            setTemplateName(e.target.value);
+                            setLastDetectedFields(null);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <option value="fondos">Declaración de Fondos</option>
                           <option value="corporacion">Incorporación</option>
                           <option value="fundaciones">Fundaciones</option>
                           <option value="cumplimiento_individual">Cumplimiento Individual</option>
                           <option value="cumplimiento_entidades">Cumplimiento Entidades</option>
                         </select>
+                        {(HTML_ENGINE_TEMPLATES.includes(templateName) ||
+                          templateStatus.find((s) => s.id === templateName)?.kind === 'html') && (
+                          <p style={{ margin: '8px 0 0', fontSize: 11, color: '#0f766e', lineHeight: 1.45 }}>
+                            {t('admin.htmlEngineUploadHint')}
+                          </p>
+                        )}
                       </div>
                       <div className="field-group-admin">
                         <label style={{ fontSize: '10px', fontWeight: 700 }}>ARCHIVO PDF</label>
@@ -717,7 +742,8 @@ const AdminDashboard = () => {
                             {t('admin.detectedFieldsTitle', { count: lastDetectedFields.fieldCount ?? 0 })}
                           </p>
                           {(lastDetectedFields.fieldCount ?? 0) === 0 &&
-                          !['corporacion', 'fundaciones', 'cumplimiento_individual', 'cumplimiento_entidades'].includes(templateName) ? (
+                          !HTML_ENGINE_TEMPLATES.includes(templateName) &&
+                          templateStatus.find((s) => s.id === templateName)?.kind !== 'html' ? (
                             <p style={{ color: '#b91c1c', margin: 0 }}>{t('admin.flatPdfHint')}</p>
                           ) : (lastDetectedFields.fieldCount ?? 0) === 0 ? (
                             <p style={{ color: '#64748b', margin: 0 }}>{t('admin.templateSavedArchive', { type: templateName })}</p>
