@@ -461,13 +461,48 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         const [rows] = await sequelize.query(sql, { replacements });
         
         const results = [];
+        const termsLower = terms.map(t => t.toLowerCase());
+
         rows.forEach(r => {
             let entityName = '';
             let d = {};
             try {
                 d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
             } catch (_) {}
-            
+
+            // Intelligent verification: Ensure terms match a SINGLE entity within the form
+            let isValidMatch = false;
+
+            // 1. Check if it's a single term search (no risk of cross-person false positive)
+            if (terms.length === 1) {
+                isValidMatch = true;
+            } else {
+                // 2. Check top-level person fields
+                const topLevelStr = [d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, d.passport, d.idNumber].filter(Boolean).join(' ').toLowerCase();
+                if (termsLower.every(t => topLevelStr.includes(t))) {
+                    isValidMatch = true;
+                }
+
+                // 3. Check arrays of people
+                if (!isValidMatch) {
+                    const arrayFields = ['directors', 'dignitaries', 'shareholders', 'beneficiaries', 'members', 'peps', 'firmantes'];
+                    for (const field of arrayFields) {
+                        if (Array.isArray(d[field])) {
+                            for (const person of d[field]) {
+                                const personStr = JSON.stringify(person).toLowerCase();
+                                if (termsLower.every(t => personStr.includes(t))) {
+                                    isValidMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isValidMatch) break;
+                    }
+                }
+            }
+
+            if (!isValidMatch) return; // Skip this form, it's a cross-person false positive
+
             if (d) {
                 entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || 'N/A';
             }
