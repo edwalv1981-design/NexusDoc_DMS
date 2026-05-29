@@ -450,7 +450,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    f.data       AS "formData"
             FROM "FormData" f
             JOIN "Users" u ON u.id = f."userId"
-            WHERE f.data::text ILIKE :pattern
+            WHERE CAST(f.data AS TEXT) ILIKE :pattern
             ORDER BY f."updatedAt" DESC
             LIMIT 150
         `;
