@@ -61,6 +61,13 @@ const AdminDashboard = () => {
   const [savingSettings, setSavingSettings] = useState(false);
 
   const [consultaSearch, setConsultaSearch] = useState('');
+  const [searchFilters, setSearchFilters] = useState({
+    nombres: '',
+    ruc: '',
+    codigoUnico: '',
+    usuario: '',
+    empresa: ''
+  });
   const [consultaResults, setConsultaResults] = useState(null);
   const [consultaSummary, setConsultaSummary] = useState(null);
   const [consultaLoading, setConsultaLoading] = useState(false);
@@ -232,17 +239,15 @@ const AdminDashboard = () => {
 
   const handleConsultaSearch = async (e) => {
     e && e.preventDefault();
-    const q = consultaSearch.trim();
-    if (!q || q.length < 2) return toast.error('Ingrese al menos 2 caracteres');
+    const token = localStorage.getItem('token');
+    const { nombres, ruc, codigoUnico, usuario, empresa } = searchFilters;
+    if (!nombres.trim() && !ruc.trim() && !codigoUnico.trim() && !usuario.trim() && !empresa.trim()) return toast.error('Ingrese al menos un criterio de búsqueda');
     setConsultaLoading(true);
-    setSelectedUser(null);
-    setSelectedUserForms(null);
     setExpandedPerson(null);
     try {
-      const token = localStorage.getItem('token');
       const res = await axios.get(`${API_BASE_URL}/api/admin/search-person`, {
         headers: { 'x-auth-token': token },
-        params: { q }
+        params: { nombres, ruc, codigoUnico, usuario, empresa }
       });
       setConsultaResults(res.data.results || []);
       setConsultaSummary(res.data.summary || null);
@@ -405,21 +410,42 @@ const AdminDashboard = () => {
 
             {activeTab === 'consultas' && (
               <div style={{ padding: '30px' }}>
-                <form onSubmit={handleConsultaSearch} style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-                  <div style={{ flex: 1, position: 'relative' }}>
-                    <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                    <input
-                      className="input-modern-admin"
-                      placeholder="Buscar por nombre, pasaporte o cédula..."
-                      value={consultaSearch}
-                      onChange={e => setConsultaSearch(e.target.value)}
-                      style={{ paddingLeft: 34 }}
+                <form onSubmit={handleConsultaSearch} style={{ display: 'flex', flexDirection: 'column', gap: 15, marginBottom: 20 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                    <input type="text" value={searchFilters.nombres} onChange={e => setSearchFilters({...searchFilters, nombres: e.target.value})}
+                      placeholder="Nombres / Apellidos"
+                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
+                    />
+                    <input type="text" value={searchFilters.ruc} onChange={e => setSearchFilters({...searchFilters, ruc: e.target.value})}
+                      placeholder="RUC / Identificación"
+                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
+                    />
+                    <input type="text" value={searchFilters.codigoUnico} onChange={e => setSearchFilters({...searchFilters, codigoUnico: e.target.value})}
+                      placeholder="Código Único"
+                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
+                    />
+                    <input type="text" value={searchFilters.usuario} onChange={e => setSearchFilters({...searchFilters, usuario: e.target.value})}
+                      placeholder="Usuario (Nombre/Email)"
+                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
+                    />
+                    <input type="text" value={searchFilters.empresa} onChange={e => setSearchFilters({...searchFilters, empresa: e.target.value})}
+                      placeholder="Nombre de Empresa"
+                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
                     />
                   </div>
-                  <button type="submit" className="btn-primary" disabled={consultaLoading} style={{ whiteSpace: 'nowrap', padding: '10px 20px' }}>
-                    {consultaLoading ? 'BUSCANDO...' : 'BUSCAR'}
-                  </button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" disabled={consultaLoading} className="btn-primary" style={{ padding: '10px 32px', fontWeight: 700 }}>
+                      {consultaLoading ? 'BUSCANDO...' : 'BUSCAR'}
+                    </button>
+                  </div>
                 </form>
+
+                {consultaResults && consultaResults.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
+                    <SearchCheck size={40} style={{ marginBottom: 10, opacity: 0.4 }} />
+                    <p style={{ fontSize: 13 }}>No se encontraron resultados para los filtros ingresados.</p>
+                  </div>
+                )}
 
                 {consultaSummary && (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>

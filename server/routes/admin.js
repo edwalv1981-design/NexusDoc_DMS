@@ -433,13 +433,43 @@ router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
 // @desc    Search across ALL form data for a person by name or passport/cedula
 router.get('/search-person', [auth, isAdmin], async (req, res) => {
     try {
-        const q = (req.query.q || '').trim();
-        if (!q || q.length < 2) return res.json([]);
+        const { nombres, ruc, codigoUnico, usuario, empresa } = req.query;
+        
+        if (!nombres && !ruc && !codigoUnico && !usuario && !empresa) {
+            return res.json({ results: [], summary: { totalResults: 0, uniqueForms: 0, uniqueUsers: 0, roles: [] } });
+        }
 
-        const terms = q.split(/\s+/).filter(Boolean);
-        const conditions = terms.map((_, i) => `CAST(f.data AS TEXT) ILIKE :term${i}`).join(' AND ');
+        const conditions = [];
         const replacements = {};
-        terms.forEach((t, i) => replacements[`term${i}`] = `%${t}%`);
+
+        const nameTerms = nombres ? nombres.trim().split(/\s+/).filter(Boolean) : [];
+        if (nameTerms.length > 0) {
+            const subConds = nameTerms.map((_, i) => `CAST(f.data AS TEXT) ILIKE :n_term${i}`).join(' AND ');
+            conditions.push(`(${subConds})`);
+            nameTerms.forEach((t, i) => replacements[`n_term${i}`] = `%${t}%`);
+        }
+
+        if (ruc && ruc.trim()) {
+            conditions.push(`CAST(f.data AS TEXT) ILIKE :ruc`);
+            replacements.ruc = `%${ruc.trim()}%`;
+        }
+        
+        if (codigoUnico && codigoUnico.trim()) {
+            conditions.push(`(u.unique_code ILIKE :codigoUnico OR CAST(f.data AS TEXT) ILIKE :codigoUnico)`);
+            replacements.codigoUnico = `%${codigoUnico.trim()}%`;
+        }
+
+        if (usuario && usuario.trim()) {
+            conditions.push(`(u.name ILIKE :usuario OR u.email ILIKE :usuario)`);
+            replacements.usuario = `%${usuario.trim()}%`;
+        }
+
+        if (empresa && empresa.trim()) {
+            conditions.push(`CAST(f.data AS TEXT) ILIKE :empresa`);
+            replacements.empresa = `%${empresa.trim()}%`;
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' OR ')}` : '';
 
         const sql = `
             SELECT f.id         AS "formId",
@@ -453,15 +483,14 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    f.data       AS "formData"
             FROM "FormData" f
             JOIN "Users" u ON u.id = f.user_id
-            WHERE ${conditions}
+            ${whereClause}
             ORDER BY f.updated_at DESC
             LIMIT 150
         `;
 
         const [rows] = await sequelize.query(sql, { replacements });
         
-        const results = [];
-        const termsLower = terms.map(t => t.toLowerCase());
+        const nameTermsLower = nameTerms.map(t => t.toLowerCase());
 
         rows.forEach(r => {
             let entityName = '';
@@ -470,38 +499,59 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
             } catch (_) {}
 
-            // Intelligent verification: Ensure terms match a SINGLE entity within the form
+            // If multiple name terms were provided, we must ensure they belong to a SINGLE entity in the form.
+            // BUT if other fields were provided (like RUC) and they match, we shouldn't discard the row.
+            // To be accurate, let's verify if the row strictly matches ANY of the provided criteria.
             let isValidMatch = false;
 
-            // 1. Check if it's a single term search (no risk of cross-person false positive)
-            if (terms.length === 1) {
-                isValidMatch = true;
-            } else {
-                // 2. Check top-level person fields
-                const topLevelStr = [d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, d.passport, d.idNumber].filter(Boolean).join(' ').toLowerCase();
-                if (termsLower.every(t => topLevelStr.includes(t))) {
-                    isValidMatch = true;
-                }
+            const formText = JSON.stringify(d).toLowerCase();
 
-                // 3. Check arrays of people
-                if (!isValidMatch) {
-                    const arrayFields = ['directors', 'dignitaries', 'shareholders', 'beneficiaries', 'members', 'peps', 'firmantes'];
-                    for (const field of arrayFields) {
-                        if (Array.isArray(d[field])) {
-                            for (const person of d[field]) {
-                                const personStr = JSON.stringify(person).toLowerCase();
-                                if (termsLower.every(t => personStr.includes(t))) {
-                                    isValidMatch = true;
-                                    break;
+            // Check Empresa match
+            if (empresa && formText.includes(empresa.trim().toLowerCase())) isValidMatch = true;
+            // Check RUC match
+            if (ruc && formText.includes(ruc.trim().toLowerCase())) isValidMatch = true;
+            // Check Codigo Unico match
+            if (codigoUnico && (
+                formText.includes(codigoUnico.trim().toLowerCase()) || 
+                (r.userCode && r.userCode.toLowerCase().includes(codigoUnico.trim().toLowerCase()))
+            )) isValidMatch = true;
+            // Check Usuario match
+            if (usuario && (
+                (r.userName && r.userName.toLowerCase().includes(usuario.trim().toLowerCase())) || 
+                (r.userEmail && r.userEmail.toLowerCase().includes(usuario.trim().toLowerCase()))
+            )) isValidMatch = true;
+
+            // Check Nombres match (Intelligent verification)
+            if (nameTermsLower.length > 0) {
+                let nameMatch = false;
+                if (nameTermsLower.length === 1) {
+                    nameMatch = formText.includes(nameTermsLower[0]);
+                } else {
+                    const topLevelStr = [d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, d.passport, d.idNumber].filter(Boolean).join(' ').toLowerCase();
+                    if (nameTermsLower.every(t => topLevelStr.includes(t))) {
+                        nameMatch = true;
+                    }
+                    if (!nameMatch) {
+                        const arrayFields = ['directors', 'dignitaries', 'shareholders', 'beneficiaries', 'members', 'peps', 'firmantes'];
+                        for (const field of arrayFields) {
+                            if (Array.isArray(d[field])) {
+                                for (const person of d[field]) {
+                                    const personStr = JSON.stringify(person).toLowerCase();
+                                    if (nameTermsLower.every(t => personStr.includes(t))) {
+                                        nameMatch = true;
+                                        break;
+                                    }
                                 }
                             }
+                            if (nameMatch) break;
                         }
-                        if (isValidMatch) break;
                     }
                 }
+                if (nameMatch) isValidMatch = true;
             }
 
-            if (!isValidMatch) return; // Skip this form, it's a cross-person false positive
+            // If we provided some fields but none of the JS verifications passed, it's a cross-person false positive
+            if (!isValidMatch) return;
 
             if (d) {
                 entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || 'N/A';
