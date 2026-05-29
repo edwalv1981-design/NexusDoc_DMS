@@ -490,6 +490,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
 
         const [rows] = await sequelize.query(sql, { replacements });
         
+        const results = [];
         const nameTermsLower = nameTerms.map(t => t.toLowerCase());
 
         rows.forEach(r => {
