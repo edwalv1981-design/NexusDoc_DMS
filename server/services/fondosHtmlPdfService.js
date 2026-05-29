@@ -7,12 +7,12 @@ const { getFondosPdfDict, normalizeLanguage } = require('./fondosPdfI18n');
 const { esc, fmtDate, kvRow, buildFundsChecksHtml } = require('../utils/kycHtmlPdfShared');
 
 const FUNDS_KEYS = [
-  { key: 'bienes', labelKey: 'fundsBienes' },
-  { key: 'inversiones', labelKey: 'fundsInversiones' },
-  { key: 'negocios', labelKey: 'fundsNegocios' },
-  { key: 'prestamos', labelKey: 'fundsPrestamos' },
-  { key: 'herencia', labelKey: 'fundsHerencia' },
-  { key: 'otras', labelKey: 'fundsOtras' },
+  { key: 'Bienes personales', labelKey: 'fundsBienes' },
+  { key: 'Inversiones Financieras', labelKey: 'fundsInversiones' },
+  { key: 'Negocios', labelKey: 'fundsNegocios' },
+  { key: 'Prestamos', labelKey: 'fundsPrestamos' },
+  { key: 'Herencia o Fondo Fiduciario', labelKey: 'fundsHerencia' },
+  { key: 'Otras formas de ingresos', labelKey: 'fundsOtras' },
 ];
 
 function toDataUri(filePath) {
