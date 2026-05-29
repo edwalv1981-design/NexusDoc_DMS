@@ -254,18 +254,17 @@ const FondosForm = () => {
                                 {fieldErrors.activities && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.activities}</span>}
                             </div>
                             <div>
+                                <label style={labelStyle}>{t('fondos.country')}</label>
+                                <input className="corporate-input" style={{...getErrorStyle('country'), ...getFieldErrorStyle('country')}} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); handleFieldChange('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} />
+                                {fieldErrors.country && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.country}</span>}
+                            </div>
+                            <div>
                                 <label style={labelStyle}>{t('fondos.operatingAddress')}</label>
                                 <input className="corporate-input" style={{...getErrorStyle('operatingAddress'), ...getFieldErrorStyle('operatingAddress')}} autoComplete="off" value={formData.operatingAddress} onChange={e => { setFormData({...formData, operatingAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'operatingAddress')); handleFieldChange('operatingAddress', e.target.value); }} onBlur={() => handleFieldBlur('operatingAddress')} placeholder={t('fondos.operatingAddressPlaceholder') || ''} />
                                 {fieldErrors.operatingAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.operatingAddress}</span>}
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div>
-                                    <label style={labelStyle}>{t('fondos.country')}</label>
-                                    <input className="corporate-input" style={{...getErrorStyle('country'), ...getFieldErrorStyle('country')}} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); handleFieldChange('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} />
-                                    {fieldErrors.country && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.country}</span>}
-                                </div>
-                                <div ref={beneficiaryRef} style={{ position: 'relative' }}>
-                                    <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
+                            <div ref={beneficiaryRef} style={{ position: 'relative' }}>
+                                <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
                                     <input
                                         className="corporate-input"
                                         style={{...getErrorStyle('beneficiaryName'), ...getFieldErrorStyle('beneficiaryName')}}
@@ -302,10 +301,8 @@ const FondosForm = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
                                     <input type="date" className="corporate-input" style={{...getErrorStyle('birthDate'), ...getFieldErrorStyle('birthDate')}} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); handleFieldChange('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} />
@@ -413,15 +410,17 @@ const FondosForm = () => {
                                     {fieldErrors.custodyEmail && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyEmail}</span>}
                                 </div>
                             </div>
-                            <div>
-                                <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
-                                <input className="corporate-input" style={{...getErrorStyle('custodyAddress'), ...getFieldErrorStyle('custodyAddress')}} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); handleFieldChange('custodyAddress', e.target.value); }} onBlur={() => handleFieldBlur('custodyAddress')} />
-                                {fieldErrors.custodyAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyAddress}</span>}
-                            </div>
-                            <div>
-                                <label style={labelStyle}>{t('fondos.fiscalYear')}</label>
-                                <input className="corporate-input" style={{...getErrorStyle('fiscalYear'), ...getFieldErrorStyle('fiscalYear')}} autoComplete="off" value={formData.fiscalYear} onChange={e => { setFormData(prev => ({...prev, fiscalYear: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'fiscalYear')); handleFieldChange('fiscalYear', e.target.value); }} onBlur={() => handleFieldBlur('fiscalYear')} placeholder={t('fondos.fiscalYearPlaceholder') || ''} />
-                                {fieldErrors.fiscalYear && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.fiscalYear}</span>}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
+                                    <input className="corporate-input" style={{...getErrorStyle('custodyAddress'), ...getFieldErrorStyle('custodyAddress')}} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); handleFieldChange('custodyAddress', e.target.value); }} onBlur={() => handleFieldBlur('custodyAddress')} />
+                                    {fieldErrors.custodyAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyAddress}</span>}
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>{t('fondos.fiscalYear')}</label>
+                                    <input className="corporate-input" style={{...getErrorStyle('fiscalYear'), ...getFieldErrorStyle('fiscalYear')}} autoComplete="off" value={formData.fiscalYear} onChange={e => { setFormData(prev => ({...prev, fiscalYear: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'fiscalYear')); handleFieldChange('fiscalYear', e.target.value); }} onBlur={() => handleFieldBlur('fiscalYear')} placeholder={t('fondos.fiscalYearPlaceholder') || ''} />
+                                    {fieldErrors.fiscalYear && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.fiscalYear}</span>}
+                                </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
