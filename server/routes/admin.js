@@ -528,7 +528,11 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 if (nameTermsLower.length === 1) {
                     nameMatch = formText.includes(nameTermsLower[0]);
                 } else {
-                    const topLevelStr = [d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, d.passport, d.idNumber].filter(Boolean).join(' ').toLowerCase();
+                    const topLevelStr = [
+                        d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, 
+                        d.passport, d.idNumber, d.signerName, d.custodyName, d.declaranteNombre, 
+                        d.accountHolder, d.representanteLegalNombre, d.representanteLegal
+                    ].filter(Boolean).join(' ').toLowerCase();
                     if (nameTermsLower.every(t => topLevelStr.includes(t))) {
                         nameMatch = true;
                     }
