@@ -440,18 +440,18 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
 
         const sql = `
             SELECT f.id         AS "formId",
-                   f."formType",
-                   f."userId",
-                   f."createdAt",
-                   f."updatedAt",
+                   f.form_type  AS "formType",
+                   f.user_id    AS "userId",
+                   f.created_at AS "createdAt",
+                   f.updated_at AS "updatedAt",
                    u.name       AS "userName",
                    u.email      AS "userEmail",
-                   u."uniqueCode" AS "userCode",
+                   u.unique_code AS "userCode",
                    f.data       AS "formData"
             FROM "FormData" f
-            JOIN "Users" u ON u.id = f."userId"
+            JOIN "Users" u ON u.id = f.user_id
             WHERE CAST(f.data AS TEXT) ILIKE :pattern
-            ORDER BY f."updatedAt" DESC
+            ORDER BY f.updated_at DESC
             LIMIT 150
         `;
 
