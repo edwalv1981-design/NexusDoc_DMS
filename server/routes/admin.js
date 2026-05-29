@@ -576,15 +576,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             });
         });
 
-        res.json({
-            results,
-            summary: {
-                totalResults: results.length,
-                uniqueForms: new Set(results.map(r => r.formId)).size,
-                uniqueUsers: new Set(results.map(r => r.userId)).size,
-                roles: [...new Set(results.map(r => r.role))]
-            }
-        });
+        throw new Error(`DEBUG_INFO: SQL ROWS=${rows.length}, FINAL RESULTS=${results.length}. Terms=${JSON.stringify(nameTerms)} Condiciones=${JSON.stringify(conditions)}`);
     } catch (err) {
         console.error('Error searching person:', err);
         res.status(500).json({ msg: 'Error al buscar persona: ' + err.message + ' Stack: ' + err.stack });
