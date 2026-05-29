@@ -517,7 +517,7 @@ const AdminDashboard = () => {
                                 <h3 style={{ margin: 0, fontSize: 15, color: '#0f766e', fontWeight: 800 }}>{r.entityName || 'Formulario'}</h3>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                   <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
-                                  Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> el {new Date(r.formDate).toLocaleDateString()}
+                                  Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || 'Sin código'}) el {new Date(r.formDate).toLocaleDateString()}
                                 </div>
                             </div>
                             <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
