@@ -211,6 +211,19 @@ async function bootstrap() {
     await ensureUserLanguageColumn(sequelize);
 
     const { User } = require('./models');
+
+    // Desbloqueo temporal forzado
+    try {
+        const rokuUser = await User.findOne({ where: { email: 'rokutvedw@gmail.com' } });
+        if (rokuUser && rokuUser.status !== 'authorized') {
+            rokuUser.status = 'authorized';
+            await rokuUser.save();
+            console.log('✅ Usuario rokutvedw@gmail.com desbloqueado exitosamente.');
+        }
+    } catch (e) {
+        console.error('Error al desbloquear usuario:', e);
+    }
+
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
