@@ -19,8 +19,8 @@ const upload = multer({
 // TEMPORARY DEBUG ROUTE
 router.get('/debug-db', async (req, res) => {
     try {
-        const [forms] = await sequelize.query(`SELECT id, form_type, data FROM "FormData" LIMIT 50`);
-        const [users] = await sequelize.query(`SELECT id, name, email FROM "Users" LIMIT 50`);
+        const forms = await FormData.findAll({ limit: 50 });
+        const users = await User.findAll({ limit: 50 });
         res.json({ forms, users });
     } catch (err) {
         res.status(500).json({ error: err.message, stack: err.stack });
