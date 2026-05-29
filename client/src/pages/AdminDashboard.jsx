@@ -410,35 +410,67 @@ const AdminDashboard = () => {
 
             {activeTab === 'consultas' && (
               <div style={{ padding: '30px' }}>
-                <form onSubmit={handleConsultaSearch} style={{ display: 'flex', flexDirection: 'column', gap: 15, marginBottom: 20 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
-                    <input type="text" value={searchFilters.nombres} onChange={e => setSearchFilters({...searchFilters, nombres: e.target.value})}
-                      placeholder="Nombres / Apellidos"
-                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
-                    />
-                    <input type="text" value={searchFilters.ruc} onChange={e => setSearchFilters({...searchFilters, ruc: e.target.value})}
-                      placeholder="RUC / Identificación"
-                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
-                    />
-                    <input type="text" value={searchFilters.codigoUnico} onChange={e => setSearchFilters({...searchFilters, codigoUnico: e.target.value})}
-                      placeholder="Código Único"
-                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
-                    />
-                    <input type="text" value={searchFilters.usuario} onChange={e => setSearchFilters({...searchFilters, usuario: e.target.value})}
-                      placeholder="Usuario (Nombre/Email)"
-                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
-                    />
-                    <input type="text" value={searchFilters.empresa} onChange={e => setSearchFilters({...searchFilters, empresa: e.target.value})}
-                      placeholder="Nombre de Empresa"
-                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13 }}
-                    />
+                <div style={{ background: '#f8fafc', padding: 24, borderRadius: RADIUS, border: `1px solid ${BORDER}`, marginBottom: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                    <div style={{ background: '#e0f2fe', padding: 8, borderRadius: 8 }}>
+                      <Search size={18} color="#0284c7" />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>Búsqueda Avanzada</h3>
+                      <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ingrese una o varias opciones para filtrar los formularios</p>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button type="submit" disabled={consultaLoading} className="btn-primary" style={{ padding: '10px 32px', fontWeight: 700 }}>
-                      {consultaLoading ? 'BUSCANDO...' : 'BUSCAR'}
-                    </button>
-                  </div>
-                </form>
+                  <form onSubmit={handleConsultaSearch} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Nombres / Apellidos</label>
+                        <input type="text" value={searchFilters.nombres} onChange={e => setSearchFilters({...searchFilters, nombres: e.target.value})}
+                          placeholder="Ej. Edwin Alvarez"
+                          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>RUC / Identificación</label>
+                        <input type="text" value={searchFilters.ruc} onChange={e => setSearchFilters({...searchFilters, ruc: e.target.value})}
+                          placeholder="Ej. 1700000000001"
+                          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Código Único</label>
+                        <input type="text" value={searchFilters.codigoUnico} onChange={e => setSearchFilters({...searchFilters, codigoUnico: e.target.value})}
+                          placeholder="Ej. C001"
+                          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Usuario</label>
+                        <input type="text" value={searchFilters.usuario} onChange={e => setSearchFilters({...searchFilters, usuario: e.target.value})}
+                          placeholder="Nombre o Email"
+                          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Nombre de Empresa</label>
+                        <input type="text" value={searchFilters.empresa} onChange={e => setSearchFilters({...searchFilters, empresa: e.target.value})}
+                          placeholder="Razón Social"
+                          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
+                        />
+                      </div>
+
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
+                      <button type="submit" disabled={consultaLoading} className="btn-primary" style={{ padding: '12px 40px', fontWeight: 800, letterSpacing: '0.5px' }}>
+                        {consultaLoading ? 'BUSCANDO...' : 'EJECUTAR BÚSQUEDA'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
 
                 {consultaResults && consultaResults.length === 0 && (
                   <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
