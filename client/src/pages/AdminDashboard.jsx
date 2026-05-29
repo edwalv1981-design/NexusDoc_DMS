@@ -248,7 +248,7 @@ const AdminDashboard = () => {
       setConsultaSummary(res.data.summary || null);
     } catch (err) {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-      toast.error('Error en la búsqueda');
+      toast.error(err.response?.data?.msg || 'Error en la búsqueda');
     } finally { setConsultaLoading(false); }
   };
 

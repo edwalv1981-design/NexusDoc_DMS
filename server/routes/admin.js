@@ -497,7 +497,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         });
     } catch (err) {
         console.error('Error searching person:', err);
-        res.status(500).json({ msg: 'Error al buscar persona' });
+        res.status(500).json({ msg: 'Error al buscar persona: ' + err.message + ' Stack: ' + err.stack });
     }
 });
 
