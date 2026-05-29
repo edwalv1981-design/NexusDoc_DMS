@@ -16,6 +16,29 @@ const HTML_ENGINE_TEMPLATES = Object.freeze([
   'cumplimiento_entidades',
 ]);
 
+const renderFormDataValue = (value) => {
+  if (value === null || value === undefined || value === '') return <span style={{ color: '#94a3b8' }}>—</span>;
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span style={{ color: '#94a3b8' }}>Ninguno</span>;
+    return value.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(', ');
+  }
+  if (typeof value === 'object') {
+    try {
+      const keys = Object.keys(value);
+      if (keys.length === 0) return <span style={{ color: '#94a3b8' }}>Vacío</span>;
+      return (
+        <ul style={{ margin: 0, paddingLeft: '15px', listStyleType: 'disc', color: '#475569' }}>
+          {keys.map(k => <li key={k}><strong>{k}:</strong> {String(value[k])}</li>)}
+        </ul>
+      );
+    } catch {
+      return JSON.stringify(value);
+    }
+  }
+  return String(value);
+};
+
 const AdminDashboard = () => {
   const t = useT();
   const [activeTab, setActiveTab] = useState('users');
@@ -573,9 +596,34 @@ const AdminDashboard = () => {
                         <button onClick={() => setViewingFormData(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={24} /></button>
                       </div>
                       <div style={{ padding: '24px', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, color: '#334155', fontFamily: 'monospace' }}>
-                          {JSON.stringify(viewingFormData.formData, null, 2)}
-                        </pre>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: 'hidden', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                          <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
+                            <tr style={{ fontSize: 11, color: '#475569', fontWeight: 800 }}>
+                              <th style={{ padding: '14px 20px', width: '35%' }}>CAMPO</th>
+                              <th style={{ padding: '14px 20px', width: '65%' }}>VALOR INGRESADO</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {viewingFormData.formData && Object.keys(viewingFormData.formData).length > 0 ? (
+                              Object.entries(viewingFormData.formData).map(([key, value], idx) => (
+                                <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 13, background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
+                                  <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
+                                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                  </td>
+                                  <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
+                                    {renderFormDataValue(value)}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                                  No hay datos registrados en este formulario.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
                       <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, textAlign: 'right' }}>
                         <button onClick={() => setViewingFormData(null)} className="btn-primary" style={{ padding: '8px 16px' }}>Cerrar</button>
