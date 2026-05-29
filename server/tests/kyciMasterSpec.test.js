@@ -53,6 +53,7 @@ describe('kyciMasterSpec', () => {
       'Negocios',
       'Prestamos',
       'Herencia o Fondo Fiduciario',
+      'Otras formas de ingresos',
     ]);
   });
 });

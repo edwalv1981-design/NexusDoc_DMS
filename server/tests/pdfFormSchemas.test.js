@@ -21,18 +21,16 @@ describe('pdfFormSchemas', () => {
     const empty = schemas.emptyStateForSchema(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA);
     assert.equal(empty.companyName, undefined);
     assert.equal(empty.beneficiaryName, undefined);
-    assert.ok(empty.firstName !== undefined);
-    assert.ok(empty.lastName !== undefined);
+    assert.ok(empty.fullName !== undefined);
     assert.ok(Array.isArray(empty.fundsSource));
     assert.equal(empty.pep, 'No');
   });
 
   it('valida paso 1 exige nombre y documento', () => {
     const partial = schemas.emptyStateForSchema(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA);
-    partial.firstName = 'Ana';
+    partial.fullName = 'Ana';
     const r = schemas.validateStep(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA, 1, partial);
     assert.equal(r.ok, false);
-    assert.ok(r.errors.includes('lastName'));
     assert.ok(r.errors.includes('passport'));
   });
 

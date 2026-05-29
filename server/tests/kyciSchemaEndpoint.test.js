@@ -23,7 +23,11 @@ describe('KYCI schema API (getMergedSchemaResponse)', () => {
       }),
     };
 
-    const merged = await svc.getMergedSchemaResponse(mockModel, 'Cumplimiento Individual', null);
+    const mockDocTemplate = {
+      findOne: async () => ({ uploadedBy: 'admin', fileData: Buffer.from('%PDF') }),
+    };
+
+    const merged = await svc.getMergedSchemaResponse(mockModel, 'Cumplimiento Individual', mockDocTemplate);
     assert.ok(merged);
     assert.equal(merged.schemaSource, 'uploaded_pdf');
     assert.equal(merged.acroFieldCount, 3);
@@ -31,7 +35,7 @@ describe('KYCI schema API (getMergedSchemaResponse)', () => {
     const keys = pdfFormSchemas.listSchemaFieldKeys(merged.schema);
     assert.ok(keys.includes('clienteNombreCompleto'));
     assert.ok(keys.includes('clienteDocumentoId'));
-    assert.ok(!keys.includes('firstName'));
+    assert.ok(!keys.includes('fullName'));
     assert.ok(!keys.includes('companyName'));
     const firstField = merged.schema.steps[0].fields[0];
     assert.ok(firstField.label);
@@ -52,14 +56,17 @@ describe('KYCI schema API (getMergedSchemaResponse)', () => {
         }),
       }),
     };
+    const mockDocTemplate = {
+      findOne: async () => ({ uploadedBy: 'admin', fileData: Buffer.from('%PDF') }),
+    };
     const merged = await svc.getMergedSchemaResponse(
       mockSchemaModel,
       'Cumplimiento Individual',
-      null
+      mockDocTemplate
     );
     const keys = pdfFormSchemas.listSchemaFieldKeys(merged.schema);
     assert.ok(keys.includes('campoAduana001'));
-    assert.ok(!keys.includes('firstName'));
+    assert.ok(!keys.includes('fullName'));
     assert.equal(merged.usesStaticFallback, false);
   });
 
@@ -79,7 +86,7 @@ describe('KYCI schema API (getMergedSchemaResponse)', () => {
   it('con plantilla pero 0 AcroForm no devuelve esquema estático KYCI', async () => {
     const mockSchemaModel = { findOne: async () => null };
     const mockDocTemplate = {
-      findOne: async () => ({ fileData: Buffer.from('%PDF') }),
+      findOne: async () => ({ uploadedBy: 'admin', fileData: Buffer.from('%PDF') }),
     };
 
     const originalRefresh = svc.refreshAcroFieldsFromTemplate;
@@ -109,8 +116,11 @@ describe('KYCI schema API (getMergedSchemaResponse)', () => {
 
   it('acepta alias cumplimiento_individual y KYCI en formType', async () => {
     const mockModel = { findOne: async () => null };
-    const a = await svc.getMergedSchemaResponse(mockModel, 'cumplimiento_individual', null);
-    const b = await svc.getMergedSchemaResponse(mockModel, 'KYCI', null);
+    const mockDocTemplate = {
+      findOne: async () => ({ uploadedBy: 'admin', fileData: Buffer.from('%PDF') }),
+    };
+    const a = await svc.getMergedSchemaResponse(mockModel, 'cumplimiento_individual', mockDocTemplate);
+    const b = await svc.getMergedSchemaResponse(mockModel, 'KYCI', mockDocTemplate);
     assert.ok(a?.schema);
     assert.ok(b?.schema);
     assert.equal(a.formType, 'Cumplimiento Individual');
@@ -127,7 +137,7 @@ describe('KYCI schema API (getMergedSchemaResponse)', () => {
     const { schema, schemaSource } = svc.mergeSchemas(staticSchema, uploaded, 1, true);
     assert.equal(schemaSource, 'uploaded_pdf');
     assert.ok(pdfFormSchemas.listSchemaFieldKeys(schema).includes('campoCustomPdf'));
-    assert.ok(!pdfFormSchemas.listSchemaFieldKeys(schema).includes('firstName'));
+    assert.ok(!pdfFormSchemas.listSchemaFieldKeys(schema).includes('fullName'));
   });
 
   it('resolveTemplateName normaliza etiquetas con espacios', () => {

@@ -22,9 +22,7 @@
     "file_path": "KYCI.pdf",
     "x_default": 220,
     "anchors": [
-      {"keywords": ["first", "primer", "nombre"], "x_key": "x_default", "data_key": "firstName", "min_y": 80, "max_y": 200},
-      {"keywords": ["second", "segundo"], "x_key": "x_default", "data_key": "secondName", "min_y": 100, "max_y": 220},
-      {"keywords": ["surname", "apellido", "last"], "x_key": "x_default", "data_key": "lastName", "min_y": 120, "max_y": 240},
+      {"keywords": ["name", "nombre", "completo"], "x_key": "x_default", "data_key": "fullName", "min_y": 80, "max_y": 240},
       {"keywords": ["birth", "nacimiento"], "x_key": "x_default", "data_key": "birthDate", "min_y": 150, "max_y": 280},
       {"keywords": ["place", "lugar"], "x_key": "x_default", "data_key": "birthPlace", "min_y": 170, "max_y": 300},
       {"keywords": ["marital", "civil"], "x_key": "x_default", "data_key": "maritalStatus", "min_y": 190, "max_y": 320},
