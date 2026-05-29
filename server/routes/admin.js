@@ -436,7 +436,10 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         const q = (req.query.q || '').trim();
         if (!q || q.length < 2) return res.json([]);
 
-        const pattern = `%${q}%`;
+        const terms = q.split(/\s+/).filter(Boolean);
+        const conditions = terms.map((_, i) => `CAST(f.data AS TEXT) ILIKE :term${i}`).join(' AND ');
+        const replacements = {};
+        terms.forEach((t, i) => replacements[`term${i}`] = `%${t}%`);
 
         const sql = `
             SELECT f.id         AS "formId",
@@ -450,12 +453,12 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    f.data       AS "formData"
             FROM "FormData" f
             JOIN "Users" u ON u.id = f.user_id
-            WHERE CAST(f.data AS TEXT) ILIKE :pattern
+            WHERE ${conditions}
             ORDER BY f.updated_at DESC
             LIMIT 150
         `;
 
-        const [rows] = await sequelize.query(sql, { replacements: { pattern } });
+        const [rows] = await sequelize.query(sql, { replacements });
         
         const results = [];
         rows.forEach(r => {
