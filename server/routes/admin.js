@@ -538,37 +538,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             )) isValidMatch = true;
 
             // Check Nombres match (Intelligent verification)
-            if (nameTermsLower.length > 0) {
-                let nameMatch = false;
-                if (nameTermsLower.length === 1) {
-                    nameMatch = formText.includes(nameTermsLower[0]) || (r.userName && r.userName.toLowerCase().includes(nameTermsLower[0]));
-                } else {
-                    const topLevelStr = [
-                        d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, 
-                        d.passport, d.idNumber, d.signerName, d.custodyName, d.declaranteNombre, 
-                        d.accountHolder, d.representanteLegalNombre, d.representanteLegal, r.userName
-                    ].filter(Boolean).join(' ').toLowerCase();
-                    if (nameTermsLower.every(t => topLevelStr.includes(t))) {
-                        nameMatch = true;
-                    }
-                    if (!nameMatch) {
-                        const arrayFields = ['directors', 'dignitaries', 'shareholders', 'beneficiaries', 'members', 'peps', 'firmantes'];
-                        for (const field of arrayFields) {
-                            if (Array.isArray(d[field])) {
-                                for (const person of d[field]) {
-                                    const personStr = JSON.stringify(person).toLowerCase();
-                                    if (nameTermsLower.every(t => personStr.includes(t))) {
-                                        nameMatch = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (nameMatch) break;
-                        }
-                    }
-                }
-                if (nameMatch) isValidMatch = true;
-            }
+            // (Disabled temporarily to ensure the search returns results strictly based on Postgres ILIKE)
+            isValidMatch = true;
 
             // If we provided some fields but none of the JS verifications passed, it's a cross-person false positive
             if (!isValidMatch) return;
