@@ -501,77 +501,81 @@ const AdminDashboard = () => {
                 )}
 
                 {consultaResults && consultaResults.length > 0 && (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
-                    <thead style={{ background: '#f9f9f9', borderBottom: `1px solid ${BORDER}` }}>
-                      <tr style={{ fontSize: 10, color: '#666', fontWeight: 800 }}>
-                        <th style={{ padding: '12px 12px' }}>PERSONA</th>
-                        <th style={{ padding: '12px 12px' }}>ENTIDAD</th>
-                        <th style={{ padding: '12px 12px' }}>PASAPORTE/CÉDULA</th>
-                        <th style={{ padding: '12px 12px' }}>ROL</th>
-                        <th style={{ padding: '12px 12px' }}>FORMULARIO</th>
-                        <th style={{ padding: '12px 12px' }}>USUARIO</th>
-                        <th style={{ padding: '12px 12px' }}>FECHA</th>
-                        <th style={{ padding: '12px 8px', width: 80 }}>ACCIONES</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {consultaResults.map((r, idx) => {
-                        const isExpanded = expandedPerson === idx;
-                        const det = r.personDetails || {};
-                        const detailKeys = Object.keys(det).filter(k => det[k] && typeof det[k] !== 'object');
-                        return (
-                          <React.Fragment key={`${r.formId}-${r.role}-${idx}`}>
-                            <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${BORDER}`, fontSize: 11, background: isExpanded ? '#f8fafc' : 'white' }}>
-                              <td style={{ padding: '10px 12px', fontWeight: 700, color: '#1e293b' }}>{r.personName || '—'}</td>
-                              <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0f766e' }}>{r.entityName || '—'}</td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: '#475569' }}>{r.personPassport || '—'}</td>
-                              <td style={{ padding: '10px 12px' }}>
-                                <span style={{
-                                  padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700,
-                                  background: r.role === 'Director' ? '#dbeafe' : r.role === 'Dignatario' ? '#fef3c7' : r.role === 'Accionista' ? '#d1fae5' : r.role === 'Beneficiario' ? '#ede9fe' : '#f1f5f9',
-                                  color: r.role === 'Director' ? '#1e40af' : r.role === 'Dignatario' ? '#92400e' : r.role === 'Accionista' ? '#065f46' : r.role === 'Beneficiario' ? '#5b21b6' : '#475569'
-                                }}>{r.role}</span>
-                              </td>
-                              <td style={{ padding: '10px 12px' }}>
-                                <span style={{ background: '#f0fdf4', color: '#15803d', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>{r.formType}</span>
-                              </td>
-                              <td style={{ padding: '10px 12px' }}>
-                                <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, fontSize: 11, textDecoration: 'underline', padding: 0 }}>
-                                  {r.userName}
-                                </button>
-                                <div style={{ fontSize: 9, color: '#94a3b8' }}>{r.userCode}</div>
-                              </td>
-                              <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(r.formDate).toLocaleDateString()}</td>
-                              <td style={{ padding: '10px 8px' }}>
-                                <div style={{ display: 'flex', gap: 4 }}>
-                                  <button title="Ver Formulario Completo" onClick={() => setViewingFormData(r)} style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: 4, borderRadius: RADIUS, cursor: 'pointer', color: '#15803d', display: 'flex' }}>
-                                    <Eye size={12} />
-                                  </button>
-                                  <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 4, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b', display: 'flex' }}>
-                                    {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {consultaResults.map((r, idx) => {
+                      const isExpanded = expandedPerson === idx;
+                      const fd = r.formData || {};
+                      
+                      // Identify common "Personal Data" keys
+                      const personalDataKeys = ['fullName', 'name', 'firstName', 'lastName', 'idNumber', 'passport', 'email', 'phone', 'nationality', 'country', 'birthDate', 'companyName', 'corporationName', 'foundationName'];
+                      const filteredPersonalData = Object.entries(fd).filter(([k, v]) => personalDataKeys.includes(k) && v);
+
+                      return (
+                        <div key={`${r.formId}-${idx}`} style={{ background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: 15, color: '#0f766e', fontWeight: 800 }}>{r.entityName || 'Formulario'}</h3>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                  <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
+                                  Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> el {new Date(r.formDate).toLocaleDateString()}
                                 </div>
-                              </td>
-                            </tr>
-                            {isExpanded && detailKeys.length > 0 && (
-                              <tr style={{ borderBottom: `1px solid ${BORDER}`, background: '#f8fafc' }}>
-                                <td colSpan={7} style={{ padding: '12px 20px' }}>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-                                    {detailKeys.map(k => (
-                                      <div key={k} style={{ fontSize: 11 }}>
-                                        <span style={{ color: '#94a3b8', fontWeight: 700, fontSize: 9, textTransform: 'uppercase' }}>{k}: </span>
-                                        <span style={{ color: '#334155' }}>{String(det[k])}</span>
-                                      </div>
-                                    ))}
+                            </div>
+                            <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
+                              {isExpanded ? 'Ver Menos' : 'Ver Más Detalles'}
+                            </button>
+                          </div>
+                          
+                          {/* Always visible Personal Data summary */}
+                          <div style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+                            {filteredPersonalData.length > 0 ? (
+                                filteredPersonalData.map(([k, v]) => (
+                                  <div key={k} style={{ minWidth: '150px' }}>
+                                      <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{k.replace(/([A-Z])/g, ' $1').trim()}</div>
+                                      <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>{renderFormDataValue(v)}</div>
                                   </div>
-                                </td>
-                              </tr>
+                                ))
+                            ) : (
+                                <div style={{ fontSize: 12, color: '#64748b' }}>No se identificaron datos básicos predeterminados. Haz clic en "Ver Más Detalles" para ver toda la información extraída.</div>
                             )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                          </div>
+
+                          {/* Full Table when expanded */}
+                          {isExpanded && (
+                            <div style={{ borderTop: `1px solid ${BORDER}`, padding: '0', background: '#f8fafc' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                  <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
+                                    <tr style={{ fontSize: 10, color: '#475569', fontWeight: 800 }}>
+                                      <th style={{ padding: '12px 20px', width: '35%' }}>TODOS LOS CAMPOS DEL FORMULARIO</th>
+                                      <th style={{ padding: '12px 20px', width: '65%' }}>VALOR REGISTRADO</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Object.entries(fd).length > 0 ? (
+                                        Object.entries(fd).map(([key, value], i) => (
+                                          <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 12, background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                                            <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
+                                              {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                            </td>
+                                            <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
+                                              {renderFormDataValue(value)}
+                                            </td>
+                                          </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                          <td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                                              No hay datos registrados adicionales.
+                                          </td>
+                                        </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
 
                 {!consultaResults && !consultaLoading && (

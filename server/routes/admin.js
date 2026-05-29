@@ -437,85 +437,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         if (!q || q.length < 2) return res.json([]);
 
         const pattern = `%${q}%`;
-        const results = [];
 
-        const arraySearches = [
-            { arrayField: 'directors',    role: 'Director',      nameFields: ["elem->>'fullName'", "CONCAT(elem->>'firstName',' ',elem->>'lastName')"], passportField: "elem->>'passport'" },
-            { arrayField: 'dignitaries',  role: 'Dignatario',    nameFields: ["elem->>'fullName'", "elem->>'name'"], passportField: "elem->>'passport'" },
-            { arrayField: 'shareholders', role: 'Accionista',    nameFields: ["elem->>'name'", "elem->>'fullName'"], passportField: "elem->>'passport'" },
-            { arrayField: 'beneficiaries',role: 'Beneficiario',  nameFields: ["elem->>'fullName'", "elem->>'name'", "elem->>'beneficiaryName'"], passportField: "elem->>'passport'" },
-            { arrayField: 'members',      role: 'Miembro',       nameFields: ["elem->>'fullName'", "elem->>'name'"], passportField: "elem->>'passport'" },
-        ];
-
-        for (const search of arraySearches) {
-            const nameConds = search.nameFields.map(nf => `${nf} ILIKE :pattern`).join(' OR ');
-            const passportCond = search.passportField ? `${search.passportField} ILIKE :pattern` : 'FALSE';
-
-            const sql = `
-                SELECT f.id         AS "formId",
-                       f."formType",
-                       f."userId",
-                       f."createdAt",
-                       f."updatedAt",
-                       u.name       AS "userName",
-                       u.email      AS "userEmail",
-                       u."uniqueCode" AS "userCode",
-                       ${search.nameFields[0]} AS "personName",
-                       ${search.passportField || 'NULL'} AS "personPassport",
-                       elem::text   AS "personData",
-                       f.data       AS "formData"
-                FROM "FormData" f
-                JOIN "Users" u ON u.id = f."userId"
-                CROSS JOIN LATERAL jsonb_array_elements(
-                    CASE WHEN f.data ? '${search.arrayField}' AND jsonb_typeof(f.data->'${search.arrayField}') = 'array'
-                         THEN f.data->'${search.arrayField}'
-                         ELSE '[]'::jsonb END
-                ) AS elem
-                WHERE (${nameConds} OR ${passportCond})
-                ORDER BY f."updatedAt" DESC
-                LIMIT 100
-            `;
-
-            try {
-                const [rows] = await sequelize.query(sql, { replacements: { pattern } });
-                rows.forEach(r => {
-                    let parsed = {};
-                    try { parsed = JSON.parse(r.personData); } catch (_) {}
-                    const displayName = parsed.fullName
-                        || [parsed.firstName, parsed.secondName, parsed.lastName].filter(Boolean).join(' ')
-                        || parsed.name || parsed.beneficiaryName || r.personName || '';
-                    
-                    let entityName = '';
-                    let d = {};
-                    try {
-                        d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
-                    } catch (_) {}
-                    if (d) {
-                        entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || '';
-                    }
-
-                    results.push({
-                        formId: r.formId,
-                        formType: r.formType,
-                        userId: r.userId,
-                        userName: r.userName,
-                        userEmail: r.userEmail,
-                        userCode: r.userCode,
-                        role: search.role,
-                        personName: displayName,
-                        personPassport: parsed.passport || r.personPassport || '',
-                        personDetails: parsed,
-                        entityName: entityName,
-                        formData: d,
-                        formDate: r.updatedAt
-                    });
-                });
-            } catch (queryErr) {
-                console.warn(`search-person: skipping ${search.arrayField}:`, queryErr.message);
-            }
-        }
-
-        const topLevelSql = `
+        const sql = `
             SELECT f.id         AS "formId",
                    f."formType",
                    f."userId",
@@ -524,58 +447,43 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    u.name       AS "userName",
                    u.email      AS "userEmail",
                    u."uniqueCode" AS "userCode",
-                   f.data->>'beneficiaryName' AS "beneficiaryName",
-                   f.data->>'fullName'        AS "fullName",
-                   f.data->>'name'            AS "topName",
-                   f.data                     AS "formData"
+                   f.data       AS "formData"
             FROM "FormData" f
             JOIN "Users" u ON u.id = f."userId"
-            WHERE (f.data->>'beneficiaryName' ILIKE :pattern
-                OR f.data->>'fullName' ILIKE :pattern
-                OR f.data->>'name' ILIKE :pattern)
+            WHERE f.data::text ILIKE :pattern
             ORDER BY f."updatedAt" DESC
-            LIMIT 50
+            LIMIT 150
         `;
 
-        try {
-            const [topRows] = await sequelize.query(topLevelSql, { replacements: { pattern } });
-            topRows.forEach(r => {
-                const existsAlready = results.some(x => x.formId === r.formId);
-                if (existsAlready) return;
+        const [rows] = await sequelize.query(sql, { replacements: { pattern } });
+        
+        const results = [];
+        rows.forEach(r => {
+            let entityName = '';
+            let d = {};
+            try {
+                d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
+            } catch (_) {}
+            
+            if (d) {
+                entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || 'N/A';
+            }
 
-                let entityName = '';
-                let d = {};
-                try {
-                    d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
-                } catch (_) {}
-                if (d) {
-                    entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || '';
-                }
-
-                results.push({
-                    formId: r.formId,
-                    formType: r.formType,
-                    userId: r.userId,
-                    userName: r.userName,
-                    userEmail: r.userEmail,
-                    userCode: r.userCode,
-                    role: 'Titular',
-                    personName: r.beneficiaryName || r.fullName || r.topName || '',
-                    personPassport: '',
-                    personDetails: {},
-                    entityName: entityName,
-                    formData: d,
-                    formDate: r.updatedAt
-                });
+            results.push({
+                formId: r.formId,
+                formType: r.formType,
+                userId: r.userId,
+                userName: r.userName,
+                userEmail: r.userEmail,
+                userCode: r.userCode,
+                role: 'Mencionado en formulario',
+                personName: d.fullName || d.beneficiaryName || d.name || entityName,
+                personPassport: d.passport || d.idNumber || '',
+                personDetails: {},
+                entityName: entityName,
+                formData: d,
+                formDate: r.updatedAt
             });
-        } catch (topErr) {
-            console.warn('search-person: top-level query error:', topErr.message);
-        }
-
-        const entityNames = new Set();
-        results.forEach(r => {
-            const ft = (r.formType || '').toLowerCase();
-            if (ft.includes('corporacion') || ft.includes('incorporacion')) entityNames.add(r.formId);
         });
 
         res.json({
