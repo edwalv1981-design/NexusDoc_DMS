@@ -1,9 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useToast } from './Toast';
 
 const ProtectedRoute = ({ children, roleRequired }) => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
+    const toast = useToast();
+    const hasShownToast = useRef(false);
+
+    useEffect(() => {
+        if (!hasShownToast.current && userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                if (user.remainingDays !== undefined && user.remainingDays !== null && user.email !== 'edwinalvarezvivero@yahoo.com') {
+                    // Show for 8 seconds so they can read it
+                    toast.info(`⏳ Tienes ${user.remainingDays} días de duración restantes.`, 8000);
+                }
+            } catch (e) {}
+            hasShownToast.current = true;
+        }
+    }, [userStr]);
     
     // Si no hay token, al login de cabeza
     if (!token || !userStr) {

@@ -95,7 +95,45 @@ const sendTemporaryPassword = async (toEmail, tempPassword) => {
     }
 };
 
+const sendAccountLockedNotice = async (toEmail) => {
+    if (!hasEmailConfig()) return false;
+
+    try {
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                from: `NexusDoc <${SENDER_EMAIL}>`,
+                to: toEmail,
+                subject: 'Tu cuenta ha sido bloqueada por caducidad - NexusDoc',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; border: 1px solid #eee; border-radius: 12px; max-width: 500px;">
+                        <h2 style="color: #dc2626;">Cuenta Bloqueada</h2>
+                        <p>Te informamos que el período de prueba/acceso de 14 días para tu usuario ha expirado.</p>
+                        <p><strong>Tu usuario ha sido bloqueado, por favor comunícate con tu administrador.</strong></p>
+                    </div>
+                `
+            })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Error en API de Resend:', errorData);
+            return false;
+        }
+
+        console.log('✅ Notificación de bloqueo enviada con éxito.');
+        return true;
+    } catch (error) {
+        console.error('❌ Error enviando notificación de bloqueo:', error.message);
+        return false;
+    }
+};
+
 module.exports = {
     sendSecurityCode,
-    sendTemporaryPassword
+    sendTemporaryPassword,
+    sendAccountLockedNotice
 };

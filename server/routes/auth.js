@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { User, AuditLog, PendingRegistration } = require('../models');
-const { sendSecurityCode, sendTemporaryPassword } = require('../services/emailService');
+const { sendSecurityCode, sendTemporaryPassword, sendAccountLockedNotice } = require('../services/emailService');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
 const { Op } = require('sequelize');
@@ -231,8 +231,27 @@ router.get('/me', auth, async (req, res) => {
             console.error('[ME] Error silencioso en idioma:', lErr.message);
         }
 
+        // Lógica de Expiración de 2 Semanas (14 días)
+        let remainingDays = null;
+        if (user.email !== 'edwinalvarezvivero@yahoo.com') {
+            const creationDate = new Date(user.createdAt);
+            const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+            const now = new Date();
+            
+            remainingDays = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (remainingDays <= 0) {
+                console.log(`🚫 Cuenta bloqueada por expiración (/me): ${user.email}`);
+                user.status = 'blocked';
+                await user.save();
+                await sendAccountLockedNotice(user.email);
+                return res.status(403).json({ msg: 'Tu usuario ha sido bloqueado por caducidad (14 días), por favor comunícate con tu administrador.' });
+            }
+        }
+
         const payload = user.get({ plain: true });
         payload.language = language;
+        payload.remainingDays = remainingDays;
         res.json(payload);
     } catch (err) {
         console.error('🔥 ERROR CRÍTICO EN /ME:', err);
@@ -350,6 +369,24 @@ router.post('/login', authLimiter, async (req, res) => {
         user.loginAttempts = 0;
         await user.save();
 
+        // Lógica de Expiración de 2 Semanas (14 días)
+        let remainingDays = null;
+        if (user.email !== 'edwinalvarezvivero@yahoo.com') {
+            const creationDate = new Date(user.createdAt);
+            const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+            const now = new Date();
+            
+            remainingDays = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (remainingDays <= 0) {
+                console.log(`🚫 Cuenta bloqueada por expiración: ${email}`);
+                user.status = 'blocked';
+                await user.save();
+                await sendAccountLockedNotice(user.email);
+                return res.status(403).json({ msg: 'Tu usuario ha sido bloqueado por caducidad (14 días), por favor comunícate con tu administrador.' });
+            }
+        }
+
         const payload = { user: { id: user.id, role: user.role } };
 
         jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' }, async (err, token) => {
@@ -371,6 +408,7 @@ router.post('/login', authLimiter, async (req, res) => {
                         email: user.email,
                         role: user.role,
                         mustChangePassword: user.mustChangePassword,
+                        remainingDays: remainingDays,
                     },
                 });
             } catch (saveErr) {
