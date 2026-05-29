@@ -508,8 +508,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    u.email      AS "userEmail",
                    u.unique_code AS "userCode",
                    f.data       AS "formData"
-            FROM "FormData" f
-            JOIN "Users" u ON u.id = f.user_id
+            FROM "form_data" f
+            JOIN "users" u ON u.id = f.user_id
             ${whereClause}
             ORDER BY f.updated_at DESC
             LIMIT 150
@@ -576,8 +576,15 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 formDate: r.updatedAt
             });
         });
-
-        throw new Error(`DEBUG_INFO: SQL ROWS=${rows.length}, FINAL RESULTS=${results.length}. Terms=${JSON.stringify(nameTerms)} Condiciones=${JSON.stringify(conditions)}`);
+        res.json({
+            results,
+            summary: {
+                totalResults: results.length,
+                uniqueForms: new Set(results.map(r => r.formId)).size,
+                uniqueUsers: new Set(results.map(r => r.userId)).size,
+                roles: [...new Set(results.map(r => r.role))]
+            }
+        });
     } catch (err) {
         console.error('Error searching person:', err);
         res.status(500).json({ msg: 'Error al buscar persona: ' + err.message + ' Stack: ' + err.stack });

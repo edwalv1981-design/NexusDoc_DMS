@@ -1,11 +1,23 @@
 const https = require('https');
 const fs = require('fs');
 
-https.get('https://nexusdocdms-production.up.railway.app/api/admin/debug-db', (res) => {
-    let data = '';
-    res.on('data', chunk => data += chunk);
+const data = JSON.stringify({ query: 'SELECT count(*) FROM form_data f WHERE CAST(f.data AS TEXT) ILIKE \'%Edwin%\' AND CAST(f.data AS TEXT) ILIKE \'%Alvarez%\'' });
+
+const req = https.request('https://nexusdocdms-production.up.railway.app/api/admin/debug-db', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+    }
+}, (res) => {
+    let body = '';
+    res.on('data', chunk => body += chunk);
     res.on('end', () => {
-        fs.writeFileSync('prod_db_dump.json', data);
+        fs.writeFileSync('prod_db_dump.json', body);
         console.log('Database dump saved to prod_db_dump.json');
     });
-}).on('error', err => console.error(err));
+});
+
+req.on('error', err => console.error(err));
+req.write(data);
+req.end();
