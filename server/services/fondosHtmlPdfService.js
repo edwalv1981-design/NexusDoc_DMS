@@ -12,7 +12,6 @@ const FUNDS_KEYS = [
   { key: 'Negocios', labelKey: 'fundsNegocios' },
   { key: 'Prestamos', labelKey: 'fundsPrestamos' },
   { key: 'Herencia o Fondo Fiduciario', labelKey: 'fundsHerencia' },
-  { key: 'Otras formas de ingresos', labelKey: 'fundsOtras' },
 ];
 
 function toDataUri(filePath) {
