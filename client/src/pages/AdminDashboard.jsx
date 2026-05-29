@@ -568,12 +568,7 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-                {consultaResults && consultaResults.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
-                    <SearchCheck size={40} style={{ marginBottom: 10, opacity: 0.4 }} />
-                    <p style={{ fontSize: 13 }}>No se encontraron resultados para "<strong>{consultaSearch}</strong>"</p>
-                  </div>
-                )}
+
 
                 {consultaResults && consultaResults.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

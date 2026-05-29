@@ -444,9 +444,13 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
 
         const nameTerms = nombres ? nombres.trim().split(/\s+/).filter(Boolean) : [];
         if (nameTerms.length > 0) {
-            const subConds = nameTerms.map((_, i) => `CAST(f.data AS TEXT) ILIKE :n_term${i}`).join(' AND ');
+            const subConds = nameTerms.map((_, i) => `(CAST(f.data AS TEXT) ILIKE :n_term${i} OR u.name ILIKE :n_term${i})`).join(' AND ');
             conditions.push(`(${subConds})`);
             nameTerms.forEach((t, i) => replacements[`n_term${i}`] = `%${t}%`);
+        }
+
+        if (nombres === 'DEBUG_EDWIN') {
+            conditions.push(`CAST(f.data AS TEXT) ILIKE '%Edwin%'`);
         }
 
         if (ruc && ruc.trim()) {
@@ -537,12 +541,12 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             if (nameTermsLower.length > 0) {
                 let nameMatch = false;
                 if (nameTermsLower.length === 1) {
-                    nameMatch = formText.includes(nameTermsLower[0]);
+                    nameMatch = formText.includes(nameTermsLower[0]) || (r.userName && r.userName.toLowerCase().includes(nameTermsLower[0]));
                 } else {
                     const topLevelStr = [
                         d.firstName, d.lastName, d.fullName, d.name, d.beneficiaryName, 
                         d.passport, d.idNumber, d.signerName, d.custodyName, d.declaranteNombre, 
-                        d.accountHolder, d.representanteLegalNombre, d.representanteLegal
+                        d.accountHolder, d.representanteLegalNombre, d.representanteLegal, r.userName
                     ].filter(Boolean).join(' ').toLowerCase();
                     if (nameTermsLower.every(t => topLevelStr.includes(t))) {
                         nameMatch = true;
