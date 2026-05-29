@@ -301,8 +301,9 @@ const FondosForm = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                </div>
+                                    )}
                             </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
                                     <input type="date" className="corporate-input" style={{...getErrorStyle('birthDate'), ...getFieldErrorStyle('birthDate')}} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); handleFieldChange('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} />
