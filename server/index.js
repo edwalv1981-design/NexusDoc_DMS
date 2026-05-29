@@ -59,6 +59,9 @@ function sendSpaIndex(req, res, next) {
     if (!hasFrontend) {
         return res.status(503).type('text/plain').send('Frontend no construido (falta client/dist/index.html)');
     }
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile('index.html', { root: distPath }, (err) => {
         if (err) {
             console.error('[spa] sendFile error:', err.message, 'root=', distPath);
