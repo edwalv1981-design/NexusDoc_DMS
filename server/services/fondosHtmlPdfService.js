@@ -96,7 +96,6 @@ function buildFondosPdfInnerHtml(data = {}, options = {}) {
     </section>
 
     <section class="card declaration-text">
-      <p class="declaration-en">${esc(t.declarationTextEn)}</p>
       <p class="declaration-es">${esc(t.declarationText)}</p>
     </section>
 
