@@ -66,7 +66,8 @@ const AdminDashboard = () => {
     ruc: '',
     codigoUnico: '',
     usuario: '',
-    empresa: ''
+    empresa: '',
+    formType: ''
   });
   const [consultaResults, setConsultaResults] = useState(null);
   const [consultaSummary, setConsultaSummary] = useState(null);
@@ -240,14 +241,14 @@ const AdminDashboard = () => {
   const handleConsultaSearch = async (e) => {
     e && e.preventDefault();
     const token = localStorage.getItem('token');
-    const { nombres, ruc, codigoUnico, usuario, empresa } = searchFilters;
-    if (!nombres.trim() && !ruc.trim() && !codigoUnico.trim() && !usuario.trim() && !empresa.trim()) return toast.error('Ingrese al menos un criterio de búsqueda');
+    const { nombres, ruc, codigoUnico, usuario, empresa, formType } = searchFilters;
+    if (!nombres.trim() && !ruc.trim() && !codigoUnico.trim() && !usuario.trim() && !empresa.trim() && !formType.trim()) return toast.error('Ingrese al menos un criterio de búsqueda o seleccione un formulario');
     setConsultaLoading(true);
     setExpandedPerson(null);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/admin/search-person`, {
         headers: { 'x-auth-token': token },
-        params: { nombres, ruc, codigoUnico, usuario, empresa }
+        params: { nombres, ruc, codigoUnico, usuario, empresa, formType }
       });
       setConsultaResults(res.data.results || []);
       setConsultaSummary(res.data.summary || null);
@@ -461,6 +462,22 @@ const AdminDashboard = () => {
                           placeholder="Razón Social"
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
                         />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Tipo de Formulario</label>
+                        <select 
+                          value={searchFilters.formType} 
+                          onChange={e => setSearchFilters({...searchFilters, formType: e.target.value})}
+                          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff', cursor: 'pointer' }}
+                        >
+                          <option value="">Todos los formularios</option>
+                          <option value="corporacion">Formulario de Corporación</option>
+                          <option value="fundacion">Formulario de Fundación</option>
+                          <option value="cumplimiento-entidad">Cumplimiento (Entidad)</option>
+                          <option value="cumplimiento-individual">Cumplimiento (Individual)</option>
+                          <option value="fondos">Declaración de Fondos</option>
+                        </select>
                       </div>
 
                     </div>

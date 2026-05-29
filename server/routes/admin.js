@@ -433,9 +433,9 @@ router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
 // @desc    Search across ALL form data for a person by name or passport/cedula
 router.get('/search-person', [auth, isAdmin], async (req, res) => {
     try {
-        const { nombres, ruc, codigoUnico, usuario, empresa } = req.query;
+        const { nombres, ruc, codigoUnico, usuario, empresa, formType } = req.query;
         
-        if (!nombres && !ruc && !codigoUnico && !usuario && !empresa) {
+        if (!nombres && !ruc && !codigoUnico && !usuario && !empresa && !formType) {
             return res.json({ results: [], summary: { totalResults: 0, uniqueForms: 0, uniqueUsers: 0, roles: [] } });
         }
 
@@ -469,7 +469,18 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             replacements.empresa = `%${empresa.trim()}%`;
         }
 
-        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' OR ')}` : '';
+        const whereClauses = [];
+        
+        if (formType && formType.trim()) {
+            whereClauses.push(`f.form_type = :formType`);
+            replacements.formType = formType.trim();
+        }
+
+        if (conditions.length > 0) {
+            whereClauses.push(`(${conditions.join(' OR ')})`);
+        }
+
+        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         const sql = `
             SELECT f.id         AS "formId",
