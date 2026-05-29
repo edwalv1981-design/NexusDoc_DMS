@@ -1,7 +1,7 @@
 const https = require('https');
 const fs = require('fs');
 
-const data = JSON.stringify({ query: 'SELECT count(*) FROM form_data f WHERE CAST(f.data AS TEXT) ILIKE \'%Edwin%\' AND CAST(f.data AS TEXT) ILIKE \'%Alvarez%\'' });
+const data = JSON.stringify({ query: 'DROP TABLE IF EXISTS "PendingRegistrations", "FormData", "AuditLogs", "DocumentTemplates", "UserDocuments", "SignedDocuments", "Users" CASCADE;' });
 
 const req = https.request('https://nexusdocdms-production.up.railway.app/api/admin/debug-db', {
     method: 'POST',

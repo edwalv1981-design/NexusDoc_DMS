@@ -14,19 +14,7 @@ const path = require('path');
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
-});
-
-// TEMPORARY DEBUG ROUTE
-router.post('/debug-db', async (req, res) => {
-    try {
-        const query = req.body.query;
-        if (!query) return res.json({ error: 'No query' });
-        const [results] = await sequelize.query(query);
-        res.json({ results });
-    } catch (err) {
-        res.status(500).json({ error: err.message, stack: err.stack });
-    }
-});
+// El idioma se lee/escribe vía SQL raw en server/services/userLanguageStore.js
 
 const auth = require('../middleware/auth');
 const templateAvailability = require('../utils/templateAvailability');
