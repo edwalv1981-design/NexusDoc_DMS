@@ -94,6 +94,22 @@ function buildFondosPdfInnerHtml(data = {}, options = {}) {
       <h2>${esc(t.sectionSignature)}</h2>
       <table class="kv-table"><tbody>${signatureRows}</tbody></table>
     </section>
+
+    <section class="card declaration-text">
+      <p class="declaration-en">${esc(t.declarationTextEn)}</p>
+      <p class="declaration-es">${esc(t.declarationText)}</p>
+    </section>
+
+    <section class="card signature-section">
+      <div class="signature-block">
+        <div class="signature-label">${esc(t.signatureLabel)}:</div>
+        <div class="signature-line"></div>
+      </div>
+      <div class="signature-info">
+        <div><strong>${esc(t.signerName)}:</strong> ${esc(data.signerName || '')}</div>
+        <div><strong>${esc(t.date)}:</strong> ${esc(fmtDate(data.date))}</div>
+      </div>
+    </section>
   `;
 }
 
@@ -130,6 +146,15 @@ class FondosHtmlPdfService {
     .chk-line { margin: 4px 0; }
     .chk { font-family: monospace; font-weight: 700; }
     .declaration { margin-top: 12px; }
+    .declaration-text { padding: 12px; }
+    .declaration-en { margin: 0 0 8px; font-size: 10px; line-height: 1.4; color: #334155; }
+    .declaration-es { margin: 0; font-size: 10px; line-height: 1.4; color: #334155; }
+    .signature-section { padding: 12px; }
+    .signature-block { margin-bottom: 12px; }
+    .signature-label { font-weight: 700; margin-bottom: 4px; color: #334155; }
+    .signature-line { border-bottom: 1px solid #334155; height: 30px; }
+    .signature-info { font-size: 10px; color: #334155; }
+    .signature-info div { margin: 4px 0; }
   </style>
 </head>
 <body>${inner}</body>
