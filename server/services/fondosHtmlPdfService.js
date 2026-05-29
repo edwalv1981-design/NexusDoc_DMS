@@ -37,6 +37,7 @@ function buildFondosPdfInnerHtml(data = {}, options = {}) {
     kvRow(t.companyName, data.companyName),
     kvRow(t.activities, data.activities),
     kvRow(t.country, data.country),
+    kvRow(t.operatingAddress, data.operatingAddress),
   ].join('');
 
   const beneficiaryRows = [
@@ -54,6 +55,7 @@ function buildFondosPdfInnerHtml(data = {}, options = {}) {
   ].join('');
 
   const signatureRows = [
+    kvRow(t.fiscalYear, data.fiscalYear),
     kvRow(t.signerName, data.signerName),
     kvRow(t.date, fmtDate(data.date)),
   ].join('');
