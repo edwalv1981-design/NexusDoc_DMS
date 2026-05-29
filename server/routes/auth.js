@@ -233,7 +233,7 @@ router.get('/me', auth, async (req, res) => {
 
         // Lógica de Expiración de 2 Semanas (14 días)
         let remainingDays = null;
-        if (user.email !== 'edwinalvarezvivero@yahoo.com') {
+        if (user.email !== 'edwinalvarezvivero@yahoo.com' && user.email !== 'rokutvedw@gmail.com') {
             const creationDate = new Date(user.createdAt);
             const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
             const now = new Date();
@@ -371,7 +371,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
         // Lógica de Expiración de 2 Semanas (14 días)
         let remainingDays = null;
-        if (user.email !== 'edwinalvarezvivero@yahoo.com') {
+        if (user.email !== 'edwinalvarezvivero@yahoo.com' && user.email !== 'rokutvedw@gmail.com') {
             const creationDate = new Date(user.createdAt);
             const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
             const now = new Date();
