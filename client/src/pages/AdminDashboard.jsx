@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X, Edit2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -244,6 +244,13 @@ const AdminDashboard = () => {
     } catch (err) {
       toast.error('Error al eliminar la plantilla');
     }
+  };
+
+  const handleEditTemplate = (name) => {
+    setTemplateUploadMode('custom');
+    setCustomTemplateName(name);
+    toast.info('Seleccione un nuevo archivo PDF para reemplazar esta plantilla');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleConsultaSearch = async (e) => {
@@ -793,7 +800,16 @@ const AdminDashboard = () => {
                                               <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
                                                 {isHtml ? t('admin.htmlEngine') : t('admin.customDb')}
                                               </span>
+                                              <>
                                               {!isHtml && customTemplate && (
+                                              <>
+                                              <button 
+                                                  onClick={() => handleEditTemplate(type.id)}
+                                                  style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                  title="Editar plantilla (Reemplazar PDF)"
+                                              >
+                                                  <Edit2 size={14} />
+                                              </button>
                                               <button 
                                                   onClick={() => handleDeleteTemplate(type.id)}
                                                   style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -801,7 +817,9 @@ const AdminDashboard = () => {
                                               >
                                                   <Trash2 size={14} />
                                               </button>
+                                              </>
                                               )}
+                                              </>
                                           </>
                                       ) : (
                                           <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>{t('admin.noTemplate')}</span>
