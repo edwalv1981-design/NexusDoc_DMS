@@ -532,7 +532,7 @@ const ClientDashboard = () => {
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 {getFormTypeLabel(mainDoc.type, lang)}
-                                                <span style={{ fontSize: '10px', background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px' }}>v{mainDoc.version || 1} (Actual)</span>
+                                                {hasHistory && <span style={{ fontSize: '10px', background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px' }}>v{mainDoc.version || 1} (Actual)</span>}
                                             </div>
                                             
                                             <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 4 }}>
