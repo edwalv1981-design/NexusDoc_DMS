@@ -1051,6 +1051,7 @@ const AdminDashboard = () => {
                 <select className="input-modern-admin" value={createUserForm.roleOverride} onChange={e => setCreateUserForm({ ...createUserForm, roleOverride: e.target.value })} required>
                   <option value="client">Cliente Normal</option>
                   <option value="manager">Administrador</option>
+                  <option value="master">Administrador Maestro</option>
                 </select>
               </div>
               <button type="submit" className="btn-primary" disabled={creatingUser} style={{ marginTop: 10 }}>
@@ -1078,6 +1079,7 @@ const AdminDashboard = () => {
                 <select className="input-modern-admin" value={newRoleOverride} onChange={e => setNewRoleOverride(e.target.value)} required>
                   <option value="client">Cliente Normal</option>
                   <option value="manager">Administrador</option>
+                  <option value="master">Administrador Maestro</option>
                 </select>
               </div>
               <button type="submit" className="btn-primary" disabled={changingRole} style={{ marginTop: 10 }}>

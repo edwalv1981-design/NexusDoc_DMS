@@ -256,8 +256,9 @@ router.get('/me', auth, async (req, res) => {
         try {
             const profileStore = require('../services/userProfileStore');
             const profile = await profileStore.getProfile(user.id);
-            if (profile && profile.roleOverride === 'manager') {
-                payload.role = 'manager';
+            if (profile) {
+                if (profile.roleOverride === 'manager') payload.role = 'manager';
+                else if (profile.roleOverride === 'master') payload.role = 'admin';
             }
         } catch (pErr) {
             console.warn('Error reading profile:', pErr.message);
@@ -402,8 +403,9 @@ router.post('/login', authLimiter, async (req, res) => {
         let effectiveRole = user.role;
         try {
             const profile = await profileStore.getProfile(user.id);
-            if (profile && profile.roleOverride === 'manager') {
-                effectiveRole = 'manager';
+            if (profile) {
+                if (profile.roleOverride === 'manager') effectiveRole = 'manager';
+                else if (profile.roleOverride === 'master') effectiveRole = 'admin';
             }
         } catch (e) {
             console.warn('Error reading profile in login:', e.message);
