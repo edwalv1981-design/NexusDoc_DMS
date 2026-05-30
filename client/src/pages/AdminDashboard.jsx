@@ -297,7 +297,7 @@ const AdminDashboard = () => {
           <span style={{ fontWeight: 700, fontSize: '13px' }}>NEXUSDOC ADMIN</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'settings', icon: Settings, label: t('admin.settings') }].map(item => (
+          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'settings', icon: Settings, label: 'Cambio de Claves' }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS }}>
               <item.icon size={15} /> {item.label}
             </button>
@@ -726,7 +726,7 @@ const AdminDashboard = () => {
 
             {activeTab === 'settings' && (
               <div style={{ padding: '30px', maxWidth: '450px' }}>
-                <h3 style={{ marginBottom: '20px' }}>Configuración del Perfil</h3>
+                <h3 style={{ marginBottom: '20px' }}>Actualizar datos de usuario</h3>
                 <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                   <div className="field-group-admin">
                     <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
