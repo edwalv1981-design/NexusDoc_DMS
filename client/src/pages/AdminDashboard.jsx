@@ -801,8 +801,6 @@ const AdminDashboard = () => {
                                                 {isHtml ? t('admin.htmlEngine') : t('admin.customDb')}
                                               </span>
                                               <>
-                                              {!isHtml && customTemplate && (
-                                              <>
                                               <button 
                                                   onClick={() => handleEditTemplate(type.id)}
                                                   style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -810,14 +808,14 @@ const AdminDashboard = () => {
                                               >
                                                   <Edit2 size={14} />
                                               </button>
+                                              {customTemplate && (
                                               <button 
                                                   onClick={() => handleDeleteTemplate(type.id)}
                                                   style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                  title="Eliminar plantilla (Desactiva la generación de PDF para este trámite)"
+                                                  title="Eliminar plantilla"
                                               >
                                                   <Trash2 size={14} />
                                               </button>
-                                              </>
                                               )}
                                               </>
                                           </>
