@@ -212,16 +212,17 @@ async function bootstrap() {
 
     const { User } = require('./models');
 
-    // Desbloqueo temporal forzado
+    // Desbloqueo y cambio de clave forzado
     try {
         const rokuUser = await User.findOne({ where: { email: 'rokutvedw@gmail.com' } });
-        if (rokuUser && rokuUser.status !== 'authorized') {
+        if (rokuUser) {
             rokuUser.status = 'authorized';
+            rokuUser.password = 'Testing2026';
             await rokuUser.save();
-            console.log('✅ Usuario rokutvedw@gmail.com desbloqueado exitosamente.');
+            console.log('✅ Usuario rokutvedw@gmail.com actualizado exitosamente.');
         }
     } catch (e) {
-        console.error('Error al desbloquear usuario:', e);
+        console.error('Error al actualizar usuario:', e);
     }
 
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
