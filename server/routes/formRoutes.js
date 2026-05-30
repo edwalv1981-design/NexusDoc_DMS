@@ -439,17 +439,21 @@ router.post('/save', auth, async (req, res) => {
           ? ` Campos modificados: ${changedKeys.join(', ')}` 
           : ' (Sin cambios detectados)';
 
-      const parentId = form.parentId || form.id;
-      const nextVersion = (form.version || 1) + 1;
+      const parentId = (form.data && form.data.__metadata && form.data.__metadata.parentId) ? form.data.__metadata.parentId : form.id;
+      const nextVersion = ((form.data && form.data.__metadata && form.data.__metadata.version) || 1) + 1;
+
+      // Add metadata to new data
+      const dataWithMeta = {
+          ...data,
+          __metadata: { parentId, version: nextVersion }
+      };
 
       // Instead of updating, we create a new version
       const newForm = await FormData.create({
         userId: req.user.id,
         formType: formTypeLabel,
         userUniqueCode: userCode,
-        data: data,
-        parentId: parentId,
-        version: nextVersion
+        data: dataWithMeta
       });
       
       AuditLog.create({
@@ -461,14 +465,22 @@ router.post('/save', auth, async (req, res) => {
       return res.json({ msg: 'Actualizado con éxito', data: newForm });
     }
 
+    // Add metadata for new form
+    const dataWithMeta = {
+        ...data,
+        __metadata: { parentId: null, version: 1 }
+    };
+
     const newForm = await FormData.create({
       userId: req.user.id,
       formType: formTypeLabel,
       userUniqueCode: userCode,
-      data: data,
-      parentId: null,
-      version: 1
+      data: dataWithMeta
     });
+
+    // We must update the parentId to match its own ID since it's the first version!
+    // But we don't know the ID until it's created. We can just leave it as null, 
+    // and the frontend will use doc.id if parentId is null.
 
     AuditLog.create({
       userId: req.user.id,
@@ -491,14 +503,17 @@ router.get('/my-forms', auth, async (req, res) => {
       where: { userId: req.user.id },
       order: [['updatedAt', 'DESC']]
     });
-    const mapped = forms.map(f => ({
-        id: f.id,
-        type: f.formType,
-        date: f.updatedAt,
-        data: f.data,
-        parentId: f.parentId || null,
-        version: f.version || 1
-    }));
+    const mapped = forms.map(f => {
+        const meta = f.data && f.data.__metadata ? f.data.__metadata : { parentId: null, version: 1 };
+        return {
+            id: f.id,
+            type: f.formType,
+            date: f.updatedAt,
+            data: f.data,
+            parentId: meta.parentId,
+            version: meta.version
+        };
+    });
     res.json(mapped);
   } catch (err) {
     res.status(500).json({ msg: 'Error al recuperar documentos' });

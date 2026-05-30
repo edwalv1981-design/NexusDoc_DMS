@@ -196,17 +196,6 @@ async function ensureUserLanguageColumn(sequelize) {
     }
 }
 
-async function ensureFormDataColumns(sequelize) {
-    try {
-        await sequelize.query(`ALTER TABLE "FormData" ADD COLUMN IF NOT EXISTS "parentId" UUID`);
-        await sequelize.query(`ALTER TABLE "FormData" ADD COLUMN IF NOT EXISTS "version" INTEGER DEFAULT 1`);
-        await sequelize.query(`UPDATE "FormData" SET "version" = 1 WHERE "version" IS NULL`);
-        console.log(`🌐 Columnas parentId y version en FormData aseguradas.`);
-    } catch (err) {
-        console.warn('⚠️ ensureFormDataColumns falló:', err.message);
-    }
-}
-
 async function bootstrap() {
     const { connectDB, sequelize } = require('./config/db');
     await connectDB();
@@ -220,7 +209,6 @@ async function bootstrap() {
     }
 
     await ensureUserLanguageColumn(sequelize);
-    await ensureFormDataColumns(sequelize);
 
     const { User } = require('./models');
 
