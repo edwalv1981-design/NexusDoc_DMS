@@ -93,6 +93,53 @@ router.delete('/users/:id', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   POST api/admin/users/create
+// @desc    Admin creates a new user
+router.post('/users/create', [auth, isAdmin], async (req, res) => {
+    try {
+        const { name, email, idNumber, roleOverride } = req.body;
+        if (!email || !name) return res.status(400).json({ msg: 'Nombre y correo son obligatorios' });
+
+        const existing = await User.findOne({ where: { email } });
+        if (existing) return res.status(400).json({ msg: 'El correo ya está registrado' });
+
+        const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '!@';
+        const uniqueCode = `ADM-${Date.now()}-${crypto.randomInt(100, 999)}`;
+
+        const newUser = await User.create({
+            name,
+            email,
+            idNumber: idNumber || null,
+            password: tempPassword,
+            status: 'authorized',
+            role: 'client', // The database role is always client
+            mustChangePassword: true,
+            uniqueCode
+        });
+
+        const profileStore = require('../services/userProfileStore');
+        await profileStore.setProfile(newUser.id, {
+            roleOverride: roleOverride || 'client',
+            phone: '',
+            address: '',
+            createdBy: req.user.id
+        });
+
+        await sendTemporaryPassword(email, tempPassword);
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'USER_CREATE',
+            description: `Admin creó al usuario ${email} con rol ${roleOverride}`
+        });
+
+        res.json({ msg: 'Usuario creado con éxito y correo enviado', user: newUser });
+    } catch (err) {
+        console.error('Error creating user:', err.message);
+        res.status(500).json({ msg: 'Error al crear usuario' });
+    }
+});
+
 // @route   POST api/admin/users/:id/reset-password
 // @desc    Admin resets a user's password manually
 router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {

@@ -135,6 +135,7 @@ function registerApiRoutes() {
 
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/admin', require('./routes/admin'));
+    app.use('/api/manager', require('./routes/manager'));
     app.use('/api/forms', require('./routes/formRoutes'));
     app.use('/api/documents', require('./routes/documents'));
     app.use('/api/signed-docs', require('./routes/signedDocuments'));
@@ -196,6 +197,23 @@ async function ensureUserLanguageColumn(sequelize) {
     }
 }
 
+async function ensureUserProfilesTable(sequelize) {
+    try {
+        await sequelize.query(`
+            CREATE TABLE IF NOT EXISTS "UserProfiles" (
+                "userId" UUID PRIMARY KEY REFERENCES "Users"("id") ON DELETE CASCADE,
+                "roleOverride" VARCHAR(50),
+                "phone" VARCHAR(50),
+                "address" TEXT,
+                "createdBy" UUID
+            )
+        `);
+        console.log(`🌐 Tabla UserProfiles asegurada.`);
+    } catch (err) {
+        console.warn('⚠️ ensureUserProfilesTable falló:', err.message);
+    }
+}
+
 async function bootstrap() {
     const { connectDB, sequelize } = require('./config/db');
     await connectDB();
@@ -209,6 +227,7 @@ async function bootstrap() {
     }
 
     await ensureUserLanguageColumn(sequelize);
+    await ensureUserProfilesTable(sequelize);
 
     const { User } = require('./models');
 

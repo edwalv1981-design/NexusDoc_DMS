@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
-    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, IdCard, FileStack
+    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, IdCard, FileStack, Users
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 import { getFormTypeLabel } from '../formTypes';
@@ -10,6 +10,7 @@ import { useLang, useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import UserDocuments from './UserDocuments';
 import SignedDocuments from './SignedDocuments';
+import SubUsers from '../components/SubUsers';
 import CorporacionForm from './CorporacionForm';
 import FundacionForm from './FundacionForm';
 import CumplimientoIndividualForm from './CumplimientoIndividualForm';
@@ -460,6 +461,11 @@ const ClientDashboard = () => {
                     <div onClick={() => { navigate('/dashboard?view=signed-docs'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showSignedDocs ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '5px' }}>
                         <FileStack size={15} /> <span>{t('sidebar.signedDocs')}</span>
                     </div>
+                    {user?.role === 'manager' && (
+                        <div onClick={() => { navigate('/dashboard?view=sub-users'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: queryParams.get('view') === 'sub-users' ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '5px' }}>
+                            <Users size={15} /> <span>Usuarios Adicionales</span>
+                        </div>
+                    )}
                 </nav>
                 <LanguageSwitcher variant="sidebar" />
                 <button onClick={() => { localStorage.clear(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '11px', borderRadius: RADIUS, marginTop: 10 }}>
@@ -469,7 +475,9 @@ const ClientDashboard = () => {
 
             <main style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
               <div className="form-content-frame">
-                {showSignedDocs ? (
+                {queryParams.get('view') === 'sub-users' && user?.role === 'manager' ? (
+                    <SubUsers />
+                ) : showSignedDocs ? (
                     <SignedDocuments />
                 ) : showDocuments ? (
                     <UserDocuments />

@@ -73,6 +73,13 @@ const AdminDashboard = () => {
   });
   const [consultaResults, setConsultaResults] = useState(null);
   const [consultaSummary, setConsultaSummary] = useState(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [selectedTemplateForConfig, setSelectedTemplateForConfig] = useState(null);
+
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({ name: '', email: '', idNumber: '', roleOverride: 'client' });
+  const [creatingUser, setCreatingUser] = useState(false);
+
   const [consultaLoading, setConsultaLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserForms, setSelectedUserForms] = useState(null);
@@ -90,9 +97,26 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-    setAdminEmail(storedUser.email || '');
   }, [activeTab, currentPage, searchTerm]);
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreatingUser(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/api/admin/users/create`, createUserForm, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success('Usuario creado con éxito y correo enviado');
+      setShowCreateUserModal(false);
+      setCreateUserForm({ name: '', email: '', idNumber: '', roleOverride: 'client' });
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al crear usuario');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
 
   const fetchData = async () => {
     const token = localStorage.getItem('token');
@@ -313,6 +337,11 @@ const AdminDashboard = () => {
         <div style={{ maxWidth: '1000px' }}>
           <header style={{ marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <h1>ADMINISTRACIÓN MASTER</h1>
+            {activeTab === 'users' && (
+              <button onClick={() => setShowCreateUserModal(true)} className="btn-primary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={16} /> Crear Usuario
+              </button>
+            )}
             {activeTab === 'logs' && (
               <div style={{ position: 'relative', width: '250px' }}>
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
@@ -958,6 +987,42 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {showCreateUserModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY }}>Crear Usuario</h2>
+              <button onClick={() => setShowCreateUserModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreateUser} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 15 }}>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>NOMBRES COMPLETOS</label>
+                <input className="input-modern-admin" type="text" value={createUserForm.name} onChange={e => setCreateUserForm({ ...createUserForm, name: e.target.value })} required />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
+                <input className="input-modern-admin" type="email" value={createUserForm.email} onChange={e => setCreateUserForm({ ...createUserForm, email: e.target.value })} required />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>IDENTIFICACIÓN (OPCIONAL)</label>
+                <input className="input-modern-admin" type="text" value={createUserForm.idNumber} onChange={e => setCreateUserForm({ ...createUserForm, idNumber: e.target.value })} />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>ROL</label>
+                <select className="input-modern-admin" value={createUserForm.roleOverride} onChange={e => setCreateUserForm({ ...createUserForm, roleOverride: e.target.value })} required>
+                  <option value="client">Cliente Normal</option>
+                  <option value="manager">Administrador</option>
+                </select>
+              </div>
+              <button type="submit" className="btn-primary" disabled={creatingUser} style={{ marginTop: 10 }}>
+                {creatingUser ? 'Creando...' : 'Crear Usuario'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .input-modern-admin { width: 100%; padding: 10px 12px; border: 1px solid ${BORDER}; border-radius: ${RADIUS}; outline: none; font-size: 12px; }
         .field-group-admin { display: flex; flex-direction: column; gap: 6px; }

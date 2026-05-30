@@ -252,6 +252,17 @@ router.get('/me', auth, async (req, res) => {
         const payload = user.get({ plain: true });
         payload.language = language;
         payload.remainingDays = remainingDays;
+
+        try {
+            const profileStore = require('../services/userProfileStore');
+            const profile = await profileStore.getProfile(user.id);
+            if (profile && profile.roleOverride === 'manager') {
+                payload.role = 'manager';
+            }
+        } catch (pErr) {
+            console.warn('Error reading profile:', pErr.message);
+        }
+
         res.json(payload);
     } catch (err) {
         console.error('🔥 ERROR CRÍTICO EN /ME:', err);
@@ -387,7 +398,18 @@ router.post('/login', authLimiter, async (req, res) => {
             }
         }
 
-        const payload = { user: { id: user.id, role: user.role } };
+        const profileStore = require('../services/userProfileStore');
+        let effectiveRole = user.role;
+        try {
+            const profile = await profileStore.getProfile(user.id);
+            if (profile && profile.roleOverride === 'manager') {
+                effectiveRole = 'manager';
+            }
+        } catch (e) {
+            console.warn('Error reading profile in login:', e.message);
+        }
+
+        const payload = { user: { id: user.id, role: effectiveRole } };
 
         jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' }, async (err, token) => {
             if (err) {
@@ -398,7 +420,7 @@ router.post('/login', authLimiter, async (req, res) => {
             try {
                 user.activeToken = token;
                 await user.save();
-                console.log(`✅ Sesión iniciada para: ${email}`);
+                console.log(`✅ Sesión iniciada para: ${email} con rol: ${effectiveRole}`);
 
                 return res.json({
                     token,
@@ -406,7 +428,7 @@ router.post('/login', authLimiter, async (req, res) => {
                         id: user.id,
                         name: user.name,
                         email: user.email,
-                        role: user.role,
+                        role: effectiveRole,
                         mustChangePassword: user.mustChangePassword,
                         remainingDays: remainingDays,
                     },
