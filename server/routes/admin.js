@@ -14,6 +14,7 @@ const path = require('path');
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
+});
 // El idioma se lee/escribe vía SQL raw en server/services/userLanguageStore.js
 
 const auth = require('../middleware/auth');
