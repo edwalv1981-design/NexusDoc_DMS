@@ -397,7 +397,7 @@ const AdminDashboard = () => {
                           <span style={{ padding: '3px 8px', borderRadius: '20px', background: '#fef08a', fontSize: '9px', color: '#854d0e', fontWeight: 800 }}>MASTER</span>
                         ) : (
                           <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.roleOverride === 'manager' ? '#e0f2fe' : '#f1f5f9', fontSize: '9px', color: user.roleOverride === 'manager' ? '#0284c7' : '#64748b', fontWeight: 700 }}>
-                            {user.roleOverride === 'manager' ? 'ADMIN' : 'CLIENTE'}
+                            {user.roleOverride === 'manager' ? 'ADMIN USUARIOS' : 'CLIENTE'}
                           </span>
                         )}
                       </td>
@@ -1050,7 +1050,7 @@ const AdminDashboard = () => {
                 <label style={{ fontSize: '10px', fontWeight: 700 }}>ROL</label>
                 <select className="input-modern-admin" value={createUserForm.roleOverride} onChange={e => setCreateUserForm({ ...createUserForm, roleOverride: e.target.value })} required>
                   <option value="client">Cliente Normal</option>
-                  <option value="manager">Administrador</option>
+                  <option value="manager">Administrador Usuarios</option>
                   <option value="master">Administrador Maestro</option>
                 </select>
               </div>
@@ -1078,7 +1078,7 @@ const AdminDashboard = () => {
                 <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVO ROL</label>
                 <select className="input-modern-admin" value={newRoleOverride} onChange={e => setNewRoleOverride(e.target.value)} required>
                   <option value="client">Cliente Normal</option>
-                  <option value="manager">Administrador</option>
+                  <option value="manager">Administrador Usuarios</option>
                   <option value="master">Administrador Maestro</option>
                 </select>
               </div>
