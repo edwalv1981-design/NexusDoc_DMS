@@ -179,14 +179,14 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 
         const templateName = req.body.name || req.file.originalname;
 
-        // DEFINIR RUTA SEGÚN PREFIJO OFICIAL
-        let prefix = 'DOC';
+        // DEFINIR RUTA SEGÚN PREFIJO OFICIAL O NOMBRE PERSONALIZADO
+        let prefix = templateName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/[^a-z0-9_-]/g, '_');
         const nameNorm = templateName.toLowerCase();
-        if (nameNorm.includes('corporacion') || nameNorm.includes('incorporacion')) prefix = 'PTLC';
-        else if (nameNorm.includes('fundacion')) prefix = 'PTLF';
-        else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
-        else if (nameNorm.includes('cumplimiento_individual') || nameNorm.includes('individual')) prefix = 'KYCI';
-        else if (nameNorm.includes('cumplimiento_entidades') || nameNorm.includes('entidad') || nameNorm.includes('entidades')) prefix = 'KYCE';
+        if (nameNorm === 'corporacion' || nameNorm === 'incorporacion') prefix = 'PTLC';
+        else if (nameNorm === 'fundaciones' || nameNorm === 'fundacion') prefix = 'PTLF';
+        else if (nameNorm === 'fondos' || nameNorm === 'referencia_maestra' || nameNorm === 'sfar') prefix = 'SFAR';
+        else if (nameNorm === 'cumplimiento_individual') prefix = 'KYCI';
+        else if (nameNorm === 'cumplimiento_entidades') prefix = 'KYCE';
 
         const templatesDir = path.join(__dirname, '../templates');
         if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
@@ -306,13 +306,13 @@ router.delete('/delete-template/:name', [auth, isAdmin], async (req, res) => {
         });
         
         // DETERMINAR PREFIJO OFICIAL Y BORRAR ARCHIVO FÍSICO
-        let prefix = 'DOC';
+        let prefix = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/[^a-z0-9_-]/g, '_');
         const nameNorm = name.toLowerCase();
-        if (nameNorm.includes('corporacion') || nameNorm.includes('incorporacion')) prefix = 'PTLC';
-        else if (nameNorm.includes('fundacion')) prefix = 'PTLF';
-        else if (nameNorm.includes('fondos') || nameNorm.includes('sfar')) prefix = 'SFAR';
-        else if (nameNorm.includes('cumplimiento_individual') || nameNorm.includes('individual')) prefix = 'KYCI';
-        else if (nameNorm.includes('cumplimiento_entidades') || nameNorm.includes('entidad') || nameNorm.includes('entidades')) prefix = 'KYCE';
+        if (nameNorm === 'corporacion' || nameNorm === 'incorporacion') prefix = 'PTLC';
+        else if (nameNorm === 'fundaciones' || nameNorm === 'fundacion') prefix = 'PTLF';
+        else if (nameNorm === 'fondos' || nameNorm === 'referencia_maestra' || nameNorm === 'sfar') prefix = 'SFAR';
+        else if (nameNorm === 'cumplimiento_individual') prefix = 'KYCI';
+        else if (nameNorm === 'cumplimiento_entidades') prefix = 'KYCE';
         const filePath = path.join(__dirname, `../templates/${prefix}.pdf`);
 
         if (fs.existsSync(filePath)) {

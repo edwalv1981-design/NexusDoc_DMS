@@ -36,7 +36,7 @@ const { resolveCanonicalFormType } = require('../../lib/formWizardRouting.cjs');
 
 function getPdfTemplateNameForForm(formType) {
   const canonical = resolveCanonicalFormType(formType);
-  return PDF_TEMPLATE_BY_FORM_TYPE[canonical] || PDF_TEMPLATE_BY_FORM_TYPE[formType] || null;
+  return PDF_TEMPLATE_BY_FORM_TYPE[canonical] || PDF_TEMPLATE_BY_FORM_TYPE[formType] || canonical;
 }
 
 function isCorporacionPdfForm(formType) {
@@ -75,7 +75,7 @@ function getPdfDownloadFilenamePrefix(formType) {
   if (normType.includes('fundacion')) return 'PTLF';
   if (normType.includes('cumplimiento individual')) return 'KYCI';
   if (normType.includes('cumplimiento entidades')) return 'KYCE';
-  return 'DOC';
+  return normType ? normType.toUpperCase().replace(/[^A-Z0-9]/g, '') : 'DOC';
 }
 
 module.exports = {

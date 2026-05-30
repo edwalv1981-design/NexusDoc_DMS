@@ -53,6 +53,8 @@ const AdminDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [templateFile, setTemplateFile] = useState(null);
   const [templateName, setTemplateName] = useState('fondos');
+  const [templateUploadMode, setTemplateUploadMode] = useState('base');
+  const [customTemplateName, setCustomTemplateName] = useState('');
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [lastDetectedFields, setLastDetectedFields] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -183,11 +185,17 @@ const AdminDashboard = () => {
   const handleTemplateUpload = async (e) => {
     e.preventDefault();
     if (!templateFile) return toast.error('Selecciona un archivo PDF');
+    
+    const finalTemplateName = templateUploadMode === 'custom' ? customTemplateName : templateName;
+    if (templateUploadMode === 'custom' && !finalTemplateName.trim()) {
+      return toast.error('Ingrese un nombre para la nueva plantilla');
+    }
+
     setUploadingTemplate(true);
     
     const formData = new FormData();
     formData.append('template', templateFile);
-    formData.append('name', templateName);
+    formData.append('name', finalTemplateName.trim());
 
     try {
       const token = localStorage.getItem('token');
@@ -756,43 +764,53 @@ const AdminDashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {[
-                            { id: 'fondos', label: 'Declaración de Fondos' },
-                            { id: 'corporacion', label: 'Incorporación' },
-                            { id: 'fundaciones', label: 'Fundaciones' },
-                            { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
-                            { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
-                          ].map(type => {
-                            const rowStatus = templateStatus.find((s) => s.id === type.id);
-                            const isHtml = rowStatus?.kind === 'html';
-                            const isAvailable = rowStatus ? rowStatus.available : templates.some((tpl) => tpl.name === type.id);
-                            const customTemplate = templates.find((tpl) => tpl.name === type.id);
-                            return (
-                              <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
-                                <td style={{ padding: '12px', fontWeight: 700, color: '#1e293b' }}>{type.label}</td>
-                                <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    {isAvailable ? (
-                                        <>
-                                            <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
-                                              {isHtml ? t('admin.htmlEngine') : t('admin.customDb')}
-                                            </span>
-                                            {!isHtml && customTemplate && (
-                                            <button 
-                                                onClick={() => handleDeleteTemplate(type.id)}
-                                                style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Eliminar plantilla (Desactiva la generación de PDF para este trámite)"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>{t('admin.noTemplate')}</span>
-                                    )}
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {(() => {
+                            const baseTypes = [
+                              { id: 'fondos', label: 'Declaración de Fondos' },
+                              { id: 'corporacion', label: 'Incorporación' },
+                              { id: 'fundaciones', label: 'Fundaciones' },
+                              { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
+                              { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
+                            ];
+                            const baseIds = baseTypes.map(t => t.id);
+                            const dynamicTypes = templates.filter(t => !baseIds.includes(t.name)).map(t => ({
+                                id: t.name,
+                                label: t.name.replace(/_/g, ' ').toUpperCase() + ' (Dinámico)'
+                            }));
+                            const allTypes = [...baseTypes, ...dynamicTypes];
+                            
+                            return allTypes.map(type => {
+                              const rowStatus = templateStatus.find((s) => s.id === type.id);
+                              const isHtml = rowStatus?.kind === 'html';
+                              const isAvailable = rowStatus ? rowStatus.available : templates.some((tpl) => tpl.name === type.id);
+                              const customTemplate = templates.find((tpl) => tpl.name === type.id);
+                              return (
+                                <tr key={type.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: '12px' }}>
+                                  <td style={{ padding: '12px', fontWeight: 700, color: '#1e293b' }}>{type.label}</td>
+                                  <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      {isAvailable ? (
+                                          <>
+                                              <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
+                                                {isHtml ? t('admin.htmlEngine') : t('admin.customDb')}
+                                              </span>
+                                              {!isHtml && customTemplate && (
+                                              <button 
+                                                  onClick={() => handleDeleteTemplate(type.id)}
+                                                  style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                  title="Eliminar plantilla (Desactiva la generación de PDF para este trámite)"
+                                              >
+                                                  <Trash2 size={14} />
+                                              </button>
+                                              )}
+                                          </>
+                                      ) : (
+                                          <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>{t('admin.noTemplate')}</span>
+                                      )}
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
                         </tbody>
                       </table>
                   </div>
@@ -803,24 +821,44 @@ const AdminDashboard = () => {
                       <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Subir/Reemplazar Plantilla</h3>
                     </div>
                     <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                      <div className="field-group-admin" style={{ display: 'flex', gap: '15px', marginBottom: 5 }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                          <input type="radio" checked={templateUploadMode === 'base'} onChange={() => setTemplateUploadMode('base')} /> Trámite del Sistema
+                        </label>
+                        <label style={{ fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                          <input type="radio" checked={templateUploadMode === 'custom'} onChange={() => setTemplateUploadMode('custom')} /> Plantilla Dinámica
+                        </label>
+                      </div>
+
                       <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>TIPO DE TRÁMITE A VINCULAR</label>
-                        <select
-                          className="input-modern-admin"
-                          value={templateName}
-                          onChange={(e) => {
-                            setTemplateName(e.target.value);
-                            setLastDetectedFields(null);
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <option value="fondos">Declaración de Fondos</option>
-                          <option value="corporacion">Incorporación</option>
-                          <option value="fundaciones">Fundaciones</option>
-                          <option value="cumplimiento_individual">Cumplimiento Individual</option>
-                          <option value="cumplimiento_entidades">Cumplimiento Entidades</option>
-                        </select>
-                        {(HTML_ENGINE_TEMPLATES.includes(templateName) ||
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{templateUploadMode === 'base' ? 'TIPO DE TRÁMITE A VINCULAR' : 'NOMBRE DE LA NUEVA PLANTILLA'}</label>
+                        {templateUploadMode === 'base' ? (
+                            <select
+                              className="input-modern-admin"
+                              value={templateName}
+                              onChange={(e) => {
+                                setTemplateName(e.target.value);
+                                setLastDetectedFields(null);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <option value="fondos">Declaración de Fondos</option>
+                              <option value="corporacion">Incorporación</option>
+                              <option value="fundaciones">Fundaciones</option>
+                              <option value="cumplimiento_individual">Cumplimiento Individual</option>
+                              <option value="cumplimiento_entidades">Cumplimiento Entidades</option>
+                            </select>
+                        ) : (
+                            <input 
+                              type="text" 
+                              className="input-modern-admin" 
+                              placeholder="Ej. contrato_arrendamiento" 
+                              value={customTemplateName} 
+                              onChange={(e) => setCustomTemplateName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '_'))}
+                              required={templateUploadMode === 'custom'}
+                            />
+                        )}
+                        {templateUploadMode === 'base' && (HTML_ENGINE_TEMPLATES.includes(templateName) ||
                           templateStatus.find((s) => s.id === templateName)?.kind === 'html') && (
                           <p style={{ margin: '8px 0 0', fontSize: 11, color: '#0f766e', lineHeight: 1.45 }}>
                             {t('admin.htmlEngineUploadHint')}

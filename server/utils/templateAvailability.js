@@ -114,7 +114,20 @@ async function getClientTemplateStatusMap(DocumentTemplate) {
   const entries = await Promise.all(
     CLIENT_FORM_TYPES.map(async (formType) => [formType, await checkTemplateExists(formType, DocumentTemplate)])
   );
-  return Object.fromEntries(entries);
+  
+  const map = Object.fromEntries(entries);
+  
+  if (DocumentTemplate) {
+      const allTemplates = await DocumentTemplate.findAll({ attributes: ['name'] });
+      const baseNames = ['fondos', 'referencia_maestra', 'corporacion', 'fundaciones', 'cumplimiento_individual', 'cumplimiento_entidades'];
+      allTemplates.forEach(t => {
+          if (!baseNames.includes(t.name)) {
+              map[t.name] = true; // custom templates are always available if they exist in DB
+          }
+      });
+  }
+  
+  return map;
 }
 
 async function getAdminTemplateStatusRows(DocumentTemplate) {

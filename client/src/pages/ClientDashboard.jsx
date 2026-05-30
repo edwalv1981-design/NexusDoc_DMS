@@ -159,6 +159,19 @@ const ClientDashboard = () => {
         { id: 'Cumplimiento Individual', label: getFormTypeLabel('Cumplimiento Individual', lang), icon: <UserIcon size={24} />, color: '#f59e0b' },
         { id: 'Cumplimiento Entidades', label: getFormTypeLabel('Cumplimiento Entidades', lang), icon: <ShieldAlert size={24} />, color: '#3b82f6' },
     ];
+    
+    if (templateStatus) {
+        Object.keys(templateStatus).forEach(key => {
+            if (templateStatus[key] && !formOptions.some(f => f.id === key)) {
+                formOptions.push({
+                    id: key,
+                    label: key.replace(/_/g, ' ').toUpperCase(),
+                    icon: <ClipboardList size={24} />,
+                    color: '#8b5cf6'
+                });
+            }
+        });
+    }
 
     const fetchTemplateStatus = useCallback(async () => {
         const token = localStorage.getItem('token');

@@ -28,6 +28,24 @@ router.get('/templates/status', auth, async (req, res) => {
     }
 });
 
+// @route   GET api/forms/schema/:templateName
+// @desc    Obtiene el array de campos extraídos de una plantilla para el formulario dinámico
+router.get('/schema/:templateName', auth, async (req, res) => {
+    try {
+        const { templateName } = req.params;
+        const result = await templateFieldSchemaService.getEffectiveSchema(TemplateFieldSchema, templateName, true);
+        
+        // Si no hay esquema o está vacío, podría ser flatPdf o un error
+        if (!result.schema || Object.keys(result.schema).length === 0) {
+            return res.status(404).json({ msg: 'No se encontró un esquema de campos para esta plantilla', ...result });
+        }
+        res.json(result);
+    } catch (err) {
+        console.error('Error fetching template schema:', err);
+        res.status(500).json({ msg: 'Error al obtener esquema' });
+    }
+});
+
 // @route   GET api/forms/beneficiaries/search
 router.get('/beneficiaries/search', auth, async (req, res) => {
     try {
