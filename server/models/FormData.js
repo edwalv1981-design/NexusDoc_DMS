@@ -22,6 +22,15 @@ const FormData = sequelize.define('FormData', {
   data: {
     type: DataTypes.JSONB,
     allowNull: false
+  },
+  parentId: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
+  version: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1
   }
 }, {
   timestamps: true

@@ -50,6 +50,7 @@ const ClientDashboard = () => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [expandedDocs, setExpandedDocs] = useState({});
     
     const [searchTerm, setSearchTerm] = useState('');
     const [dateFilter, setDateFilter] = useState('');
@@ -394,6 +395,24 @@ const ClientDashboard = () => {
         return matchesSearch && matchesDate;
     });
 
+    // Grouping logic for versions
+    const groupedDocuments = {};
+    filteredDocuments.forEach(doc => {
+        const key = doc.parentId || doc.id;
+        if (!groupedDocuments[key]) groupedDocuments[key] = [];
+        groupedDocuments[key].push(doc);
+    });
+
+    Object.keys(groupedDocuments).forEach(key => {
+        groupedDocuments[key].sort((a, b) => new Date(b.date) - new Date(a.date));
+    });
+
+    const groupsArray = Object.values(groupedDocuments).sort((a, b) => new Date(b[0].date) - new Date(a[0].date));
+
+    const toggleExpand = (parentId) => {
+        setExpandedDocs(prev => ({ ...prev, [parentId]: !prev[parentId] }));
+    };
+
     if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>{t('dashboard.syncing')}</div>;
 
     return (
@@ -499,32 +518,79 @@ const ClientDashboard = () => {
                         <div style={{ background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                             <div style={{ padding: '18px 25px', borderBottom: `1px solid ${BORDER}`, background: '#fcfcfc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <h2 style={{ color: '#444' }}>{t('dashboard.registeredProcesses')}</h2>
-                                <span style={{ background: '#eef6ff', color: PRIMARY, padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 700 }}>{t('dashboard.resultsCount', { n: filteredDocuments.length })}</span>
+                                <span style={{ background: '#eef6ff', color: PRIMARY, padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 700 }}>{t('dashboard.resultsCount', { n: groupsArray.length })}</span>
                             </div>
-                            {filteredDocuments.length === 0 ? <div style={{ padding: '50px', textAlign: 'center', color: '#999', fontSize: '13px' }}>{t('dashboard.noResults')}</div> : filteredDocuments.map(doc => (
-                                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', padding: '15px 25px', borderBottom: `1px solid ${BORDER}` }}>
-                                    <FileText size={16} color={PRIMARY} style={{ marginRight: 15 }} />
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 700, fontSize: '13px' }}>{getFormTypeLabel(doc.type, lang)}</div>
-                                        
-                                        <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 2 }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {new Date(doc.date).toLocaleDateString()}</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(doc.date).toLocaleTimeString()}</span>
+                            {groupsArray.length === 0 ? <div style={{ padding: '50px', textAlign: 'center', color: '#999', fontSize: '13px' }}>{t('dashboard.noResults')}</div> : groupsArray.map(group => {
+                                const mainDoc = group[0];
+                                const hasHistory = group.length > 1;
+                                const isExpanded = expandedDocs[mainDoc.parentId || mainDoc.id];
+                                
+                                return (
+                                <div key={mainDoc.parentId || mainDoc.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', padding: '15px 25px', background: isExpanded ? '#f8fafc' : 'white' }}>
+                                        <FileText size={16} color={PRIMARY} style={{ marginRight: 15 }} />
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                {getFormTypeLabel(mainDoc.type, lang)}
+                                                <span style={{ fontSize: '10px', background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px' }}>v{mainDoc.version || 1} (Actual)</span>
+                                            </div>
+                                            
+                                            <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 4 }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {new Date(mainDoc.date).toLocaleDateString()}</span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(mainDoc.date).toLocaleTimeString()}</span>
+                                                {hasHistory && (
+                                                    <span 
+                                                        onClick={() => toggleExpand(mainDoc.parentId || mainDoc.id)}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: 4, color: PRIMARY, cursor: 'pointer', fontWeight: 600, marginLeft: 10 }}
+                                                    >
+                                                        {isExpanded ? 'Ocultar Historial' : `Ver Historial (${group.length - 1} versiones)`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button onClick={() => handleDownloadPDF(mainDoc)} style={{ padding: '8px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.download')} onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background = '#eef6ff'}>
+                                                <Download size={16} />
+                                            </button>
+                                            <button onClick={() => navigate(`/dashboard?view=form&id=${mainDoc.id}`)} style={{ padding: '8px', background: '#f0fdf4', border: '1px solid #16a34a', borderRadius: RADIUS, color: '#16a34a', cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.editProcess')} onMouseEnter={(e) => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={(e) => e.currentTarget.style.background = '#f0fdf4'}>
+                                                <Edit size={16} />
+                                            </button>
+                                            <button onClick={() => confirmDelete(mainDoc.id)} style={{ padding: '8px', background: '#fef2f2', border: '1px solid #dc2626', borderRadius: RADIUS, color: '#dc2626', cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.deletePermanent')} onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}>
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button onClick={() => handleDownloadPDF(doc)} style={{ padding: '8px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.download')} onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background = '#eef6ff'}>
-                                            <Download size={16} />
-                                        </button>
-                                        <button onClick={() => navigate(`/dashboard?view=form&id=${doc.id}`)} style={{ padding: '8px', background: '#f0fdf4', border: '1px solid #16a34a', borderRadius: RADIUS, color: '#16a34a', cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.editProcess')} onMouseEnter={(e) => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={(e) => e.currentTarget.style.background = '#f0fdf4'}>
-                                            <Edit size={16} />
-                                        </button>
-                                        <button onClick={() => confirmDelete(doc.id)} style={{ padding: '8px', background: '#fef2f2', border: '1px solid #dc2626', borderRadius: RADIUS, color: '#dc2626', cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.deletePermanent')} onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}>
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
+                                    
+                                    {isExpanded && hasHistory && (
+                                        <div style={{ background: '#f8fafc', padding: '0 25px 15px 45px', borderTop: `1px dashed ${BORDER}` }}>
+                                            {group.slice(1).map(histDoc => (
+                                                <div key={histDoc.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid rgba(0,0,0,0.05)` }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontWeight: 600, fontSize: '12px', color: '#475569', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            Versión {histDoc.version || 1}
+                                                        </div>
+                                                        <div style={{ fontSize: '10px', color: '#94a3b8', display: 'flex', gap: 10, marginTop: 2 }}>
+                                                            <span><Calendar size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }}/> {new Date(histDoc.date).toLocaleDateString()}</span>
+                                                            <span><Clock size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }}/> {new Date(histDoc.date).toLocaleTimeString()}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 6 }}>
+                                                        <button onClick={() => handleDownloadPDF(histDoc)} style={{ padding: '5px 8px', background: 'white', border: `1px solid #cbd5e1`, borderRadius: RADIUS, color: '#475569', cursor: 'pointer', fontSize: '11px' }} title={t('common.download')}>
+                                                            <Download size={12} />
+                                                        </button>
+                                                        <button onClick={() => navigate(`/dashboard?view=form&id=${histDoc.id}`)} style={{ padding: '5px 8px', background: 'white', border: `1px solid #cbd5e1`, borderRadius: RADIUS, color: '#475569', cursor: 'pointer', fontSize: '11px' }} title={t('common.editProcess')}>
+                                                            <Edit size={12} />
+                                                        </button>
+                                                        <button onClick={() => confirmDelete(histDoc.id)} style={{ padding: '5px 8px', background: 'white', border: `1px solid #cbd5e1`, borderRadius: RADIUS, color: '#ef4444', cursor: 'pointer', fontSize: '11px' }} title={t('common.deletePermanent')}>
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     </div>
                 ) : !currentFormType ? (

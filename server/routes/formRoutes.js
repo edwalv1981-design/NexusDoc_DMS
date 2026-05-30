@@ -416,6 +416,9 @@ router.post('/save', auth, async (req, res) => {
     const { id, type, data } = req.body;
     const formTypeLabel = type || 'Documento General';
 
+    const userObj = await User.findByPk(req.user.id, { attributes: ['uniqueCode'] });
+    const userCode = userObj ? userObj.uniqueCode : null;
+
     if (id) {
       const form = await FormData.findByPk(id);
       if (!form) return res.status(404).json({ msg: 'Formulario no encontrado' });
@@ -436,25 +439,35 @@ router.post('/save', auth, async (req, res) => {
           ? ` Campos modificados: ${changedKeys.join(', ')}` 
           : ' (Sin cambios detectados)';
 
-      await form.update({ formType: formTypeLabel, data: data });
+      const parentId = form.parentId || form.id;
+      const nextVersion = (form.version || 1) + 1;
+
+      // Instead of updating, we create a new version
+      const newForm = await FormData.create({
+        userId: req.user.id,
+        formType: formTypeLabel,
+        userUniqueCode: userCode,
+        data: data,
+        parentId: parentId,
+        version: nextVersion
+      });
       
       AuditLog.create({
         userId: req.user.id,
         action: 'FORM_UPDATED',
-        description: `Usuario actualizó el trámite: ${formTypeLabel} (ID: ${form.id}).${changesText}`
+        description: `Usuario actualizó el trámite a versión ${nextVersion}: ${formTypeLabel} (Padre: ${parentId}).${changesText}`
       }).catch(err => console.error('Error Bitácora:', err));
 
-      return res.json({ msg: 'Actualizado con éxito', data: form });
+      return res.json({ msg: 'Actualizado con éxito', data: newForm });
     }
-
-    const userObj = await User.findByPk(req.user.id, { attributes: ['uniqueCode'] });
-    const userCode = userObj ? userObj.uniqueCode : null;
 
     const newForm = await FormData.create({
       userId: req.user.id,
       formType: formTypeLabel,
       userUniqueCode: userCode,
-      data: data
+      data: data,
+      parentId: null,
+      version: 1
     });
 
     AuditLog.create({
@@ -482,7 +495,9 @@ router.get('/my-forms', auth, async (req, res) => {
         id: f.id,
         type: f.formType,
         date: f.updatedAt,
-        data: f.data
+        data: f.data,
+        parentId: f.parentId || null,
+        version: f.version || 1
     }));
     res.json(mapped);
   } catch (err) {
