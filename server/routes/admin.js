@@ -34,8 +34,20 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
     try {
         const users = await User.findAll({ 
             attributes: { exclude: ['password', 'securityCode'] },
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            raw: true
         });
+
+        // Fetch user profiles to attach roleOverride
+        const profileStore = require('../services/userProfileStore');
+        const [profiles] = await sequelize.query(`SELECT "userId", "roleOverride" FROM "UserProfiles"`);
+        const profileMap = {};
+        profiles.forEach(p => { profileMap[p.userId] = p.roleOverride; });
+
+        users.forEach(u => {
+            u.roleOverride = profileMap[u.id] || 'client';
+        });
+
         res.json(users);
     } catch (err) {
         res.status(500).send('Server error');
@@ -137,6 +149,39 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
     } catch (err) {
         console.error('Error creating user:', err.message);
         res.status(500).json({ msg: 'Error al crear usuario' });
+    }
+});
+
+// @route   PUT api/admin/users/:id/role
+// @desc    Admin changes a user's role
+router.put('/users/:id/role', [auth, isAdmin], async (req, res) => {
+    try {
+        const { roleOverride } = req.body;
+        if (!roleOverride) return res.status(400).json({ msg: 'El rol es obligatorio' });
+
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+
+        const profileStore = require('../services/userProfileStore');
+        
+        // Ensure profile exists or update it
+        await profileStore.setProfile(user.id, {
+            roleOverride,
+            phone: '',
+            address: '',
+            createdBy: req.user.id
+        });
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'USER_ROLE_CHANGE',
+            description: `Admin cambió el rol de ${user.email} a ${roleOverride}`
+        });
+
+        res.json({ msg: `Rol de usuario actualizado a ${roleOverride}` });
+    } catch (err) {
+        console.error('Error al cambiar rol:', err.message);
+        res.status(500).json({ msg: 'Error al cambiar el rol' });
     }
 });
 

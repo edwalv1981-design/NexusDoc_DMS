@@ -80,6 +80,11 @@ const AdminDashboard = () => {
   const [createUserForm, setCreateUserForm] = useState({ name: '', email: '', idNumber: '', roleOverride: 'client' });
   const [creatingUser, setCreatingUser] = useState(false);
 
+  const [showChangeRoleModal, setShowChangeRoleModal] = useState(false);
+  const [selectedUserForRole, setSelectedUserForRole] = useState(null);
+  const [newRoleOverride, setNewRoleOverride] = useState('client');
+  const [changingRole, setChangingRole] = useState(false);
+
   const [consultaLoading, setConsultaLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserForms, setSelectedUserForms] = useState(null);
@@ -191,6 +196,26 @@ const AdminDashboard = () => {
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
         toast.error('Error'); 
     } finally { setSavingSettings(false); }
+  };
+
+  const handleChangeRoleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedUserForRole) return;
+    setChangingRole(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_BASE_URL}/api/admin/users/${selectedUserForRole.id}/role`, { roleOverride: newRoleOverride }, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success('Rol cambiado exitosamente');
+      setShowChangeRoleModal(false);
+      setSelectedUserForRole(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al cambiar rol');
+    } finally {
+      setChangingRole(false);
+    }
   };
 
   const handleResetPassword = async (userId) => {
@@ -357,6 +382,7 @@ const AdminDashboard = () => {
                   <tr style={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>
                     <th style={{ padding: '12px 15px' }}>ID</th>
                     <th style={{ padding: '12px 15px' }}>USUARIO</th>
+                    <th style={{ padding: '12px 15px' }}>ROL</th>
                     <th style={{ padding: '12px 15px' }}>ESTADO</th>
                     <th style={{ padding: '12px 15px' }}>ACCIONES</th>
                   </tr>
@@ -367,12 +393,16 @@ const AdminDashboard = () => {
                       <td style={{ padding: '12px 15px', fontWeight: 700, color: PRIMARY }}>{user.uniqueCode}</td>
                       <td style={{ padding: '12px 15px' }}>{user.name}</td>
                       <td style={{ padding: '12px 15px' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.roleOverride === 'manager' ? '#e0f2fe' : '#f1f5f9', fontSize: '9px', color: user.roleOverride === 'manager' ? '#0284c7' : '#64748b', fontWeight: 700 }}>{user.roleOverride === 'manager' ? 'ADMIN' : 'CLIENTE'}</span>
+                      </td>
+                      <td style={{ padding: '12px 15px' }}>
                         <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{user.status.toUpperCase()}</span>
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 5 }}>
                           <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#15803d' }}><CheckCircle size={14} /></button>
                           <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#f59e0b' }}><ShieldOff size={14} /></button>
+                          <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride('client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#0ea5e9' }}><BadgeCheck size={14} /></button>
                           <button onClick={() => handleResetPassword(user.id)} title="Resetear Clave" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: PRIMARY }}><Key size={14} /></button>
                           <button onClick={() => handleDeleteUser(user.id)} title="Eliminar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#dc2626' }}><Trash2 size={14} /></button>
                         </div>
@@ -1017,6 +1047,33 @@ const AdminDashboard = () => {
               </div>
               <button type="submit" className="btn-primary" disabled={creatingUser} style={{ marginTop: 10 }}>
                 {creatingUser ? 'Creando...' : 'Crear Usuario'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showChangeRoleModal && selectedUserForRole && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '350px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY }}>Cambiar Rol</h2>
+              <button onClick={() => setShowChangeRoleModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleChangeRoleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 15 }}>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>USUARIO</label>
+                <input className="input-modern-admin" type="text" value={selectedUserForRole.email} disabled style={{ background: '#f8fafc' }} />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVO ROL</label>
+                <select className="input-modern-admin" value={newRoleOverride} onChange={e => setNewRoleOverride(e.target.value)} required>
+                  <option value="client">Cliente Normal</option>
+                  <option value="manager">Administrador</option>
+                </select>
+              </div>
+              <button type="submit" className="btn-primary" disabled={changingRole} style={{ marginTop: 10 }}>
+                {changingRole ? 'Guardando...' : 'Guardar Cambio'}
               </button>
             </form>
           </div>
