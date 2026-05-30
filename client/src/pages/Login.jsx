@@ -157,70 +157,71 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Recovery Flow Overlays */}
-          {recoveryStep > 0 && (
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '350px', background: 'white', padding: '35px 30px 30px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
-                <button 
-                  onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); }} 
-                  style={{ position: 'absolute', top: '15px', right: '15px', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#1e293b'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
-                  title={t('common.close')}
-                >
-                  <X size={16} />
-                </button>
-                {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
-                {recoveryStep === 1 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>{t('login.recoverAccess')}</h3>
-                    <div>
-                        <label style={{ fontSize: '11px', fontWeight: 700, marginBottom: 6, display: 'block' }}>{t('login.registeredEmail')}</label>
-                        <input type="email" className="input-expert" required value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => setRecoveryStep(0)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>{t('login.cancel')}</button>
-                      <button type="button" onClick={(e) => { console.log('📡 Disparando recuperación...'); handleForgotPassword(e); }} className="btn-primary" style={{ flex: 1.5 }}>{t('login.sendCode')}</button>
-                    </div>
-                  </div>
-                )}
-                {recoveryStep === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>{t('login.verifyCode')}</h3>
-                    <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textAlign: 'center', border: '1px solid #fde68a' }}>
-                        <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '5px', marginBottom: '2px' }} /> {t('login.expiresIn3Min')}
-                    </div>
-                    <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px' }} />
-                    {hasExpired && (
-                      <button 
-                        type="button" 
-                        onClick={(e) => { setHasExpired(false); handleForgotPassword(e); }} 
-                        className="btn-primary" 
-                        style={{ background: '#f59e0b', marginBottom: '-10px' }}
-                        disabled={recoveryLoading}
-                      >
-                        {recoveryLoading ? t('login.generating') : t('login.generateNewCode')}
-                      </button>
-                    )}
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); setHasExpired(false); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>{t('login.cancel')}</button>
-                      <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5, background: hasExpired ? '#94a3b8' : '' }} disabled={hasExpired}>{t('login.validate')}</button>
-                    </div>
-                  </div>
-                )}
-                {recoveryStep === 3 && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: '#16a34a', marginBottom: 15 }}><ShieldCheck size={40} style={{ margin: '0 auto' }} /></div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 10 }}>{t('login.allReady')}</h3>
-                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: 20 }}>{t('login.tempPasswordSent')}</p>
-                    <button onClick={() => setRecoveryStep(0)} className="btn-primary" style={{ width: '100%' }}>{t('login.back')}</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Recovery Flow Overlays */}
+      {recoveryStep > 0 && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '350px', background: 'white', padding: '35px 30px 30px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', color: '#1e293b' }}>
+            <button 
+              onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); }} 
+              style={{ position: 'absolute', top: '15px', right: '15px', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#1e293b'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
+              title={t('common.close')}
+            >
+              <X size={16} />
+            </button>
+            {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
+            {recoveryStep === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center', color: '#1e293b' }}>{t('login.recoverAccess')}</h3>
+                <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, marginBottom: 6, display: 'block', color: '#475569' }}>{t('login.registeredEmail')}</label>
+                    <input type="email" className="input-expert" required value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#1e293b' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="button" onClick={() => setRecoveryStep(0)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>{t('login.cancel')}</button>
+                  <button type="button" onClick={(e) => { console.log('📡 Disparando recuperación...'); handleForgotPassword(e); }} className="btn-primary" style={{ flex: 1.5 }}>{t('login.sendCode')}</button>
+                </div>
+              </div>
+            )}
+            {recoveryStep === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center', color: '#1e293b' }}>{t('login.verifyCode')}</h3>
+                <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textAlign: 'center', border: '1px solid #fde68a' }}>
+                    <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '5px', marginBottom: '2px' }} /> {t('login.expiresIn3Min')}
+                </div>
+                <input type="text" className="input-expert" placeholder="000000" maxLength={6} required value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '5px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#1e293b' }} />
+                {hasExpired && (
+                  <button 
+                    type="button" 
+                    onClick={(e) => { setHasExpired(false); handleForgotPassword(e); }} 
+                    className="btn-primary" 
+                    style={{ background: '#f59e0b', marginBottom: '-10px' }}
+                    disabled={recoveryLoading}
+                  >
+                    {recoveryLoading ? t('login.generating') : t('login.generateNewCode')}
+                  </button>
+                )}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="button" onClick={() => { setRecoveryStep(0); setRecoveryCode(''); setError(''); setHasExpired(false); }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', color: '#475569' }}>{t('login.cancel')}</button>
+                  <button type="button" onClick={(e) => { console.log('📡 Validando código...'); handleVerifyRecovery(e); }} className="btn-primary" style={{ flex: 1.5, background: hasExpired ? '#94a3b8' : '' }} disabled={hasExpired}>{t('login.validate')}</button>
+                </div>
+              </div>
+            )}
+            {recoveryStep === 3 && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#16a34a', marginBottom: 15 }}><ShieldCheck size={40} style={{ margin: '0 auto' }} /></div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 10, color: '#1e293b' }}>{t('login.allReady')}</h3>
+                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: 20 }}>{t('login.tempPasswordSent')}</p>
+                <button onClick={() => setRecoveryStep(0)} className="btn-primary" style={{ width: '100%' }}>{t('login.back')}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
