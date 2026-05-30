@@ -393,7 +393,13 @@ const AdminDashboard = () => {
                       <td style={{ padding: '12px 15px', fontWeight: 700, color: PRIMARY }}>{user.uniqueCode}</td>
                       <td style={{ padding: '12px 15px' }}>{user.name}</td>
                       <td style={{ padding: '12px 15px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.roleOverride === 'manager' ? '#e0f2fe' : '#f1f5f9', fontSize: '9px', color: user.roleOverride === 'manager' ? '#0284c7' : '#64748b', fontWeight: 700 }}>{user.roleOverride === 'manager' ? 'ADMIN' : 'CLIENTE'}</span>
+                        {user.roleOverride === 'master' ? (
+                          <span style={{ padding: '3px 8px', borderRadius: '20px', background: '#fef08a', fontSize: '9px', color: '#854d0e', fontWeight: 800 }}>MASTER</span>
+                        ) : (
+                          <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.roleOverride === 'manager' ? '#e0f2fe' : '#f1f5f9', fontSize: '9px', color: user.roleOverride === 'manager' ? '#0284c7' : '#64748b', fontWeight: 700 }}>
+                            {user.roleOverride === 'manager' ? 'ADMIN' : 'CLIENTE'}
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{user.status.toUpperCase()}</span>
@@ -402,7 +408,9 @@ const AdminDashboard = () => {
                         <div style={{ display: 'flex', gap: 5 }}>
                           <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#15803d' }}><CheckCircle size={14} /></button>
                           <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#f59e0b' }}><ShieldOff size={14} /></button>
-                          <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride('client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#0ea5e9' }}><BadgeCheck size={14} /></button>
+                          {user.roleOverride !== 'master' && (
+                            <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#0ea5e9' }}><BadgeCheck size={14} /></button>
+                          )}
                           <button onClick={() => handleResetPassword(user.id)} title="Resetear Clave" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: PRIMARY }}><Key size={14} /></button>
                           <button onClick={() => handleDeleteUser(user.id)} title="Eliminar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#dc2626' }}><Trash2 size={14} /></button>
                         </div>

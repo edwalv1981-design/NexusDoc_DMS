@@ -39,17 +39,28 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
         });
 
         // Fetch user profiles to attach roleOverride
-        const profileStore = require('../services/userProfileStore');
-        const [profiles] = await sequelize.query(`SELECT "userId", "roleOverride" FROM "UserProfiles"`);
+        let profiles = [];
+        try {
+            const [results] = await sequelize.query(`SELECT "userId", "roleOverride" FROM "UserProfiles"`);
+            profiles = results;
+        } catch (e) {
+            console.warn("UserProfiles query failed in GET /users, probably table does not exist yet.");
+        }
+        
         const profileMap = {};
         profiles.forEach(p => { profileMap[p.userId] = p.roleOverride; });
 
         users.forEach(u => {
-            u.roleOverride = profileMap[u.id] || 'client';
+            if (u.role === 'admin') {
+                u.roleOverride = 'master';
+            } else {
+                u.roleOverride = profileMap[u.id] || 'client';
+            }
         });
 
         res.json(users);
     } catch (err) {
+        console.error('Error fetching users:', err.message);
         res.status(500).send('Server error');
     }
 });
