@@ -421,12 +421,27 @@ router.post('/save', auth, async (req, res) => {
       if (!form) return res.status(404).json({ msg: 'Formulario no encontrado' });
       if (form.userId !== req.user.id) return res.status(401).json({ msg: 'No autorizado' });
 
+      // Calculate diff
+      const oldData = form.data || {};
+      const newData = data || {};
+      const changedKeys = [];
+      for (const k in newData) {
+          if (JSON.stringify(oldData[k]) !== JSON.stringify(newData[k])) changedKeys.push(k);
+      }
+      for (const k in oldData) {
+          if (JSON.stringify(newData[k]) !== JSON.stringify(oldData[k]) && !changedKeys.includes(k)) changedKeys.push(k);
+      }
+      
+      let changesText = changedKeys.length > 0 
+          ? ` Campos modificados: ${changedKeys.join(', ')}` 
+          : ' (Sin cambios detectados)';
+
       await form.update({ formType: formTypeLabel, data: data });
       
       AuditLog.create({
         userId: req.user.id,
         action: 'FORM_UPDATED',
-        description: `Usuario actualizó el trámite: ${formTypeLabel} (ID: ${form.id})`
+        description: `Usuario actualizó el trámite: ${formTypeLabel} (ID: ${form.id}).${changesText}`
       }).catch(err => console.error('Error Bitácora:', err));
 
       return res.json({ msg: 'Actualizado con éxito', data: form });
