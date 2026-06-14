@@ -28,8 +28,9 @@ const hasEmailConfig = () => {
 const sendHtmlEmail = async (toEmail, subject, html, textFallback) => {
     if (useNodemailer) {
         try {
+            const sender = process.env.SENDER_EMAIL || process.env.SMTP_USER;
             await transporter.sendMail({
-                from: `"NexusDoc DMS" <${process.env.SMTP_USER}>`,
+                from: `"NexusDoc DMS" <${sender}>`,
                 to: toEmail,
                 subject: subject,
                 text: textFallback,
