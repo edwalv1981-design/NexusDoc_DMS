@@ -2,6 +2,25 @@ const express = require('express');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
+
+router.get('/test-smtp', async (req, res) => {
+    try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 465,
+            secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : undefined
+            }
+        });
+        await transporter.verify();
+        res.json({ status: 'ok', msg: 'Conexión SMTP exitosa con ' + process.env.SMTP_HOST });
+    } catch (err) {
+        res.json({ status: 'error', msg: err.message });
+    }
+});
 const { User, AuditLog, PendingRegistration } = require('../models');
 const { sendSecurityCode, sendTemporaryPassword, sendAccountLockedNotice } = require('../services/emailService');
 const jwt = require('jsonwebtoken');
