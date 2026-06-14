@@ -25,13 +25,14 @@ const hasEmailConfig = () => {
     return true;
 };
 
-const sendHtmlEmail = async (toEmail, subject, html) => {
+const sendHtmlEmail = async (toEmail, subject, html, textFallback) => {
     if (useNodemailer) {
         try {
             await transporter.sendMail({
-                from: `"NexusDoc" <${process.env.SMTP_USER}>`,
+                from: `"NexusDoc DMS" <${process.env.SMTP_USER}>`,
                 to: toEmail,
                 subject: subject,
+                text: textFallback,
                 html: html
             });
             console.log('✅ Correo enviado exitosamente con Nodemailer.');
@@ -55,6 +56,7 @@ const sendHtmlEmail = async (toEmail, subject, html) => {
                     from: `NexusDoc <${SENDER_EMAIL}>`,
                     to: toEmail,
                     subject: subject,
+                    text: textFallback,
                     html: html
                 })
             });
@@ -93,8 +95,9 @@ const sendSecurityCode = async (toEmail, code) => {
             <p style="margin-top: 20px; color: #666; font-size: 12px;">Este correo ha sido enviado de forma segura.</p>
         </div>
     `;
+    const text = `Seguridad NexusDoc\nTu código de verificación es: ${code}\nEste correo ha sido enviado de forma segura.`;
     
-    return await sendHtmlEmail(toEmail, 'Tu Código de Seguridad - NexusDoc DMS', html);
+    return await sendHtmlEmail(toEmail, 'Tu Código de Seguridad - NexusDoc DMS', html, text);
 };
 
 const sendTemporaryPassword = async (toEmail, tempPassword) => {
@@ -110,8 +113,9 @@ const sendTemporaryPassword = async (toEmail, tempPassword) => {
             <p style="margin-top: 20px; color: #dc2626; font-weight: bold;">Por seguridad, cambia esta clave al ingresar.</p>
         </div>
     `;
+    const text = `Acceso NexusDoc\nSe ha generado una clave temporal para tu cuenta:\n${tempPassword}\nPor seguridad, cambia esta clave al ingresar.`;
     
-    return await sendHtmlEmail(toEmail, 'Tu Nueva Clave de Acceso - NexusDoc', html);
+    return await sendHtmlEmail(toEmail, 'Tu Nueva Clave de Acceso - NexusDoc', html, text);
 };
 
 const sendAccountLockedNotice = async (toEmail) => {
@@ -124,8 +128,9 @@ const sendAccountLockedNotice = async (toEmail) => {
             <p><strong>Tu usuario ha sido bloqueado, por favor comunícate con tu administrador.</strong></p>
         </div>
     `;
+    const text = `Cuenta Bloqueada\nTe informamos que el período de prueba/acceso de 14 días para tu usuario ha expirado.\nTu usuario ha sido bloqueado, por favor comunícate con tu administrador.`;
     
-    return await sendHtmlEmail(toEmail, 'Tu cuenta ha sido bloqueada por caducidad - NexusDoc', html);
+    return await sendHtmlEmail(toEmail, 'Tu cuenta ha sido bloqueada por caducidad - NexusDoc', html, text);
 };
 
 module.exports = {
