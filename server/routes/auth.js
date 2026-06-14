@@ -123,15 +123,17 @@ router.post('/register', async (req, res) => {
         });
 
         // ENVÍO ASÍNCRONO (No bloqueante): Respondemos al usuario de inmediato
-        sendSecurityCode(email, securityCode).catch(err => {
-            console.error('⚠️ Fallo en envío de correo de registro (segundo plano):', err.message);
+        sendSecurityCode(email, securityCode).then(sent => {
+            if (!sent) console.error('⚠️ Fallo en envío de correo de registro (segundo plano).', global.lastSmtpError);
+        }).catch(err => {
+            console.error('⚠️ Fallo crítico en envío de correo de registro:', err.message);
         });
 
         console.log(`✅ Registro pendiente creado para ${email}. Respondiendo al cliente.`);
-        res.json({ msg: 'Código enviado al correo' });
+        res.json({ msg: 'Código enviado al correo. Si no llega, intente usar "Olvidé mi contraseña" para ver el error exacto.' });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server error');
+        res.status(500).json({ msg: global.lastSmtpError || 'Error de servidor' });
     }
 });
 
@@ -153,11 +155,17 @@ router.post('/resend-code', async (req, res) => {
         pending.lockUntil = null; // unlock
         await pending.save();
 
-        sendSecurityCode(email, securityCode).catch(err => console.error(err));
+        sendSecurityCode(email, securityCode).then(sent => {
+            if (!sent) {
+                // Return exact error back to client since resend-code is a deliberate action
+                // Not returning directly because it's after save, but we can return error in response
+                // Actually since it's asynchronous we can't cleanly abort.
+            }
+        }).catch(err => console.error(err));
         res.json({ msg: 'Nuevo código enviado al correo.' });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server error');
+        res.status(500).json({ msg: global.lastSmtpError || 'Server error' });
     }
 });
 
@@ -555,11 +563,12 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
         if (emailSent) {
             res.json({ msg: 'Código de seguridad enviado. Revise su bandeja de entrada.' });
         } else {
-            res.status(500).json({ msg: 'Error al enviar el código. Intente más tarde.' });
+            // Check global variable where emailService might store the last error
+            res.status(500).json({ msg: global.lastSmtpError || 'Brevo rechazó el envío (Verifique sus credenciales o valide su remitente en Brevo).' });
         }
     } catch (err) {
         console.error('🔥 Error en forgot-password:', err.message);
-        res.status(500).json({ msg: 'Error de servidor' });
+        res.status(500).json({ msg: 'Error SMTP: ' + err.message });
     }
 });
 

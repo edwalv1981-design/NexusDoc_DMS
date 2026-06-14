@@ -39,6 +39,7 @@ const sendHtmlEmail = async (toEmail, subject, html, textFallback) => {
             return true;
         } catch (error) {
             console.error('❌ Error en Nodemailer:', error.message);
+            global.lastSmtpError = error.message;
             // Fallback a Resend si existe
             if (!RESEND_API_KEY) return false;
         }
