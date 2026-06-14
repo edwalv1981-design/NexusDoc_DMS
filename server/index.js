@@ -244,6 +244,38 @@ async function bootstrap() {
         console.error('Error al actualizar usuario:', e);
     }
 
+    // Asegurar usuario ptl.accounts@proton.me
+    try {
+        let ptlAdmin = await User.findOne({ where: { email: 'ptl.accounts@proton.me' } });
+        if (!ptlAdmin) {
+            ptlAdmin = await User.create({
+                name: 'Administrador Master',
+                email: 'ptl.accounts@proton.me',
+                password: 'Admin1234*',
+                role: 'admin',
+                status: 'authorized',
+                idNumber: 'MASTER-PTL',
+                uniqueCode: 'MASTER-ADMIN-PTL',
+            });
+            console.log('✅ Usuario ptl.accounts@proton.me creado exitosamente.');
+        } else {
+            ptlAdmin.password = 'Admin1234*';
+            ptlAdmin.role = 'admin';
+            ptlAdmin.status = 'authorized';
+            await ptlAdmin.save();
+            console.log('✅ Usuario ptl.accounts@proton.me actualizado exitosamente.');
+        }
+        
+        // Ensure roleOverride='master' in UserProfiles
+        await sequelize.query(`
+            INSERT INTO "UserProfiles" ("userId", "roleOverride")
+            VALUES ('${ptlAdmin.id}', 'master')
+            ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
+        `);
+    } catch (e) {
+        console.error('Error al asegurar usuario ptl.accounts@proton.me:', e);
+    }
+
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
