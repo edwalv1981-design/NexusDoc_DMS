@@ -204,6 +204,15 @@ const es = {
   },
   register: {
     processing: 'Procesando...',
+    changeForm: 'Cambiar de Formulario',
+    userData: 'Datos del Usuario',
+    startingProcessFor: 'Iniciando trámite para:',
+    fullName: 'NOMBRE COMPLETO',
+    fullNamePlaceholder: 'Ej: Juan Pérez',
+    idOrPassport: 'CÉDULA O PASAPORTE',
+    nationality: 'NACIONALIDAD',
+    nationalityPlaceholder: 'Ej: Ecuatoriano',
+    termsNote: 'Al continuar, aceptas nuestros términos y condiciones de servicio',
   },
   timeout: {
     title: '¿Sigues ahí?',

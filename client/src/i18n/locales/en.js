@@ -204,6 +204,15 @@ const en = {
   },
   register: {
     processing: 'Processing...',
+    changeForm: 'Change Form',
+    userData: 'User Data',
+    startingProcessFor: 'Starting process for:',
+    fullName: 'FULL NAME',
+    fullNamePlaceholder: 'Eg: John Doe',
+    idOrPassport: 'ID OR PASSPORT',
+    nationality: 'NATIONALITY',
+    nationalityPlaceholder: 'Eg: American',
+    termsNote: 'By continuing, you agree to our terms and conditions of service',
   },
   timeout: {
     title: 'Are you still there?',
