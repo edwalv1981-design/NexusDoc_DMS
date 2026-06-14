@@ -201,7 +201,7 @@ async function ensureUserProfilesTable(sequelize) {
     try {
         await sequelize.query(`
             CREATE TABLE IF NOT EXISTS "UserProfiles" (
-                "userId" UUID PRIMARY KEY REFERENCES "Users"("id") ON DELETE CASCADE,
+                "userId" UUID PRIMARY KEY,
                 "roleOverride" VARCHAR(50),
                 "phone" VARCHAR(50),
                 "address" TEXT,
