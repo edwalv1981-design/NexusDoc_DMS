@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X, Edit2, Plus } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X, Edit2, Plus, Mail } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -184,20 +184,32 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleUpdateProfile = async (e) => {
+  const handleUpdateEmail = async (e) => {
     e.preventDefault();
     setSavingSettings(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { email: adminEmail, newPassword: newPassword || undefined }, { headers: { 'x-auth-token': token } });
-      toast.success('Perfil actualizado con éxito');
-      setNewPassword('');
+      await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { email: adminEmail }, { headers: { 'x-auth-token': token } });
+      toast.success('Correo electrónico actualizado con éxito');
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-        toast.error('Error'); 
+        toast.error(err.response?.data?.msg || 'Error al actualizar correo'); 
     } finally { setSavingSettings(false); }
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { newPassword }, { headers: { 'x-auth-token': token } });
+      toast.success('Contraseña actualizada con éxito');
+      setNewPassword('');
+    } catch (err) { 
+        if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
+        toast.error(err.response?.data?.msg || 'Error al actualizar contraseña'); 
+    } finally { setSavingSettings(false); }
+  };
   const handleChangeRoleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedUserForRole) return;
@@ -346,7 +358,7 @@ const AdminDashboard = () => {
           <span style={{ fontWeight: 700, fontSize: '13px' }}>NEXUSDOC ADMIN</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'settings', icon: Settings, label: 'Cambio de Claves' }].map(item => (
+          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'change-password', icon: Key, label: 'Cambio de Clave' }, { id: 'change-email', icon: Mail, label: 'Cambio de Correo' }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS }}>
               <item.icon size={15} /> {item.label}
             </button>
@@ -791,14 +803,25 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {activeTab === 'settings' && (
+            {activeTab === 'change-email' && (
               <div style={{ padding: '30px', maxWidth: '450px' }}>
-                <h3 style={{ marginBottom: '20px' }}>Actualizar datos de usuario</h3>
-                <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                <h3 style={{ marginBottom: '20px' }}>Actualizar Correo Electrónico</h3>
+                <form onSubmit={handleUpdateEmail} style={{ display: 'flex', flexDirection: 'column', gap: 15, marginBottom: '40px' }}>
                   <div className="field-group-admin">
                     <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
                     <input className="input-modern-admin" type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} required />
                   </div>
+                  <button type="submit" disabled={savingSettings} className="btn-primary" style={{ width: '100%', marginTop: 10 }}>
+                    {savingSettings ? 'GUARDANDO...' : 'ACTUALIZAR CORREO'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'change-password' && (
+              <div style={{ padding: '30px', maxWidth: '450px' }}>
+                <h3 style={{ marginBottom: '20px' }}>Actualizar Contraseña</h3>
+                <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                   <div className="field-group-admin">
                     <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVA CONTRASEÑA</label>
                     <div style={{ position: 'relative' }}>
@@ -807,6 +830,7 @@ const AdminDashboard = () => {
                         type={showPassword ? 'text' : 'password'} 
                         value={newPassword} 
                         onChange={e => setNewPassword(e.target.value)} 
+                        required
                         style={{ paddingRight: '40px' }}
                       />
                       <button 
@@ -819,7 +843,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <button type="submit" disabled={savingSettings} className="btn-primary" style={{ width: '100%', marginTop: 10 }}>
-                    {savingSettings ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+                    {savingSettings ? 'GUARDANDO...' : 'ACTUALIZAR CONTRASEÑA'}
                   </button>
                 </form>
               </div>
