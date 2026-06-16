@@ -79,6 +79,7 @@ function buildFondosPdfInnerHtml(data = {}, options = {}) {
       <h2>${esc(t.sectionFunds)}</h2>
       <div class="funds-block">
         <div class="funds-title">${esc(t.fundsSource)}</div>
+        <p class="declaration-es" style="margin-bottom:8px;">${esc(t.fundsSourceDesc)}</p>
         ${buildFundsChecksHtml(FUNDS_KEYS, data, t)}
       </div>
       <table class="kv-table"><tbody>${kvRow(t.fundsOther, data.fundsOther)}</tbody></table>
@@ -86,7 +87,9 @@ function buildFondosPdfInnerHtml(data = {}, options = {}) {
 
     <section class="card">
       <h2>${esc(t.sectionCustody)}</h2>
+      <div style="padding:10px 12px 0 12px;"><p class="declaration-es">${esc(t.custodyDesc)}</p></div>
       <table class="kv-table"><tbody>${custodyRows}</tbody></table>
+      <div style="padding:0 12px 10px 12px;"><p class="declaration-es">${esc(t.custodyAddressDesc)}</p></div>
     </section>
 
     <section class="card declaration">

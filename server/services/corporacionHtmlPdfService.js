@@ -129,7 +129,7 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   /* Section 1 – Company Name */
   const nameSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Name of the corporation / Nombre de la compa&ntilde;&iacute;a</div>
-    <div style="${S.hint}">List the names you wish to use in order of preference. / Listar los nombres en orden de preferencia.</div>
+    <div style="${S.hint}">List the names you wish to use to incorporate your corporation in order of preference / Listar los nombres que desea utilizar para incorporar su compa&ntilde;&iacute;a en orden de preferencia:<br/><br/>The name of the Company must be determined by one of the following terminations: Corporation, Incorporated, Soci&eacute;t&eacute; Anonyme, Sociedad An&oacute;nima, Corp., Inc., S.A., A / S, N.V., B.V., AG. / El nombre de la Compa&ntilde;&iacute;a debe terminar con una de las siguientes terminaciones: Corporation, Incorporated, Soci&eacute;t&eacute; Anonyme, Sociedad An&oacute;nima o con las abreviaciones: Corp., Inc. o S.A., A/S, N.V., B.V., AG.</div>
     <table style="width:100%;border-collapse:collapse;">
       <tr>
         <td style="padding:4px 8px;font-weight:700;font-size:8px;color:${C.labelColor};width:120px;border:1px solid ${C.border};background:${C.fieldBg};">1st choice / 1ra Opci&oacute;n</td>
@@ -152,7 +152,7 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   /* Section 2 – Authorized Capital */
   const capitalSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Authorized Capital / Capital Social Autorizado</div>
-    <div style="${S.hint}">The minimum authorized capital is US$10,000.00. / El capital m&iacute;nimo autorizado es US$10,000.00.</div>
+    <div style="${S.hint}">The minimum authorized capital of the company will be US$10,000.00 divided into 100 shares with a par value of US$100.00 each, the shares issued in nominative form. / El capital m&iacute;nimo autorizado de la sociedad ser&aacute; de US$10,000.00 divididos en 100 acciones con un valor nominal de US$100.00 cada una, las acciones emitidas de forma nominativa.</div>
     <table style="width:100%;border-collapse:collapse;">
       <thead><tr>
         <th style="${S.thCell}">Minimum / M&iacute;nimo</th>
@@ -168,7 +168,7 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   /* Section 3 – Directors */
   const directorsSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Directors / Directores</div>
-    <div style="${S.hint}">In Panama, a minimum of 3 directors are required. / En Panam&aacute; se requieren m&iacute;nimo 3 directores.</div>
+    <div style="${S.hint}">In PANAMA a minimum of 3 different Directors are required. Could be Individuals or legal entities from any other nationality. To add more directors request another page. / En PANAM&Aacute; se require un m&iacute;nimo de 3 diferentes directores. Pueden ser individuos o entidades legales de cualquier otra nacionalidad. Para incluir mas directores solicite otra pagina.</div>
     ${buildDirectorPairs(directors)}
   </div>`;
 
@@ -223,7 +223,7 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   /* Section 6 – Company Activities */
   const activitiesSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Company Activities / Actividades de la Compa&ntilde;&iacute;a</div>
-    <div style="${S.hint}">Please provide an explanation of the corporation's activities. / Favor provea una explicaci&oacute;n de la actividad de la sociedad.</div>
+    <div style="${S.hint}">Please provide an explanation of the corporation's activities, how it will be carried out and in which countries it will be carried out. / Favor proveer una explicaci&oacute;n de la actividad de la sociedad, como se realizar&aacute; y en qu&eacute; pa&iacute;ses se llevar&aacute; a cabo.</div>
     <div style="padding:6px 8px;min-height:36px;white-space:pre-wrap;word-break:break-word;font-size:9px;">${esc(data.companyActivities)}</div>
   </div>`;
 
@@ -237,7 +237,7 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
 
   const declarationSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Declaration / Declaraci&oacute;n</div>
-    <div style="${S.hint}">I/We declare that the origin of funds and goods linked to the services provided by Panama Tax Lawyers and its associates derive from legitimate sources. / Declaro que el origen de los fondos vinculados a los servicios de Panama Tax Lawyers derivan de fuentes leg&iacute;timas.</div>
+    <div style="${S.hint}">I hereby affirm that information given on this application is complete and accurate. I understand that any falsification or ommission will carry legal effects and penalties. I authorize the company to investigate the authenticity of above-mentioned information. / Por la presente afirmo que la informaci&oacute;n dada en esta solicitud es completa y exacta. Entiendo que cualquier falsificaci&oacute;n u omisi&oacute;n tendr&aacute; efectos y sanciones legales. Autorizo a la empresa a investigar la autenticidad de la informaci&oacute;n mencionada anteriormente.</div>
     <div style="padding:8px;">
       ${signerBlocks}
       <div style="margin-top:8px;">

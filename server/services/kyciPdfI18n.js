@@ -10,12 +10,12 @@ const ES = Object.freeze({
   sectionCompliance: kyciMaster.SECTIONS[2].titleEs,
   sectionDeclaration: kyciMaster.SECTIONS[3].titleEs,
   sectionPersonalGuide:
-    'Complete los datos personales tal como figuran en su pasaporte o documento de identidad oficial.',
-  sectionContactGuide: 'Indique datos de contacto vigentes y su ocupación o actividad económica principal.',
+    'This form is for completion by each individual (the “Applicant”) who: owns or proposes owning 10% or greater of share capital (Shareholder), is a Beneficial Owner, is a Director, General Partner, Authorised Signatory, Power of Attorney, Settlor, Enforcer, or Protector. Note that an original copy of the executed Compliance Form must be sent to us together with the due diligence documents.',
+  sectionContactGuide: 'In which country(ies) are you resident for tax purposes? Note: Please complete the Individual Self Certification Tax Declaration (If applicable). Foreign Account Tax Compliance Act – U.S Status and Connections: Are you a U.S. Person or resident in the U.S. for tax purposes? (e.g. Green Card holder)',
   sectionComplianceGuide:
-    'Declare si es persona expuesta políticamente (PEP) y marque todas las fuentes que apliquen al origen de sus fondos o patrimonio.',
+    'Source of Wealth: Provide details regarding source of wealth (e.g. salaries, ownership of business etc) including details of employment and/or business names and activities.\nPolitical Connections: Do you or any member of your immediate family hold or previously held a position of a “Politically Exposed Person” (PEP)?\nOffences/Sanctions: Have you at any time been convicted of any criminal offence, been an un-discharged bankruptcy, or subject of an official enquiry?',
   sectionDeclarationGuide:
-    'Firme y fecha la declaración con el mismo nombre que figura en su documento de identidad.',
+    'CERTIFIED IDENTITY DOCUMENTS TO BE ATTACHED: I hereby attach certified copies of the following documents: Colour Picture Passport; AND Proof of current address (<3 months old); Utility Bill or Credit Card Statement or Bank Reference; AND CV Details or a link to publicly available biography. These documents must be certified as true and correct copies... I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of my circumstances change within 14 days of those changes occurring.',
   ...kyciMaster.FIELD_LABELS_ES,
   fundsBienes: 'Bienes personales / Personal assets',
   fundsInversiones: 'Inversiones financieras / Financial investments',
@@ -34,12 +34,12 @@ const EN = Object.freeze({
   sectionCompliance: kyciMaster.SECTIONS[2].titleEn,
   sectionDeclaration: kyciMaster.SECTIONS[3].titleEn,
   sectionPersonalGuide:
-    'Enter personal details exactly as shown on your passport or official ID document.',
-  sectionContactGuide: 'Provide current contact details and your main occupation or economic activity.',
+    'This form is for completion by each individual (the “Applicant”) who: owns or proposes owning 10% or greater of share capital (Shareholder), is a Beneficial Owner, is a Director, General Partner, Authorised Signatory, Power of Attorney, Settlor, Enforcer, or Protector. Note that an original copy of the executed Compliance Form must be sent to us together with the due diligence documents.',
+  sectionContactGuide: 'In which country(ies) are you resident for tax purposes? Note: Please complete the Individual Self Certification Tax Declaration (If applicable). Foreign Account Tax Compliance Act – U.S Status and Connections: Are you a U.S. Person or resident in the U.S. for tax purposes? (e.g. Green Card holder)',
   sectionComplianceGuide:
-    'State whether you are a politically exposed person (PEP) and check all applicable sources of funds or wealth.',
+    'Source of Wealth: Provide details regarding source of wealth (e.g. salaries, ownership of business etc) including details of employment and/or business names and activities.\nPolitical Connections: Do you or any member of your immediate family hold or previously held a position of a “Politically Exposed Person” (PEP)?\nOffences/Sanctions: Have you at any time been convicted of any criminal offence, been an un-discharged bankruptcy, or subject of an official enquiry?',
   sectionDeclarationGuide:
-    'Sign and date using the same name as on your official identification document.',
+    'CERTIFIED IDENTITY DOCUMENTS TO BE ATTACHED: I hereby attach certified copies of the following documents: Colour Picture Passport; AND Proof of current address (<3 months old); Utility Bill or Credit Card Statement or Bank Reference; AND CV Details or a link to publicly available biography. These documents must be certified as true and correct copies... I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of my circumstances change within 14 days of those changes occurring.',
   ...kyciMaster.FIELD_LABELS_EN,
   fundsBienes: 'Personal assets / Bienes personales',
   fundsInversiones: 'Financial investments / Inversiones financieras',

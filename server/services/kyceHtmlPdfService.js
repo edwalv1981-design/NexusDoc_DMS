@@ -142,6 +142,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
     '<h2>' +
     esc(t.sectionDeclaration) +
     '</h2>' +
+    sectionGuideHtml(t.sectionDeclarationGuide) +
     '<table class="kv-table"><tbody>' +
     kvRow(t.declarationName, data.declarationName) +
     kvRow(t.declarationDate, fmtDate(data.declarationDate)) +
@@ -176,7 +177,7 @@ class KyceHtmlPdfService {
         '.subtitle { margin: 0; font-size: 10px; color: #64748b; }' +
         '.card { border: 1px solid #7dd3fc; margin: 10px 0; page-break-inside: avoid; }' +
         '.card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 10px; font-size: 12px; }' +
-        '.section-guide { margin: 0; padding: 8px 10px; font-size: 10px; color: #475569; background: #f0f9ff; border-bottom: 1px solid #bae6fd; }' +
+        '.section-guide { margin: 0; padding: 8px 10px; font-size: 10px; color: #475569; background: #f0f9ff; border-bottom: 1px solid #bae6fd; white-space: pre-wrap; }' +
         '.kv-table { width: 100%; border-collapse: collapse; }' +
         '.kv-table td { border: 1px solid #bae6fd; padding: 5px 8px; vertical-align: top; }' +
         '.kv-label { width: 38%; font-weight: 700; background: #f0f9ff; color: #334155; }' +

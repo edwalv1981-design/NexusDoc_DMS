@@ -9,12 +9,14 @@ const ES = Object.freeze({
   sectionCompliance: 'IV. Cumplimiento, PEP y origen de fondos',
   sectionDeclaration: 'Declaración',
   sectionEntityGuide:
-    'Datos de constitución y registro de la entidad según documentos societarios vigentes.',
-  sectionContactGuide: 'Información de contacto y descripción de la actividad principal de la entidad.',
+    'This form is for completion, in respect of the Company, by each company, trust or partnership which owns or proposes owning, directly or indirectly 10% or greater of the share capital of the Company; that is a Corporate Director of the Company, or is a holder of a Power of Attorney (together, referred to as “Applicant”). Note that an original copy of the executed Compliance Form must be sent together with the required due diligence documents.',
+  sectionContactGuide: 'Description of Business',
   sectionRepresentativesGuide:
-    'Identifique al representante legal y a los beneficiarios finales con participación igual o superior al 25%.',
+    'If Applicant is a: Public Company, Regulated Entity, Government Entity, Private Company, Trust/ Corp / or Foundation, Partnerships. Please provide Certified copies of corresponding documents.',
   sectionComplianceGuide:
-    'Indique si la entidad o sus controladores son PEP y seleccione el origen de fondos o patrimonio aplicable.',
+    'Offences and Sanctions: Has the Applicant at any time been convicted of any criminal offence or been subject to sanctions by a Judicial, Government, Professional or Regulatory body? Has the Applicant at any time been the subject of a judicial enquiry/investigation?\nFATCA/CRS Classification & Tax Residency: Provide details regarding U.S. and other country residencies.',
+  sectionDeclarationGuide:
+    'Note: Please complete and submit the Entity Self Certification Declaration Form.\nI hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of the circumstances change within 14 days of those changes occurring.',
   legalName: 'Razón social',
   tradeName: 'Nombre comercial',
   entityType: 'Tipo de entidad',
@@ -57,12 +59,14 @@ const EN = Object.freeze({
   sectionCompliance: 'IV. Compliance, PEP and source of funds',
   sectionDeclaration: 'Declaration',
   sectionEntityGuide:
-    'Entity incorporation and registration details as shown on current corporate documents.',
-  sectionContactGuide: 'Contact information and description of the entity’s main business activity.',
+    'This form is for completion, in respect of the Company, by each company, trust or partnership which owns or proposes owning, directly or indirectly 10% or greater of the share capital of the Company; that is a Corporate Director of the Company, or is a holder of a Power of Attorney (together, referred to as “Applicant”). Note that an original copy of the executed Compliance Form must be sent together with the required due diligence documents.',
+  sectionContactGuide: 'Description of Business',
   sectionRepresentativesGuide:
-    'Identify the legal representative and beneficial owners with 25% or more ownership or control.',
+    'If Applicant is a: Public Company, Regulated Entity, Government Entity, Private Company, Trust/ Corp / or Foundation, Partnerships. Please provide Certified copies of corresponding documents.',
   sectionComplianceGuide:
-    'State whether the entity or its controllers are PEPs and check all applicable sources of funds or wealth.',
+    'Offences and Sanctions: Has the Applicant at any time been convicted of any criminal offence or been subject to sanctions by a Judicial, Government, Professional or Regulatory body? Has the Applicant at any time been the subject of a judicial enquiry/investigation?\nFATCA/CRS Classification & Tax Residency: Provide details regarding U.S. and other country residencies.',
+  sectionDeclarationGuide:
+    'Note: Please complete and submit the Entity Self Certification Declaration Form.\nI hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of the circumstances change within 14 days of those changes occurring.',
   legalName: 'Legal name',
   tradeName: 'Trade name',
   entityType: 'Entity type',

@@ -105,6 +105,18 @@ function App() {
     };
   }, [showTimeoutModal]);
 
+  // 6. EFECTO PARA BLOQUEAR EL BOTÓN ATRÁS DEL NAVEGADOR
+  useEffect(() => {
+    // Empuja un estado inicial
+    window.history.pushState(null, null, window.location.href);
+    const handlePopState = (event) => {
+      // Forzar que el usuario siempre se mantenga en el estado actual si intenta retroceder
+      window.history.pushState(null, null, window.location.href);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   return (
     <ToastProvider>
       <Router>

@@ -461,7 +461,7 @@ class FundacionHtmlPdfService {
             .first-page-title h1 { margin: 0; color: #0369a1; font-size: 20px; line-height: 1.02; font-weight: 800; }
             .card { border: 1px solid #7dd3fc; margin: 8px 0; page-break-inside: auto; break-inside: auto; }
             .card h2 { margin: 0; background: #0891b2; color: #fff; padding: 6px 8px; font-size: 12px; }
-            .hint { padding: 4px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.25; }
+            .hint { padding: 4px 8px; background: #f0f9ff; border-bottom: 1px solid #bae6fd; color: #334155; line-height: 1.25; white-space: pre-wrap; }
             .grid3, .grid2 { display: grid; gap: 8px; padding: 8px; }
             .grid3 { grid-template-columns: 1fr 1fr 1fr; }
             .grid2 { grid-template-columns: 1fr 1fr; }
