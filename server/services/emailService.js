@@ -48,34 +48,50 @@ const sendHtmlEmail = async (toEmail, subject, html, textFallback) => {
     }
     
     if (RESEND_API_KEY) {
-        try {
-            const response = await fetch('https://api.resend.com/emails', {
+        return new Promise((resolve) => {
+            const https = require('https');
+            const data = JSON.stringify({
+                from: `NexusDoc <${SENDER_EMAIL}>`,
+                to: toEmail,
+                subject: subject,
+                text: textFallback,
+                html: html
+            });
+
+            const options = {
+                hostname: 'api.resend.com',
+                port: 443,
+                path: '/emails',
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${RESEND_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    from: `NexusDoc <${SENDER_EMAIL}>`,
-                    to: toEmail,
-                    subject: subject,
-                    text: textFallback,
-                    html: html
-                })
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(data)
+                }
+            };
+
+            const req = https.request(options, (res) => {
+                let responseBody = '';
+                res.on('data', (chunk) => responseBody += chunk);
+                res.on('end', () => {
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        console.log('✅ Correo enviado exitosamente con Resend.');
+                        resolve(true);
+                    } else {
+                        console.error('❌ Error en API de Resend HTTP', res.statusCode, responseBody);
+                        resolve(false);
+                    }
+                });
             });
 
-            if (response.ok) {
-                console.log('✅ Correo enviado exitosamente con Resend.');
-                return true;
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Error en API de Resend:', errorData);
-                return false;
-            }
-        } catch (error) {
-            console.error('❌ Error crítico de conexión con Resend:', error.message);
-            return false;
-        }
+            req.on('error', (error) => {
+                console.error('❌ Error crítico de conexión con Resend:', error.message);
+                resolve(false);
+            });
+
+            req.write(data);
+            req.end();
+        });
     }
     return false;
 };
