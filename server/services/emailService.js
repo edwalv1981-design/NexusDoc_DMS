@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'no-reply@nexusdoc.local';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'no-reply@nexusdoc.it.com';
 
 const useNodemailer = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
 let transporter;
