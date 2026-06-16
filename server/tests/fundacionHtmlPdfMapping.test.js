@@ -146,7 +146,7 @@ test('buildFundacionPdfInnerHtml renders POA yes/no and all grantee fields', () 
   const t = getFundacionPdfDict('es');
   assert.match(html, /\[X\] Sí/);
   assert.match(html, /\[ \] No/);
-  assert.match(html, /¿Desea emitir un poder\?/);
+  assert.match(html, /¿Quiere Usted emitir un poder\?/);
   assert.match(html, /¿Requiere que el poder sea legalizado\?/);
   assert.match(html, /Indefinida/);
   assert.match(html, /GENERAL/);
