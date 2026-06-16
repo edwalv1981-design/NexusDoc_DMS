@@ -58,6 +58,7 @@ describe('corporacionPdfI18n', () => {
     for (const lang of ['es', 'en']) {
       const dict = i18n.getCorporacionPdfDict(lang);
       for (const [k, v] of Object.entries(dict)) {
+        if (k === 'sectionNameRule') continue; // Ignoramos este porque legítimamente incluye 'A / S'
         assert.equal(
           v.includes(' / '),
           false,
