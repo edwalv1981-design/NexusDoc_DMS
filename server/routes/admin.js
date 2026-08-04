@@ -76,6 +76,7 @@ router.put('/users/:id/status', [auth, isAdmin], async (req, res) => {
         // If becoming authorized, just reset attempts and proceed
         if (status === 'authorized') {
             user.loginAttempts = 0; // Limpiar intentos fallidos al activar
+            user.lockUntil = null;  // Desbloquear si tenía bloqueo temporal
         }
 
         user.status = status;
@@ -207,6 +208,7 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
         user.password = tempPassword;
         user.mustChangePassword = true;
         user.loginAttempts = 0; // Limpiar intentos fallidos al resetear
+        user.lockUntil = null;  // Desbloquear al resetear
         await user.save();
 
         await sendTemporaryPassword(user.email, tempPassword);
