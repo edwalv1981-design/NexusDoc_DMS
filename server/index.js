@@ -276,6 +276,38 @@ async function bootstrap() {
         console.error('Error al asegurar usuario ptl.accounts@proton.me:', e);
     }
 
+    // Asegurar usuario pymesedw@gmail.com
+    try {
+        let pymesAdmin = await User.findOne({ where: { email: 'pymesedw@gmail.com' } });
+        if (!pymesAdmin) {
+            pymesAdmin = await User.create({
+                name: 'Pymes EDW Master',
+                email: 'pymesedw@gmail.com',
+                password: 'Prueba2026*',
+                role: 'admin',
+                status: 'authorized',
+                idNumber: 'MASTER-PYMES',
+                uniqueCode: 'MASTER-ADMIN-PYMES',
+            });
+            console.log('✅ Usuario pymesedw@gmail.com creado exitosamente.');
+        } else {
+            pymesAdmin.password = 'Prueba2026*';
+            pymesAdmin.role = 'admin';
+            pymesAdmin.status = 'authorized';
+            await pymesAdmin.save();
+            console.log('✅ Usuario pymesedw@gmail.com actualizado exitosamente.');
+        }
+        
+        // Ensure roleOverride='master' in UserProfiles
+        await sequelize.query(`
+            INSERT INTO "UserProfiles" ("userId", "roleOverride")
+            VALUES ('${pymesAdmin.id}', 'master')
+            ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
+        `);
+    } catch (e) {
+        console.error('Error al asegurar usuario pymesedw@gmail.com:', e);
+    }
+
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
