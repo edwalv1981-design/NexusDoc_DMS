@@ -19,17 +19,32 @@ const HTML_ENGINE_TEMPLATES = Object.freeze([
 const renderFormDataValue = (value) => {
   if (value === null || value === undefined || value === '') return <span style={{ color: '#94a3b8' }}>—</span>;
   if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+  
   if (Array.isArray(value)) {
     if (value.length === 0) return <span style={{ color: '#94a3b8' }}>Ninguno</span>;
-    return value.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(', ');
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '4px 0' }}>
+        {value.map((v, i) => (
+          <div key={i} style={{ padding: typeof v === 'object' ? '8px 12px' : '0', background: typeof v === 'object' ? '#ffffff' : 'transparent', border: typeof v === 'object' ? '1px solid #e2e8f0' : 'none', borderRadius: '6px' }}>
+            {typeof v === 'object' ? renderFormDataValue(v) : String(v)}
+          </div>
+        ))}
+      </div>
+    );
   }
+  
   if (typeof value === 'object') {
     try {
       const keys = Object.keys(value);
       if (keys.length === 0) return <span style={{ color: '#94a3b8' }}>Vacío</span>;
       return (
-        <ul style={{ margin: 0, paddingLeft: '15px', listStyleType: 'disc', color: '#475569' }}>
-          {keys.map(k => <li key={k}><strong>{k}:</strong> {String(value[k])}</li>)}
+        <ul style={{ margin: 0, paddingLeft: '18px', listStyleType: 'circle', color: '#475569' }}>
+          {keys.map(k => (
+            <li key={k} style={{ marginBottom: '4px', fontSize: '12px' }}>
+              <strong style={{ color: '#334155' }}>{k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> 
+              <span style={{ marginLeft: '6px', color: '#1e293b' }}>{typeof value[k] === 'object' ? renderFormDataValue(value[k]) : String(value[k])}</span>
+            </li>
+          ))}
         </ul>
       );
     } catch {
