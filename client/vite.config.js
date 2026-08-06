@@ -1,25 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { compression } from 'vite-plugin-compression2'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    compression({ algorithm: 'gzip' }),
-    compression({ algorithm: 'brotliCompress' }),
-  ],
+  plugins: [react()],
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          icons: ['lucide-react'],
-        },
-      },
-    },
-    minify: 'esbuild',
-    esbuild: {
-      drop: ['debugger']
-    }
-  },
+    outDir: 'dist',
+    sourcemap: false
+  }
 })
