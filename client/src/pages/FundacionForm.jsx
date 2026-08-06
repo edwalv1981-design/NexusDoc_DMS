@@ -151,9 +151,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             if (cleanData.declarationSignature === undefined) cleanData.declarationSignature = formData.declarationSignature;
 
-            if (cleanData.signers[0] && !cleanData.declarationName) {
-
+            if (cleanData.signers && cleanData.signers[0] && !cleanData.declarationName) {
                 cleanData.declarationName = cleanData.signers[0].name || '';
+            }
 
             if (cleanData.poaLegalized === undefined) cleanData.poaLegalized = formData.poaLegalized;
 
