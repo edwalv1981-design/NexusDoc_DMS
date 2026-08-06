@@ -36,7 +36,6 @@ module.exports = function botProtection(req, res, next) {
 
   // Verificación de campo Trampa (Honeypot) en envíos POST/PUT
   if ((req.method === 'POST' || req.method === 'PUT') && req.body && typeof req.body === 'object') {
-    // Si un bot rellena el campo invisible 'website_hp' o 'honeypot_check', rechazar la petición
     if (req.body.website_hp || req.body.honeypot_check) {
       console.warn(`[Anti-Bot] Trampa Honeypot activada en ${req.path}. Petición descartada.`);
       return res.status(400).json({ msg: 'Solicitud rechazada.' });
