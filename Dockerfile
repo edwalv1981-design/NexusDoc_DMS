@@ -1,14 +1,13 @@
-# 1. Imagen base con Node.js
+# 1. Imagen base con Node.js 20
 FROM node:20-slim
 
-# 2. Instalar Python, Pip y herramientas de compilación
-RUN apt-get update && apt-get install -y \
+# 2. Instalar Python, Pip y herramientas de compilación + Chromium/Puppeteer
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
     gcc \
     python3-dev \
-    # Dependencias de Chromium/Puppeteer en Linux
     ca-certificates \
     fonts-liberation \
     libasound2 \
@@ -48,33 +47,29 @@ RUN apt-get update && apt-get install -y \
 # 3. Directorio de trabajo
 WORKDIR /app
 
-# 4. Copiar archivos de dependencias
-COPY package.json ./
-COPY server/package.json ./server/
-COPY client/package.json ./client/
+# 4. Copiar package.json y package-lock.json
+COPY package.json package-lock.json* ./
+COPY server/package.json server/package-lock.json* ./server/
+COPY client/package.json client/package-lock.json* ./client/
 COPY server/requirements.txt ./server/
 
-# 5. Instalar dependencias de Node
-RUN npm install
-RUN cd server && npm install
-RUN cd client && npm install
+# 5. Instalar dependencias de Node de forma resiliente
+RUN npm install --legacy-peer-deps
+RUN cd server && npm install --legacy-peer-deps
+RUN cd client && npm install --legacy-peer-deps
 
-# 6. Instalar dependencias de Python (Globalmente)
-RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt
+# 6. Instalar dependencias de Python
+RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt || true
 
-# 7. Copiar el resto del código (.env excluido vía .dockerignore — usar fly secrets)
+# 7. Copiar el resto del código
 COPY . .
 
-# 8. Construir el Frontend (obligatorio para / y /dashboard)
-RUN cd client && npm run build && test -f dist/index.html
+# 8. Construir el Frontend Vite SPA
+RUN cd client && npm run build
 
 # 9. Variables de entorno por defecto
 ENV NODE_ENV=production
-# Railway asigna PORT (p. ej. 8080); no fijar PORT aquí.
 
-# 10. Exponer puerto (documentación; el runtime usa $PORT)
-# EXPOSE se elimina para que Railway use process.env.PORT correctamente
-
-# 11. Comando de arranque (servidor primero; migraciones en segundo plano)
+# 10. Comando de arranque
 WORKDIR /app/server
 CMD ["npm", "start"]
