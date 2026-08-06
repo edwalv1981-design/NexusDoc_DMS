@@ -127,6 +127,8 @@ const Register = () => {
               onChange={(e) => setFormData({...formData, idNumber: e.target.value})}
               style={{ padding: '14px 18px', fontSize: '15px' }}
             />
+          </div>
+
           {/* Anti-IA / Anti-Bot Honeypot Field */}
           <input
             type="text"
