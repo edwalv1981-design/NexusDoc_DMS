@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import API_BASE_URL from '../config';
+import { extractRegisteredPeople } from '../utils/personExtractor';
+import PersonSelector from '../components/common/PersonSelector';
 import { validateField, validateFields } from '../utils/fieldValidators';
 
 const FondosForm = () => {
@@ -263,6 +265,20 @@ const FondosForm = () => {
                                 <input className="corporate-input" style={{...getErrorStyle('operatingAddress'), ...getFieldErrorStyle('operatingAddress')}} autoComplete="off" value={formData.operatingAddress} onChange={e => { setFormData({...formData, operatingAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'operatingAddress')); handleFieldChange('operatingAddress', e.target.value); }} onBlur={() => handleFieldBlur('operatingAddress')} placeholder={t('fondos.operatingAddressPlaceholder') || ''} />
                                 {fieldErrors.operatingAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.operatingAddress}</span>}
                             </div>
+                            <PersonSelector
+                                people={extractRegisteredPeople(formData)}
+                                onSelectPerson={(person) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        beneficiaryName: person.fullName || person.name || prev.beneficiaryName,
+                                        birthDate: person.birthDate || prev.birthDate,
+                                        birthPlace: person.birthPlace || prev.birthPlace,
+                                        address: person.address || prev.address
+                                    }));
+                                }}
+                                currentName={formData.beneficiaryName}
+                                label="¿Reutilizar persona registrada para el Beneficiario Final?"
+                            />
                             <div ref={beneficiaryRef} style={{ position: 'relative' }}>
                                 <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
                                     <input

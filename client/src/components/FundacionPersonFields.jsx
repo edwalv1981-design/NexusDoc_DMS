@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { validateField } from '../utils/fieldValidators';
+import PersonSelector from './common/PersonSelector';
 
 export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Soltero', en: 'Single', es: 'Soltero(a)' },
@@ -8,7 +9,7 @@ export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Viudo', en: 'Widowed', es: 'Viudo(a)' },
 ];
 
-const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDropdown, onSearch, onSelect, dropdownRef }) => {
+const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDropdown, onSearch, onSelect, dropdownRef, registeredPeople, onSelectRegisteredPerson }) => {
   const L = (key) => (t?.(`fundacion.person.${key}`) ?? key);
   const set = (field, value) => onChange(field, value);
   const selectPlaceholder =
@@ -56,6 +57,15 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
 
   return (
     <div className="expert-grid person-fields-grid" ref={dropdownRef}>
+      {registeredPeople && registeredPeople.length > 0 && onSelectRegisteredPerson && (
+        <div style={{ gridColumn: '1 / -1' }}>
+          <PersonSelector
+            people={registeredPeople}
+            onSelectPerson={onSelectRegisteredPerson}
+            currentName={person?.fullName || person?.name}
+          />
+        </div>
+      )}
       <div className="expert-field full-width" style={{ position: 'relative' }}>
         <label>{L('fullName')}</label>
         <input className="expert-input" style={errStyle('fullName')} value={person.fullName || ''} onChange={(e) => handleFieldChange('fullName', e.target.value)} onBlur={() => handleBlur('fullName')} autoComplete="off" placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />

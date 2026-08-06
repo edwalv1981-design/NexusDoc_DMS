@@ -15,6 +15,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useT, useLang } from '../i18n';
+import { extractRegisteredPeople } from '../utils/personExtractor';
+import PersonSelector from '../components/common/PersonSelector';
 import {
   KYC_PRIMARY,
   KycHintBox,
@@ -57,6 +59,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(emptyKyciState);
   const [fieldErrors, setFieldErrors] = useState({});
+  const registeredPeople = extractRegisteredPeople(formData);
 
   const handleFieldBlur = (fieldName) => {
     const error = validateField(fieldName, formData[fieldName]);
@@ -162,6 +165,27 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving }) => {
         <User size={22} color={PRIMARY} /> {t('kyci.steps.personal')}
       </h2>
       <KycHintBox>{t('kyci.hints.personal')}</KycHintBox>
+      <PersonSelector
+        people={registeredPeople}
+        onSelectPerson={(person) => {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: person.fullName || person.name || prev.fullName,
+            birthDate: person.birthDate || prev.birthDate,
+            birthPlace: person.birthPlace || prev.birthPlace,
+            maritalStatus: person.maritalStatus || prev.maritalStatus,
+            nationality: person.nationality || prev.nationality,
+            passport: person.passport || person.idNumber || prev.passport,
+            idCard: person.idCard || prev.idCard,
+            phone: person.phone || prev.phone,
+            email: person.email || prev.email,
+            address: person.address || prev.address,
+            city: person.city || prev.city,
+            country: person.country || prev.country
+          }));
+        }}
+        currentName={formData.fullName}
+      />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
         <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('fullName') || (lang === 'en' ? 'Full name' : 'Nombre completo')}</label><input className="expert-input" style={getErrorStyle('fullName')} value={formData.fullName} onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); clearErrorIfValid('fullName', e.target.value); }} onBlur={() => handleFieldBlur('fullName')} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} required /><FieldError name="fullName" /></div>
         <div className="expert-group"><label>{L('birthDate')}</label><input type="date" className="expert-input" style={getErrorStyle('birthDate')} value={formData.birthDate} onChange={(e) => { setFormData({ ...formData, birthDate: e.target.value }); clearErrorIfValid('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} required /><FieldError name="birthDate" /></div>

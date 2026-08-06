@@ -13,6 +13,7 @@ const Register = () => {
     nationality: '',
     email: '',
     idNumber: '',
+    website_hp: '',
     initialForm: localStorage.getItem('selectedForm') || ''
   });
   const [loading, setLoading] = useState(false);
@@ -126,8 +127,16 @@ const Register = () => {
               onChange={(e) => setFormData({...formData, idNumber: e.target.value})}
               style={{ padding: '14px 18px', fontSize: '15px' }}
             />
-          </div>
-
+          {/* Anti-IA / Anti-Bot Honeypot Field */}
+          <input
+            type="text"
+            name="website_hp"
+            value={formData.website_hp}
+            onChange={(e) => setFormData({ ...formData, website_hp: e.target.value })}
+            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            tabIndex={-1}
+            autoComplete="off"
+          />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div className="input-group-expert">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', fontWeight: 700, marginBottom: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>

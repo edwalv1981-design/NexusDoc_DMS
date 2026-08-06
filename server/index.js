@@ -32,6 +32,11 @@ const helmet = require('helmet');
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    frameguard: { action: 'sameorigin' },
+    dnsPrefetchControl: { allow: false },
+    referrerPolicy: { policy: 'same-origin' },
+    xssFilter: true,
+    hidePoweredBy: true,
 }));
 
 let apiReady = false;
@@ -128,10 +133,19 @@ function registerApiRoutes() {
         next(err);
     });
 
-    app.use((req, res, next) => {
-        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-        next();
+    const botProtection = require('./middleware/botProtection');
+    app.use(botProtection);
+
+    const authLimiter = rateLimit({
+        windowMs: 60 * 1000,
+        max: 10,
+        message: { msg: 'Demasiadas solicitudes desde esta IP. Por favor intente más tarde por razones de seguridad.' },
+        standardHeaders: true,
+        legacyHeaders: false,
     });
+    app.use('/api/auth/login', authLimiter);
+    app.use('/api/auth/verify', authLimiter);
+    app.use('/api/auth/forgot-password', authLimiter);
 
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/admin', require('./routes/admin'));

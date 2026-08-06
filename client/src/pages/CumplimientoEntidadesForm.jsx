@@ -9,6 +9,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useT } from '../i18n';
+import { extractRegisteredPeople } from '../utils/personExtractor';
+import PersonSelector from '../components/common/PersonSelector';
 import {
   KYC_PRIMARY,
   KycHintBox,
@@ -61,6 +63,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(emptyKyceState);
   const [fieldErrors, setFieldErrors] = useState({});
+  const registeredPeople = extractRegisteredPeople(formData);
 
   const handleFieldBlur = (fieldName) => {
     const error = validateField(fieldName, formData[fieldName]);
@@ -212,6 +215,19 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
       </h2>
       <KycHintBox>{t('kyce.hints.compliance')}</KycHintBox>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <PersonSelector
+          people={registeredPeople}
+          onSelectPerson={(person) => {
+            setFormData((prev) => ({
+              ...prev,
+              legalRepName: person.fullName || person.name || prev.legalRepName,
+              legalRepId: person.passport || person.idNumber || prev.legalRepId,
+              legalRepNationality: person.nationality || prev.legalRepNationality
+            }));
+          }}
+          currentName={formData.legalRepName}
+          label="¿Reutilizar datos para el Representante Legal?"
+        />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
           <div className="expert-group"><label>{L('legalRepName')}</label><input className="expert-input" style={getErrorStyle('legalRepName')} value={formData.legalRepName} onChange={(e) => { setFormData({ ...formData, legalRepName: e.target.value }); clearErrorIfValid('legalRepName', e.target.value); }} onBlur={() => handleFieldBlur('legalRepName')} placeholder="Nombre del representante" required /><FieldError name="legalRepName" /></div>
           <div className="expert-group"><label>{L('legalRepId')}</label><input className="expert-input" style={getErrorStyle('legalRepId')} value={formData.legalRepId} onChange={(e) => { setFormData({ ...formData, legalRepId: e.target.value }); clearErrorIfValid('legalRepId', e.target.value); }} onBlur={() => handleFieldBlur('legalRepId')} placeholder="Documento / Pasaporte" required /><FieldError name="legalRepId" /></div>

@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 
 import { useLang } from '../i18n';
-
+import { extractRegisteredPeople } from '../utils/personExtractor';
+import PersonSelector from '../components/common/PersonSelector';
 import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
 
 import { validateField } from '../utils/fieldValidators';
@@ -154,18 +155,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                 cleanData.declarationName = cleanData.signers[0].name || '';
 
-                cleanData.declarationSignature = cleanData.signers[0].signature || cleanData.signers[0].name || '';
-
-            }
-
-
-
-            if (cleanData.poaIssue === undefined) cleanData.poaIssue = formData.poaIssue;
-
-            if (cleanData.poaType === undefined) cleanData.poaType = formData.poaType;
-
-            if (cleanData.poaValidityDate === undefined) cleanData.poaValidityDate = formData.poaValidityDate;
-
             if (cleanData.poaLegalized === undefined) cleanData.poaLegalized = formData.poaLegalized;
 
             if (cleanData.poaFullName === undefined) {
@@ -205,6 +194,31 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         }
 
     }, [initialData]);
+
+    const registeredPeople = extractRegisteredPeople(formData);
+
+    const handleAutoFillPerson = (targetPath, index, person) => {
+        setFormData((prev) => {
+            const next = { ...prev };
+            if (Array.isArray(next[targetPath])) {
+                const list = [...next[targetPath]];
+                const target = { ...list[index] };
+                if (person.fullName || person.name) target.fullName = person.fullName || person.name;
+                if (person.passport || person.idNumber) target.passport = person.passport || person.idNumber;
+                if (person.nationality) target.nationality = person.nationality;
+                if (person.birthDate) target.birthDate = person.birthDate;
+                if (person.maritalStatus) target.maritalStatus = person.maritalStatus;
+                if (person.phone) target.phone = person.phone;
+                if (person.email) target.email = person.email;
+                if (person.address) target.address = person.address;
+                if (person.city) target.city = person.city;
+                if (person.country) target.country = person.country;
+                list[index] = target;
+                next[targetPath] = list;
+            }
+            return next;
+        });
+    };
 
 
 

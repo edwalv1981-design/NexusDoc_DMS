@@ -1,21 +1,7 @@
-﻿/**
+/**
  * CorporacionForm — Formulario de Incorporación de Sociedad Anónima (Panamá).
  * Secciones: Nombre, Capital, Directores, Dignatarios, Accionistas, Declaración.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-    Building, Users, UserCheck, Briefcase, FileCheck, 
-    Plus, Trash2, ChevronRight, ChevronLeft, Save, 
-    CheckCircle2, Info, Award
-} from 'lucide-react';
-import { useLang } from '../i18n';
-import { normalizeLoadedCorporacionData } from '../utils/corporacionPersonRegistry';
-import { validateField } from '../utils/fieldValidators';
-import API_BASE_URL from '../config';
-
-const ACCENT = '#0f766e';
-const TEXT_PRIMARY = '#1e293b';
-const TEXT_SECONDARY = '#475569';
 const TEXT_MUTED = '#64748b';
 const BORDER = '#e2e8f0';
 const BG_SUBTLE = '#f8fafc';
@@ -147,28 +133,6 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         const newDigs = [...formData.dignitaries];
         const d = newDigs[index];
         if (person.passport) d.passport = person.passport;
-        if (person.fullName) d.fullName = person.fullName;
-        else if (person.firstName) d.fullName = [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
-        if (person.birthDate) d.birthDate = person.birthDate;
-        if (person.registrationNumber) d.registrationNumber = person.registrationNumber;
-        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
-        setDignitarySuggestions(prev => ({ ...prev, [`${index}-name`]: [], [`${index}-passport`]: [] }));
-        setActiveDignitaryKey(null);
-    };
-
-    const selectShareholderSuggestion = (index, person) => {
-        const newShareholders = [...formData.shareholders];
-        const s = newShareholders[index];
-        if (person.name) s.name = person.name;
-        if (person.address) s.address = person.address;
-        setFormData(prev => ({ ...prev, shareholders: newShareholders }));
-        setShareholderSuggestions(prev => ({ ...prev, [index]: [] }));
-        setActiveShareholderIdx(null);
-    };
-
-    /* ── Field validation handlers ── */
-    const handleFieldBlur = (fieldName) => {
-        const error = validateField(fieldName, formData[fieldName]);
         setFieldErrors(prev => {
             const next = { ...prev };
             if (error) next[fieldName] = error;
@@ -414,6 +378,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <div key={d._id || i} className="corp-card">
                     <div className="corp-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
+                    <PersonSelector
+                        people={registeredPeople}
+                        onSelectPerson={(person) => handleAutoFillDirector(i, person)}
+                        currentName={d.fullName}
+                    />
                     <div className="corp-grid">
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-name-${i}`] = el}>
                             <label>{d.entityType === "company" ? (lang === "en" ? "Company Name" : "Razón Social") : (lang === "en" ? "Full name" : "Nombre completo")}</label>
@@ -484,13 +453,18 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </div>
             </div>
             {formData.dignitaries.map((dig, i) => (
-                <div key={d._id || i} className="corp-card">
+                <div key={dig._id || i} className="corp-card">
                     <div className="corp-card-label">{lang === 'en' ? 'DIGNITARY' : 'DIGNATARIO'} #{i+1}</div>
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
+                    <PersonSelector
+                        people={registeredPeople}
+                        onSelectPerson={(person) => handleAutoFillDignitary(i, person)}
+                        currentName={dig.fullName}
+                    />
                     <div className="corp-grid">
                         <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'role')} value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'role')} placeholder="EJ: PRESIDENTE" /><ArrayFieldError array="dignitaries" index={i} field="role" /></div>
                         <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-name-${i}`] = el}>
-                            <label>{d.entityType === "company" ? (lang === "en" ? "Company Name" : "Razón Social") : (lang === "en" ? "Full name" : "Nombre completo")}</label>
+                            <label>{dig.entityType === "company" ? (lang === "en" ? "Company Name" : "Razón Social") : (lang === "en" ? "Full name" : "Nombre completo")}</label>
                             <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'fullName')} value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'name'); }} onFocus={() => { if (dignitarySuggestions[`${i}-name`]?.length) setActiveDignitaryKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'fullName')} />
                             <ArrayFieldError array="dignitaries" index={i} field="fullName" />
                             {activeDignitaryKey === `${i}-name` && dignitarySuggestions[`${i}-name`]?.length > 0 && (
@@ -546,6 +520,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <div key={d._id || i} className="corp-card">
                     <div className="corp-card-label">{lang === 'en' ? 'SHAREHOLDER' : 'ACCIONISTA'} #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
+                    <PersonSelector
+                        people={registeredPeople}
+                        onSelectPerson={(person) => handleAutoFillShareholder(i, person)}
+                        currentName={s.name}
+                    />
                     <div className="corp-grid">
                         <div className="corp-field"><label>{lang === 'en' ? 'Share Certificate Number' : 'No. de Certificado'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'certificate')} value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'certificate')} /><ArrayFieldError array="shareholders" index={i} field="certificate" /></div>
                         <div className="corp-field"><label>{lang === 'en' ? "Share's value (USD)" : 'Valor por acción (USD)'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'value')} value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'value')} /><ArrayFieldError array="shareholders" index={i} field="value" /></div>

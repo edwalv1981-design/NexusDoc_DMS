@@ -11,6 +11,7 @@ const Login = () => {
   const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [website_hp, setWebsiteHp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   
@@ -24,7 +25,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password });
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password, website_hp });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       if (res.data.user.mustChangePassword) return navigate('/reset-password');
@@ -134,6 +135,16 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Anti-IA / Anti-Bot Honeypot Field */}
+            <input
+              type="text"
+              name="website_hp"
+              value={website_hp}
+              onChange={(e) => setWebsiteHp(e.target.value)}
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+              tabIndex={-1}
+              autoComplete="off"
+            />
             <div>
               <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: 8, color: '#ffffff', letterSpacing: '0.3px' }}>{t('login.emailUser')}</span>
               <input type="text" placeholder="ejemplo@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '7px 10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '4px', color: '#ffffff', fontSize: '13px', outline: 'none' }} />
