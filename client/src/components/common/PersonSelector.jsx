@@ -72,10 +72,11 @@ export const PersonSelector = ({
             -- Seleccione una persona registrada para autocompletar --
           </option>
           {people.map((p) => {
-            const isSelectedMatch = currentName && p.name.toLowerCase() === currentName.toLowerCase();
+            const pName = p.name || p.fullName || 'Persona';
+            const isSelectedMatch = currentName && pName.toLowerCase() === String(currentName).toLowerCase();
             return (
               <option key={p.id} value={p.id}>
-                {p.name} {p.idNumber ? `(${p.idNumber})` : ''} — {p.roleLabel} {isSelectedMatch ? '✓' : ''}
+                {pName} {p.idNumber ? `(${p.idNumber})` : ''} — {p.roleLabel} {isSelectedMatch ? '✓' : ''}
               </option>
             );
           })}
