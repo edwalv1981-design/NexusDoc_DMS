@@ -15,24 +15,26 @@ const Verify = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [hasExpired, setHasExpired] = useState(false);
   const [timeLeft, setTimeLeft] = useState(180);
-  const email = localStorage.getItem('userEmail');
+  const email = localStorage.getItem('userEmail') || '';
 
-  // Persistent Absolute Expiration Timer (Maintains countdown even on app exit / tab close / reload)
+  // Persistent Absolute Expiration Timer (Bulletproof defense against NaN / blank screen)
   useEffect(() => {
-    let expiresAt = parseInt(localStorage.getItem('otp_expires_at') || '0', 10);
-    if (!expiresAt) {
+    let raw = localStorage.getItem('otp_expires_at');
+    let expiresAt = parseInt(raw || '0', 10);
+
+    // If timestamp is invalid or uninitialized, anchor it to 3 minutes from now
+    if (isNaN(expiresAt) || expiresAt <= 0) {
       expiresAt = Date.now() + 180 * 1000;
       localStorage.setItem('otp_expires_at', expiresAt.toString());
     }
 
     const calculateTime = () => {
-      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      const now = Date.now();
+      const diffSecs = Math.floor((expiresAt - now) / 1000);
+      const remaining = isNaN(diffSecs) ? 0 : Math.max(0, diffSecs);
+      
       setTimeLeft(remaining);
-      if (remaining <= 0) {
-        setHasExpired(true);
-      } else {
-        setHasExpired(false);
-      }
+      setHasExpired(remaining <= 0);
     };
 
     calculateTime();
@@ -42,8 +44,9 @@ const Verify = () => {
   }, []);
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const totalSecs = isNaN(seconds) || seconds < 0 ? 0 : Math.floor(seconds);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -71,12 +74,12 @@ const Verify = () => {
         localStorage.removeItem('otp_expires_at');
         setShowSuccess(true);
       } else {
-        setErrorMessage(data.msg || t('verify.invalidCode') || 'Código inválido');
+        setErrorMessage(data.msg || (t('verify.invalidCode') !== 'verify.invalidCode' ? t('verify.invalidCode') : 'Código inválido'));
         if (data.expired) setHasExpired(true);
         setShowError(true);
       }
     } catch (err) {
-      setErrorMessage(t('verify.connectionError') || 'Error de conexión');
+      setErrorMessage(t('verify.connectionError') !== 'verify.connectionError' ? t('verify.connectionError') : 'Error de conexión');
       setShowError(true);
     } finally {
       setLoading(false);
@@ -100,11 +103,11 @@ const Verify = () => {
         setShowError(false);
         setCode('');
       } else {
-        setErrorMessage(data.msg || t('verify.resendError') || 'Error al reenviar el código');
+        setErrorMessage(data.msg || (t('verify.resendError') !== 'verify.resendError' ? t('verify.resendError') : 'Error al reenviar el código'));
         setShowError(true);
       }
     } catch (err) {
-      setErrorMessage(t('verify.connectionError') || 'Error de conexión');
+      setErrorMessage(t('verify.connectionError') !== 'verify.connectionError' ? t('verify.connectionError') : 'Error de conexión');
       setShowError(true);
     } finally {
       setLoading(false);
@@ -125,12 +128,12 @@ const Verify = () => {
         </div>
 
         <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginBottom: '8px', letterSpacing: '-0.5px' }}>
-          {t('verify.title') || 'Verificar Código'}
+          {t('verify.title') !== 'verify.title' ? t('verify.title') : 'Verificar Código'}
         </h1>
 
         <p style={{ color: '#64748b', fontSize: '13.5px', marginBottom: '20px', lineHeight: 1.5 }}>
-          {t('verify.subtitle') || 'Ingresa el código de 6 dígitos enviado a'} <br/>
-          <strong style={{ color: '#0f172a', fontWeight: 700 }}>{email || 'tu correo'}</strong>
+          {t('verify.subtitle') !== 'verify.subtitle' ? t('verify.subtitle') : 'Ingresa el código de 6 dígitos enviado a'} <br/>
+          <strong style={{ color: '#0f172a', fontWeight: 700 }}>{email || 'tu correo registrado'}</strong>
         </p>
 
         {/* Real-time Persistent Countdown Badge */}
@@ -170,7 +173,7 @@ const Verify = () => {
           />
 
           <button type="submit" className="btn-primary" disabled={loading || hasExpired} style={{ width: '100%', padding: '13px', fontSize: '14px', borderRadius: '10px', background: hasExpired ? '#94a3b8' : 'linear-gradient(135deg, #0f172a 0%, #0f766e 100%)' }}>
-            {loading ? 'Verificando...' : (t('verify.verifyButton') || 'VERIFICAR CÓDIGO')}
+            {loading ? 'Verificando...' : (t('verify.verifyButton') !== 'verify.verifyButton' ? t('verify.verifyButton') : 'VERIFICAR CÓDIGO')}
             {!loading && <ArrowRight size={18} style={{ marginLeft: 8 }} />}
           </button>
 
@@ -179,7 +182,7 @@ const Verify = () => {
             onClick={() => navigate('/register')}
             style={{ background: 'none', border: 'none', color: '#0f766e', cursor: 'pointer', fontSize: '13px', fontWeight: 600, marginTop: '-4px' }}
           >
-            {t('verify.wrongEmail') || '¿Correo incorrecto? Volver al registro'}
+            {t('verify.wrongEmail') !== 'verify.wrongEmail' ? t('verify.wrongEmail') : '¿Correo incorrecto? Volver al registro'}
           </button>
         </form>
 
