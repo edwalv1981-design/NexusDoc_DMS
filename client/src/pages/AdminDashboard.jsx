@@ -110,7 +110,8 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const PRIMARY = '#0f766e';
+  const PRIMARY = '#0f172a';
+  const ACCENT_TEAL = '#0f766e';
   const BORDER = '#e2e8f0';
   const RADIUS = '8px';
   const RADIUS_LG = '12px';
@@ -366,22 +367,24 @@ const AdminDashboard = () => {
   const logout = () => { localStorage.clear(); navigate('/'); };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ width: '230px', background: PRIMARY, color: 'white', padding: '25px 15px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '40px', padding: '0 10px' }}>
-          <Shield size={20} color="white" />
-          <span style={{ fontWeight: 700, fontSize: '13px' }}>NEXUSDOC ADMIN</span>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+      <div style={{ width: '240px', background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)', color: 'white', padding: '25px 16px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '35px', padding: '0 8px' }}>
+          <div style={{ padding: '6px', background: 'rgba(20, 184, 166, 0.2)', border: '1px solid rgba(45, 212, 191, 0.3)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Shield size={18} color="#2dd4bf" />
+          </div>
+          <span style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '-0.3px', color: '#ffffff' }}>NEXUSDOC ADMIN</span>
         </div>
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'change-password', icon: Key, label: 'Cambio de Clave' }, { id: 'change-email', icon: Mail, label: 'Cambio de Correo' }].map(item => (
-            <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', border: 'none', background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '12px', borderRadius: RADIUS }}>
-              <item.icon size={15} /> {item.label}
+            <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 15px', border: 'none', background: activeTab === item.id ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(15, 118, 110, 0.4) 100%)' : 'transparent', color: activeTab === item.id ? '#ffffff' : '#cbd5e1', cursor: 'pointer', fontWeight: 600, fontSize: '12.5px', borderRadius: RADIUS, borderLeft: activeTab === item.id ? '4px solid #2dd4bf' : '4px solid transparent', transition: 'all 0.2s ease' }}>
+              <item.icon size={16} color={activeTab === item.id ? '#2dd4bf' : '#94a3b8'} /> {item.label}
             </button>
           ))}
         </nav>
         <LanguageSwitcher variant="sidebar" />
-        <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '11px', borderRadius: RADIUS, marginTop: 10 }}>
-          <LogOut size={15} /> {t('sidebar.logout')}
+        <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: '#ffffff', cursor: 'pointer', fontWeight: 700, fontSize: '11.5px', borderRadius: RADIUS, marginTop: 15, transition: 'all 0.2s ease' }}>
+          <LogOut size={15} color="#ef4444" /> {t('sidebar.logout')}
         </button>
       </div>
 
