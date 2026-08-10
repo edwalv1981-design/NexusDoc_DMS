@@ -122,15 +122,15 @@ router.post('/register', async (req, res) => {
             codeExpiresAt: new Date(Date.now() + 3 * 60000)
         });
 
-        // ENVÍO ASÍNCRONO (No bloqueante): Respondemos al usuario de inmediato
-        sendSecurityCode(email, securityCode).then(sent => {
-            if (!sent) console.error('⚠️ Fallo en envío de correo de registro (segundo plano).', global.lastSmtpError);
-        }).catch(err => {
-            console.error('⚠️ Fallo crítico en envío de correo de registro:', err.message);
-        });
+        // ENVÍO SÍNCRONO: Verificamos la entrega antes de responder
+        const sent = await sendSecurityCode(email, securityCode);
+        if (!sent) {
+            console.error('⚠️ Fallo en envío de correo de registro:', global.lastSmtpError);
+            return res.status(500).json({ msg: global.lastSmtpError || 'No se pudo enviar el correo de verificación. Por favor reintente en unos momentos.' });
+        }
 
-        console.log(`✅ Registro pendiente creado para ${email}. Respondiendo al cliente.`);
-        res.json({ msg: 'Código enviado al correo. Si no llega, intente usar "Olvidé mi contraseña" para ver el error exacto.' });
+        console.log(`✅ Registro pendiente creado y código enviado exitosamente a ${email}.`);
+        res.json({ msg: 'Código enviado al correo exitosamente.' });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: global.lastSmtpError || 'Error de servidor' });
@@ -155,14 +155,12 @@ router.post('/resend-code', async (req, res) => {
         pending.lockUntil = null; // unlock
         await pending.save();
 
-        sendSecurityCode(email, securityCode).then(sent => {
-            if (!sent) {
-                // Return exact error back to client since resend-code is a deliberate action
-                // Not returning directly because it's after save, but we can return error in response
-                // Actually since it's asynchronous we can't cleanly abort.
-            }
-        }).catch(err => console.error(err));
-        res.json({ msg: 'Nuevo código enviado al correo.' });
+        const sent = await sendSecurityCode(email, securityCode);
+        if (!sent) {
+            return res.status(500).json({ msg: global.lastSmtpError || 'Error al enviar el nuevo código al correo.' });
+        }
+
+        res.json({ msg: 'Nuevo código enviado al correo exitosamente.' });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: global.lastSmtpError || 'Server error' });
