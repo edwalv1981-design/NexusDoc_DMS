@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { User, AuditLog, FormData, DocumentTemplate, TemplateFieldSchema } = require('../models');
+const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocument, DocumentTemplate, TemplateFieldSchema } = require('../models');
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
 const { sendTemporaryPassword } = require('../services/emailService');
@@ -96,24 +96,119 @@ router.put('/users/:id/status', [auth, isAdmin], async (req, res) => {
 });
 
 // @route   DELETE api/admin/users/:id
-// @desc    Delete user
+// @desc    Delete user completely (Hard Purge across all tables)
 router.delete('/users/:id', [auth, isAdmin], async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.id);
+        const userId = req.params.id;
+        const user = await User.findByPk(userId);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
-        const email = user.email;
-        await user.destroy();
+        // Protect Master Admin from accidental deletion
+        if (user.role === 'admin') {
+            return res.status(403).json({ msg: 'No se puede eliminar la cuenta del Administrador Maestro.' });
+        }
 
+        const cleanEmail = user.email ? user.email.toLowerCase().trim() : '';
+
+        console.log(`🗑️ Eliminación total iniciada para usuario ID: ${userId} (${cleanEmail})`);
+
+        // 1. Purge UserDocument records
+        if (UserDocument) {
+            await UserDocument.destroy({ where: { userId } }).catch(e => console.warn('Purge UserDocument warning:', e.message));
+        }
+
+        // 2. Purge SignedDocument records
+        if (SignedDocument) {
+            await SignedDocument.destroy({ where: { userId } }).catch(e => console.warn('Purge SignedDocument warning:', e.message));
+        }
+
+        // 3. Purge FormData records submitted by this user
+        if (FormData) {
+            await FormData.destroy({ where: { userId } }).catch(e => console.warn('Purge FormData warning:', e.message));
+        }
+
+        // 4. Disassociate AuditLogs (set userId = null) so history is kept without blocking FK
+        if (AuditLog) {
+            await AuditLog.update({ userId: null }, { where: { userId } }).catch(e => console.warn('Disassociate AuditLogs warning:', e.message));
+        }
+
+        // 5. Purge UserProfiles
+        await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :userId', {
+            replacements: { userId }
+        }).catch(e => console.warn('Purge UserProfiles warning:', e.message));
+
+        // 6. Purge UserLanguages
+        await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :userId', {
+            replacements: { userId }
+        }).catch(e => console.warn('Purge UserLanguages warning:', e.message));
+
+        // 7. Purge PendingRegistration by email
+        if (cleanEmail && PendingRegistration) {
+            await PendingRegistration.destroy({ 
+                where: { email: { [Op.iLike]: cleanEmail } } 
+            }).catch(e => console.warn('Purge PendingRegistration warning:', e.message));
+        }
+
+        // 8. Hard-delete the User record
+        await user.destroy({ force: true });
+
+        // 9. Audit log the deletion action
         await AuditLog.create({
             userId: req.user.id,
             action: 'USER_DELETE',
-            description: `Admin eliminó al usuario ${email}`
+            description: `Admin eliminó permanentemente al usuario ${cleanEmail} (ID: ${userId})`
         });
 
-        res.json({ msg: 'Usuario eliminado' });
+        console.log(`✅ Usuario ${cleanEmail} eliminado totalmente de todas las tablas.`);
+        res.json({ msg: 'Usuario y toda su información fueron eliminados permanentemente.' });
     } catch (err) {
-        res.status(500).send('Server error');
+        console.error('❌ Error en eliminación total de usuario:', err);
+        res.status(500).json({ msg: 'Error al eliminar el usuario de la base de datos: ' + err.message });
+    }
+});
+
+// @route   POST api/admin/users/purge-inactive
+// @desc    Purge all non-authorized / inactive users and orphan pending registrations
+router.post('/users/purge-inactive', [auth, isAdmin], async (req, res) => {
+    try {
+        const inactiveUsers = await User.findAll({
+            where: {
+                status: { [Op.ne]: 'authorized' },
+                role: { [Op.ne]: 'admin' }
+            }
+        });
+
+        let purgedCount = 0;
+        for (const user of inactiveUsers) {
+            const userId = user.id;
+            const cleanEmail = user.email ? user.email.toLowerCase().trim() : '';
+
+            if (UserDocument) await UserDocument.destroy({ where: { userId } }).catch(() => {});
+            if (SignedDocument) await SignedDocument.destroy({ where: { userId } }).catch(() => {});
+            if (FormData) await FormData.destroy({ where: { userId } }).catch(() => {});
+            if (AuditLog) await AuditLog.update({ userId: null }, { where: { userId } }).catch(() => {});
+            await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :userId', { replacements: { userId } }).catch(() => {});
+            await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :userId', { replacements: { userId } }).catch(() => {});
+            if (cleanEmail && PendingRegistration) {
+                await PendingRegistration.destroy({ where: { email: { [Op.iLike]: cleanEmail } } }).catch(() => {});
+            }
+            await user.destroy({ force: true });
+            purgedCount++;
+        }
+
+        // Also clean up any old expired pending registrations
+        if (PendingRegistration) {
+            await PendingRegistration.destroy({
+                where: {
+                    createdAt: { [Op.lt]: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                }
+            }).catch(() => {});
+        }
+
+        res.json({ msg: `Depuración completada. Se eliminaron ${purgedCount} usuarios no activos y registros huérfanos.` });
+    } catch (err) {
+        console.error('Error purging inactive users:', err);
+        res.status(500).json({ msg: 'Error al realizar la depuración' });
     }
 });
 

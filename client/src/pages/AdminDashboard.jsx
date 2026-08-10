@@ -188,15 +188,29 @@ const AdminDashboard = () => {
 
   const handleDeleteUser = async (userId) => {
     const token = localStorage.getItem('token');
-    if (window.confirm('¿Eliminar?')) {
+    if (window.confirm('¿Está seguro de eliminar permanentemente a este usuario y liberar su correo de la base de datos?')) {
       try {
-        await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, { headers: { 'x-auth-token': token } });
+        const res = await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, { headers: { 'x-auth-token': token } });
         fetchData();
-        toast.success('Eliminado');
+        toast.success(res.data?.msg || 'Usuario eliminado totalmente de la base de datos');
       } catch (err) { 
           if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-          toast.error('Error'); 
+          toast.error(err.response?.data?.msg || 'Error al eliminar usuario'); 
       }
+    }
+  };
+
+  const handlePurgeInactiveUsers = async () => {
+    if (!window.confirm('¿Desea depurar y eliminar permanentemente de la base de datos todos los usuarios no activos e historial de registros huérfanos?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${API_BASE_URL}/api/admin/users/purge-inactive`, {}, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success(res.data?.msg || 'Depuración completada');
+      fetchData();
+    } catch (err) {
+      toast.error('Error al depurar usuarios inactivos');
     }
   };
 
@@ -393,9 +407,14 @@ const AdminDashboard = () => {
           <header style={{ marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <h1>ADMINISTRACIÓN MASTER</h1>
             {activeTab === 'users' && (
-              <button onClick={() => setShowCreateUserModal(true)} className="btn-primary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Plus size={16} /> Crear Usuario
-              </button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={handlePurgeInactiveUsers} title="Eliminar permanentemente todos los usuarios no activos de la base de datos" style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', borderRadius: RADIUS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                  <Trash2 size={15} /> Depurar Inactivos
+                </button>
+                <button onClick={() => setShowCreateUserModal(true)} className="btn-primary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Plus size={16} /> Crear Usuario
+                </button>
+              </div>
             )}
             {activeTab === 'logs' && (
               <div style={{ position: 'relative', width: '250px' }}>
