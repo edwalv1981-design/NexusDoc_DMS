@@ -14,29 +14,32 @@ const Verify = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [hasExpired, setHasExpired] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
+  const [timeLeft, setTimeLeft] = useState(180);
   const email = localStorage.getItem('userEmail');
 
-  // Real-time countdown timer
+  // Persistent Absolute Expiration Timer (Maintains countdown even on app exit / tab close / reload)
   useEffect(() => {
-    if (timeLeft <= 0) {
-      setHasExpired(true);
-      return;
+    let expiresAt = parseInt(localStorage.getItem('otp_expires_at') || '0', 10);
+    if (!expiresAt) {
+      expiresAt = Date.now() + 180 * 1000;
+      localStorage.setItem('otp_expires_at', expiresAt.toString());
     }
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setHasExpired(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const calculateTime = () => {
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        setHasExpired(true);
+      } else {
+        setHasExpired(false);
+      }
+    };
+
+    calculateTime();
+    const timer = setInterval(calculateTime, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, []);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -65,6 +68,7 @@ const Verify = () => {
       const data = await response.json();
       
       if (response.ok) {
+        localStorage.removeItem('otp_expires_at');
         setShowSuccess(true);
       } else {
         setErrorMessage(data.msg || t('verify.invalidCode') || 'Código inválido');
@@ -89,8 +93,10 @@ const Verify = () => {
       });
       const data = await response.json();
       if (response.ok) {
+        const newExpiresAt = Date.now() + 180 * 1000;
+        localStorage.setItem('otp_expires_at', newExpiresAt.toString());
         setHasExpired(false);
-        setTimeLeft(180); // Reset timer to 3:00 min
+        setTimeLeft(180);
         setShowError(false);
         setCode('');
       } else {
@@ -127,7 +133,7 @@ const Verify = () => {
           <strong style={{ color: '#0f172a', fontWeight: 700 }}>{email || 'tu correo'}</strong>
         </p>
 
-        {/* Real-time Dynamic Countdown Badge */}
+        {/* Real-time Persistent Countdown Badge */}
         {!hasExpired ? (
           <div style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '28px' }}>
             <Clock size={16} color="#d97706" />

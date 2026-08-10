@@ -41,6 +41,7 @@ const Register = () => {
       
       if (response.ok) {
         localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('otp_expires_at', (Date.now() + 180 * 1000).toString());
         navigate('/verify');
       } else {
         setError(data.msg || t('toast.saveError') || 'Error al guardar');
