@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, ChevronDown, ChevronUp, X, Edit2, Plus, Mail } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -435,14 +435,14 @@ const AdminDashboard = () => {
                         <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{user.status.toUpperCase()}</span>
                       </td>
                       <td style={{ padding: '12px 15px' }}>
-                        <div style={{ display: 'flex', gap: 5 }}>
-                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#15803d' }}><CheckCircle size={14} /></button>
-                          <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#f59e0b' }}><ShieldOff size={14} /></button>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
+                          <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: '#fffbeb', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><ShieldOff size={14} /></button>
                           {user.roleOverride !== 'master' && (
-                            <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#0ea5e9' }}><BadgeCheck size={14} /></button>
+                            <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: '1px solid #bae6fd', background: '#f0f9ff', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0284c7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><UserCog size={14} /></button>
                           )}
-                          <button onClick={() => handleResetPassword(user.id)} title="Resetear Clave" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: PRIMARY }}><Key size={14} /></button>
-                          <button onClick={() => handleDeleteUser(user.id)} title="Eliminar" style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 5, borderRadius: RADIUS, cursor: 'pointer', color: '#dc2626' }}><Trash2 size={14} /></button>
+                          <button onClick={() => handleResetPassword(user.id)} title="Resetear Clave" style={{ border: `1px solid ${BORDER}`, background: '#f8fafc', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Key size={14} /></button>
+                          <button onClick={() => handleDeleteUser(user.id)} title="Eliminar" style={{ border: '1px solid #fecaca', background: '#fef2f2', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
