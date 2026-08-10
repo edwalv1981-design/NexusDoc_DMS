@@ -2,6 +2,19 @@
  * CorporacionForm — Formulario de Incorporación de Sociedad Anónima (Panamá).
  * Secciones: Nombre, Capital, Directores, Dignatarios, Accionistas, Declaración.
  */
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+    Building2, Users, UserCheck, Award, FileCheck, 
+    Plus, Trash2, ChevronRight, ChevronLeft, CheckCircle2, 
+    Shield, Info 
+} from 'lucide-react';
+import { useLang, useT } from '../i18n';
+import API_BASE_URL from '../config';
+import { extractRegisteredPeople } from '../utils/personExtractor';
+import PersonSelector from '../components/common/PersonSelector';
+import { validateField } from '../utils/fieldValidators';
+import { normalizeLoadedCorporacionData } from '../utils/corporacionPersonRegistry';
+
 const TEXT_MUTED = '#64748b';
 const BORDER = '#e2e8f0';
 const BG_SUBTLE = '#f8fafc';
