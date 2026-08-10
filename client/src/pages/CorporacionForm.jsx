@@ -4,9 +4,9 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-    Building2, Users, UserCheck, Award, FileCheck, 
+    Building, Building2, Users, UserCheck, Award, FileCheck, 
     Plus, Trash2, ChevronRight, ChevronLeft, CheckCircle2, 
-    Shield, Info 
+    Shield, Info, Save 
 } from 'lucide-react';
 import { useLang, useT } from '../i18n';
 import API_BASE_URL from '../config';
@@ -15,10 +15,13 @@ import PersonSelector from '../components/common/PersonSelector';
 import { validateField } from '../utils/fieldValidators';
 import { normalizeLoadedCorporacionData } from '../utils/corporacionPersonRegistry';
 
+const TEXT_PRIMARY = '#1e293b';
+const TEXT_SECONDARY = '#475569';
 const TEXT_MUTED = '#64748b';
 const BORDER = '#e2e8f0';
 const BG_SUBTLE = '#f8fafc';
 const BG_CARD = '#ffffff';
+const ACCENT = '#0f766e';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
@@ -145,7 +148,67 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const selectDignitarySuggestion = (index, person) => {
         const newDigs = [...formData.dignitaries];
         const d = newDigs[index];
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) d.fullName = fn;
         if (person.passport) d.passport = person.passport;
+        if (person.birthDate) d.birthDate = person.birthDate;
+        if (person.registrationNumber) d.registrationNumber = person.registrationNumber;
+        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
+        setDignitarySuggestions(prev => ({ ...prev, [`${index}-name`]: [], [`${index}-passport`]: [] }));
+        setActiveDignitaryKey(null);
+    };
+
+    const selectShareholderSuggestion = (index, person) => {
+        const newSh = [...formData.shareholders];
+        const s = newSh[index];
+        if (person.name) s.name = person.name;
+        if (person.address) s.address = person.address;
+        setFormData(prev => ({ ...prev, shareholders: newSh }));
+        setShareholderSuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveShareholderIdx(null);
+    };
+
+    const registeredPeople = extractRegisteredPeople(formData);
+
+    const handleAutoFillDirector = (index, person) => {
+        const newDirectors = [...formData.directors];
+        const d = newDirectors[index];
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) d.fullName = fn;
+        if (person.birthDate) d.birthDate = person.birthDate;
+        if (person.maritalStatus) d.maritalStatus = person.maritalStatus;
+        if (person.nationality) d.nationality = person.nationality;
+        if (person.passport) d.passport = person.passport;
+        if (person.phone) d.phone = person.phone;
+        if (person.email) d.email = person.email;
+        if (person.address) d.address = person.address;
+        if (person.city) d.city = person.city;
+        if (person.country) d.country = person.country;
+        setFormData(prev => ({ ...prev, directors: newDirectors }));
+    };
+
+    const handleAutoFillDignitary = (index, person) => {
+        const newDigs = [...formData.dignitaries];
+        const d = newDigs[index];
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) d.fullName = fn;
+        if (person.passport) d.passport = person.passport;
+        if (person.birthDate) d.birthDate = person.birthDate;
+        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
+    };
+
+    const handleAutoFillShareholder = (index, person) => {
+        const newSh = [...formData.shareholders];
+        const s = newSh[index];
+        const fn = person.fullName || person.name || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) s.name = fn;
+        if (person.address) s.address = person.address;
+        setFormData(prev => ({ ...prev, shareholders: newSh }));
+    };
+
+    /* ── Field validation ── */
+    const handleFieldBlur = (fieldName) => {
+        const error = validateField(fieldName, formData[fieldName]);
         setFieldErrors(prev => {
             const next = { ...prev };
             if (error) next[fieldName] = error;
@@ -530,7 +593,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 </div>
             </div>
             {formData.shareholders.map((s, i) => (
-                <div key={d._id || i} className="corp-card">
+                <div key={s._id || i} className="corp-card">
                     <div className="corp-card-label">{lang === 'en' ? 'SHAREHOLDER' : 'ACCIONISTA'} #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     <PersonSelector
