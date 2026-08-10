@@ -212,6 +212,45 @@ router.post('/users/purge-inactive', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   DELETE api/admin/users/by-email/:email
+// @desc    Hard-purge user by email address across all tables
+router.delete('/users/by-email/:email', [auth, isAdmin], async (req, res) => {
+    try {
+        const targetEmail = req.params.email ? req.params.email.toLowerCase().trim() : '';
+        if (!targetEmail) return res.status(400).json({ msg: 'Correo inválido' });
+
+        const users = await User.findAll({
+            where: { email: { [Op.iLike]: targetEmail } }
+        });
+
+        if (users.length === 0) {
+            await PendingRegistration.destroy({ where: { email: { [Op.iLike]: targetEmail } } }).catch(() => {});
+            return res.json({ msg: `No existía usuario en la tabla principal. Se purgaron registros pendientes para ${targetEmail}.` });
+        }
+
+        let count = 0;
+        for (const user of users) {
+            if (user.role === 'admin') continue;
+            const userId = user.id;
+            if (UserDocument) await UserDocument.destroy({ where: { userId } }).catch(() => {});
+            if (SignedDocument) await SignedDocument.destroy({ where: { userId } }).catch(() => {});
+            if (FormData) await FormData.destroy({ where: { userId } }).catch(() => {});
+            if (AuditLog) await AuditLog.update({ userId: null }, { where: { userId } }).catch(() => {});
+            await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :userId', { replacements: { userId } }).catch(() => {});
+            await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :userId', { replacements: { userId } }).catch(() => {});
+            await user.destroy({ force: true });
+            count++;
+        }
+
+        await PendingRegistration.destroy({ where: { email: { [Op.iLike]: targetEmail } } }).catch(() => {});
+
+        res.json({ msg: `Depuración total por correo completada. Se eliminaron ${count} registro(s) para ${targetEmail}.` });
+    } catch (err) {
+        console.error('Error purging user by email:', err);
+        res.status(500).json({ msg: 'Error al purgar usuario por correo' });
+    }
+});
+
 // @route   POST api/admin/users/create
 // @desc    Admin creates a new user
 router.post('/users/create', [auth, isAdmin], async (req, res) => {
