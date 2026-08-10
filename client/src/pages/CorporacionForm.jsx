@@ -63,9 +63,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const [directorSuggestions, setDirectorSuggestions] = useState({});
     const [dignitarySuggestions, setDignitarySuggestions] = useState({});
     const [shareholderSuggestions, setShareholderSuggestions] = useState({});
+    const [signerSuggestions, setSignerSuggestions] = useState({});
     const [activeDirectorKey, setActiveDirectorKey] = useState(null);
     const [activeDignitaryKey, setActiveDignitaryKey] = useState(null);
     const [activeShareholderIdx, setActiveShareholderIdx] = useState(null);
+    const [activeSignerIdx, setActiveSignerIdx] = useState(null);
     const debounceTimers = useRef({});
     const autocompleteRefs = useRef({});
 
@@ -78,6 +80,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 setActiveDirectorKey(null);
                 setActiveDignitaryKey(null);
                 setActiveShareholderIdx(null);
+                setActiveSignerIdx(null);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -133,6 +136,30 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }, 300);
     }, []);
 
+    const searchSigner = useCallback((query, index) => {
+        const timerKey = `signer-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setSignerSuggestions(prev => ({ ...prev, [index]: [] }));
+            setActiveSignerIdx(null);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/corporacion/search-person?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setSignerSuggestions(prev => ({ ...prev, [index]: data }));
+                    setActiveSignerIdx(data.length > 0 ? index : null);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
     const selectDirectorSuggestion = (index, person, field) => {
         const newDirectors = [...formData.directors];
         const d = newDirectors[index];
@@ -166,6 +193,18 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         setFormData(prev => ({ ...prev, shareholders: newSh }));
         setShareholderSuggestions(prev => ({ ...prev, [index]: [] }));
         setActiveShareholderIdx(null);
+    };
+
+    const selectSignerSuggestion = (index, person) => {
+        const newSigners = [...formData.signers];
+        const fn = person.fullName || person.name || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) {
+            newSigners[index].name = fn;
+            newSigners[index].signature = fn;
+        }
+        setFormData(prev => ({ ...prev, signers: newSigners }));
+        setSignerSuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveSignerIdx(null);
     };
 
     const registeredPeople = extractRegisteredPeople(formData);
@@ -204,6 +243,16 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         if (fn) s.name = fn;
         if (person.address) s.address = person.address;
         setFormData(prev => ({ ...prev, shareholders: newSh }));
+    };
+
+    const handleAutoFillSigner = (index, person) => {
+        const newSigners = [...formData.signers];
+        const fn = person.fullName || person.name || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) {
+            newSigners[index].name = fn;
+            newSigners[index].signature = fn;
+        }
+        setFormData(prev => ({ ...prev, signers: newSigners }));
     };
 
     /* ── Field validation ── */
@@ -664,11 +713,35 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                                 </button>
                             )}
                         </div>
+                        <PersonSelector
+                            people={registeredPeople}
+                            onSelectPerson={(person) => handleAutoFillSigner(i, person)}
+                            currentName={s.name}
+                        />
                         <div className="corp-grid">
-                            <div className="corp-field full-width">
+                            <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`signer-name-${i}`] = el}>
                                 <label>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
-                                <input className="corp-input" style={getArrayErrorStyle('signers', i, 'name')} value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} onBlur={() => handleArrayFieldBlur('signers', i, 'name')} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <input 
+                                    className="corp-input" 
+                                    style={getArrayErrorStyle('signers', i, 'name')} 
+                                    value={s.name} 
+                                    autoComplete="off"
+                                    onChange={e => { updateSigner(i, 'name', e.target.value); searchSigner(e.target.value, i); }} 
+                                    onFocus={() => { if (signerSuggestions[i]?.length) setActiveSignerIdx(i); }} 
+                                    onBlur={() => handleArrayFieldBlur('signers', i, 'name')} 
+                                    placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} 
+                                />
                                 <ArrayFieldError array="signers" index={i} field="name" />
+                                {activeSignerIdx === i && signerSuggestions[i]?.length > 0 && (
+                                    <div className="corp-autocomplete-dropdown">
+                                        {signerSuggestions[i].map((p, j) => (
+                                            <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectSignerSuggestion(i, p); }}>
+                                                <span className="corp-ac-name">{p.fullName || p.name || ''}</span>
+                                                {(p.passport || p.email) && <span className="corp-ac-detail">{[p.passport, p.email].filter(Boolean).join(' • ')}</span>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="corp-field full-width">
                                 <label>{lang === 'en' ? 'Signature (Full name)' : 'Firma (Nombre completo)'}</label>

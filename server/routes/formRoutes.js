@@ -144,7 +144,43 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
             { replacements: { pattern: `%${q}%` } }
         );
 
+        const [signerRows] = await sequelize.query(
+            `SELECT DISTINCT ON (COALESCE(NULLIF(elem->>'passport',''), elem->>'name'))
+                    elem->>'name'       AS "fullName",
+                    elem->>'signature'  AS "signature",
+                    elem->>'passport'   AS "passport"
+             FROM "FormData",
+                  jsonb_array_elements(data->'signers') AS elem
+             WHERE (elem->>'passport' ILIKE :pattern
+                    OR elem->>'name' ILIKE :pattern)
+               AND (NULLIF(elem->>'passport','') IS NOT NULL
+                    OR NULLIF(elem->>'name','') IS NOT NULL)
+             ORDER BY COALESCE(NULLIF(elem->>'passport',''), elem->>'name'), "updatedAt" DESC
+             LIMIT 50`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
+        const [userRows] = await sequelize.query(
+            `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
+             FROM "Users"
+             WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
+             LIMIT 20`,
+            { replacements: { pattern: `%${q}%` } }
+        );
+
         const resultsMap = new Map();
+
+        userRows.forEach(u => {
+            const key = (u.passport || u.fullName || u.email || '').trim();
+            if (!key) return;
+            resultsMap.set(key, {
+                fullName: u.fullName,
+                name: u.fullName,
+                passport: u.passport || '',
+                email: u.email || '',
+                nationality: u.nationality || ''
+            });
+        });
 
         directorRows.forEach(r => {
             if (!r.fullName) {
@@ -172,6 +208,18 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
                 if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
                 if (!existing.birthDate && r.birthDate) existing.birthDate = r.birthDate;
                 if (!existing.registrationNumber && r.registrationNumber) existing.registrationNumber = r.registrationNumber;
+            }
+        });
+
+        signerRows.forEach(r => {
+            const key = (r.passport || r.fullName || '').trim();
+            if (!key) return;
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, { passport: r.passport, fullName: r.fullName, name: r.fullName });
+            } else {
+                const existing = resultsMap.get(key);
+                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
+                if (!existing.passport && r.passport) existing.passport = r.passport;
             }
         });
 
