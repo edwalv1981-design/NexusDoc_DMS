@@ -80,8 +80,9 @@ const generateUniqueCode = async (formType) => {
 // @desc    Register user (step 1: store pending & send code)
 router.post('/register', async (req, res) => {
     try {
-        const { name, nationality, email: rawEmail, initialForm, idNumber } = req.body;
+        const { name, nationality, email: rawEmail, initialForm, idNumber: rawIdNumber } = req.body;
         const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+        const idNumber = rawIdNumber ? rawIdNumber.toString().trim() : '';
 
         if (!email) {
             return res.status(400).json({ msg: 'El correo electrónico es obligatorio.' });
@@ -91,27 +92,53 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ msg: 'La cédula de identidad es obligatoria para el registro.' });
         }
 
-        // Blindaje de Identidad Doble (Cédula y Email)
-        let existingUser = await User.findOne({ 
-            where: { 
-                [Op.or]: [
-                    { email },
-                    { idNumber: idNumber || '---NONE---' }
-                ]
-            } 
+        // 1. Verificación Inteligente de Correo en la Base de Datos
+        const existingEmailUser = await User.findOne({ 
+            where: { email: { [Op.iLike]: email } } 
         });
 
-        if (existingUser) {
-            if (existingUser.email === email) {
+        if (existingEmailUser) {
+            if (existingEmailUser.status === 'authorized') {
                 return res.status(400).json({ msg: 'El correo electrónico ya está registrado en el sistema.' });
-            }
-            if (existingUser.idNumber === idNumber) {
-                return res.status(400).json({ msg: 'La cédula de identidad ya está registrada en el sistema.' });
+            } else {
+                // Usuario no autorizado / inactivo -> Auto-purga defensiva para permitir registro libre
+                console.log(`🧹 Depurando cuenta inactiva antecedente (${email}) durante nuevo registro.`);
+                const uId = existingEmailUser.id;
+                await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
+                await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
+                await FormData.destroy({ where: { userId: uId } }).catch(() => {});
+                await existingEmailUser.destroy({ force: true }).catch(() => {});
             }
         }
 
-        // Cleanup any old pending attempts for this email
-        await PendingRegistration.destroy({ where: { email } });
+        // 2. Verificación Inteligente de Cédula / Pasaporte en la Base de Datos
+        const existingIdUser = await User.findOne({ 
+            where: { idNumber: { [Op.iLike]: idNumber } } 
+        });
+
+        if (existingIdUser) {
+            if (existingIdUser.status === 'authorized') {
+                return res.status(400).json({ msg: 'La cédula de identidad ya está registrada en el sistema.' });
+            } else {
+                // Usuario no autorizado / inactivo -> Auto-purga defensiva para permitir registro libre
+                console.log(`🧹 Depurando cuenta inactiva antecedente por Cédula (${idNumber}) durante nuevo registro.`);
+                const uId = existingIdUser.id;
+                await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
+                await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
+                await FormData.destroy({ where: { userId: uId } }).catch(() => {});
+                await existingIdUser.destroy({ force: true }).catch(() => {});
+            }
+        }
+
+        // Cleanup any old pending attempts for this email or idNumber
+        await PendingRegistration.destroy({ 
+            where: { 
+                [Op.or]: [
+                    { email: { [Op.iLike]: email } },
+                    { idNumber: { [Op.iLike]: idNumber } }
+                ] 
+            } 
+        }).catch(e => console.warn('PendingRegistration cleanup warning:', e.message));
 
         // Generate Security Code
         const securityCode = crypto.randomInt(100000, 999999).toString();
