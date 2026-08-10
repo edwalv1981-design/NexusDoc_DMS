@@ -1,13 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Brand Palette - Deep Cyber Teal & Slate */
-  --primary: #0f766e;
-  --primary-light: #14b8a6;
-  --primary-dark: #115e59;
-  --primary-glow: rgba(20, 184, 166, 0.25);
+  /* Executive Corporate Color Palette (Exact sequence matching Login) */
+  --primary-navy: #0f172a;
+  --primary-navy-light: #1e293b;
+  --primary-navy-dark: #090d16;
   
-  --accent: #0284c7;
+  --primary-teal: #0f766e;
+  --primary-teal-light: #14b8a6;
+  --primary-teal-dark: #115e59;
+  --teal-glow: rgba(20, 184, 166, 0.25);
+  
+  --accent-blue: #0284c7;
   --accent-light: #38bdf8;
   
   --bg-main: #f8fafc;
@@ -17,14 +21,15 @@
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-light: #94a3b8;
+  --text-white: #ffffff;
   
   --border-light: #e2e8f0;
   --border-focus: #0f766e;
   
   /* Shadows & Glassmorphism */
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 14px -2px rgba(15, 118, 110, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 20px 40px -15px rgba(15, 118, 110, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 20px 40px -15px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
   --shadow-glow: 0 0 20px rgba(20, 184, 166, 0.35);
   
   --radius-sm: 6px;
@@ -66,7 +71,7 @@ h3 { font-size: 15px; font-weight: 700; }
 h4 { font-size: 13.5px; font-weight: 600; }
 
 p { color: var(--text-muted); font-size: 13.5px; line-height: 1.6; }
-label { font-size: 11.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+label { font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* --- Inputs & Interactive Form Fields --- */
 input, textarea, select {
@@ -86,18 +91,18 @@ input:hover, textarea:hover, select:hover {
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-teal);
   background: #ffffff;
   outline: none;
-  box-shadow: 0 0 0 3.5px var(--primary-glow);
+  box-shadow: 0 0 0 3.5px var(--teal-glow);
 }
 
-/* --- Buttons System --- */
+/* --- Executive Button System --- */
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-teal) 100%);
   color: #ffffff;
   border: none;
-  padding: 10px 20px;
+  padding: 11px 22px;
   border-radius: var(--radius-md);
   font-weight: 700;
   font-size: 13.5px;
@@ -107,12 +112,12 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.4);
+  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.35);
 }
 
 .btn-primary:active {
@@ -123,7 +128,7 @@ input:focus, textarea:focus, select:focus {
   background: #ffffff;
   color: var(--text-main);
   border: 1px solid var(--border-light);
-  padding: 9px 18px;
+  padding: 10px 20px;
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 13.5px;
@@ -137,11 +142,42 @@ input:focus, textarea:focus, select:focus {
 .btn-secondary:hover {
   background: var(--bg-subtle);
   border-color: #cbd5e1;
-  color: var(--primary);
+  color: var(--primary-teal);
 }
 
-/* --- Premium Cards --- */
-.card-expert {
+/* --- Executive Corporate Sidebar --- */
+.sidebar, .app-sidebar, [class*="sidebar"] {
+  background: linear-gradient(180deg, var(--primary-navy) 0%, var(--primary-navy-light) 100%) !important;
+  color: #ffffff !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.sidebar a, .app-sidebar a, [class*="sidebar"] a {
+  color: #cbd5e1 !important;
+  transition: all 0.2s ease;
+}
+
+.sidebar a:hover, .app-sidebar a:hover, [class*="sidebar"] a:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar a.active, .app-sidebar a.active, [class*="sidebar"] a.active,
+.sidebar .active, .app-sidebar .active, [class*="sidebar"] .active {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(15, 118, 110, 0.4) 100%) !important;
+  color: #ffffff !important;
+  border-left: 4px solid var(--primary-teal-light) !important;
+}
+
+/* --- Executive App Header --- */
+.header, .app-header, [class*="header"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* --- Executive Cards & Data Containers --- */
+.card, .card-expert, [class*="card"] {
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: var(--radius-lg);
@@ -149,7 +185,7 @@ input:focus, textarea:focus, select:focus {
   transition: all 0.25s ease;
 }
 
-.card-expert:hover {
+.card:hover, .card-expert:hover {
   box-shadow: var(--shadow-lg);
   border-color: rgba(20, 184, 166, 0.3);
 }
@@ -162,6 +198,38 @@ input:focus, textarea:focus, select:focus {
   box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
+}
+
+/* --- Executive Data Tables --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+table th, th {
+  background: var(--primary-navy) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+  padding: 14px 18px !important;
+  border: none !important;
+}
+
+table td, td {
+  padding: 14px 18px !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  color: var(--text-main) !important;
+  font-size: 13.5px !important;
+}
+
+table tr:hover td {
+  background: #f8fafc !important;
 }
 
 /* --- Scrollbars --- */
@@ -190,7 +258,7 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
   gap: 12px;
   animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid var(--primary-teal);
   min-width: 300px;
   font-size: 13.5px;
   font-weight: 600;
@@ -209,8 +277,8 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* --- Badges & Pills --- */
-.badge-status {
-  padding: 4px 10px;
+.badge-status, [class*="badge"], [class*="status"] {
+  padding: 5px 12px;
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 700;
@@ -221,20 +289,20 @@ input:focus, textarea:focus, select:focus {
   gap: 6px;
 }
 
-.badge-status.authorized {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+.badge-status.authorized, .status-authorized {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
 }
 
-.badge-status.pending {
-  background: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
+.badge-status.pending, .status-pending {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
 }
 
-.badge-status.revoked {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+.badge-status.revoked, .status-revoked {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
 }
