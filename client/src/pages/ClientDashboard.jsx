@@ -40,7 +40,8 @@ const ClientDashboard = () => {
 
     const [currentFormType, setCurrentFormType] = useState(normalizedFormTypeQuery || '');
 
-    const PRIMARY = '#0f766e';
+    const PRIMARY = '#0f172a';
+    const ACCENT_TEAL = '#2dd4bf';
     const BG = '#f8fafc';
     const TEXT = '#1e293b';
     const BORDER = '#e2e8f0';
@@ -443,33 +444,35 @@ const ClientDashboard = () => {
                 </div>
             )}
 
-            <aside style={{ width: '230px', background: PRIMARY, color: 'white', padding: '25px 15px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '40px', padding: '0 10px' }}>
-                    <Shield size={20} color="white" />
-                    <span style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.5px' }}>NEXUSDOC DMS</span>
+            <aside style={{ width: '240px', background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)', color: 'white', padding: '28px 18px', display: 'flex', flexDirection: 'column', boxShadow: '4px 0 25px rgba(0, 0, 0, 0.15)', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '40px', padding: '0 8px' }}>
+                    <div style={{ padding: '8px', background: 'rgba(20, 184, 166, 0.15)', borderRadius: '10px', border: '1px solid rgba(45, 212, 191, 0.3)', color: '#2dd4bf', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Shield size={20} />
+                    </div>
+                    <span style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-0.3px', color: '#ffffff' }}>NEXUSDOC DMS</span>
                 </div>
-                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div onClick={() => { navigate('/dashboard'); setCurrentFormType(''); setStep(1); setFormData(EMPTY_FORM); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: !showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
-                        <LayoutGrid size={15} /> <span>{t('sidebar.desktop')}</span>
+                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div onClick={() => { navigate('/dashboard'); setCurrentFormType(''); setStep(1); setFormData(EMPTY_FORM); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: !showForm && !showDocuments && !showSignedDocs && queryParams.get('view') !== 'sub-users' ? 'rgba(45, 212, 191, 0.15)' : 'transparent', borderLeft: !showForm && !showDocuments && !showSignedDocs && queryParams.get('view') !== 'sub-users' ? '3px solid #2dd4bf' : '3px solid transparent', color: !showForm && !showDocuments && !showSignedDocs && queryParams.get('view') !== 'sub-users' ? '#2dd4bf' : '#cbd5e1', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s ease' }}>
+                        <LayoutGrid size={17} /> <span>{t('sidebar.desktop')}</span>
                     </div>
-                    <div onClick={() => { navigate('/dashboard?view=form'); setCurrentFormType(''); setStep(1); setFormData(EMPTY_FORM); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showForm ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
-                        <Plus size={15} /> <span>{t('sidebar.newProcess')}</span>
+                    <div onClick={() => { navigate('/dashboard?view=form'); setCurrentFormType(''); setStep(1); setFormData(EMPTY_FORM); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: showForm ? 'rgba(45, 212, 191, 0.15)' : 'transparent', borderLeft: showForm ? '3px solid #2dd4bf' : '3px solid transparent', color: showForm ? '#2dd4bf' : '#cbd5e1', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s ease' }}>
+                        <Plus size={17} /> <span>{t('sidebar.newProcess')}</span>
                     </div>
-                    <div onClick={() => { navigate('/dashboard?view=documents'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showDocuments ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '15px' }}>
-                        <IdCard size={15} /> <span>{t('sidebar.myDocs')}</span>
+                    <div onClick={() => { navigate('/dashboard?view=documents'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: showDocuments ? 'rgba(45, 212, 191, 0.15)' : 'transparent', borderLeft: showDocuments ? '3px solid #2dd4bf' : '3px solid transparent', color: showDocuments ? '#2dd4bf' : '#cbd5e1', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 700, fontSize: '13px', marginTop: '12px', transition: 'all 0.2s ease' }}>
+                        <IdCard size={17} /> <span>{t('sidebar.myDocs')}</span>
                     </div>
-                    <div onClick={() => { navigate('/dashboard?view=signed-docs'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: showSignedDocs ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '5px' }}>
-                        <FileStack size={15} /> <span>{t('sidebar.signedDocs')}</span>
+                    <div onClick={() => { navigate('/dashboard?view=signed-docs'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: showSignedDocs ? 'rgba(45, 212, 191, 0.15)' : 'transparent', borderLeft: showSignedDocs ? '3px solid #2dd4bf' : '3px solid transparent', color: showSignedDocs ? '#2dd4bf' : '#cbd5e1', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s ease' }}>
+                        <FileStack size={17} /> <span>{t('sidebar.signedDocs')}</span>
                     </div>
                     {user?.role === 'manager' && (
-                        <div onClick={() => { navigate('/dashboard?view=sub-users'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 15px', background: queryParams.get('view') === 'sub-users' ? 'rgba(255,255,255,0.2)' : 'transparent', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 600, fontSize: '12px', marginTop: '5px' }}>
-                            <Users size={15} /> <span>Usuarios Adicionales</span>
+                        <div onClick={() => { navigate('/dashboard?view=sub-users'); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: queryParams.get('view') === 'sub-users' ? 'rgba(45, 212, 191, 0.15)' : 'transparent', borderLeft: queryParams.get('view') === 'sub-users' ? '3px solid #2dd4bf' : '3px solid transparent', color: queryParams.get('view') === 'sub-users' ? '#2dd4bf' : '#cbd5e1', borderRadius: RADIUS, cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s ease' }}>
+                            <Users size={17} /> <span>Usuarios Adicionales</span>
                         </div>
                     )}
                 </nav>
                 <LanguageSwitcher variant="sidebar" />
-                <button onClick={() => { localStorage.clear(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '11px', borderRadius: RADIUS, marginTop: 10 }}>
-                    <LogOut size={15} /> {t('sidebar.logout')}
+                <button onClick={() => { localStorage.clear(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#ef4444', cursor: 'pointer', fontWeight: 700, fontSize: '12px', borderRadius: RADIUS, marginTop: 14, transition: 'all 0.2s ease' }}>
+                    <LogOut size={16} /> {t('sidebar.logout')}
                 </button>
             </aside>
 
@@ -483,28 +486,31 @@ const ClientDashboard = () => {
                     <UserDocuments />
                 ) : !showForm ? (
                     <div>
-                        <div style={{ background: PRIMARY, borderRadius: RADIUS_LG, padding: '30px 35px', color: 'white', marginBottom: '35px', boxShadow: '0 10px 25px rgba(0, 120, 212, 0.1)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%)', borderRadius: RADIUS_LG, padding: '36px 40px', color: 'white', marginBottom: '35px', boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.35)', position: 'relative', overflow: 'hidden' }}>
+                            {/* Glow accent */}
+                            <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, rgba(0,0,0,0) 70%)', pointerEvents: 'none' }} />
+
                             <div style={{ position: 'relative', zIndex: 2 }}>
-                                <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px' }}>{t('dashboard.clientPortal')}</span>
-                                <h1 style={{ color: 'white', marginTop: '5px', marginBottom: '18px' }}>{t('dashboard.welcome', { name: user?.name || '' })}</h1>
+                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#2dd4bf', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('dashboard.clientPortal')}</span>
+                                <h1 style={{ color: 'white', marginTop: '6px', marginBottom: '18px', fontSize: '26px', fontWeight: 800, letterSpacing: '-0.5px' }}>{t('dashboard.welcome', { name: user?.name || '' })}</h1>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                                    <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: RADIUS, padding: '12px 18px', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }}>
-                                        <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.9, marginBottom: '3px' }}>{t('dashboard.assignedProcess')}</div>
-                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.initialForm ? getFormTypeLabel(user.initialForm, lang) : t('dashboard.notAssigned')}</div>
+                                    <div style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', borderRadius: RADIUS, padding: '12px 20px', border: '1px solid rgba(255,255,255,0.15)', display: 'inline-block' }}>
+                                        <div style={{ fontSize: '9.5px', fontWeight: 800, color: '#94a3b8', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('dashboard.assignedProcess')}</div>
+                                        <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#ffffff' }}>{user?.initialForm ? getFormTypeLabel(user.initialForm, lang) : t('dashboard.notAssigned')}</div>
                                     </div>
                                     {user?.initialForm && (
                                         <button 
                                             onClick={() => { setCurrentFormType(user.initialForm); navigate(`/dashboard?view=form&type=${user.initialForm}`); }} 
                                             style={{ 
-                                                padding: '12px 24px', background: 'white', color: PRIMARY, border: 'none', 
+                                                padding: '12px 26px', background: '#ffffff', color: '#0f172a', border: 'none', 
                                                 borderRadius: RADIUS, fontWeight: 800, fontSize: '13px', cursor: 'pointer', 
-                                                display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
-                                                transition: 'transform 0.2s'
+                                                display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+                                                transition: 'all 0.2s ease'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.3)'; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; }}
                                         >
-                                            {t('dashboard.continueProcess')} <Plus size={16} />
+                                            {t('dashboard.continueProcess')} <Plus size={16} color="#0f766e" />
                                         </button>
                                     )}
                                 </div>
