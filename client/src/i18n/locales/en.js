@@ -177,6 +177,16 @@ const en = {
     subtitle: 'Choose an option to begin your personalized registration.',
     backToStart: 'Back to start',
   },
+  register: {
+    title: 'Create Your Business Account',
+    subtitle: 'Fill in your details to start your registration and file creation process.',
+    fullName: 'FULL NAME',
+    email: 'EMAIL ADDRESS',
+    idNumber: 'ID / PASSPORT NUMBER',
+    nationality: 'NATIONALITY',
+    submit: 'Create Account & Continue',
+    termsNote: 'By continuing, you accept our terms and conditions of service.',
+  },
   toast: {
     generatingFile: 'Generating True Copy...',
     savedOk: 'Document saved successfully',

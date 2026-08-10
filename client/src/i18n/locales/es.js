@@ -177,6 +177,16 @@ const es = {
     subtitle: 'Selecciona una opción para comenzar tu proceso de registro personalizado.',
     backToStart: 'Regresar al inicio',
   },
+  register: {
+    title: 'Crear tu Cuenta Empresarial',
+    subtitle: 'Completa tus datos para iniciar tu proceso de registro y apertura de expediente.',
+    fullName: 'NOMBRE COMPLETO',
+    email: 'CORREO ELECTRÓNICO',
+    idNumber: 'CÉDULA / PASAPORTE',
+    nationality: 'NACIONALIDAD',
+    submit: 'Crear Cuenta y Continuar',
+    termsNote: 'Al continuar, aceptas nuestros términos y condiciones de servicio.',
+  },
   toast: {
     generatingFile: 'Generando Fiel Copia...',
     savedOk: 'Documento guardado con éxito',

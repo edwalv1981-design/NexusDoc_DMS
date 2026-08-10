@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { User, Globe, Mail, ChevronLeft, ArrowRight, CreditCard, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import axios from 'axios';
 import API_BASE_URL from '../config';
 
 const Register = () => {
@@ -44,13 +43,18 @@ const Register = () => {
         localStorage.setItem('userEmail', formData.email);
         navigate('/verify');
       } else {
-        setError(data.msg || t('toast.saveError'));
+        setError(data.msg || t('toast.saveError') || 'Error al guardar');
       }
     } catch (err) {
-      setError(t('login.connectionError'));
+      setError(t('login.connectionError') || 'Error de conexión');
     } finally {
       setLoading(false);
     }
+  };
+
+  const getTranslation = (key, fallback) => {
+    const res = t(key);
+    return res && res !== key ? res : fallback;
   };
 
   return (
@@ -82,7 +86,7 @@ const Register = () => {
             </div>
 
             <h2 style={{ fontSize: '26px', fontWeight: 800, lineHeight: 1.3, marginBottom: 16, color: '#ffffff' }}>
-              {t('register.title')}
+              {getTranslation('register.title', 'Crear tu Cuenta Empresarial')}
             </h2>
 
             <div style={{ background: 'rgba(20, 184, 166, 0.15)', border: '1px solid rgba(45, 212, 191, 0.3)', padding: '12px 16px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: 10, color: '#2dd4bf', fontSize: '13px', fontWeight: 700, marginBottom: 24 }}>
@@ -91,12 +95,12 @@ const Register = () => {
             </div>
 
             <p style={{ fontSize: '13.5px', color: '#cbd5e1', lineHeight: 1.6 }}>
-              {t('register.subtitle')}
+              {getTranslation('register.subtitle', 'Completa tus datos para iniciar tu proceso de registro y apertura de expediente.')}
             </p>
           </div>
 
           <div style={{ fontSize: '12px', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '20px', marginTop: '30px' }}>
-            {t('register.termsNote')}
+            {getTranslation('register.termsNote', 'Al continuar, aceptas nuestros términos y condiciones de servicio.')}
           </div>
         </div>
 
@@ -116,7 +120,7 @@ const Register = () => {
 
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11.5px', fontWeight: 700, marginBottom: 8, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                <User size={14} color="#0f766e" /> {t('register.fullName')}
+                <User size={14} color="#0f766e" /> {getTranslation('register.fullName', 'NOMBRE COMPLETO')}
               </label>
               <input
                 type="text"
@@ -130,7 +134,7 @@ const Register = () => {
 
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11.5px', fontWeight: 700, marginBottom: 8, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                <Mail size={14} color="#0f766e" /> {t('register.email')}
+                <Mail size={14} color="#0f766e" /> {getTranslation('register.email', 'CORREO ELECTRÓNICO')}
               </label>
               <input
                 type="email"
@@ -145,7 +149,7 @@ const Register = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11.5px', fontWeight: 700, marginBottom: 8, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  <CreditCard size={14} color="#0f766e" /> {t('register.idNumber')}
+                  <CreditCard size={14} color="#0f766e" /> {getTranslation('register.idNumber', 'CÉDULA / PASAPORTE')}
                 </label>
                 <input
                   type="text"
@@ -159,7 +163,7 @@ const Register = () => {
 
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11.5px', fontWeight: 700, marginBottom: 8, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  <Globe size={14} color="#0f766e" /> {t('register.nationality')}
+                  <Globe size={14} color="#0f766e" /> {getTranslation('register.nationality', 'NACIONALIDAD')}
                 </label>
                 <input
                   type="text"
@@ -179,7 +183,7 @@ const Register = () => {
             )}
 
             <button type="submit" disabled={loading} className="btn-primary" style={{ marginTop: '10px', width: '100%', padding: '12px', fontSize: '14px', borderRadius: '10px', background: 'linear-gradient(135deg, #0f172a 0%, #0f766e 100%)' }}>
-              {loading ? 'Procesando registro...' : t('register.submit')} <ArrowRight size={18} />
+              {loading ? 'Procesando registro...' : getTranslation('register.submit', 'Crear Cuenta y Continuar')} <ArrowRight size={18} />
             </button>
           </form>
         </div>
