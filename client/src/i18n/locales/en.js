@@ -187,6 +187,16 @@ const en = {
     submit: 'Create Account & Continue',
     termsNote: 'By continuing, you accept our terms and conditions of service.',
   },
+  reset: {
+    securityUpdate: 'Security Update',
+    securitySubtitle: 'For security reasons, you must update your password to enter.',
+    newPassword: 'NEW PASSWORD',
+    confirmPassword: 'CONFIRM NEW PASSWORD',
+    updateAndEnter: 'Update Password & Enter',
+    passwordsDontMatch: 'Passwords do not match.',
+    passwordMinLength: 'Password must be at least 7 characters long.',
+    updateError: 'Error updating password.',
+  },
   toast: {
     generatingFile: 'Generating True Copy...',
     savedOk: 'Document saved successfully',

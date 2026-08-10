@@ -187,6 +187,16 @@ const es = {
     submit: 'Crear Cuenta y Continuar',
     termsNote: 'Al continuar, aceptas nuestros términos y condiciones de servicio.',
   },
+  reset: {
+    securityUpdate: 'Actualización de Seguridad',
+    securitySubtitle: 'Por razones de seguridad, debes actualizar tu contraseña para ingresar.',
+    newPassword: 'NUEVA CONTRASEÑA',
+    confirmPassword: 'CONFIRMAR NUEVA CONTRASEÑA',
+    updateAndEnter: 'Actualizar Contraseña y Entrar',
+    passwordsDontMatch: 'Las contraseñas no coinciden.',
+    passwordMinLength: 'La contraseña debe tener al menos 7 caracteres.',
+    updateError: 'Error al actualizar la contraseña.',
+  },
   toast: {
     generatingFile: 'Generando Fiel Copia...',
     savedOk: 'Documento guardado con éxito',
