@@ -80,7 +80,12 @@ const generateUniqueCode = async (formType) => {
 // @desc    Register user (step 1: store pending & send code)
 router.post('/register', async (req, res) => {
     try {
-        const { name, nationality, email, initialForm, idNumber } = req.body;
+        const { name, nationality, email: rawEmail, initialForm, idNumber } = req.body;
+        const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+
+        if (!email) {
+            return res.status(400).json({ msg: 'El correo electrónico es obligatorio.' });
+        }
 
         if (!idNumber) {
             return res.status(400).json({ msg: 'La cédula de identidad es obligatoria para el registro.' });
@@ -141,7 +146,8 @@ router.post('/register', async (req, res) => {
 // @desc    Resend security code for pending registration
 router.post('/resend-code', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email: rawEmail } = req.body;
+        const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
         const pending = await PendingRegistration.findOne({ where: { email } });
 
         if (!pending) {
