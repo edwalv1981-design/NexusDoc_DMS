@@ -58,6 +58,7 @@ const Login = () => {
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     setRecoveryLoading(true);
+    setError('');
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/verify-code`, {
         method: 'POST',
@@ -65,10 +66,15 @@ const Login = () => {
         body: JSON.stringify({ email: recoveryEmail.toLowerCase().trim(), code: recoveryCode.trim() })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.msg || t('login.invalidCode'));
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/reset-password');
+      if (!response.ok) throw new Error(data.msg || (t('login.invalidCode') !== 'login.invalidCode' ? t('login.invalidCode') : 'Código inválido'));
+      
+      if (data.token && data.user) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/reset-password');
+      } else {
+        throw new Error(data.msg || 'Error de autenticación.');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

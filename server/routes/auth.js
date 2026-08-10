@@ -576,8 +576,8 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     }
 });
 
-// @route   POST api/auth/verify-forgot-password
-router.post('/verify-forgot-password', async (req, res) => {
+// Helper function for password recovery verification
+const verifyForgotPasswordHandler = async (req, res) => {
     try {
         const { email, code } = req.body;
         const cleanEmail = email ? email.toLowerCase().trim() : '';
@@ -624,20 +624,38 @@ router.post('/verify-forgot-password', async (req, res) => {
         user.status = 'authorized'; // DESBLOQUEO AUTOMÁTICO
         user.loginAttempts = 0; // RESET DE CONTADOR
         user.mustChangePassword = true;
+
+        // Sign a JWT token so user can proceed directly to /reset-password
+        const payload = { user: { id: user.id, role: user.role } };
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+        user.activeToken = token;
         
         await user.save();
 
-        const emailSent = await sendTemporaryPassword(email, tempPassword);
+        // Enviar la clave temporal por correo como respaldo
+        await sendTemporaryPassword(cleanEmail, tempPassword);
         
-        if (emailSent !== false) {
-            res.json({ msg: 'Código validado. Tu cuenta ha sido DESBLOQUEADA y se ha enviado una nueva clave a tu correo.' });
-        } else {
-            res.status(500).json({ msg: 'Código validado y cuenta desbloqueada, pero falló el envío del correo con la nueva clave. Contacta a soporte técnico.' });
-        }
+        res.json({ 
+            msg: 'Código validado exitosamente. Ahora puedes establecer tu nueva contraseña.',
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                mustChangePassword: user.mustChangePassword
+            }
+        });
     } catch (err) {
         console.error('❌ ERROR CRÍTICO EN VERIFICACIÓN:', err);
         res.status(500).json({ msg: 'Error interno del servidor' });
     }
-});
+};
+
+// @route   POST api/auth/verify-forgot-password
+router.post('/verify-forgot-password', verifyForgotPasswordHandler);
+
+// @route   POST api/auth/verify-code (Route Alias)
+router.post('/verify-code', verifyForgotPasswordHandler);
 
 module.exports = router;
