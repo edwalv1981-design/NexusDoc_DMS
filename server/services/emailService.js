@@ -54,12 +54,18 @@ const sendHtmlEmail = async (toEmail, subject, html, textFallback) => {
     if (RESEND_API_KEY) {
         return new Promise((resolve) => {
             const https = require('https');
+            const crypto = require('crypto');
             const data = JSON.stringify({
                 from: `NexusDoc DMS <${SENDER_EMAIL}>`,
                 to: toEmail,
+                reply_to: SENDER_EMAIL,
                 subject: subject,
                 text: textFallback,
-                html: html
+                html: html,
+                headers: {
+                    'X-Entity-Ref-ID': crypto.randomUUID(),
+                    'List-Unsubscribe': `<mailto:${SENDER_EMAIL}?subject=unsubscribe>`
+                }
             });
 
             const options = {
