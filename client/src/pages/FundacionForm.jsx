@@ -247,10 +247,10 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
         });
     };
 
-    const getErrorStyle = (key) => fieldErrors[key] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+    const getErrorStyle = (key) => fieldErrors[key] ? { borderColor: '#dc2626', borderWidth: '2px', borderStyle: 'solid', backgroundColor: '#fef2f2', boxShadow: '0 0 0 4px rgba(220,38,38,0.18)' } : {};
     const getArrayErrorStyle = (arrayName, index, fieldName) => getErrorStyle(`${arrayName}.${index}.${fieldName}`);
 
-    const FieldError = ({ name }) => fieldErrors[name] ? <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors[name]}</span> : null;
+    const FieldError = ({ name }) => fieldErrors[name] ? <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}><span>⚠️ {fieldErrors[name]}</span></div> : null;
     const ArrayFieldError = ({ array, index, field }) => <FieldError name={`${array}.${index}.${field}`} />;
 
     /* ── Autocomplete state ── */

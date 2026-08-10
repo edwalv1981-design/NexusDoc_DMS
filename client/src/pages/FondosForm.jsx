@@ -2,13 +2,32 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     ChevronLeft, ChevronRight, Check, Save, 
-    FileCheck, Trash2, X, Building, Wallet, Shield 
+    FileCheck, Trash2, X, Building, Wallet, Shield, AlertCircle 
 } from 'lucide-react';
 import { useT } from '../i18n';
 import API_BASE_URL from '../config';
 import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
 import { validateField, validateFields } from '../utils/fieldValidators';
+
+const FIELD_LABELS = {
+    companyName: 'Nombre de la Compañía',
+    activities: 'Objeto Social / Actividades',
+    country: 'País / Jurisdicción',
+    operatingAddress: 'Dirección de Operaciones',
+    beneficiaryName: 'Nombre del Beneficiario Final',
+    birthDate: 'Fecha de Nacimiento',
+    birthPlace: 'Lugar de Nacimiento',
+    address: 'Dirección Completa',
+    fundsSource: 'Origen de los Fondos (Seleccione al menos una opción)',
+    custodyName: 'Nombre del Custodio de Registros',
+    custodyPhone: 'Teléfono del Custodio',
+    custodyEmail: 'Correo del Custodio',
+    custodyAddress: 'Dirección del Custodio',
+    fiscalYear: 'Año Fiscal / Periodo',
+    signerName: 'Nombre del Declarante / Firmante',
+    date: 'Fecha de la Declaración'
+};
 
 const FondosForm = () => {
     const navigate = useNavigate();
@@ -118,7 +137,7 @@ const FondosForm = () => {
         });
     };
 
-    const getFieldErrorStyle = (fieldName) => fieldErrors[fieldName] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+    const getFieldErrorStyle = (fieldName) => fieldErrors[fieldName] ? { borderColor: '#dc2626', borderWidth: '2px', borderStyle: 'solid', backgroundColor: '#fef2f2', boxShadow: '0 0 0 4px rgba(220,38,38,0.18)' } : {};
 
     const handleFieldChange = (fieldName, value) => {
         if (fieldErrors[fieldName]) {
@@ -151,6 +170,8 @@ const FondosForm = () => {
             if (!formData.custodyPhone) errors.push('custodyPhone');
             if (!formData.custodyEmail) errors.push('custodyEmail');
             if (!formData.custodyAddress) errors.push('custodyAddress');
+            if (!formData.signerName) errors.push('signerName');
+            if (!formData.date) errors.push('date');
         }
         setValidationErrors(errors);
         return errors.length === 0;
@@ -171,7 +192,16 @@ const FondosForm = () => {
     };
 
     const handleNext = () => {
-        if (!validateStep()) return;
+        if (!validateStep()) {
+            setTimeout(() => {
+                const firstErr = document.querySelector('.corporate-input[style*="dc2626"], .corporate-input[style*="ef4444"], input[style*="dc2626"]');
+                if (firstErr) {
+                    firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstErr.focus();
+                }
+            }, 100);
+            return;
+        }
         const nextStep = step + 1;
         setStep(nextStep);
         window.scrollTo(0, 0);
@@ -191,7 +221,16 @@ const FondosForm = () => {
     };
 
     const handleFinish = async () => {
-        if (!validateStep()) return;
+        if (!validateStep()) {
+            setTimeout(() => {
+                const firstErr = document.querySelector('.corporate-input[style*="dc2626"], .corporate-input[style*="ef4444"]');
+                if (firstErr) {
+                    firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstErr.focus();
+                }
+            }, 100);
+            return;
+        }
 
         const allFields = ['companyName', 'country', 'activities', 'beneficiaryName', 'birthDate', 'birthPlace', 'address', 'custodyName', 'custodyPhone', 'custodyEmail', 'custodyAddress', 'signerName', 'date'];
         if (formData.fundsOther) allFields.push('fundsOther');
@@ -231,7 +270,45 @@ const FondosForm = () => {
     const renderStep = () => {
         const headerStyle = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: '16px', borderBottom: '1px solid #e8edf2', paddingBottom: '10px' };
         const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' };
-        const getErrorStyle = (field) => validationErrors.includes(field) ? { borderColor: '#ef4444', boxShadow: '0 0 0 4px #ef444415' } : {};
+        const getErrorStyle = (field) => (validationErrors.includes(field) || fieldErrors[field]) ? { 
+            borderColor: '#dc2626', 
+            borderWidth: '2px', 
+            borderStyle: 'solid', 
+            backgroundColor: '#fef2f2', 
+            boxShadow: '0 0 0 4px rgba(220,38,38,0.18)', 
+            color: '#7f1d1d' 
+        } : {};
+
+        const renderFieldError = (field) => {
+            if (validationErrors.includes(field) || fieldErrors[field]) {
+                return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#dc2626', fontWeight: 700, marginTop: '4px' }}>
+                        <AlertCircle size={12} />
+                        <span>* Este campo es obligatorio para continuar</span>
+                    </div>
+                );
+            }
+            return null;
+        };
+
+        const renderValidationBanner = () => {
+            if (validationErrors.length === 0) return null;
+            return (
+                <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', padding: '12px 14px', borderRadius: '8px', marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'flex-start', boxShadow: '0 2px 8px rgba(220,38,38,0.08)' }}>
+                    <AlertCircle size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                        <div style={{ color: '#991b1b', fontSize: '12.5px', fontWeight: 800 }}>
+                            Por favor complete los siguientes campos obligatorios destacados en rojo:
+                        </div>
+                        <ul style={{ margin: '4px 0 0', paddingLeft: '18px', color: '#b91c1c', fontSize: '11px', fontWeight: 700 }}>
+                            {validationErrors.map(err => (
+                                <li key={err}>{FIELD_LABELS[err] || t(`fondos.fields.${err}`) || err}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            );
+        };
 
         switch(step) {
             case 1:
@@ -244,26 +321,28 @@ const FondosForm = () => {
                             <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('fondos.step1')} {editId && <span style={{ color: '#22c55e', fontSize: '11px', marginLeft: 6 }}>{t('fondos.editing')}</span>}</h2>
                         </div>
                         
+                        {renderValidationBanner()}
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.companyName')}</label>
                                 <input className="corporate-input" style={{...getErrorStyle('companyName'), ...getFieldErrorStyle('companyName')}} autoComplete="off" value={formData.companyName} onChange={e => { setFormData({...formData, companyName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'companyName')); handleFieldChange('companyName', e.target.value); }} onBlur={() => handleFieldBlur('companyName')} placeholder={t('fondos.companyPlaceholder')} />
-                                {fieldErrors.companyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.companyName}</span>}
+                                {renderFieldError('companyName')}
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.activities')}</label>
                                 <textarea className="corporate-input" style={{...getErrorStyle('activities'), ...getFieldErrorStyle('activities')}} rows={3} value={formData.activities} onChange={e => { setFormData({...formData, activities: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'activities')); handleFieldChange('activities', e.target.value); }} onBlur={() => handleFieldBlur('activities')} />
-                                {fieldErrors.activities && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.activities}</span>}
+                                {renderFieldError('activities')}
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.country')}</label>
                                 <input className="corporate-input" style={{...getErrorStyle('country'), ...getFieldErrorStyle('country')}} autoComplete="off" value={formData.country} onChange={e => { setFormData({...formData, country: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'country')); handleFieldChange('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} />
-                                {fieldErrors.country && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.country}</span>}
+                                {renderFieldError('country')}
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.operatingAddress')}</label>
                                 <input className="corporate-input" style={{...getErrorStyle('operatingAddress'), ...getFieldErrorStyle('operatingAddress')}} autoComplete="off" value={formData.operatingAddress} onChange={e => { setFormData({...formData, operatingAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'operatingAddress')); handleFieldChange('operatingAddress', e.target.value); }} onBlur={() => handleFieldBlur('operatingAddress')} placeholder={t('fondos.operatingAddressPlaceholder') || ''} />
-                                {fieldErrors.operatingAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.operatingAddress}</span>}
+                                {renderFieldError('operatingAddress')}
                             </div>
                             <PersonSelector
                                 people={extractRegisteredPeople(formData)}
@@ -275,6 +354,7 @@ const FondosForm = () => {
                                         birthPlace: person.birthPlace || prev.birthPlace,
                                         address: person.address || prev.address
                                     }));
+                                    setValidationErrors(prev => prev.filter(err => !['beneficiaryName','birthDate','birthPlace','address'].includes(err)));
                                 }}
                                 currentName={formData.beneficiaryName}
                                 label="¿Reutilizar persona registrada para el Beneficiario Final?"
@@ -291,7 +371,7 @@ const FondosForm = () => {
                                         onBlur={() => handleFieldBlur('beneficiaryName')}
                                         placeholder={t('fondos.beneficiaryPlaceholder') || ''}
                                     />
-                                    {fieldErrors.beneficiaryName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.beneficiaryName}</span>}
+                                    {renderFieldError('beneficiaryName')}
                                     {showBeneficiaryDropdown && (
                                         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'white', border: '1px solid #cbd5e1', borderRadius: '0 0 5px 5px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', maxHeight: '180px', overflowY: 'auto' }}>
                                             {beneficiaryLoading ? (
@@ -323,32 +403,20 @@ const FondosForm = () => {
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthDate')}</label>
                                     <input type="date" className="corporate-input" style={{...getErrorStyle('birthDate'), ...getFieldErrorStyle('birthDate')}} autoComplete="off" value={formData.birthDate} onChange={e => { setFormData({...formData, birthDate: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthDate')); handleFieldChange('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} />
-                                    {fieldErrors.birthDate && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.birthDate}</span>}
+                                    {renderFieldError('birthDate')}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.birthPlace')}</label>
                                     <input className="corporate-input" style={{...getErrorStyle('birthPlace'), ...getFieldErrorStyle('birthPlace')}} autoComplete="off" value={formData.birthPlace} onChange={e => { setFormData({...formData, birthPlace: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'birthPlace')); handleFieldChange('birthPlace', e.target.value); }} onBlur={() => handleFieldBlur('birthPlace')} />
-                                    {fieldErrors.birthPlace && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.birthPlace}</span>}
+                                    {renderFieldError('birthPlace')}
                                 </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>{t('fondos.address')}</label>
                                 <input className="corporate-input" style={{...getErrorStyle('address'), ...getFieldErrorStyle('address')}} autoComplete="off" value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'address')); handleFieldChange('address', e.target.value); }} onBlur={() => handleFieldBlur('address')} />
-                                {fieldErrors.address && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.address}</span>}
+                                {renderFieldError('address')}
                             </div>
                         </div>
-                        {validationErrors.length > 0 && (
-                            <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '6px', marginTop: '12px', border: '1px solid #fee2e2' }}>
-                                <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, margin: 0 }}>
-                                    {t('fondos.validationTitle')}
-                                </p>
-                                <ul style={{ margin: '4px 0 0', paddingLeft: '16px', color: '#b91c1c', fontSize: '11px', fontWeight: 600 }}>
-                                    {validationErrors.map(err => {
-                                        return <li key={err}>{t(`fondos.fields.${err}`)}</li>;
-                                    })}
-                                </ul>
-                            </div>
-                        )}
                         <button onClick={handleNext} className="corporate-btn-primary" style={{ marginTop: '18px' }}>
                             {t('common.next')} <ChevronRight size={18} />
                         </button>
@@ -363,8 +431,11 @@ const FondosForm = () => {
                             </div>
                             <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('fondos.step2')}</h2>
                         </div>
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '6px', border: validationErrors.includes('fundsSource') ? '1.5px solid #ef4444' : '1px solid #e2e8f0', marginBottom: '12px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 2px #ef444412' : 'none' }}>
-                            <p style={{ fontSize: '12px', fontWeight: 600, color: validationErrors.includes('fundsSource') ? '#ef4444' : '#64748b', marginBottom: '10px' }}>{t('fondos.fundsInstructions')}</p>
+                        
+                        {renderValidationBanner()}
+
+                        <div style={{ background: validationErrors.includes('fundsSource') ? '#fef2f2' : '#f8fafc', padding: '16px', borderRadius: '6px', border: validationErrors.includes('fundsSource') ? '2px solid #dc2626' : '1px solid #e2e8f0', marginBottom: '12px', boxShadow: validationErrors.includes('fundsSource') ? '0 0 0 4px rgba(220,38,38,0.18)' : 'none' }}>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: validationErrors.includes('fundsSource') ? '#dc2626' : '#64748b', marginBottom: '10px' }}>{t('fondos.fundsInstructions')}</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 {['bienes', 'inversiones', 'negocios', 'prestamos', 'herencia', 'otras'].map(fKey => (
                                     <label key={fKey} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '6px 10px', borderRadius: '4px', border: formData.fundsSource.includes(fKey) ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent', background: formData.fundsSource.includes(fKey) ? `${PRIMARY_COLOR}06` : 'transparent', transition: '0.15s' }}>
@@ -373,15 +444,15 @@ const FondosForm = () => {
                                     </label>
                                 ))}
                             </div>
-                    </div>
+                            {renderFieldError('fundsSource')}
+                        </div>
 
                          <div>
                             <label style={labelStyle}>{t('fondos.fundsOther')}</label>
                             <input className="corporate-input" style={getFieldErrorStyle('fundsOther')} autoComplete="off" value={formData.fundsOther} onChange={e => { setFormData({...formData, fundsOther: e.target.value}); handleFieldChange('fundsOther', e.target.value); }} onBlur={() => handleFieldBlur('fundsOther')} />
-                            {fieldErrors.fundsOther && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.fundsOther}</span>}
+                            {renderFieldError('fundsOther')}
                         </div>
 
-                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '11px', fontWeight: 700, marginTop: '10px' }}>{t('fondos.fundsError')}</p>}
                         <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
                             <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={16} /> {t('common.back')}</button>
                             <button onClick={handleNext} className="corporate-btn-primary" style={{ flex: 1 }}>{t('common.continue')} <ChevronRight size={16} /></button>
@@ -397,6 +468,9 @@ const FondosForm = () => {
                             </div>
                             <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('fondos.step3')}</h2>
                         </div>
+                        
+                        {renderValidationBanner()}
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div>
                                 <label style={labelStyle}>{t('fondos.custodyName')}</label>
@@ -412,31 +486,31 @@ const FondosForm = () => {
                                     }} 
                                     onBlur={() => handleFieldBlur('custodyName')}
                                 />
-                                {fieldErrors.custodyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyName}</span>}
+                                {renderFieldError('custodyName')}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
                                     <input type="text" className="corporate-input" style={{...getErrorStyle('custodyPhone'), ...getFieldErrorStyle('custodyPhone')}} autoComplete="off" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); handleFieldChange('custodyPhone', e.target.value.replace(/\D/g,'')); }} onBlur={() => handleFieldBlur('custodyPhone')} />
-                                    {fieldErrors.custodyPhone && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyPhone}</span>}
+                                    {renderFieldError('custodyPhone')}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyEmail')}</label>
                                     <input type="email" className="corporate-input" style={{...getErrorStyle('custodyEmail'), ...getFieldErrorStyle('custodyEmail')}} autoComplete="off" value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyEmail')); handleFieldChange('custodyEmail', e.target.value); }} onBlur={() => handleFieldBlur('custodyEmail')} placeholder="ejemplo@correo.com" />
-                                    {fieldErrors.custodyEmail && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyEmail}</span>}
+                                    {renderFieldError('custodyEmail')}
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyAddress')}</label>
                                     <input className="corporate-input" style={{...getErrorStyle('custodyAddress'), ...getFieldErrorStyle('custodyAddress')}} autoComplete="off" value={formData.custodyAddress} onChange={e => { setFormData(prev => ({...prev, custodyAddress: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyAddress')); handleFieldChange('custodyAddress', e.target.value); }} onBlur={() => handleFieldBlur('custodyAddress')} />
-                                    {fieldErrors.custodyAddress && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyAddress}</span>}
+                                    {renderFieldError('custodyAddress')}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.fiscalYear')}</label>
                                     <input className="corporate-input" style={{...getErrorStyle('fiscalYear'), ...getFieldErrorStyle('fiscalYear')}} autoComplete="off" value={formData.fiscalYear} onChange={e => { setFormData(prev => ({...prev, fiscalYear: e.target.value})); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'fiscalYear')); handleFieldChange('fiscalYear', e.target.value); }} onBlur={() => handleFieldBlur('fiscalYear')} placeholder={t('fondos.fiscalYearPlaceholder') || ''} />
-                                    {fieldErrors.fiscalYear && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.fiscalYear}</span>}
+                                    {renderFieldError('fiscalYear')}
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -450,17 +524,16 @@ const FondosForm = () => {
                                         onChange={e => { setFormData({...formData, signerName: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'signerName')); handleFieldChange('signerName', e.target.value); }} 
                                         onBlur={() => handleFieldBlur('signerName')}
                                     />
-                                    {fieldErrors.signerName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.signerName}</span>}
+                                    {renderFieldError('signerName')}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.date')}</label>
                                     <input type="date" className="corporate-input" style={{...getErrorStyle('date'), ...getFieldErrorStyle('date')}} value={formData.date} onChange={e => { setFormData({...formData, date: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'date')); handleFieldChange('date', e.target.value); }} onBlur={() => handleFieldBlur('date')} />
-                                    {fieldErrors.date && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.date}</span>}
+                                    {renderFieldError('date')}
                                 </div>
                             </div>
                         </div>
 
-                         {validationErrors.length > 0 && <p style={{ color: '#ef4444', fontSize: '11px', fontWeight: 700, marginTop: '10px' }}>{t('fondos.custodyError')}</p>}
                         <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
                             <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={16} /> {t('common.back')}</button>
                             <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '9px 18px' }} disabled={loading}>
