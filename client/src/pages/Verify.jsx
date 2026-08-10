@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ArrowRight, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { ShieldCheck, ArrowRight, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { useT } from '../i18n';
-import axios from 'axios';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import API_BASE_URL from '../config';
 
 const Verify = () => {
@@ -14,13 +14,46 @@ const Verify = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [hasExpired, setHasExpired] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
   const email = localStorage.getItem('userEmail');
+
+  // Real-time countdown timer
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      setHasExpired(true);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setHasExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleVerify = async (e) => {
     e.preventDefault();
+    if (hasExpired) {
+      setErrorMessage('El código ha caducado. Por favor, solicita uno nuevo.');
+      setShowError(true);
+      return;
+    }
+
     setLoading(true);
     setShowError(false);
-    console.log('📡 Verificando código para:', email);
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
@@ -32,17 +65,14 @@ const Verify = () => {
       const data = await response.json();
       
       if (response.ok) {
-        console.log('✅ Código verificado con éxito');
         setShowSuccess(true);
       } else {
-        console.error('❌ Error de verificación:', data.msg);
-        setErrorMessage(data.msg || t('verify.invalidCode'));
+        setErrorMessage(data.msg || t('verify.invalidCode') || 'Código inválido');
         if (data.expired) setHasExpired(true);
         setShowError(true);
       }
     } catch (err) {
-      console.error('🔥 Error de red en verificación:', err);
-      setErrorMessage(t('verify.connectionError'));
+      setErrorMessage(t('verify.connectionError') || 'Error de conexión');
       setShowError(true);
     } finally {
       setLoading(false);
@@ -60,110 +90,140 @@ const Verify = () => {
       const data = await response.json();
       if (response.ok) {
         setHasExpired(false);
+        setTimeLeft(180); // Reset timer to 3:00 min
         setShowError(false);
         setCode('');
-        alert(t('verify.resendSuccess'));
       } else {
-        setErrorMessage(data.msg || t('verify.resendError'));
+        setErrorMessage(data.msg || t('verify.resendError') || 'Error al reenviar el código');
         setShowError(true);
       }
     } catch (err) {
-      console.error(err);
-      setErrorMessage(t('verify.connectionError'));
+      setErrorMessage(t('verify.connectionError') || 'Error de conexión');
+      setShowError(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', background: '#f8fafc' }}>
-      <div className="glass-card" style={{ maxWidth: '500px', width: '100%', padding: '60px', textAlign: 'center' }}>
-        <div style={{ background: 'var(--primary)', color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' }}>
-          <ShieldCheck size={32} />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%)', position: 'relative', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 5 }}>
+        <LanguageSwitcher />
+      </div>
+
+      <div style={{ maxWidth: '480px', width: '100%', background: '#ffffff', borderRadius: '20px', padding: '48px 40px', boxShadow: '0 25px 60px -15px rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>
+        
+        {/* Shield Header Icon */}
+        <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #0f172a 0%, #0f766e 100%)', color: '#ffffff', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 8px 20px rgba(15, 118, 110, 0.3)' }}>
+          <ShieldCheck size={32} color="#2dd4bf" />
         </div>
 
-        <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>{t('verify.title')}</h1>
-        <p style={{ color: 'var(--text-sub)', marginBottom: '15px' }}>
-          {t('verify.subtitle')} <br/>
-          <strong style={{ color: 'var(--text)' }}>{email}</strong>
+        <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+          {t('verify.title') || 'Verificar Código'}
+        </h1>
+
+        <p style={{ color: '#64748b', fontSize: '13.5px', marginBottom: '20px', lineHeight: 1.5 }}>
+          {t('verify.subtitle') || 'Ingresa el código de 6 dígitos enviado a'} <br/>
+          <strong style={{ color: '#0f172a', fontWeight: 700 }}>{email || 'tu correo'}</strong>
         </p>
-        <div style={{ background: '#fffbeb', color: '#d97706', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '30px', border: '1px solid #fde68a' }}>
-            <AlertCircle size={16} /> {t('verify.expiresIn3Min')}
-        </div>
 
-        <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Real-time Dynamic Countdown Badge */}
+        {!hasExpired ? (
+          <div style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '28px' }}>
+            <Clock size={16} color="#d97706" />
+            <span>Caduca en <strong>{formatTime(timeLeft)}</strong></span>
+          </div>
+        ) : (
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '8px 16px', borderRadius: '20px', fontSize: '12.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <AlertCircle size={16} color="#dc2626" />
+              <span>El código OTP ha caducado</span>
+            </div>
+            <div>
+              <button 
+                type="button" 
+                onClick={handleResend} 
+                disabled={loading} 
+                style={{ background: '#0f766e', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
+              >
+                <RefreshCw size={14} /> Reenviar nuevo código
+              </button>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <input 
             type="text" 
-            className="input-field" 
             placeholder="000000"
-            style={{ textAlign: 'center', fontSize: '32px', letterSpacing: '8px', fontWeight: 700 }}
+            style={{ textAlign: 'center', fontSize: '32px', letterSpacing: '10px', fontWeight: 800, color: '#0f172a', padding: '14px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
             maxLength={6}
             required
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? t('verify.verifying') : t('verify.verifyButton')}
-            {!loading && <ArrowRight size={18} style={{ marginLeft: 8, verticalAlign: 'middle' }} />}
+          <button type="submit" className="btn-primary" disabled={loading || hasExpired} style={{ width: '100%', padding: '13px', fontSize: '14px', borderRadius: '10px', background: hasExpired ? '#94a3b8' : 'linear-gradient(135deg, #0f172a 0%, #0f766e 100%)' }}>
+            {loading ? 'Verificando...' : (t('verify.verifyButton') || 'VERIFICAR CÓDIGO')}
+            {!loading && <ArrowRight size={18} style={{ marginLeft: 8 }} />}
           </button>
 
           <button 
             type="button"
             onClick={() => navigate('/register')}
-            style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', fontSize: '14px', marginTop: '-8px' }}
+            style={{ background: 'none', border: 'none', color: '#0f766e', cursor: 'pointer', fontSize: '13px', fontWeight: 600, marginTop: '-4px' }}
           >
-            {t('verify.wrongEmail')}
+            {t('verify.wrongEmail') || '¿Correo incorrecto? Volver al registro'}
           </button>
         </form>
 
-        {/* Error Popup */}
+        {/* Error Modal */}
         {showError && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-            <div className="glass-card" style={{ maxWidth: '400px', width: '90%', padding: '32px', background: 'white', textAlign: 'center' }}>
-              <div style={{ color: 'var(--error)', marginBottom: '16px' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ maxWidth: '380px', width: '90%', padding: '32px', background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+              <div style={{ color: '#ef4444', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
                 <AlertCircle size={48} />
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>{t('common.error')}</h3>
-              <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>{errorMessage}</p>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: '#0f172a' }}>Error de Verificación</h3>
+              <p style={{ color: '#64748b', fontSize: '13.5px', marginBottom: '24px', lineHeight: 1.5 }}>{errorMessage}</p>
               
-              {hasExpired ? (
+              {hasExpired && (
                 <button 
                   onClick={handleResend}
                   className="btn-primary" 
-                  style={{ width: '100%', background: '#f59e0b', marginBottom: '10px' }}
+                  style={{ width: '100%', background: '#0f766e', marginBottom: '10px' }}
                   disabled={loading}
                 >
-                  {loading ? t('common.loading') : t('login.generateNewCode')}
+                  <RefreshCw size={16} /> Reenviar nuevo código
                 </button>
-              ) : null}
+              )}
 
               <button 
                 onClick={() => setShowError(false)}
-                className="btn-primary" 
-                style={{ width: '100%', background: hasExpired ? '#94a3b8' : 'var(--error)' }}
+                className="btn-secondary" 
+                style={{ width: '100%', justifyContent: 'center' }}
               >
-                {t('common.close')}
+                Cerrar
               </button>
             </div>
           </div>
         )}
 
-        {/* Success Popup */}
+        {/* Success Modal */}
         {showSuccess && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-            <div className="glass-card" style={{ maxWidth: '400px', width: '90%', padding: '32px', background: 'white', textAlign: 'center' }}>
-              <div style={{ color: 'var(--success)', marginBottom: '16px' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ maxWidth: '380px', width: '90%', padding: '32px', background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+              <div style={{ color: '#10b981', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
                 <CheckCircle size={48} />
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>{t('verify.successTitle')}</h3>
-              <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>{t('verify.successBody')}</p>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#0f172a' }}>¡Cuenta Verificada!</h3>
+              <p style={{ color: '#64748b', fontSize: '13.5px', marginBottom: '24px', lineHeight: 1.5 }}>Tu código de verificación ha sido validado correctamente.</p>
               <button 
                 onClick={() => navigate('/')}
                 className="btn-primary" 
-                style={{ width: '100%' }}
+                style={{ width: '100%', justifyContent: 'center' }}
               >
-                {t('onboarding.backToStart')}
+                Iniciar Sesión Ahora
               </button>
             </div>
           </div>
