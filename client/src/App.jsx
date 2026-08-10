@@ -20,35 +20,46 @@ function App() {
   const timerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
 
-  // 1. LÓGICA DE INACTIVIDAD (PERSISTENTE EN LOCALSTORAGE)
-  const TIMEOUT_DURATION = 300000; // 5 minutos de inactividad antes de advertir
+  // 1. LÓGICA DE INACTIVIDAD (1 MINUTO DE INACTIVIDAD COMPLETA DE LA PANTALLA)
+  const TIMEOUT_DURATION = 60000; // 1 minuto (60,000 ms)
 
   const lastUpdateRef = useRef(0);
-  const updateActivity = () => {
+
+  const forceResetActivity = () => {
     const now = Date.now();
-    if (now - lastUpdateRef.current < 2000) return;
     lastUpdateRef.current = now;
-    if (showTimeoutModal) return;
-    localStorage.setItem('lastActivityTime', now.toString());
+    try {
+      localStorage.setItem('lastActivityTime', now.toString());
+    } catch (_) {}
   };
 
-  // 2. MANEJO DE CIERRE DE SESIÓN
+  const updateActivity = () => {
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 1000) return;
+    lastUpdateRef.current = now;
+    try {
+      localStorage.setItem('lastActivityTime', now.toString());
+    } catch (_) {}
+  };
+
+  // 2. MANEJO DE CIERRE DE SESIÓN Y CONTINUAR
   const handleLogout = () => {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    localStorage.clear();
+    try { localStorage.clear(); } catch (_) {}
     setShowTimeoutModal(false);
     window.location.href = '/'; 
   };
 
   const handleStay = () => {
+    forceResetActivity();
+    setRemainingTime(30);
     setShowTimeoutModal(false);
-    updateActivity();
   };
 
-  // 3. EFECTO PARA EL COUNTDOWN (INDEPENDIENTE Y PERSISTENTE)
+  // 3. EFECTO PARA EL COUNTDOWN (30 SEGUNDOS DE ADVERTENCIA)
   useEffect(() => {
     if (showTimeoutModal) {
-      setRemainingTime(60);
+      setRemainingTime(30);
       countdownIntervalRef.current = setInterval(() => {
         setRemainingTime((prev) => {
           if (prev <= 1) {
@@ -79,31 +90,30 @@ function App() {
 
   // 5. EFECTO PARA DETECTAR ACTIVIDAD Y CHEQUEAR TIEMPO MUERTO
   useEffect(() => {
-    // Inicializar si no existe
     if (!localStorage.getItem('lastActivityTime')) {
-        localStorage.setItem('lastActivityTime', Date.now().toString());
+      forceResetActivity();
     }
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => window.addEventListener(event, updateActivity));
+    const events = ['mousedown', 'mousemove', 'keypress', 'keydown', 'scroll', 'touchstart', 'click', 'input', 'focus'];
+    events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
 
     const checkInactivity = setInterval(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        
-        const lastActivity = parseInt(localStorage.getItem('lastActivityTime') || Date.now().toString(), 10);
-        const timeSinceLastActivity = Date.now() - lastActivity;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const lastActivity = parseInt(localStorage.getItem('lastActivityTime') || Date.now().toString(), 10);
+      const timeSinceLastActivity = Date.now() - lastActivity;
 
-        if (timeSinceLastActivity >= TIMEOUT_DURATION && !showTimeoutModal) {
-            setShowTimeoutModal(true);
-        }
+      if (timeSinceLastActivity >= TIMEOUT_DURATION) {
+        setShowTimeoutModal(true);
+      }
     }, 1000);
 
     return () => {
       events.forEach(event => window.removeEventListener(event, updateActivity));
       clearInterval(checkInactivity);
     };
-  }, [showTimeoutModal]);
+  }, []);
 
   // 6. EFECTO PARA BLOQUEAR EL BOTÓN ATRÁS DEL NAVEGADOR
   useEffect(() => {
