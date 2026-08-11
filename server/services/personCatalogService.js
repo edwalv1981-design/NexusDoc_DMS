@@ -142,6 +142,7 @@ async function syncPeopleFromFormData(userId, formDataPayload) {
   if (!userId || !formDataPayload) return;
 
   try {
+    await Person.sync().catch(() => {});
     const extracted = extractPeopleFromPayload(formDataPayload);
     if (!extracted || extracted.length === 0) return;
 
@@ -199,6 +200,7 @@ async function searchPersonCatalog(userId, queryLimit) {
   if (!query || query.length < 2) return [];
 
   try {
+    await Person.sync().catch(() => {});
     const pattern = `%${query}%`;
     const people = await Person.findAll({
       where: {
@@ -242,6 +244,7 @@ async function searchPersonCatalog(userId, queryLimit) {
  */
 async function backfillHistoricalData() {
   try {
+    await Person.sync().catch(() => {});
     const count = await Person.count();
     // Si la tabla ya tiene personas, no hace falta backfill masivo
     if (count > 0) return;

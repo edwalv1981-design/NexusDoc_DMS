@@ -228,6 +228,40 @@ async function ensureUserProfilesTable(sequelize) {
     }
 }
 
+async function ensurePeopleTable(sequelize) {
+    try {
+        await sequelize.query(`
+            CREATE TABLE IF NOT EXISTS "People" (
+                "id" UUID PRIMARY KEY,
+                "userId" UUID NOT NULL,
+                "fullName" VARCHAR(255) NOT NULL,
+                "idNumber" VARCHAR(255),
+                "passport" VARCHAR(255),
+                "idCard" VARCHAR(255),
+                "nationality" VARCHAR(255),
+                "birthDate" VARCHAR(255),
+                "birthPlace" VARCHAR(255),
+                "maritalStatus" VARCHAR(255),
+                "address" TEXT,
+                "city" VARCHAR(255),
+                "country" VARCHAR(255),
+                "phone" VARCHAR(255),
+                "email" VARCHAR(255),
+                "entityType" VARCHAR(50) DEFAULT 'individual',
+                "lastRoleLabel" VARCHAR(255),
+                "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS "idx_people_user_name" ON "People" ("userId", "fullName");
+            CREATE INDEX IF NOT EXISTS "idx_people_user_passport" ON "People" ("userId", "passport");
+            CREATE INDEX IF NOT EXISTS "idx_people_user_idnumber" ON "People" ("userId", "idNumber");
+        `);
+        console.log(`🌐 Tabla People asegurada con índices.`);
+    } catch (err) {
+        console.warn('⚠️ ensurePeopleTable falló:', err.message);
+    }
+}
+
 async function bootstrap() {
     const { connectDB, sequelize } = require('./config/db');
     await connectDB();
@@ -242,6 +276,7 @@ async function bootstrap() {
 
     await ensureUserLanguageColumn(sequelize);
     await ensureUserProfilesTable(sequelize);
+    await ensurePeopleTable(sequelize);
 
     const { User } = require('./models');
 
