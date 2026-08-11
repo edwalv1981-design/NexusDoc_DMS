@@ -103,7 +103,7 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
 
         const resultsMap = new Map();
 
-        // 1. Search in Master Person Catalog table first
+        // 1. Primary: Master Person Catalog table (Fast, indexed, multi-tenant)
         try {
             const catalogPeople = await personCatalogService.searchPersonCatalog(req.user.id, q);
             catalogPeople.forEach(p => {
@@ -114,136 +114,37 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
             console.error('Catalog search error:', catErr);
         }
 
-        const { sequelize } = require('../config/db');
+        // 2. Secondary: Fallback to Users table
+        try {
+            const { sequelize } = require('../config/db');
+            const [userRows] = await sequelize.query(
+                `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
+                 FROM "Users"
+                 WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
+                 LIMIT 20`,
+                { replacements: { pattern: `%${q}%` } }
+            );
+            userRows.forEach(u => {
+                const key = (u.passport || u.fullName || u.email || '').trim();
+                if (!key) return;
+                if (!resultsMap.has(key)) {
+                    resultsMap.set(key, {
+                        fullName: u.fullName,
+                        name: u.fullName,
+                        passport: u.passport || '',
+                        email: u.email || '',
+                        nationality: u.nationality || ''
+                    });
+                }
+            });
+        } catch (userErr) {
+            console.error('User search fallback error:', userErr);
+        }
 
-        const [directorRows] = await sequelize.query(
-            `SELECT DISTINCT ON (COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'))
-                    elem->>'fullName'      AS "fullName",
-                    elem->>'firstName'     AS "firstName",
-                    elem->>'secondName'    AS "secondName",
-                    elem->>'lastName'      AS "lastName",
-                    elem->>'birthDate'     AS "birthDate",
-                    elem->>'maritalStatus' AS "maritalStatus",
-                    elem->>'nationality'   AS "nationality",
-                    elem->>'passport'      AS "passport",
-                    elem->>'phone'         AS "phone",
-                    elem->>'email'         AS "email",
-                    elem->>'address'       AS "address",
-                    elem->>'city'          AS "city",
-                    elem->>'country'       AS "country"
-             FROM "FormData",
-                  jsonb_array_elements(data->'directors') AS elem
-             WHERE (elem->>'passport' ILIKE :pattern
-                    OR elem->>'fullName' ILIKE :pattern
-                    OR elem->>'firstName' ILIKE :pattern
-                    OR elem->>'lastName' ILIKE :pattern)
-               AND (NULLIF(elem->>'passport','') IS NOT NULL
-                    OR NULLIF(elem->>'fullName','') IS NOT NULL)
-             ORDER BY COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'), "updatedAt" DESC
-             LIMIT 50`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        const [dignitaryRows] = await sequelize.query(
-            `SELECT DISTINCT ON (COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'))
-                    elem->>'fullName'           AS "fullName",
-                    elem->>'birthDate'          AS "birthDate",
-                    elem->>'passport'           AS "passport",
-                    elem->>'registrationNumber' AS "registrationNumber"
-             FROM "FormData",
-                  jsonb_array_elements(data->'dignitaries') AS elem
-             WHERE (elem->>'passport' ILIKE :pattern
-                    OR elem->>'fullName' ILIKE :pattern)
-               AND (NULLIF(elem->>'passport','') IS NOT NULL
-                    OR NULLIF(elem->>'fullName','') IS NOT NULL)
-             ORDER BY COALESCE(NULLIF(elem->>'passport',''), elem->>'fullName'), "updatedAt" DESC
-             LIMIT 50`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        const [signerRows] = await sequelize.query(
-            `SELECT DISTINCT ON (COALESCE(NULLIF(elem->>'passport',''), elem->>'name'))
-                    elem->>'name'       AS "fullName",
-                    elem->>'signature'  AS "signature",
-                    elem->>'passport'   AS "passport"
-             FROM "FormData",
-                  jsonb_array_elements(data->'signers') AS elem
-             WHERE (elem->>'passport' ILIKE :pattern
-                    OR elem->>'name' ILIKE :pattern)
-               AND (NULLIF(elem->>'passport','') IS NOT NULL
-                    OR NULLIF(elem->>'name','') IS NOT NULL)
-             ORDER BY COALESCE(NULLIF(elem->>'passport',''), elem->>'name'), "updatedAt" DESC
-             LIMIT 50`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        const [userRows] = await sequelize.query(
-            `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
-             FROM "Users"
-             WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
-             LIMIT 20`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        userRows.forEach(u => {
-            const key = (u.passport || u.fullName || u.email || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, {
-                    fullName: u.fullName,
-                    name: u.fullName,
-                    passport: u.passport || '',
-                    email: u.email || '',
-                    nationality: u.nationality || ''
-                });
-            }
-        });
-
-        directorRows.forEach(r => {
-            if (!r.fullName) {
-                r.fullName = [r.firstName, r.secondName, r.lastName].filter(Boolean).join(' ');
-            }
-            const key = (r.passport || r.fullName || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, { ...r });
-            } else {
-                const existing = resultsMap.get(key);
-                Object.keys(r).forEach(k => {
-                    if (!existing[k] && r[k]) existing[k] = r[k];
-                });
-            }
-        });
-
-        dignitaryRows.forEach(r => {
-            const key = (r.passport || r.fullName || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, { passport: r.passport, fullName: r.fullName, birthDate: r.birthDate, registrationNumber: r.registrationNumber });
-            } else {
-                const existing = resultsMap.get(key);
-                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
-                if (!existing.birthDate && r.birthDate) existing.birthDate = r.birthDate;
-                if (!existing.registrationNumber && r.registrationNumber) existing.registrationNumber = r.registrationNumber;
-            }
-        });
-
-        signerRows.forEach(r => {
-            const key = (r.passport || r.fullName || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, { passport: r.passport, fullName: r.fullName, name: r.fullName });
-            } else {
-                const existing = resultsMap.get(key);
-                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
-                if (!existing.passport && r.passport) existing.passport = r.passport;
-            }
-        });
-
-        res.json(Array.from(resultsMap.values()).slice(0, 10));
+        return res.json(Array.from(resultsMap.values()).slice(0, 10));
     } catch (err) {
         console.error('Error searching corporacion persons:', err);
-        res.status(500).json({ msg: 'Error al buscar personas' });
+        return res.json([]);
     }
 });
 
@@ -301,7 +202,7 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
 
         const resultsMap = new Map();
 
-        // 1. Search in Master Person Catalog table first (Fastest, indexed, multi-tenant)
+        // 1. Primary: Master Person Catalog table (Fastest, indexed, multi-tenant)
         try {
             const catalogPeople = await personCatalogService.searchPersonCatalog(req.user.id, q);
             catalogPeople.forEach(p => {
@@ -312,135 +213,38 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
             console.error('Catalog search error:', catErr);
         }
 
-        const { sequelize } = require('../config/db');
-
-        const personArrays = ['founders', 'protectors', 'councilMembers', 'directors'];
-        const allRows = [];
-
-        for (const arr of personArrays) {
-            const [rows] = await sequelize.query(
-                `SELECT elem->>'fullName'      AS "fullName",
-                        elem->>'firstName'     AS "firstName",
-                        elem->>'secondName'    AS "secondName",
-                        elem->>'lastName'      AS "lastName",
-                        elem->>'birthDate'     AS "birthDate",
-                        elem->>'maritalStatus' AS "maritalStatus",
-                        elem->>'nationality'   AS "nationality",
-                        elem->>'passport'      AS "passport",
-                        elem->>'idCard'        AS "idCard",
-                        elem->>'phone'         AS "phone",
-                        elem->>'email'         AS "email",
-                        elem->>'address'       AS "address",
-                        elem->>'city'          AS "city",
-                        elem->>'country'       AS "country"
-                 FROM "FormData",
-                      jsonb_array_elements(CASE WHEN jsonb_typeof(data->:arrName) = 'array' THEN data->:arrName ELSE '[]'::jsonb END) AS elem
-                 WHERE (elem->>'passport' ILIKE :pattern
-                        OR elem->>'fullName' ILIKE :pattern
-                        OR elem->>'firstName' ILIKE :pattern
-                        OR elem->>'lastName' ILIKE :pattern)
-                 ORDER BY "updatedAt" DESC
-                 LIMIT 30`,
-                { replacements: { pattern: `%${q}%`, arrName: arr } }
+        // 2. Secondary: Fallback to Users table
+        try {
+            const { sequelize } = require('../config/db');
+            const [userRows] = await sequelize.query(
+                `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
+                 FROM "Users"
+                 WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
+                 LIMIT 20`,
+                { replacements: { pattern: `%${q}%` } }
             );
-            allRows.push(...rows);
+
+            userRows.forEach(u => {
+                const key = (u.passport || u.fullName || u.email || '').trim();
+                if (!key) return;
+                if (!resultsMap.has(key)) {
+                    resultsMap.set(key, {
+                        fullName: u.fullName,
+                        name: u.fullName,
+                        passport: u.passport || '',
+                        email: u.email || '',
+                        nationality: u.nationality || ''
+                    });
+                }
+            });
+        } catch (userErr) {
+            console.error('User search fallback error:', userErr);
         }
 
-        const [dignitaryRows] = await sequelize.query(
-            `SELECT elem->>'fullName'           AS "fullName",
-                    elem->>'birthDate'          AS "birthDate",
-                    elem->>'passport'           AS "passport",
-                    elem->>'registrationNumber' AS "registrationNumber",
-                    elem->>'address'            AS "address"
-             FROM "FormData",
-                  jsonb_array_elements(CASE WHEN jsonb_typeof(data->'dignitaries') = 'array' THEN data->'dignitaries' ELSE '[]'::jsonb END) AS elem
-             WHERE (elem->>'passport' ILIKE :pattern
-                    OR elem->>'fullName' ILIKE :pattern)
-             ORDER BY "updatedAt" DESC
-             LIMIT 30`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        const [signerRows] = await sequelize.query(
-            `SELECT elem->>'name'       AS "fullName",
-                    elem->>'signature'  AS "signature",
-                    elem->>'passport'   AS "passport"
-             FROM "FormData",
-                  jsonb_array_elements(CASE WHEN jsonb_typeof(data->'signers') = 'array' THEN data->'signers' ELSE '[]'::jsonb END) AS elem
-             WHERE (elem->>'passport' ILIKE :pattern
-                    OR elem->>'name' ILIKE :pattern)
-             ORDER BY "updatedAt" DESC
-             LIMIT 30`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        const [userRows] = await sequelize.query(
-            `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
-             FROM "Users"
-             WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
-             LIMIT 20`,
-            { replacements: { pattern: `%${q}%` } }
-        );
-
-        userRows.forEach(u => {
-            const key = (u.passport || u.fullName || u.email || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, {
-                    fullName: u.fullName,
-                    name: u.fullName,
-                    passport: u.passport || '',
-                    email: u.email || '',
-                    nationality: u.nationality || ''
-                });
-            }
-        });
-
-        allRows.forEach(r => {
-            if (!r.fullName) {
-                r.fullName = [r.firstName, r.secondName, r.lastName].filter(Boolean).join(' ');
-            }
-            const key = (r.passport || r.fullName || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, { ...r });
-            } else {
-                const existing = resultsMap.get(key);
-                Object.keys(r).forEach(k => {
-                    if (!existing[k] && r[k]) existing[k] = r[k];
-                });
-            }
-        });
-
-        dignitaryRows.forEach(r => {
-            const key = (r.passport || r.fullName || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, { fullName: r.fullName, passport: r.passport, birthDate: r.birthDate, registrationNumber: r.registrationNumber, address: r.address });
-            } else {
-                const existing = resultsMap.get(key);
-                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
-                if (!existing.birthDate && r.birthDate) existing.birthDate = r.birthDate;
-                if (!existing.registrationNumber && r.registrationNumber) existing.registrationNumber = r.registrationNumber;
-            }
-        });
-
-        signerRows.forEach(r => {
-            const key = (r.passport || r.fullName || '').trim();
-            if (!key) return;
-            if (!resultsMap.has(key)) {
-                resultsMap.set(key, { fullName: r.fullName, name: r.fullName, passport: r.passport });
-            } else {
-                const existing = resultsMap.get(key);
-                if (!existing.fullName && r.fullName) existing.fullName = r.fullName;
-                if (!existing.passport && r.passport) existing.passport = r.passport;
-            }
-        });
-
-        res.json(Array.from(resultsMap.values()).slice(0, 10));
+        return res.json(Array.from(resultsMap.values()).slice(0, 10));
     } catch (err) {
         console.error('Error searching fundacion persons:', err);
-        res.status(500).json({ msg: 'Error al buscar personas' });
+        return res.json([]);
     }
 });
 
