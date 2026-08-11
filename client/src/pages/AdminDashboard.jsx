@@ -707,7 +707,7 @@ const AdminDashboard = () => {
                                       <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4 }}>
                                         {af.formType}
                                       </span>
-                                      <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight 800, padding: '2px 8px', borderRadius: 4 }}>
+                                      <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4 }}>
                                         {af.roleLabel}
                                       </span>
                                     </div>
