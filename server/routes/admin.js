@@ -893,7 +893,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         }
         
         if (codigoUnico && codigoUnico.trim()) {
-            conditions.push(`(u.unique_code ILIKE :codigoUnico OR CAST(f.data AS TEXT) ILIKE :codigoUnico)`);
+            conditions.push(`(u."uniqueCode" ILIKE :codigoUnico OR CAST(f.data AS TEXT) ILIKE :codigoUnico)`);
             replacements.codigoUnico = `%${codigoUnico.trim()}%`;
         }
 
@@ -934,12 +934,12 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                    f."userId"    AS "userId",
                    f."createdAt" AS "createdAt",
                    f."updatedAt" AS "updatedAt",
-                   u.name        AS "userName",
-                   u.email       AS "userEmail",
-                   u."uniqueCode" AS "userCode",
+                   COALESCE(u.name, 'Usuario Registrado') AS "userName",
+                   COALESCE(u.email, '')       AS "userEmail",
+                   COALESCE(u."uniqueCode", '') AS "userCode",
                    f.data        AS "formData"
             FROM "FormData" f
-            JOIN "Users" u ON u.id = f."userId"
+            LEFT JOIN "Users" u ON u.id = f."userId"
             ${whereClause}
             ORDER BY f."updatedAt" DESC
             LIMIT 150
