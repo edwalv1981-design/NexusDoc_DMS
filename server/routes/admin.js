@@ -1025,6 +1025,23 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     }
 });
 
-// RAW SQL endpoint removed for security — use Supabase dashboard for ad-hoc queries.
+router.get('/db-debug', [auth, isAdmin], async (req, res) => {
+    try {
+        const [formsCount] = await sequelize.query('SELECT COUNT(*) FROM "FormData"');
+        const [usersCount] = await sequelize.query('SELECT COUNT(*) FROM "Users"');
+        const [peopleCount] = await sequelize.query('SELECT COUNT(*) FROM "People"');
+        const [sampleForms] = await sequelize.query('SELECT id, "formType", "userId", "createdAt" FROM "FormData" LIMIT 10');
+        const [tables] = await sequelize.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'");
+        res.json({
+            formsCount: formsCount[0].count,
+            usersCount: usersCount[0].count,
+            peopleCount: peopleCount[0].count,
+            sampleForms,
+            tables: tables.map(t => t.table_name)
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 module.exports = router;
