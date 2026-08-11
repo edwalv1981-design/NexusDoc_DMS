@@ -249,9 +249,11 @@ async function ensurePeopleTable(sequelize) {
                 "email" VARCHAR(255),
                 "entityType" VARCHAR(50) DEFAULT 'individual',
                 "lastRoleLabel" VARCHAR(255),
+                "associatedForms" JSONB DEFAULT '[]'::jsonb,
                 "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                 "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             );
+            ALTER TABLE "People" ADD COLUMN IF NOT EXISTS "associatedForms" JSONB DEFAULT '[]'::jsonb;
             CREATE INDEX IF NOT EXISTS "idx_people_user_name" ON "People" ("userId", "fullName");
             CREATE INDEX IF NOT EXISTS "idx_people_user_passport" ON "People" ("userId", "passport");
             CREATE INDEX IF NOT EXISTS "idx_people_user_idnumber" ON "People" ("userId", "idNumber");

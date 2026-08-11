@@ -71,6 +71,10 @@ const Person = sequelize.define('Person', {
   lastRoleLabel: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  associatedForms: {
+    type: DataTypes.JSONB,
+    defaultValue: []
   }
 }, {
   timestamps: true,

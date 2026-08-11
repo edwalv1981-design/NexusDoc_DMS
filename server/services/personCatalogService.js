@@ -138,13 +138,20 @@ function extractPeopleFromPayload(data = {}) {
 /**
  * Sincroniza y realiza Upsert de las personas de un formulario al Catálogo Maestro `Person`.
  */
-async function syncPeopleFromFormData(userId, formDataPayload) {
+/**
+ * Sincroniza y realiza Upsert de las personas de un formulario al Catálogo Maestro `Person`.
+ */
+async function syncPeopleFromFormData(userId, formDataPayload, formMeta = {}) {
   if (!userId || !formDataPayload) return;
 
   try {
     await Person.sync().catch(() => {});
     const extracted = extractPeopleFromPayload(formDataPayload);
     if (!extracted || extracted.length === 0) return;
+
+    const formId = formMeta.formId || (formDataPayload.__metadata && formDataPayload.__metadata.parentId) || null;
+    const formType = formMeta.formType || formDataPayload.formType || 'Trámite General';
+    const userUniqueCode = formMeta.userUniqueCode || null;
 
     for (const item of extracted) {
       const searchCriteria = { userId };
@@ -158,11 +165,27 @@ async function syncPeopleFromFormData(userId, formDataPayload) {
         searchCriteria.fullName = item.fullName;
       }
 
-      const existing = await Person.findOne({ where: searchCriteria });
+      let existing = await Person.findOne({ where: searchCriteria });
+
+      const newFormEntry = {
+        formId,
+        formType,
+        userUniqueCode,
+        roleLabel: item.lastRoleLabel || 'Participante',
+        updatedAt: new Date().toISOString()
+      };
 
       if (existing) {
-        // Actualizar datos faltantes
-        const updates = {};
+        const existingForms = Array.isArray(existing.associatedForms) ? existing.associatedForms : [];
+        // Deduplicate forms by formId + roleLabel
+        const formIndex = existingForms.findIndex(f => f.formId === formId && f.roleLabel === item.lastRoleLabel);
+        if (formIndex >= 0) {
+          existingForms[formIndex] = newFormEntry;
+        } else if (formId) {
+          existingForms.push(newFormEntry);
+        }
+
+        const updates = { associatedForms: existingForms };
         if (!existing.passport && item.passport) updates.passport = item.passport;
         if (!existing.idNumber && item.idNumber) updates.idNumber = item.idNumber;
         if (!existing.idCard && item.idCard) updates.idCard = item.idCard;
@@ -176,14 +199,13 @@ async function syncPeopleFromFormData(userId, formDataPayload) {
         if (!existing.country && item.country) updates.country = item.country;
         if (item.lastRoleLabel) updates.lastRoleLabel = item.lastRoleLabel;
 
-        if (Object.keys(updates).length > 0) {
-          await existing.update(updates);
-        }
+        await existing.update(updates);
       } else {
         // Crear nuevo registro en el catálogo
         await Person.create({
           userId,
-          ...item
+          ...item,
+          associatedForms: formId ? [newFormEntry] : []
         });
       }
     }
@@ -231,10 +253,65 @@ async function searchPersonCatalog(userId, queryLimit) {
       country: p.country || '',
       phone: p.phone || '',
       email: p.email || '',
-      roleLabel: p.lastRoleLabel || 'Catálogo'
+      roleLabel: p.lastRoleLabel || 'Catálogo',
+      associatedForms: p.associatedForms || []
     }));
   } catch (err) {
     console.error('Error al buscar en Catálogo Maestro Person:', err);
+    return [];
+  }
+}
+
+/**
+ * Buscador exclusivo para Administradores con desglose completo de trámites asociados.
+ */
+async function searchAdminPersonCatalog(queryLimit) {
+  const query = (queryLimit || '').trim();
+
+  try {
+    await Person.sync().catch(() => {});
+    const whereCondition = {};
+    if (query && query.length >= 2) {
+      const pattern = `%${query}%`;
+      whereCondition[Op.or] = [
+        { fullName: { [Op.iLike]: pattern } },
+        { idNumber: { [Op.iLike]: pattern } },
+        { passport: { [Op.iLike]: pattern } },
+        { email: { [Op.iLike]: pattern } },
+        { phone: { [Op.iLike]: pattern } }
+      ];
+    }
+
+    const people = await Person.findAll({
+      where: whereCondition,
+      include: [{ model: User, attributes: ['name', 'email', 'uniqueCode'] }],
+      order: [['updatedAt', 'DESC']],
+      limit: 50
+    });
+
+    return people.map(p => ({
+      id: p.id,
+      userId: p.userId,
+      userOwner: p.User ? { name: p.User.name, email: p.User.email, uniqueCode: p.User.uniqueCode } : null,
+      fullName: p.fullName,
+      idNumber: p.idNumber || '',
+      passport: p.passport || '',
+      idCard: p.idCard || '',
+      nationality: p.nationality || '',
+      birthDate: p.birthDate || '',
+      birthPlace: p.birthPlace || '',
+      maritalStatus: p.maritalStatus || '',
+      address: p.address || '',
+      city: p.city || '',
+      country: p.country || '',
+      phone: p.phone || '',
+      email: p.email || '',
+      lastRoleLabel: p.lastRoleLabel || 'Registrado',
+      associatedForms: Array.isArray(p.associatedForms) ? p.associatedForms : [],
+      updatedAt: p.updatedAt
+    }));
+  } catch (err) {
+    console.error('Error al buscar catálogo admin de personas:', err);
     return [];
   }
 }
@@ -245,15 +322,15 @@ async function searchPersonCatalog(userId, queryLimit) {
 async function backfillHistoricalData() {
   try {
     await Person.sync().catch(() => {});
-    const count = await Person.count();
-    // Si la tabla ya tiene personas, no hace falta backfill masivo
-    if (count > 0) return;
-
     console.log('Iniciando poblamiento histórico del Catálogo Maestro Person...');
     const allForms = await FormData.findAll();
     for (const f of allForms) {
       if (f.userId && f.data) {
-        await syncPeopleFromFormData(f.userId, f.data);
+        await syncPeopleFromFormData(f.userId, f.data, {
+          formId: f.id,
+          formType: f.formType,
+          userUniqueCode: f.userUniqueCode
+        });
       }
     }
     console.log(`Catálogo Maestro Person poblado exitosamente con trámites históricos.`);
@@ -266,5 +343,6 @@ module.exports = {
   extractPeopleFromPayload,
   syncPeopleFromFormData,
   searchPersonCatalog,
+  searchAdminPersonCatalog,
   backfillHistoricalData
 };

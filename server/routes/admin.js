@@ -19,6 +19,7 @@ const upload = multer({
 
 const auth = require('../middleware/auth');
 const templateAvailability = require('../utils/templateAvailability');
+const personCatalogService = require('../services/personCatalogService');
 
 // Middleware to verify Admin role
 const isAdmin = (req, res, next) => {
@@ -27,6 +28,19 @@ const isAdmin = (req, res, next) => {
     }
     next();
 };
+
+// @route   GET api/admin/people/search
+// @desc    Busca personas en el Catálogo Maestro con trámites asociados desglosados (Admin Only)
+router.get('/people/search', [auth, isAdmin], async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        const people = await personCatalogService.searchAdminPersonCatalog(q);
+        res.json(people);
+    } catch (err) {
+        console.error('Error en /api/admin/people/search:', err);
+        res.status(500).json({ msg: 'Error al buscar personas en el catálogo' });
+    }
+});
 
 // @route   GET api/admin/users
 // @desc    Get all users for management
@@ -716,7 +730,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         const whereClauses = [];
         
         if (formType && formType.trim()) {
-            whereClauses.push(`f.form_type = :formType`);
+            whereClauses.push(`f."formType" = :formType`);
             replacements.formType = formType.trim();
         }
 
@@ -727,26 +741,40 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         const sql = `
-            SELECT f.id         AS "formId",
-                   f.form_type  AS "formType",
-                   f.user_id    AS "userId",
-                   f.created_at AS "createdAt",
-                   f.updated_at AS "updatedAt",
-                   u.name       AS "userName",
-                   u.email      AS "userEmail",
-                   u.unique_code AS "userCode",
-                   f.data       AS "formData"
-            FROM "form_data" f
-            JOIN "users" u ON u.id = f.user_id
+            SELECT f.id          AS "formId",
+                   f."formType"  AS "formType",
+                   f."userId"    AS "userId",
+                   f."createdAt" AS "createdAt",
+                   f."updatedAt" AS "updatedAt",
+                   u.name        AS "userName",
+                   u.email       AS "userEmail",
+                   u."uniqueCode" AS "userCode",
+                   f.data        AS "formData"
+            FROM "FormData" f
+            JOIN "Users" u ON u.id = f."userId"
             ${whereClause}
-            ORDER BY f.updated_at DESC
+            ORDER BY f."updatedAt" DESC
             LIMIT 150
         `;
 
-        const [rows] = await sequelize.query(sql, { replacements });
+        let rows = [];
+        try {
+            const [queryRows] = await sequelize.query(sql, { replacements });
+            rows = queryRows;
+        } catch (sqlErr) {
+            console.error('SQL query error in admin search-person:', sqlErr.message);
+        }
+
+        // Also search in Master Person Catalog
+        let catalogPeople = [];
+        try {
+            const searchTerm = nombres || ruc || usuario || empresa || codigoUnico || '';
+            catalogPeople = await personCatalogService.searchAdminPersonCatalog(searchTerm);
+        } catch (catErr) {
+            console.error('Catalog admin search error:', catErr);
+        }
         
         const results = [];
-        const nameTermsLower = nameTerms.map(t => t.toLowerCase());
 
         rows.forEach(r => {
             let entityName = '';
@@ -755,34 +783,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
             } catch (_) {}
 
-            // If multiple name terms were provided, we must ensure they belong to a SINGLE entity in the form.
-            // BUT if other fields were provided (like RUC) and they match, we shouldn't discard the row.
-            // To be accurate, let's verify if the row strictly matches ANY of the provided criteria.
-            let isValidMatch = false;
-
-            const formText = JSON.stringify(d).toLowerCase();
-
-            // Check Empresa match
-            if (empresa && formText.includes(empresa.trim().toLowerCase())) isValidMatch = true;
-            // Check RUC match
-            if (ruc && formText.includes(ruc.trim().toLowerCase())) isValidMatch = true;
-            // Check Codigo Unico match
-            if (codigoUnico && (
-                formText.includes(codigoUnico.trim().toLowerCase()) || 
-                (r.userCode && r.userCode.toLowerCase().includes(codigoUnico.trim().toLowerCase()))
-            )) isValidMatch = true;
-            // Check Usuario match
-            if (usuario && (
-                (r.userName && r.userName.toLowerCase().includes(usuario.trim().toLowerCase())) || 
-                (r.userEmail && r.userEmail.toLowerCase().includes(usuario.trim().toLowerCase()))
-            )) isValidMatch = true;
-
-            // Check Nombres match (Intelligent verification)
-            // (Disabled temporarily to ensure the search returns results strictly based on Postgres ILIKE)
-            isValidMatch = true;
-
-            // If we provided some fields but none of the JS verifications passed, it's a cross-person false positive
-            if (!isValidMatch) return;
+            let isValidMatch = true;
 
             if (d) {
                 entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || 'N/A';
@@ -804,8 +805,10 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 formDate: r.updatedAt
             });
         });
+
         res.json({
             results,
+            catalogPeople,
             summary: {
                 totalResults: results.length,
                 uniqueForms: new Set(results.map(r => r.formId)).size,
@@ -815,7 +818,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         });
     } catch (err) {
         console.error('Error searching person:', err);
-        res.status(500).json({ msg: 'Error al buscar persona: ' + err.message + ' Stack: ' + err.stack });
+        res.status(500).json({ msg: 'Error al buscar persona: ' + err.message });
     }
 });
 

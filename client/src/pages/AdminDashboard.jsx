@@ -87,6 +87,7 @@ const AdminDashboard = () => {
     formType: ''
   });
   const [consultaResults, setConsultaResults] = useState(null);
+  const [consultaCatalogPeople, setConsultaCatalogPeople] = useState([]);
   const [consultaSummary, setConsultaSummary] = useState(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedTemplateForConfig, setSelectedTemplateForConfig] = useState(null);
@@ -357,6 +358,7 @@ const AdminDashboard = () => {
         params: { nombres, ruc, codigoUnico, usuario, empresa, formType }
       });
       setConsultaResults(res.data.results || []);
+      setConsultaCatalogPeople(res.data.catalogPeople || []);
       setConsultaSummary(res.data.summary || null);
     } catch (err) {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
@@ -644,6 +646,90 @@ const AdminDashboard = () => {
                     <div style={{ flex: 1, minWidth: 140, background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: RADIUS, padding: '14px 18px' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: '#7e22ce' }}>{(consultaSummary.roles || []).join(', ')}</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#c084fc', marginTop: 2 }}>ROLES ENCONTRADOS</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Master Person Catalog Multi-Form Traceability Section */}
+                {consultaCatalogPeople && consultaCatalogPeople.length > 0 && (
+                  <div style={{ marginBottom: 30 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div style={{ background: '#f0fdf4', padding: 8, borderRadius: 8, border: '1px solid #bbf7d0' }}>
+                        <Building2 size={18} color="#15803d" />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
+                          Catálogo Maestro de Personas ({consultaCatalogPeople.length} Coincidencias)
+                        </h3>
+                        <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                          Trazabilidad de la persona en múltiples trámites y formularios del sistema
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {consultaCatalogPeople.map((person, pIdx) => (
+                        <div key={person.id || pIdx} style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: RADIUS_LG, padding: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, paddingBottom: 14, borderBottom: '1px solid #e2e8f0', marginBottom: 14 }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>{person.fullName}</span>
+                                <span style={{ background: '#0f766e', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>
+                                  {person.lastRoleLabel || 'Registrado'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                                <span>📄 <strong>Pasaporte/ID:</strong> {person.passport || person.idNumber || '—'}</span>
+                                <span>🌐 <strong>Nacionalidad:</strong> {person.nationality || '—'}</span>
+                                <span>📧 <strong>Email:</strong> {person.email || '—'}</span>
+                                <span>📞 <strong>Teléfono:</strong> {person.phone || '—'}</span>
+                              </div>
+                            </div>
+                            {person.userOwner && (
+                              <div style={{ textAlign: 'right', background: '#f8fafc', padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Usuario Cliente Propietario</div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{person.userOwner.name} ({person.userOwner.uniqueCode || 'Sin código'})</div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* List of associated forms */}
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <FileText size={14} color="#0f766e" />
+                              Trámites y Formularios donde esta Persona Participa ({person.associatedForms.length}):
+                            </div>
+                            {person.associatedForms && person.associatedForms.length > 0 ? (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                                {person.associatedForms.map((af, afIdx) => (
+                                  <div key={afIdx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                      <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4 }}>
+                                        {af.formType}
+                                      </span>
+                                      <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight 800, padding: '2px 8px', borderRadius: 4 }}>
+                                        {af.roleLabel}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#334155', fontWeight: 600 }}>
+                                      Código: {af.userUniqueCode || af.formId || 'Trámite Registrado'}
+                                    </div>
+                                    {af.updatedAt && (
+                                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                                        Registrado el: {new Date(af.updatedAt).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                                Esta persona fue registrada en la base de datos. Sus trámites asociados se listan arriba.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
