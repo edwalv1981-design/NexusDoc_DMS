@@ -767,6 +767,91 @@ function scanFormForMatches(d, terms) {
   return matches;
 }
 
+function extractAllParticipantsFromForm(d) {
+  if (!d || typeof d !== 'object') return [];
+  const participants = [];
+
+  const addP = (role, name, idNumber, nationality, email, phone) => {
+    if (!name && !idNumber && !email) return;
+    participants.push({
+      role: role || 'Participante',
+      name: name || 'Sin Nombre',
+      idNumber: idNumber || '',
+      nationality: nationality || '',
+      email: email || '',
+      phone: phone || ''
+    });
+  };
+
+  // Directores
+  if (Array.isArray(d.directors)) {
+    d.directors.forEach((dir, i) => {
+      addP(`Director #${i+1}`, dir.fullName || dir.name, dir.passport || dir.idNumber || dir.idCard, dir.nationality, dir.email, dir.phone);
+    });
+  }
+
+  // Dignatarios
+  if (Array.isArray(d.dignitaries)) {
+    d.dignitaries.forEach((dig, i) => {
+      addP(dig.role ? `Dignatario (${dig.role})` : `Dignatario #${i+1}`, dig.fullName || dig.name, dig.passport || dig.idNumber, dig.nationality, dig.email, dig.phone);
+    });
+  } else if (d.dignitaries && typeof d.dignitaries === 'object') {
+    Object.entries(d.dignitaries).forEach(([role, dig]) => {
+      if (dig && typeof dig === 'object') {
+        addP(`Dignatario (${role.toUpperCase()})`, dig.fullName || dig.name, dig.passport || dig.idNumber, dig.nationality, dig.email, dig.phone);
+      }
+    });
+  }
+
+  // Accionistas
+  if (Array.isArray(d.shareholders)) {
+    d.shareholders.forEach((s, i) => {
+      addP(`Accionista #${i+1}`, s.fullName || s.name || s.shareholder, s.passport || s.idNumber || s.idCard || s.taxId, s.nationality, s.email, s.phone);
+    });
+  }
+
+  // Fundadores
+  if (Array.isArray(d.founders)) {
+    d.founders.forEach((f, i) => {
+      addP(`Fundador #${i+1}`, f.fullName || f.name, f.passport || f.idNumber, f.nationality, f.email, f.phone);
+    });
+  } else if (d.founder && typeof d.founder === 'object') {
+    addP('Fundador', d.founder.fullName || d.founder.name, d.founder.passport || d.founder.idNumber, d.founder.nationality, d.founder.email, d.founder.phone);
+  }
+
+  // Beneficiarios
+  if (Array.isArray(d.beneficiaries)) {
+    d.beneficiaries.forEach((b, i) => {
+      addP(`Beneficiario #${i+1}`, b.fullName || b.name, b.passport || b.idNumber, b.nationality, b.email, b.phone);
+    });
+  }
+  if (Array.isArray(d.beneficialOwners)) {
+    d.beneficialOwners.forEach((b, i) => {
+      addP(`Beneficiario Final #${i+1}`, b.fullName || b.name, b.passport || b.idNumber, b.nationality, b.email, b.phone);
+    });
+  }
+
+  // Firmantes
+  if (Array.isArray(d.signers)) {
+    d.signers.forEach((s, i) => {
+      addP(`Firmante Autorizado #${i+1}`, s.fullName || s.name, s.passport || s.idNumber, s.nationality, s.email, s.phone);
+    });
+  }
+
+  // Persona individual o campos raíz
+  if (d.fullName || d.name) {
+    addP('Titular / Solicitante', d.fullName || d.name, d.passport || d.idNumber || d.idCard, d.nationality, d.email, d.phone);
+  }
+  if (d.legalRepName || d.legalRepId) {
+    addP('Representante Legal', d.legalRepName, d.legalRepId, d.legalRepNationality, d.legalRepEmail, d.legalRepPhone);
+  }
+  if (d.poaFullName || d.poaPassport) {
+    addP('Apoderado General', d.poaFullName, d.poaPassport, d.poaNationality, d.poaEmail, d.poaPhone);
+  }
+
+  return participants;
+}
+
 // @route   GET api/admin/search-person?q=<name_or_passport>
 // @desc    Search across ALL form data for a person by name or passport/cedula
 router.get('/search-person', [auth, isAdmin], async (req, res) => {
@@ -776,6 +861,9 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         if (!nombres && !ruc && !codigoUnico && !usuario && !empresa && !formType) {
             return res.json({ results: [], summary: { totalResults: 0, uniqueForms: 0, uniqueUsers: 0, roles: [] } });
         }
+
+        // Trigger asynchronous historical backfill for person catalog to ensure complete indexing
+        personCatalogService.backfillHistoricalData().catch(e => console.warn('Async backfill error:', e.message));
 
         const conditions = [];
         const replacements = {};
@@ -864,11 +952,14 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             } catch (_) {}
 
             const matchedSections = scanFormForMatches(d, searchTermsList);
+            const participants = extractAllParticipantsFromForm(d);
 
             let entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.accountHolder || d.fullName || d.name || d.beneficiaryName || '';
             if (!entityName || entityName === 'N/A') {
                 if (matchedSections.length > 0 && matchedSections[0].name) {
                     entityName = `${matchedSections[0].name} (${matchedSections[0].idNumber || r.userCode || 'Trámite'})`;
+                } else if (participants.length > 0 && participants[0].name) {
+                    entityName = `${participants[0].name} (${participants[0].idNumber || r.userCode || 'Trámite'})`;
                 } else if (r.userCode) {
                     entityName = `Trámite ${r.userCode}`;
                 } else {
@@ -888,6 +979,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 userCode: r.userCode,
                 role: mainRole,
                 matchedSections,
+                participants,
                 personName: d.fullName || d.beneficiaryName || d.name || entityName,
                 personPassport: d.passport || d.idNumber || '',
                 personDetails: {},

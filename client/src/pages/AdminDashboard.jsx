@@ -838,17 +838,43 @@ const AdminDashboard = () => {
                             </div>
                           )}
 
-                          {/* Always visible Personal Data summary */}
-                          <div style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-                            {filteredPersonalData.length > 0 ? (
-                                filteredPersonalData.map(([k, v]) => (
-                                  <div key={k} style={{ minWidth: '150px' }}>
-                                      <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{k.replace(/([A-Z])/g, ' $1').trim()}</div>
-                                      <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>{renderFormDataValue(v)}</div>
-                                  </div>
-                                ))
+                          {/* Extracted Participants Grid */}
+                          <div style={{ padding: '16px 20px', borderTop: `1px solid ${BORDER}` }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Users size={14} color="#0f766e" />
+                              Personas y Roles Registrados en este Formulario ({r.participants ? r.participants.length : 0}):
+                            </div>
+                            {r.participants && r.participants.length > 0 ? (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+                                {r.participants.map((part, pIdx) => {
+                                  const queryTerm = (searchFilters.ruc || searchFilters.nombres || searchFilters.codigoUnico || '').toLowerCase().trim();
+                                  const isMatched = queryTerm && (
+                                    (part.name && part.name.toLowerCase().includes(queryTerm)) ||
+                                    (part.idNumber && part.idNumber.toLowerCase().includes(queryTerm))
+                                  );
+                                  return (
+                                    <div key={pIdx} style={{ background: isMatched ? '#f0fdf4' : '#f8fafc', border: `1px solid ${isMatched ? '#86efac' : '#e2e8f0'}`, borderRadius: 8, padding: '10px 12px' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                        <span style={{ background: isMatched ? '#dcfce7' : '#e0f2fe', color: isMatched ? '#16a34a' : '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                                          {part.role}
+                                        </span>
+                                        {isMatched && (
+                                          <span style={{ background: '#16a34a', color: 'white', fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 10 }}>
+                                            COINCIDENCIA
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{part.name}</div>
+                                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                        📄 ID: <strong>{part.idNumber || '—'}</strong>
+                                        {part.nationality && <span> &middot; 🌐 {part.nationality}</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             ) : (
-                                <div style={{ fontSize: 12, color: '#64748b' }}>No se identificaron datos básicos predeterminados. Haz clic en "Ver Más Detalles" para ver toda la información extraída.</div>
+                              <div style={{ fontSize: 12, color: '#64748b' }}>No se identificaron personas en arreglos. Haz clic en "Ver Más Detalles" para ver toda la información extraída.</div>
                             )}
                           </div>
 
