@@ -812,6 +812,32 @@ const AdminDashboard = () => {
                             </button>
                           </div>
                           
+                          {/* Matched Form Sections & Roles Banner */}
+                          {r.matchedSections && r.matchedSections.length > 0 && (
+                            <div style={{ background: '#f0fdf4', padding: '12px 20px', borderBottom: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>📍</span> UBICACIÓN Y ROLES EXACTOS EN ESTE FORMULARIO ({r.matchedSections.length}):
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {r.matchedSections.map((ms, msIdx) => (
+                                  <div key={msIdx} style={{ background: 'white', border: '1px solid #bbf7d0', borderRadius: 6, padding: '6px 12px', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ background: '#dcfce7', color: '#16a34a', fontWeight: 800, padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
+                                      {ms.section}
+                                    </span>
+                                    <span style={{ color: '#0f172a', fontWeight: 700 }}>
+                                      {ms.role}
+                                    </span>
+                                    {ms.name && (
+                                      <span style={{ color: '#475569' }}>
+                                        ({ms.name} {ms.idNumber ? `- ${ms.idNumber}` : ''})
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Always visible Personal Data summary */}
                           <div style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                             {filteredPersonalData.length > 0 ? (

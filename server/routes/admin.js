@@ -683,6 +683,90 @@ router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
     }
 });
 
+function scanFormForMatches(d, terms) {
+  if (!d || typeof d !== 'object' || !terms || terms.length === 0) return [];
+  const matches = [];
+
+  const checkObject = (obj, sectionName, roleName) => {
+    if (!obj || typeof obj !== 'object') return;
+    const str = JSON.stringify(obj).toLowerCase();
+    const isMatch = terms.some(t => t && str.includes(t.toLowerCase().trim()));
+    if (isMatch) {
+      matches.push({
+        section: sectionName,
+        role: roleName,
+        name: obj.fullName || obj.name || obj.legalRepName || obj.declarantName || obj.shareholder || '',
+        idNumber: obj.passport || obj.idCard || obj.taxId || obj.idNumber || ''
+      });
+    }
+  };
+
+  // 1. Directores
+  if (Array.isArray(d.directors)) {
+    d.directors.forEach((dir, idx) => checkObject(dir, 'Directores', `Director #${idx + 1}`));
+  }
+
+  // 2. Dignatarios
+  if (Array.isArray(d.dignitaries)) {
+    d.dignitaries.forEach((dig, idx) => checkObject(dig, 'Dignatarios', dig.role ? `Dignatario (${dig.role})` : `Dignatario #${idx + 1}`));
+  } else if (d.dignitaries && typeof d.dignitaries === 'object') {
+    Object.entries(d.dignitaries).forEach(([role, dig]) => checkObject(dig, 'Dignatarios', `Dignatario (${role.toUpperCase()})`));
+  }
+
+  // 3. Accionistas / Suscriptores
+  if (Array.isArray(d.shareholders)) {
+    d.shareholders.forEach((s, idx) => checkObject(s, 'Accionistas', `Accionista #${idx + 1}`));
+  }
+  if (Array.isArray(d.subscribers)) {
+    d.subscribers.forEach((s, idx) => checkObject(s, 'Suscriptores', `Suscriptor #${idx + 1}`));
+  }
+
+  // 4. Fundadores
+  if (Array.isArray(d.founders)) {
+    d.founders.forEach((f, idx) => checkObject(f, 'Fundadores', `Fundador #${idx + 1}`));
+  } else if (d.founder) {
+    checkObject(d.founder, 'Fundadores', 'Fundador');
+  }
+
+  // 5. Consejo Fundacional
+  if (Array.isArray(d.councilMembers)) {
+    d.councilMembers.forEach((m, idx) => checkObject(m, 'Consejo Fundacional', `Miembro #${idx + 1}`));
+  }
+
+  // 6. Protectores
+  if (Array.isArray(d.protectors)) {
+    d.protectors.forEach((p, idx) => checkObject(p, 'Protectores', `Protector #${idx + 1}`));
+  } else if (d.protector) {
+    checkObject(d.protector, 'Protectores', 'Protector Principal');
+  }
+
+  // 7. Beneficiarios
+  if (Array.isArray(d.beneficiaries)) {
+    d.beneficiaries.forEach((b, idx) => checkObject(b, 'Beneficiarios', `Beneficiario #${idx + 1}`));
+  }
+  if (Array.isArray(d.beneficialOwners)) {
+    d.beneficialOwners.forEach((b, idx) => checkObject(b, 'Beneficiarios Finales', `Beneficiario Final #${idx + 1}`));
+  }
+
+  // 8. Firmantes
+  if (Array.isArray(d.signers)) {
+    d.signers.forEach((s, idx) => checkObject(s, 'Firmantes Autorizados', `Firmante #${idx + 1}`));
+  }
+
+  // 9. Campos de Personas Únicas
+  if (d.legalRepName || d.legalRepId) {
+    checkObject({ fullName: d.legalRepName, passport: d.legalRepId }, 'Representante Legal', 'Representante Legal');
+  }
+  if (d.poaFullName || d.poaPassport) {
+    checkObject({ fullName: d.poaFullName, passport: d.poaPassport, phone: d.poaPhone, email: d.poaEmail }, 'Apoderados', 'Apoderado General');
+  }
+  if (d.declarantName || d.declarationName) {
+    checkObject({ fullName: d.declarantName || d.declarationName }, 'Declarante', 'Declarante');
+  }
+
+  return matches;
+}
+
 // @route   GET api/admin/search-person?q=<name_or_passport>
 // @desc    Search across ALL form data for a person by name or passport/cedula
 router.get('/search-person', [auth, isAdmin], async (req, res) => {
@@ -701,10 +785,6 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             const subConds = nameTerms.map((_, i) => `(CAST(f.data AS TEXT) ILIKE :n_term${i} OR u.name ILIKE :n_term${i})`).join(' AND ');
             conditions.push(`(${subConds})`);
             nameTerms.forEach((t, i) => replacements[`n_term${i}`] = `%${t}%`);
-        }
-
-        if (nombres === 'DEBUG_EDWIN') {
-            conditions.push(`CAST(f.data AS TEXT) ILIKE '%Edwin%'`);
         }
 
         if (ruc && ruc.trim()) {
@@ -775,19 +855,29 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         }
         
         const results = [];
+        const searchTermsList = [nombres, ruc, codigoUnico, usuario, empresa].filter(Boolean);
 
         rows.forEach(r => {
-            let entityName = '';
             let d = {};
             try {
                 d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
             } catch (_) {}
 
-            let isValidMatch = true;
+            const matchedSections = scanFormForMatches(d, searchTermsList);
 
-            if (d) {
-                entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || d.beneficiaryName || 'N/A';
+            let entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.accountHolder || d.fullName || d.name || d.beneficiaryName || '';
+            if (!entityName || entityName === 'N/A') {
+                if (matchedSections.length > 0 && matchedSections[0].name) {
+                    entityName = `${matchedSections[0].name} (${matchedSections[0].idNumber || r.userCode || 'Trámite'})`;
+                } else if (r.userCode) {
+                    entityName = `Trámite ${r.userCode}`;
+                } else {
+                    entityName = `${r.formType} (ID: ${r.formId.substring(0, 8)})`;
+                }
             }
+
+            const rolesList = matchedSections.map(s => s.role);
+            const mainRole = rolesList.length > 0 ? rolesList.join(' / ') : 'Mencionado en Formulario';
 
             results.push({
                 formId: r.formId,
@@ -796,7 +886,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 userName: r.userName,
                 userEmail: r.userEmail,
                 userCode: r.userCode,
-                role: 'Mencionado en formulario',
+                role: mainRole,
+                matchedSections,
                 personName: d.fullName || d.beneficiaryName || d.name || entityName,
                 personPassport: d.passport || d.idNumber || '',
                 personDetails: {},
