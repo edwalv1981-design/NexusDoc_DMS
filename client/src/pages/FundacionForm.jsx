@@ -258,10 +258,90 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const [activePersonKey, setActivePersonKey] = useState(null);
     const [beneficiarySuggestions, setBeneficiarySuggestions] = useState({});
     const [activeBeneficiaryIdx, setActiveBeneficiaryIdx] = useState(null);
+    const [signerSuggestions, setSignerSuggestions] = useState({});
+    const [activeSignerIdx, setActiveSignerIdx] = useState(null);
     const [poaSuggestions, setPoaSuggestions] = useState([]);
     const [showPoaDropdown, setShowPoaDropdown] = useState(false);
     const debounceTimers = useRef({});
     const autocompleteRefs = useRef({});
+
+    const registeredPeople = extractRegisteredPeople(formData);
+
+    const autoFillPersonCard = (arrayName, index, person) => {
+        const newArray = [...formData[arrayName]];
+        const p = newArray[index];
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) p.fullName = fn;
+        if (person.birthDate) p.birthDate = person.birthDate;
+        if (person.maritalStatus) p.maritalStatus = person.maritalStatus;
+        if (person.nationality) p.nationality = person.nationality;
+        if (person.passport) p.passport = person.passport;
+        if (person.idCard) p.idCard = person.idCard;
+        if (person.phone) p.phone = person.phone;
+        if (person.email) p.email = person.email;
+        if (person.address) p.address = person.address;
+        if (person.city) p.city = person.city;
+        if (person.country) p.country = person.country;
+        setFormData(prev => ({ ...prev, [arrayName]: newArray }));
+    };
+
+    const handleAutoFillDignitary = (index, person) => {
+        const newDigs = [...formData.dignitaries];
+        const d = newDigs[index];
+        const fn = person.fullName || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (fn) d.fullName = fn;
+        if (person.passport) d.passport = person.passport;
+        if (person.birthDate) d.birthDate = person.birthDate;
+        if (person.address) d.address = person.address;
+        setFormData(prev => ({ ...prev, dignitaries: newDigs }));
+    };
+
+    const handleAutoFillSigner = (index, person) => {
+        const fn = person.fullName || person.name || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (!fn) return;
+        const signers = Array.isArray(formData.signers) ? [...formData.signers] : [{ name: '', signature: '' }];
+        if (!signers[index]) signers[index] = { name: '', signature: '' };
+        signers[index].name = fn;
+        signers[index].signature = fn;
+        setFormData(prev => ({
+            ...prev,
+            signers,
+            declarationName: index === 0 ? fn : prev.declarationName,
+            declarationSignature: index === 0 ? fn : prev.declarationSignature
+        }));
+    };
+
+    const searchSigner = useCallback((query, index) => {
+        const timerKey = `signer-${index}`;
+        if (debounceTimers.current[timerKey]) clearTimeout(debounceTimers.current[timerKey]);
+        if (!query || query.trim().length < 2) {
+            setSignerSuggestions(prev => ({ ...prev, [index]: [] }));
+            setActiveSignerIdx(null);
+            return;
+        }
+        debounceTimers.current[timerKey] = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(
+                    `${API_BASE_URL}/api/forms/fundacion/search-person?q=${encodeURIComponent(query.trim())}`,
+                    { headers: { 'x-auth-token': token } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setSignerSuggestions(prev => ({ ...prev, [index]: data }));
+                    setActiveSignerIdx(data.length > 0 ? index : null);
+                }
+            } catch (err) { /* silent */ }
+        }, 300);
+    }, []);
+
+    const selectSignerSuggestion = (index, person) => {
+        const fn = person.fullName || person.name || [person.firstName, person.secondName, person.lastName].filter(Boolean).join(' ');
+        if (!fn) return;
+        handleAutoFillSigner(index, person);
+        setSignerSuggestions(prev => ({ ...prev, [index]: [] }));
+        setActiveSignerIdx(null);
+    };
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -271,6 +351,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
             if (!isInsideAny) {
                 setActivePersonKey(null);
                 setActiveBeneficiaryIdx(null);
+                setActiveSignerIdx(null);
                 setShowPoaDropdown(false);
             }
         };
@@ -662,6 +743,8 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     onSearch={(query) => searchFundacionPerson(query, arrayName, index)}
                     onSelect={(person) => selectPersonSuggestion(arrayName, index, person)}
                     dropdownRef={el => autocompleteRefs.current[timerKey] = el}
+                    registeredPeople={registeredPeople}
+                    onSelectRegisteredPerson={(person) => autoFillPersonCard(arrayName, index, person)}
                 />
             </div>
         );
@@ -903,6 +986,12 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                     <div className="expert-card-label">{lang === 'en' ? `DIGNITARY #${i+1}` : `DIGNATARIO #${i+1}`}</div>
 
                     {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
+
+                    <PersonSelector
+                        people={registeredPeople}
+                        onSelectPerson={(person) => handleAutoFillDignitary(i, person)}
+                        currentName={d.fullName}
+                    />
 
                     <div className="expert-grid">
 
@@ -1453,15 +1542,45 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         </div>
 
+                        <PersonSelector
+                            people={registeredPeople}
+                            onSelectPerson={(person) => handleAutoFillSigner(i, person)}
+                            currentName={s.name}
+                        />
+
                         <div className="expert-grid">
 
-                            <div className="expert-field full-width">
+                            <div className="expert-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`signer-name-${i}`] = el}>
 
                                 <label style={{ color: '#64748b', fontWeight: 700, fontSize: '10.5px' }}>{lang === 'en' ? 'Name of Signer' : 'Nombre del Firmante'}</label>
 
-                                <input className="expert-input-legal" style={getErrorStyle('declarationName')} value={s.name} onChange={e => { updateSigner(i, 'name', e.target.value); if (fieldErrors.declarationName) { const er = validateField('declarationName', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.declarationName; return n; }); } }} onBlur={() => handleFieldBlur('declarationName')} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} />
+                                <input 
+                                    className="expert-input-legal" 
+                                    style={getErrorStyle('declarationName')} 
+                                    value={s.name} 
+                                    autoComplete="off"
+                                    onChange={e => { 
+                                        updateSigner(i, 'name', e.target.value); 
+                                        searchSigner(e.target.value, i); 
+                                        if (fieldErrors.declarationName) { const er = validateField('declarationName', e.target.value); if (!er) setFieldErrors(prev => { const n = { ...prev }; delete n.declarationName; return n; }); } 
+                                    }} 
+                                    onFocus={() => { if (signerSuggestions[i]?.length) setActiveSignerIdx(i); }}
+                                    onBlur={() => handleFieldBlur('declarationName')} 
+                                    placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Pedro Roman Romano'} 
+                                />
 
                                 <FieldError name="declarationName" />
+
+                                {activeSignerIdx === i && signerSuggestions[i]?.length > 0 && (
+                                    <div className="fund-autocomplete-dropdown">
+                                        {signerSuggestions[i].map((p, j) => (
+                                            <div key={j} className="fund-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectSignerSuggestion(i, p); }}>
+                                                <span className="fund-ac-name">{p.fullName || p.name || ''}</span>
+                                                {(p.passport || p.email) && <span className="fund-ac-detail">{[p.passport, p.email].filter(Boolean).join(' • ')}</span>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
                             </div>
 
