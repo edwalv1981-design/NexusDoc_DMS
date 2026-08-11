@@ -1027,8 +1027,8 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
 
 router.get('/db-debug', [auth, isAdmin], async (req, res) => {
     try {
-        const [tables] = await sequelize.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'");
-        const tableList = tables.map(t => t.table_name).filter(Boolean);
+        const [rows] = await sequelize.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'");
+        const tableList = rows.map(r => r.table_name);
         
         let formDataTableName = tableList.find(t => t && t.toLowerCase().includes('form')) || 'FormData';
         let usersTableName = tableList.find(t => t && t.toLowerCase().includes('user') && !t.toLowerCase().includes('profile') && !t.toLowerCase().includes('doc') && !t.toLowerCase().includes('lang')) || 'Users';
@@ -1038,7 +1038,7 @@ router.get('/db-debug', [auth, isAdmin], async (req, res) => {
         try {
             const [fc] = await sequelize.query(`SELECT COUNT(*) FROM "${formDataTableName}"`);
             formsCount = fc[0].count;
-            const [sf] = await sequelize.query(`SELECT * FROM "${formDataTableName}" LIMIT 5`);
+            const [sf] = await sequelize.query(`SELECT id, "formType", "userId", "createdAt" FROM "${formDataTableName}" LIMIT 5`);
             sampleForms = sf;
         } catch (e) {
             console.error('Error fetching forms sample:', e.message);
