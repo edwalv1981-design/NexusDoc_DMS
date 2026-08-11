@@ -265,8 +265,6 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
     const debounceTimers = useRef({});
     const autocompleteRefs = useRef({});
 
-    const registeredPeople = extractRegisteredPeople(formData);
-
     const autoFillPersonCard = (arrayName, index, person) => {
         const newArray = [...formData[arrayName]];
         const p = newArray[index];
