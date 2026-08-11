@@ -858,26 +858,38 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     try {
         const { nombres, ruc, codigoUnico, usuario, empresa, formType } = req.query;
         
-        if (!nombres && !ruc && !codigoUnico && !usuario && !empresa && !formType) {
-            return res.json({ results: [], summary: { totalResults: 0, uniqueForms: 0, uniqueUsers: 0, roles: [] } });
-        }
-
         // Trigger asynchronous historical backfill for person catalog to ensure complete indexing
         personCatalogService.backfillHistoricalData().catch(e => console.warn('Async backfill error:', e.message));
 
         const conditions = [];
         const replacements = {};
 
-        const nameTerms = nombres ? nombres.trim().split(/\s+/).filter(Boolean) : [];
-        if (nameTerms.length > 0) {
-            const subConds = nameTerms.map((_, i) => `(CAST(f.data AS TEXT) ILIKE :n_term${i} OR u.name ILIKE :n_term${i})`).join(' AND ');
-            conditions.push(`(${subConds})`);
-            nameTerms.forEach((t, i) => replacements[`n_term${i}`] = `%${t}%`);
+        if (nombres && nombres.trim()) {
+            const trimmedName = nombres.trim();
+            const nameTerms = trimmedName.split(/\s+/).filter(Boolean);
+            const nameConds = [
+                `CAST(f.data AS TEXT) ILIKE :rawName`,
+                `u.name ILIKE :rawName`
+            ];
+            replacements.rawName = `%${trimmedName}%`;
+            nameTerms.forEach((t, i) => {
+                nameConds.push(`CAST(f.data AS TEXT) ILIKE :n_term${i}`);
+                nameConds.push(`u.name ILIKE :n_term${i}`);
+                replacements[`n_term${i}`] = `%${t}%`;
+            });
+            conditions.push(`(${nameConds.join(' OR ')})`);
         }
 
         if (ruc && ruc.trim()) {
-            conditions.push(`CAST(f.data AS TEXT) ILIKE :ruc`);
-            replacements.ruc = `%${ruc.trim()}%`;
+            const rawRuc = ruc.trim();
+            const cleanRuc = rawRuc.replace(/[^a-zA-Z0-9]/g, '');
+            const rucConds = [`CAST(f.data AS TEXT) ILIKE :rawRuc`];
+            replacements.rawRuc = `%${rawRuc}%`;
+            if (cleanRuc && cleanRuc !== rawRuc) {
+                rucConds.push(`CAST(f.data AS TEXT) ILIKE :cleanRuc`);
+                replacements.cleanRuc = `%${cleanRuc}%`;
+            }
+            conditions.push(`(${rucConds.join(' OR ')})`);
         }
         
         if (codigoUnico && codigoUnico.trim()) {
@@ -898,8 +910,16 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         const whereClauses = [];
         
         if (formType && formType.trim()) {
-            whereClauses.push(`f."formType" = :formType`);
-            replacements.formType = formType.trim();
+            const ft = formType.trim().toLowerCase();
+            let pattern = `%${ft}%`;
+            if (ft.includes('corporac') || ft.includes('incorporac')) pattern = '%corporac%';
+            else if (ft.includes('fundac')) pattern = '%fundac%';
+            else if (ft.includes('entidad')) pattern = '%entidad%';
+            else if (ft.includes('individual')) pattern = '%individual%';
+            else if (ft.includes('fondo')) pattern = '%fondo%';
+
+            whereClauses.push(`f."formType" ILIKE :formTypePattern`);
+            replacements.formTypePattern = pattern;
         }
 
         if (conditions.length > 0) {

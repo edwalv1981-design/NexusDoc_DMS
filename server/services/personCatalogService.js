@@ -277,8 +277,10 @@ async function searchAdminPersonCatalog(queryLimit) {
         { fullName: { [Op.iLike]: pattern } },
         { idNumber: { [Op.iLike]: pattern } },
         { passport: { [Op.iLike]: pattern } },
+        { idCard: { [Op.iLike]: pattern } },
         { email: { [Op.iLike]: pattern } },
-        { phone: { [Op.iLike]: pattern } }
+        { phone: { [Op.iLike]: pattern } },
+        sequelize.literal(`CAST("associatedForms" AS TEXT) ILIKE ${sequelize.escape(pattern)}`)
       ];
     }
 

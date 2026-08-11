@@ -349,7 +349,6 @@ const AdminDashboard = () => {
     e && e.preventDefault();
     const token = localStorage.getItem('token');
     const { nombres, ruc, codigoUnico, usuario, empresa, formType } = searchFilters;
-    if (!nombres.trim() && !ruc.trim() && !codigoUnico.trim() && !usuario.trim() && !empresa.trim() && !formType.trim()) return toast.error('Ingrese al menos un criterio de búsqueda o seleccione un formulario');
     setConsultaLoading(true);
     setExpandedPerson(null);
     try {
