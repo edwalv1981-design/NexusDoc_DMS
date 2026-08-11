@@ -71,8 +71,10 @@ export function extractRegisteredPeople(formData = {}) {
     formData.shareholders.forEach((s, idx) => addPerson(s, `Accionista ${idx + 1}`));
   }
 
-  // 4. Fundador
-  if (formData.founder) {
+  // 4. Fundadores
+  if (Array.isArray(formData.founders)) {
+    formData.founders.forEach((f, idx) => addPerson(f, `Fundador ${idx + 1}`));
+  } else if (formData.founder) {
     addPerson(formData.founder, 'Fundador');
   }
 
@@ -81,8 +83,10 @@ export function extractRegisteredPeople(formData = {}) {
     formData.councilMembers.forEach((m, idx) => addPerson(m, `Consejo ${idx + 1}`));
   }
 
-  // 6. Protector
-  if (formData.protector) {
+  // 6. Protectores
+  if (Array.isArray(formData.protectors)) {
+    formData.protectors.forEach((p, idx) => addPerson(p, `Protector ${idx + 1}`));
+  } else if (formData.protector) {
     addPerson(formData.protector, 'Protector');
   }
 

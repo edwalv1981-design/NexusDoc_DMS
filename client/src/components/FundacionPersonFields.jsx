@@ -68,7 +68,16 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
       )}
       <div className="expert-field full-width" style={{ position: 'relative' }}>
         <label>{L('fullName')}</label>
-        <input className="expert-input" style={errStyle('fullName')} value={person.fullName || ''} onChange={(e) => handleFieldChange('fullName', e.target.value)} onBlur={() => handleBlur('fullName')} autoComplete="off" placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+        <input 
+          className="expert-input" 
+          style={errStyle('fullName')} 
+          value={person.fullName || ''} 
+          onChange={(e) => handleFieldChange('fullName', e.target.value)} 
+          onFocus={(e) => { if (e.target.value && e.target.value.length >= 2 && onSearch) onSearch(e.target.value); }}
+          onBlur={() => handleBlur('fullName')} 
+          autoComplete="off" 
+          placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} 
+        />
         <ErrMsg field="fullName" />
         {renderDropdown()}
       </div>
