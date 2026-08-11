@@ -15,6 +15,10 @@ const pdfFormSchemas = require('../config/pdfFormSchemas');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
 const templateAvailability = require('../utils/templateAvailability');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
+const personCatalogService = require('../services/personCatalogService');
+
+// Execute background backfill of historical forms on startup
+personCatalogService.backfillHistoricalData().catch(err => console.error('Backfill error:', err));
 
 // @route   GET api/forms/templates/status
 // @desc    Disponibilidad de plantillas para el dashboard cliente
@@ -97,6 +101,19 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
         const q = (req.query.q || '').trim();
         if (!q || q.length < 2) return res.json([]);
 
+        const resultsMap = new Map();
+
+        // 1. Search in Master Person Catalog table first
+        try {
+            const catalogPeople = await personCatalogService.searchPersonCatalog(req.user.id, q);
+            catalogPeople.forEach(p => {
+                const key = (p.passport || p.idNumber || p.fullName || '').trim();
+                if (key) resultsMap.set(key, { ...p });
+            });
+        } catch (catErr) {
+            console.error('Catalog search error:', catErr);
+        }
+
         const { sequelize } = require('../config/db');
 
         const [directorRows] = await sequelize.query(
@@ -168,18 +185,18 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
             { replacements: { pattern: `%${q}%` } }
         );
 
-        const resultsMap = new Map();
-
         userRows.forEach(u => {
             const key = (u.passport || u.fullName || u.email || '').trim();
             if (!key) return;
-            resultsMap.set(key, {
-                fullName: u.fullName,
-                name: u.fullName,
-                passport: u.passport || '',
-                email: u.email || '',
-                nationality: u.nationality || ''
-            });
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, {
+                    fullName: u.fullName,
+                    name: u.fullName,
+                    passport: u.passport || '',
+                    email: u.email || '',
+                    nationality: u.nationality || ''
+                });
+            }
         });
 
         directorRows.forEach(r => {
@@ -282,6 +299,19 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
         const q = (req.query.q || '').trim();
         if (!q || q.length < 2) return res.json([]);
 
+        const resultsMap = new Map();
+
+        // 1. Search in Master Person Catalog table first (Fastest, indexed, multi-tenant)
+        try {
+            const catalogPeople = await personCatalogService.searchPersonCatalog(req.user.id, q);
+            catalogPeople.forEach(p => {
+                const key = (p.passport || p.idNumber || p.fullName || '').trim();
+                if (key) resultsMap.set(key, { ...p });
+            });
+        } catch (catErr) {
+            console.error('Catalog search error:', catErr);
+        }
+
         const { sequelize } = require('../config/db');
 
         const personArrays = ['founders', 'protectors', 'councilMembers', 'directors'];
@@ -352,18 +382,18 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
             { replacements: { pattern: `%${q}%` } }
         );
 
-        const resultsMap = new Map();
-
         userRows.forEach(u => {
             const key = (u.passport || u.fullName || u.email || '').trim();
             if (!key) return;
-            resultsMap.set(key, {
-                fullName: u.fullName,
-                name: u.fullName,
-                passport: u.passport || '',
-                email: u.email || '',
-                nationality: u.nationality || ''
-            });
+            if (!resultsMap.has(key)) {
+                resultsMap.set(key, {
+                    fullName: u.fullName,
+                    name: u.fullName,
+                    passport: u.passport || '',
+                    email: u.email || '',
+                    nationality: u.nationality || ''
+                });
+            }
         });
 
         allRows.forEach(r => {
@@ -548,6 +578,9 @@ router.post('/save', auth, async (req, res) => {
         userUniqueCode: userCode,
         data: dataWithMeta
       });
+
+      // Synchronize extracted persons with Master Person Catalog
+      personCatalogService.syncPeopleFromFormData(req.user.id, dataWithMeta).catch(err => console.error('Catalog Sync Error:', err));
       
       AuditLog.create({
         userId: req.user.id,
@@ -570,6 +603,9 @@ router.post('/save', auth, async (req, res) => {
       userUniqueCode: userCode,
       data: dataWithMeta
     });
+
+    // Synchronize extracted persons with Master Person Catalog
+    personCatalogService.syncPeopleFromFormData(req.user.id, dataWithMeta).catch(err => console.error('Catalog Sync Error:', err));
 
     // We must update the parentId to match its own ID since it's the first version!
     // But we don't know the ID until it's created. We can just leave it as null, 

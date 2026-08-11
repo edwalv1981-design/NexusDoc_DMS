@@ -7,10 +7,14 @@ const DocumentTemplate = require('./DocumentTemplate');
 const TemplateFieldSchema = require('./TemplateFieldSchema');
 const UserDocument = require('./UserDocument');
 const SignedDocument = require('./SignedDocument');
+const Person = require('./Person');
 
 // Relationships
 User.hasMany(FormData, { foreignKey: 'userId' });
 FormData.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Person, { foreignKey: 'userId' });
+Person.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(AuditLog, { foreignKey: 'userId' });
 AuditLog.belongsTo(User, { foreignKey: 'userId' });
@@ -29,6 +33,7 @@ module.exports = {
   DocumentTemplate,
   TemplateFieldSchema,
   UserDocument,
-  SignedDocument
+  SignedDocument,
+  Person
 };
 
