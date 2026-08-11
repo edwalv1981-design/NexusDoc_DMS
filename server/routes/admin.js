@@ -858,76 +858,112 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     try {
         const { nombres, ruc, codigoUnico, usuario, empresa, formType } = req.query;
         
-        if (!nombres && !ruc && !codigoUnico && !usuario && !empresa && !formType) {
-            return res.json({ results: [], summary: { totalResults: 0, uniqueForms: 0, uniqueUsers: 0, roles: [] } });
-        }
+        // Trigger asynchronous historical backfill for person catalog to ensure complete indexing
+        personCatalogService.backfillHistoricalData().catch(e => console.warn('Async backfill error:', e.message));
 
-        const conditions = [];
-        const replacements = {};
-
-        const nameTerms = nombres ? nombres.trim().split(/\s+/).filter(Boolean) : [];
-        if (nameTerms.length > 0) {
-            const subConds = nameTerms.map((_, i) => `(CAST(f.data AS TEXT) ILIKE :n_term${i} OR u.name ILIKE :n_term${i})`).join(' AND ');
-            conditions.push(`(${subConds})`);
-            nameTerms.forEach((t, i) => replacements[`n_term${i}`] = `%${t}%`);
-        }
-
-        if (ruc && ruc.trim()) {
-            conditions.push(`CAST(f.data AS TEXT) ILIKE :ruc`);
-            replacements.ruc = `%${ruc.trim()}%`;
-        }
-        
-        if (codigoUnico && codigoUnico.trim()) {
-            conditions.push(`(u."uniqueCode" ILIKE :codigoUnico OR CAST(f.data AS TEXT) ILIKE :codigoUnico)`);
-            replacements.codigoUnico = `%${codigoUnico.trim()}%`;
-        }
-
-        if (usuario && usuario.trim()) {
-            conditions.push(`(u.name ILIKE :usuario OR u.email ILIKE :usuario)`);
-            replacements.usuario = `%${usuario.trim()}%`;
-        }
-
-        if (empresa && empresa.trim()) {
-            conditions.push(`CAST(f.data AS TEXT) ILIKE :empresa`);
-            replacements.empresa = `%${empresa.trim()}%`;
-        }
-
-        const whereClauses = [];
-        
-        if (formType && formType.trim()) {
-            whereClauses.push(`f."formType" = :formType`);
-            replacements.formType = formType.trim();
-        }
-
-        if (conditions.length > 0) {
-            whereClauses.push(`(${conditions.join(' OR ')})`);
-        }
-
-        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-        const sql = `
-            SELECT f.id          AS "formId",
-                   f."formType"  AS "formType",
-                   f."userId"    AS "userId",
-                   f."createdAt" AS "createdAt",
-                   f."updatedAt" AS "updatedAt",
-                   u.name        AS "userName",
-                   u.email       AS "userEmail",
-                   u."uniqueCode" AS "userCode",
-                   f.data        AS "formData"
-            FROM "FormData" f
-            JOIN "Users" u ON u.id = f."userId"
-            ${whereClause}
-            ORDER BY f."updatedAt" DESC
-            LIMIT 150
-        `;
-
-        let rows = [];
+        let forms = [];
         try {
-            const [queryRows] = await sequelize.query(sql, { replacements });
-            rows = queryRows;
-        } catch (sqlErr) {
-            console.error('SQL query error in admin search-person:', sqlErr.message);
+            const whereClauses = [];
+
+            if (formType && formType.trim()) {
+                const ft = formType.trim().toLowerCase();
+                let pattern = `%${ft}%`;
+                if (ft.includes('corporac') || ft.includes('incorporac')) pattern = '%corporac%';
+                else if (ft.includes('fundac')) pattern = '%fundac%';
+                else if (ft.includes('entidad')) pattern = '%entidad%';
+                else if (ft.includes('individual')) pattern = '%individual%';
+                else if (ft.includes('fondo')) pattern = '%fondo%';
+
+                whereClauses.push(sequelize.where(
+                    sequelize.fn('LOWER', sequelize.col('FormData.formType')),
+                    { [Op.like]: pattern }
+                ));
+            }
+
+            const searchConds = [];
+
+            if (nombres && nombres.trim()) {
+                const rawName = nombres.trim();
+                const cleanName = rawName.replace(/[^a-zA-Z0-9\s]/g, '');
+                searchConds.push(
+                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawName}%` }),
+                    sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${rawName}%` })
+                );
+                if (cleanName && cleanName !== rawName) {
+                    searchConds.push(
+                        sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${cleanName}%` })
+                    );
+                }
+            }
+
+            if (ruc && ruc.trim()) {
+                const rawRuc = ruc.trim();
+                const cleanRuc = rawRuc.replace(/[^a-zA-Z0-9]/g, '');
+                searchConds.push(
+                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawRuc}%` })
+                );
+                if (cleanRuc && cleanRuc !== rawRuc) {
+                    searchConds.push(
+                        sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${cleanRuc}%` })
+                    );
+                }
+            }
+
+            if (codigoUnico && codigoUnico.trim()) {
+                const code = codigoUnico.trim();
+                searchConds.push(
+                    sequelize.where(sequelize.col('User.uniqueCode'), { [Op.iLike]: `%${code}%` }),
+                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${code}%` })
+                );
+            }
+
+            if (usuario && usuario.trim()) {
+                const uTerm = usuario.trim();
+                searchConds.push(
+                    sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${uTerm}%` }),
+                    sequelize.where(sequelize.col('User.email'), { [Op.iLike]: `%${uTerm}%` })
+                );
+            }
+
+            if (empresa && empresa.trim()) {
+                searchConds.push(
+                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${empresa.trim()}%` })
+                );
+            }
+
+            if (searchConds.length > 0) {
+                whereClauses.push({ [Op.or]: searchConds });
+            }
+
+            const finalWhere = whereClauses.length > 0 ? { [Op.and]: whereClauses } : {};
+
+            forms = await FormData.findAll({
+                where: finalWhere,
+                include: [{
+                    model: User,
+                    required: false,
+                    attributes: ['id', 'name', 'email', 'uniqueCode']
+                }],
+                order: [['updatedAt', 'DESC']],
+                limit: 150
+            });
+        } catch (ormErr) {
+            console.error('Sequelize ORM search error in admin search-person, falling back to raw query:', ormErr.message);
+            const [rawRows] = await sequelize.query(`
+                SELECT f.id AS "formId", f."formType", f."userId", f."createdAt", f."updatedAt",
+                       u.name AS "userName", u.email AS "userEmail", u."uniqueCode" AS "userCode", f.data AS "formData"
+                FROM "${FormData.tableName || 'FormData'}" f
+                LEFT JOIN "Users" u ON u.id = f."userId"
+                ORDER BY f."updatedAt" DESC LIMIT 150
+            `);
+            forms = rawRows.map(r => ({
+                id: r.formId,
+                formType: r.formType,
+                userId: r.userId,
+                updatedAt: r.updatedAt,
+                User: { name: r.userName, email: r.userEmail, uniqueCode: r.userCode },
+                data: typeof r.formData === 'string' ? JSON.parse(r.formData) : r.formData
+            }));
         }
 
         // Also search in Master Person Catalog
@@ -938,15 +974,13 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
         } catch (catErr) {
             console.error('Catalog admin search error:', catErr);
         }
-        
+
         const results = [];
         const searchTermsList = [nombres, ruc, codigoUnico, usuario, empresa].filter(Boolean);
 
-        rows.forEach(r => {
-            let d = {};
-            try {
-                d = typeof r.formData === 'string' ? JSON.parse(r.formData) : (r.formData || {});
-            } catch (_) {}
+        forms.forEach(f => {
+            const d = f.data || {};
+            const u = f.User || {};
 
             const matchedSections = scanFormForMatches(d, searchTermsList);
             const participants = extractAllParticipantsFromForm(d);
@@ -954,13 +988,13 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             let entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.accountHolder || d.fullName || d.name || d.beneficiaryName || '';
             if (!entityName || entityName === 'N/A') {
                 if (matchedSections.length > 0 && matchedSections[0].name) {
-                    entityName = `${matchedSections[0].name} (${matchedSections[0].idNumber || r.userCode || 'Trámite'})`;
+                    entityName = `${matchedSections[0].name} (${matchedSections[0].idNumber || u.uniqueCode || 'Trámite'})`;
                 } else if (participants.length > 0 && participants[0].name) {
-                    entityName = `${participants[0].name} (${participants[0].idNumber || r.userCode || 'Trámite'})`;
-                } else if (r.userCode) {
-                    entityName = `Trámite ${r.userCode}`;
+                    entityName = `${participants[0].name} (${participants[0].idNumber || u.uniqueCode || 'Trámite'})`;
+                } else if (u.uniqueCode) {
+                    entityName = `Trámite ${u.uniqueCode}`;
                 } else {
-                    entityName = `${r.formType} (ID: ${r.formId.substring(0, 8)})`;
+                    entityName = `${f.formType} (ID: ${String(f.id).substring(0, 8)})`;
                 }
             }
 
@@ -968,12 +1002,12 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
             const mainRole = rolesList.length > 0 ? rolesList.join(' / ') : 'Mencionado en Formulario';
 
             results.push({
-                formId: r.formId,
-                formType: r.formType,
-                userId: r.userId,
-                userName: r.userName,
-                userEmail: r.userEmail,
-                userCode: r.userCode,
+                formId: f.id,
+                formType: f.formType,
+                userId: f.userId,
+                userName: u.name || 'Usuario Registrado',
+                userEmail: u.email || '',
+                userCode: u.uniqueCode || '',
                 role: mainRole,
                 matchedSections,
                 participants,
@@ -982,7 +1016,7 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 personDetails: {},
                 entityName: entityName,
                 formData: d,
-                formDate: r.updatedAt
+                formDate: f.updatedAt
             });
         });
 
