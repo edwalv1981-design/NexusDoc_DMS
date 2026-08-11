@@ -948,21 +948,27 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
                 limit: 150
             });
         } catch (ormErr) {
-            console.error('Sequelize ORM search error in admin search-person, falling back to raw query:', ormErr.message);
-            const [rawRows] = await sequelize.query(`
-                SELECT f.id AS "formId", f."formType", f."userId", f."createdAt", f."updatedAt",
-                       u.name AS "userName", u.email AS "userEmail", u."uniqueCode" AS "userCode", f.data AS "formData"
-                FROM "${FormData.tableName || 'FormData'}" f
-                LEFT JOIN "Users" u ON u.id = f."userId"
-                ORDER BY f."updatedAt" DESC LIMIT 150
-            `);
+            console.error('Sequelize ORM search error in admin search-person:', ormErr.message);
+            let rawRows = [];
+            try {
+                const [r1] = await sequelize.query(`SELECT id, form_type AS "formType", user_id AS "userId", updated_at AS "updatedAt", data FROM form_data ORDER BY updated_at DESC LIMIT 150`);
+                rawRows = r1;
+            } catch (e1) {
+                try {
+                    const [r2] = await sequelize.query(`SELECT id, "formType", "userId", "updatedAt", data FROM "FormData" ORDER BY "updatedAt" DESC LIMIT 150`);
+                    rawRows = r2;
+                } catch (e2) {
+                    console.error('All table query fallbacks failed:', e2.message);
+                }
+            }
+
             forms = rawRows.map(r => ({
-                id: r.formId,
+                id: r.id,
                 formType: r.formType,
                 userId: r.userId,
                 updatedAt: r.updatedAt,
-                User: { name: r.userName, email: r.userEmail, uniqueCode: r.userCode },
-                data: typeof r.formData === 'string' ? JSON.parse(r.formData) : r.formData
+                User: {},
+                data: typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {})
             }));
         }
 
