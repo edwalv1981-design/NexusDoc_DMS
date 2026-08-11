@@ -1028,19 +1028,27 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
 router.get('/db-debug', [auth, isAdmin], async (req, res) => {
     try {
         const [tables] = await sequelize.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'");
-        const tableList = tables.map(t => t.table_name);
+        const tableList = tables.map(t => t.table_name).filter(Boolean);
         
-        let formDataTableName = tableList.find(t => t.toLowerCase().includes('form')) || 'FormData';
-        let usersTableName = tableList.find(t => t.toLowerCase().includes('user') && !t.toLowerCase().includes('profile') && !t.toLowerCase().includes('doc') && !t.toLowerCase().includes('lang')) || 'Users';
+        let formDataTableName = tableList.find(t => t && t.toLowerCase().includes('form')) || 'FormData';
+        let usersTableName = tableList.find(t => t && t.toLowerCase().includes('user') && !t.toLowerCase().includes('profile') && !t.toLowerCase().includes('doc') && !t.toLowerCase().includes('lang')) || 'Users';
         
-        const [formsCount] = await sequelize.query(`SELECT COUNT(*) FROM "${formDataTableName}"`);
-        const [sampleForms] = await sequelize.query(`SELECT * FROM "${formDataTableName}" LIMIT 5`);
+        let formsCount = 0;
+        let sampleForms = [];
+        try {
+            const [fc] = await sequelize.query(`SELECT COUNT(*) FROM "${formDataTableName}"`);
+            formsCount = fc[0].count;
+            const [sf] = await sequelize.query(`SELECT * FROM "${formDataTableName}" LIMIT 5`);
+            sampleForms = sf;
+        } catch (e) {
+            console.error('Error fetching forms sample:', e.message);
+        }
 
         res.json({
             tableList,
             formDataTableName,
             usersTableName,
-            formsCount: formsCount[0].count,
+            formsCount,
             sampleForms
         });
     } catch (err) {
