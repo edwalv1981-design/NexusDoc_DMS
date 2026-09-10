@@ -706,20 +706,41 @@ router.get('/user-documents/:userId', [auth, isAdmin], async (req, res) => {
             order: [['updatedAt', 'DESC']]
         });
 
+        const forms = await FormData.findAll({
+            where: { userId },
+            order: [['updatedAt', 'DESC']]
+        });
+
+        const userForms = forms.map(f => {
+            const d = f.data || {};
+            let entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.fullName || d.name || d.accountHolder || '';
+            if (!entityName) entityName = `${f.formType} (ID: ${String(f.id).substring(0, 8)})`;
+            return {
+                id: f.id,
+                formType: f.formType,
+                userUniqueCode: f.userUniqueCode,
+                entityName,
+                createdAt: f.createdAt,
+                updatedAt: f.updatedAt
+            };
+        });
+
         await AuditLog.create({
             userId: req.user.id,
             action: 'ADMIN_USER_DOCS_INSPECT',
-            description: `Administrador inspeccionó la lista de documentos subidos por el usuario: ${user.name} (${user.uniqueCode || user.email})`
+            description: `Administrador inspeccionó la lista de documentos subidos y trámites del usuario: ${user.name} (${user.uniqueCode || user.email})`
         });
 
         res.json({
             user,
             personalDocuments: personalDocs,
             signedDocuments: signedDocs,
+            userForms,
             summary: {
                 totalPersonal: personalDocs.length,
                 totalSigned: signedDocs.length,
-                totalAll: personalDocs.length + signedDocs.length
+                totalForms: userForms.length,
+                totalAll: personalDocs.length + signedDocs.length + userForms.length
             }
         });
     } catch (err) {

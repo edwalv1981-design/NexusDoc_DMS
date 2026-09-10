@@ -172,6 +172,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleGenerateFormPdf = async (formId, formType) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/api/forms/generate-pdf/${formId}`, {
+        headers: { 'x-auth-token': token },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Error generating form PDF:', err);
+      toast.error('Error al generar el PDF del formulario');
+    }
+  };
+
   const itemsPerPage = 15;
   const navigate = useNavigate();
   const toast = useToast();
@@ -1399,7 +1414,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', gap: 16 }}>
+            <div style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', gap: 16, overflowX: 'auto' }}>
               <button
                 type="button"
                 onClick={() => setDocsActiveTab('personal')}
@@ -1414,11 +1429,34 @@ const AdminDashboard = () => {
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8
+                  gap: 8,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FileText size={16} />
                 Documentos Personales ({(userDocsData.personalDocuments || []).length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDocsActiveTab('forms')}
+                style={{
+                  padding: '14px 16px',
+                  border: 'none',
+                  borderBottom: docsActiveTab === 'forms' ? '3px solid #0f766e' : '3px solid transparent',
+                  background: 'transparent',
+                  color: docsActiveTab === 'forms' ? '#0f766e' : '#64748b',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Building2 size={16} />
+                Formularios / Trámites Generados ({(userDocsData.userForms || []).length})
               </button>
               
               <button
@@ -1435,11 +1473,12 @@ const AdminDashboard = () => {
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8
+                  gap: 8,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FileCheck size={16} />
-                Documentos Firmados / Trámites ({(userDocsData.signedDocuments || []).length})
+                Documentos Firmados ({(userDocsData.signedDocuments || []).length})
               </button>
             </div>
 
@@ -1486,6 +1525,47 @@ const AdminDashboard = () => {
                               style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                             >
                               <Download size={14} /> Descargar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : docsActiveTab === 'forms' ? (
+                <div>
+                  {(userDocsData.userForms || []).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
+                      <Building2 size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>El usuario no tiene formularios o trámites registrados en el sistema.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {(userDocsData.userForms || []).map(form => (
+                        <div key={form.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: 10, borderRadius: 8, color: '#d97706' }}>
+                              <Building2 size={20} />
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{form.entityName}</span>
+                                <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4 }}>
+                                  {form.formType}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                Código: <strong>{form.userUniqueCode || form.id}</strong> &middot; Actualizado el: {new Date(form.updatedAt || form.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateFormPdf(form.id, form.formType)}
+                              style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '8px 16px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <ExternalLink size={14} /> Generar / Ver PDF
                             </button>
                           </div>
                         </div>
