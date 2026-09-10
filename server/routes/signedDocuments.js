@@ -162,18 +162,26 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // @route   GET api/signed-docs/download/:id
+// @desc    Download a signed document (Owner or Admin)
 router.get('/download/:id', auth, async (req, res) => {
     try {
-        const doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        const isAdminUser = req.user.role === 'admin' || req.user.roleOverride === 'master' || req.user.roleOverride === 'manager';
+        const doc = isAdminUser
+            ? await SignedDocument.findByPk(req.params.id)
+            : await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+
         if (!doc) return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
 
         await AuditLog.create({
             userId: req.user.id,
-            action: 'SIGNED_DOC_DOWNLOAD',
-            description: `Usuario descargó su documento firmado: ${doc.filename}`
+            action: isAdminUser ? 'ADMIN_SIGNED_DOC_DOWNLOAD' : 'SIGNED_DOC_DOWNLOAD',
+            description: isAdminUser
+                ? `Administrador descargó/revisó documento firmado: ${doc.filename} del usuario ID ${doc.userId}`
+                : `Usuario descargó su documento firmado: ${doc.filename}`
         });
 
         res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.filename)}"`);
         res.send(doc.fileData);
     } catch (err) {
         console.error(err);

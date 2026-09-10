@@ -683,6 +683,88 @@ router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   GET api/admin/user-documents/:userId
+// @desc    Get ALL uploaded documents (personal and signed) for a specific user
+router.get('/user-documents/:userId', [auth, isAdmin], async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findByPk(userId, {
+            attributes: ['id', 'name', 'email', 'uniqueCode', 'idNumber', 'nationality', 'status']
+        });
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+
+        const personalDocs = await UserDocument.findAll({
+            where: { userId },
+            attributes: ['id', 'filename', 'createdAt', 'updatedAt'],
+            order: [['updatedAt', 'DESC']]
+        });
+
+        const signedDocs = await SignedDocument.findAll({
+            where: { userId },
+            attributes: ['id', 'filename', 'signatureStatus', 'createdAt', 'updatedAt'],
+            order: [['updatedAt', 'DESC']]
+        });
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_USER_DOCS_INSPECT',
+            description: `Administrador inspeccionó la lista de documentos subidos por el usuario: ${user.name} (${user.uniqueCode || user.email})`
+        });
+
+        res.json({
+            user,
+            personalDocuments: personalDocs,
+            signedDocuments: signedDocs,
+            summary: {
+                totalPersonal: personalDocs.length,
+                totalSigned: signedDocs.length,
+                totalAll: personalDocs.length + signedDocs.length
+            }
+        });
+    } catch (err) {
+        console.error('Error fetching user documents for admin:', err);
+        res.status(500).json({ msg: 'Error al obtener documentos del usuario' });
+    }
+});
+
+// @route   GET api/admin/documents/download/:type/:id
+// @desc    Download or view a specific user document (personal or signed) as Admin
+router.get('/documents/download/:type/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        let doc = null;
+        let docCategory = '';
+
+        if (type === 'personal') {
+            doc = await UserDocument.findByPk(id);
+            docCategory = 'Documento Personal';
+        } else if (type === 'signed') {
+            doc = await SignedDocument.findByPk(id);
+            docCategory = 'Documento Firmado';
+        } else {
+            return res.status(400).json({ msg: 'Tipo de documento no válido (use "personal" o "signed")' });
+        }
+
+        if (!doc) {
+            return res.status(404).json({ msg: 'Documento no encontrado' });
+        }
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_DOC_DOWNLOAD',
+            description: `Administrador descargó/revisó ${docCategory}: ${doc.filename} del usuario ID ${doc.userId}`
+        });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.filename)}"`);
+        res.send(doc.fileData);
+    } catch (err) {
+        console.error('Error downloading document for admin:', err);
+        res.status(500).json({ msg: 'Error al descargar el documento' });
+    }
+});
+
 function scanFormForMatches(d, terms) {
   if (!d || typeof d !== 'object' || !terms || terms.length === 0) return [];
   const matches = [];

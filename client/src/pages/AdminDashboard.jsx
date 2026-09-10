@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail, FolderOpen, Download, FileCheck, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -106,6 +106,71 @@ const AdminDashboard = () => {
   const [selectedUserForms, setSelectedUserForms] = useState(null);
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [viewingFormData, setViewingFormData] = useState(null);
+
+  const [showUserDocsModal, setShowUserDocsModal] = useState(false);
+  const [selectedUserForDocs, setSelectedUserForDocs] = useState(null);
+  const [userDocsData, setUserDocsData] = useState({ personalDocuments: [], signedDocuments: [] });
+  const [userDocsLoading, setUserDocsLoading] = useState(false);
+  const [docsActiveTab, setDocsActiveTab] = useState('personal');
+
+  const handleOpenUserDocsModal = async (userObj) => {
+    setSelectedUserForDocs(userObj);
+    setShowUserDocsModal(true);
+    setUserDocsLoading(true);
+    setDocsActiveTab('personal');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/api/admin/user-documents/${userObj.id}`, {
+        headers: { 'x-auth-token': token }
+      });
+      setUserDocsData(res.data);
+    } catch (err) {
+      console.error('Error fetching user documents:', err);
+      toast.error('Error al cargar los documentos del usuario');
+    } finally {
+      setUserDocsLoading(false);
+    }
+  };
+
+  const handleDownloadUserDoc = async (type, docId, filename) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/api/admin/documents/download/${type}/${docId}`, {
+        headers: { 'x-auth-token': token },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      toast.success('Descargando documento...');
+    } catch (err) {
+      console.error('Error downloading document:', err);
+      toast.error('Error al descargar el documento');
+    }
+  };
+
+  const handlePreviewUserDoc = async (type, docId, filename) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/api/admin/documents/download/${type}/${docId}`, {
+        headers: { 'x-auth-token': token },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Error previewing document:', err);
+      toast.error('Error al previsualizar el documento');
+    }
+  };
 
   const itemsPerPage = 15;
   const navigate = useNavigate();
@@ -456,6 +521,7 @@ const AdminDashboard = () => {
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button onClick={() => handleOpenUserDocsModal(user)} title="Ver Archivos / Documentos del Usuario" style={{ border: '1px solid #99f6e4', background: '#f0fdfa', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0d9488', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FolderOpen size={14} /></button>
                           <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
                           <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: '#fffbeb', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><ShieldOff size={14} /></button>
                           {user.roleOverride !== 'master' && (
@@ -745,9 +811,19 @@ const AdminDashboard = () => {
                           {selectedUser.email} &middot; {selectedUser.uniqueCode || 'Sin código'} &middot; {selectedUser.idNumber || 'Sin cédula'}
                         </p>
                       </div>
-                      <button onClick={() => { setSelectedUser(null); setSelectedUserForms(null); }} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 6, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b' }}>
-                        <X size={14} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <button
+                          onClick={() => handleOpenUserDocsModal(selectedUser)}
+                          title="Ver Archivos / Documentos del Usuario"
+                          style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '6px 12px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          <FolderOpen size={14} />
+                          Ver Archivos Subidos
+                        </button>
+                        <button onClick={() => { setSelectedUser(null); setSelectedUserForms(null); }} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 6, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b' }}>
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>
                       {selectedUserForms.length} formulario(s) encontrado(s)
@@ -804,6 +880,13 @@ const AdminDashboard = () => {
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                   <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
                                   Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || 'Sin código'}) el {new Date(r.formDate).toLocaleDateString()}
+                                  <button
+                                    onClick={() => handleOpenUserDocsModal({ id: r.userId, name: r.userName, email: r.userEmail, uniqueCode: r.userCode })}
+                                    title="Ver Archivos / Documentos Subidos por este Usuario"
+                                    style={{ background: '#f0fdfa', border: '1px solid #99f6e4', color: '#0f766e', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  >
+                                    <FolderOpen size={12} /> Archivos
+                                  </button>
                                 </div>
                             </div>
                             <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
@@ -1284,6 +1367,201 @@ const AdminDashboard = () => {
                 {changingRole ? 'Guardando...' : 'Guardar Cambio'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showUserDocsModal && selectedUserForDocs && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', display: 'flex', flexDirection: 'column' }}>
+            
+            {/* Header */}
+            <div style={{ background: '#0f172a', padding: '20px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ background: 'rgba(45, 212, 191, 0.15)', border: '1px solid #2dd4bf', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FolderOpen size={22} color="#2dd4bf" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'white' }}>
+                    Documentos Subidos por el Usuario
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <span>👤 <strong>{selectedUserForDocs.name}</strong></span>
+                    <span>📧 {selectedUserForDocs.email}</span>
+                    <span>🏷️ Code: <strong>{selectedUserForDocs.uniqueCode || 'Sin código'}</strong></span>
+                    {selectedUserForDocs.idNumber && <span>📄 ID: {selectedUserForDocs.idNumber}</span>}
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => { setShowUserDocsModal(false); setSelectedUserForDocs(null); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#94a3b8', borderRadius: 8, padding: 8, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', gap: 16 }}>
+              <button
+                type="button"
+                onClick={() => setDocsActiveTab('personal')}
+                style={{
+                  padding: '14px 16px',
+                  border: 'none',
+                  borderBottom: docsActiveTab === 'personal' ? '3px solid #0f766e' : '3px solid transparent',
+                  background: 'transparent',
+                  color: docsActiveTab === 'personal' ? '#0f766e' : '#64748b',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <FileText size={16} />
+                Documentos Personales ({(userDocsData.personalDocuments || []).length})
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setDocsActiveTab('signed')}
+                style={{
+                  padding: '14px 16px',
+                  border: 'none',
+                  borderBottom: docsActiveTab === 'signed' ? '3px solid #0f766e' : '3px solid transparent',
+                  background: 'transparent',
+                  color: docsActiveTab === 'signed' ? '#0f766e' : '#64748b',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <FileCheck size={16} />
+                Documentos Firmados / Trámites ({(userDocsData.signedDocuments || []).length})
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
+              {userDocsLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                  <Clock size={32} style={{ marginBottom: 12, opacity: 0.6 }} />
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>Cargando documentos del usuario...</p>
+                </div>
+              ) : docsActiveTab === 'personal' ? (
+                <div>
+                  {(userDocsData.personalDocuments || []).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
+                      <FolderOpen size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>El usuario aún no ha subido documentos personales en su panel.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {(userDocsData.personalDocuments || []).map(doc => (
+                        <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', padding: 10, borderRadius: 8, color: '#0d9488' }}>
+                              <FileText size={20} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{doc.filename}</div>
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                Subido/Actualizado el: {new Date(doc.updatedAt || doc.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewUserDoc('personal', doc.id, doc.filename)}
+                              style={{ border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <ExternalLink size={14} /> Ver PDF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadUserDoc('personal', doc.id, doc.filename)}
+                              style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <Download size={14} /> Descargar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {(userDocsData.signedDocuments || []).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
+                      <FileCheck size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>El usuario no tiene documentos firmados subidos en el sistema.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {(userDocsData.signedDocuments || []).map(doc => (
+                        <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: 10, borderRadius: 8, color: '#2563eb' }}>
+                              <FileCheck size={20} />
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{doc.filename}</span>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  background: doc.signatureStatus === 'Firma Detectada' ? '#dcfce7' : '#fef3c7',
+                                  color: doc.signatureStatus === 'Firma Detectada' ? '#15803d' : '#92400e'
+                                }}>
+                                  {doc.signatureStatus || 'Firma Pendiente'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                Subido el: {new Date(doc.updatedAt || doc.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewUserDoc('signed', doc.id, doc.filename)}
+                              style={{ border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <ExternalLink size={14} /> Ver PDF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadUserDoc('signed', doc.id, doc.filename)}
+                              style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <Download size={14} /> Descargar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => { setShowUserDocsModal(false); setSelectedUserForDocs(null); }}
+                style={{ padding: '10px 24px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, fontWeight: 700, color: '#334155', cursor: 'pointer' }}
+              >
+                Cerrar
+              </button>
+            </div>
+
           </div>
         </div>
       )}
