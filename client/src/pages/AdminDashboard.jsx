@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
-import { useT } from '../i18n';
+import { useLang, useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 /** Trámites que generan PDF con motor HTML (no dependen de AcroForm). */
@@ -70,7 +70,10 @@ const renderFormDataValue = (value) => {
 };
 
 const AdminDashboard = () => {
+  const { lang } = useLang();
   const t = useT();
+  const navigate = useNavigate();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -375,8 +378,6 @@ const AdminDashboard = () => {
   };
 
   const itemsPerPage = 15;
-  const navigate = useNavigate();
-  const toast = useToast();
 
   const PRIMARY = '#0f172a';
   const ACCENT_TEAL = '#0f766e';
