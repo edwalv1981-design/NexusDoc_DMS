@@ -1,7 +1,8 @@
 # 🛡️ Informe de Auditoría y Sistema de Consultas Administrativas — NexusDoc DMS
 **Sistema:** NexusDoc DMS  
 **Entorno:** Producción Railway (`https://nexusdocdms-production.up.railway.app`)  
-**Módulo:** Buscador Universal de Personas y Participantes en Formularios (`/api/admin/search-person`)
+**Módulo:** Buscador Universal de Personas y Participantes en Formularios (`/api/admin/search-person`)  
+**Última Restauración:** 14 de Septiembre, 2026
 
 ---
 
