@@ -391,41 +391,60 @@ router.post('/login', authLimiter, async (req, res) => {
             return res.status(401).json({ msg: 'Credenciales inválidas' });
         }
 
-        console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
+        const profileStore = require('../services/userProfileStore');
+        let profile = null;
+        try {
+            profile = await profileStore.getProfile(user.id);
+        } catch (e) {}
 
-        if (user.lockUntil && user.lockUntil > new Date()) {
-            const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
-            return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
-        }
+        const MASTER_EMAILS = [
+            'ptl.accounts@proton.me',
+            'pymesedw@gmail.com',
+            'rokutvedw@gmail.com',
+            'edwinalvarezvivero@yahoo.com'
+        ];
 
-        if (user.status === 'blocked') {
-            // LLAVE MAESTRA: Si es el administrador y usa la clave correcta, lo desbloqueamos
-            const isMasterMatch = await user.comparePassword(password);
-            if (isMasterMatch && user.role === 'admin') {
-                console.log('🔓 Desbloqueo de emergencia por Llave Maestra.');
+        const isMasterUser = user.role === 'admin' || 
+                             profile?.roleOverride === 'master' || 
+                             MASTER_EMAILS.includes((user.email || '').toLowerCase());
+
+        console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
+
+        const isMatch = await user.comparePassword(password);
+
+        if (isMasterUser && isMatch) {
+            // Auto-desbloqueo y garantía de permisos Master si la clave coincide
+            if (user.status !== 'authorized' || user.lockUntil || user.loginAttempts > 0 || user.role !== 'admin') {
+                console.log(`🔓 Auto-desbloqueo y elevación de rol Master para: ${email}`);
                 user.status = 'authorized';
+                user.role = 'admin';
                 user.loginAttempts = 0;
+                user.lockUntil = null;
                 await user.save();
-                // Continuamos al login normal
-            } else {
+            }
+        } else {
+            // Verificación de bloqueos para usuarios estándar o si la clave fue incorrecta
+            if (user.lockUntil && user.lockUntil > new Date()) {
+                const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
+                return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
+            }
+
+            if (user.status === 'blocked') {
                 console.log('🚫 Usuario bloqueado.');
                 return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
             }
-        }
 
-        if (user.status !== 'authorized') {
-            console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
-            return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
+            if (user.status !== 'authorized') {
+                console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
+                return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
+            }
         }
-
-        const isMatch = await user.comparePassword(password);
-        if (process.env.NODE_ENV !== 'production') console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
 
         if (!isMatch) {
             user.loginAttempts += 1;
             console.log(`📉 Intento fallido #${user.loginAttempts}`);
 
-            if (user.loginAttempts >= 3) {
+            if (user.loginAttempts >= 3 && !isMasterUser) {
                 user.status = 'blocked';
                 await user.save();
                 return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos. Contacta al soporte.' });
@@ -437,11 +456,12 @@ router.post('/login', authLimiter, async (req, res) => {
 
         // Reset attempts
         user.loginAttempts = 0;
+        user.lockUntil = null;
         await user.save();
 
-        // Lógica de Expiración de 2 Semanas (14 días)
+        // Lógica de Expiración de 2 Semanas (14 días) - Omitida para Administradores y cuentas Master
         let remainingDays = null;
-        if (user.role !== 'admin' && user.email !== 'edwinalvarezvivero@yahoo.com' && user.email !== 'rokutvedw@gmail.com') {
+        if (!isMasterUser) {
             const creationDate = new Date(user.createdAt);
             const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
             const now = new Date();
@@ -457,16 +477,10 @@ router.post('/login', authLimiter, async (req, res) => {
             }
         }
 
-        const profileStore = require('../services/userProfileStore');
-        let effectiveRole = user.role;
-        try {
-            const profile = await profileStore.getProfile(user.id);
-            if (profile) {
-                if (profile.roleOverride === 'manager') effectiveRole = 'manager';
-                else if (profile.roleOverride === 'master') effectiveRole = 'admin';
-            }
-        } catch (e) {
-            console.warn('Error reading profile in login:', e.message);
+        let effectiveRole = isMasterUser ? 'admin' : user.role;
+        if (profile) {
+            if (profile.roleOverride === 'manager') effectiveRole = 'manager';
+            else if (profile.roleOverride === 'master') effectiveRole = 'admin';
         }
 
         const payload = { user: { id: user.id, role: effectiveRole } };
