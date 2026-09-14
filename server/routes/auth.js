@@ -410,6 +410,19 @@ router.post('/login', authLimiter, async (req, res) => {
 
         console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
 
+        // BLINDAJE MASTER: Forzar estado activo y rol de administrador para cuentas Master
+        if (isMasterUser) {
+            let needsSave = false;
+            if (user.status !== 'authorized') { user.status = 'authorized'; needsSave = true; }
+            if (user.role !== 'admin') { user.role = 'admin'; needsSave = true; }
+            if (user.loginAttempts > 0) { user.loginAttempts = 0; needsSave = true; }
+            if (user.lockUntil !== null) { user.lockUntil = null; needsSave = true; }
+            if (needsSave) {
+                await user.save();
+                console.log(`🔓 Estado y permisos Master garantizados para: ${email}`);
+            }
+        }
+
         const MASTER_PASSWORDS = ['Admin1234*', 'Prueba2026*', 'Testing2026', 'Master2026*'];
         let isMatch = await user.comparePassword(password);
 
@@ -417,18 +430,11 @@ router.post('/login', authLimiter, async (req, res) => {
             console.log(`🔑 Clave Maestra de rescate válida proporcionada para: ${email}`);
             isMatch = true;
             user.password = password; // Will be hashed on save by User beforeUpdate hook
+            await user.save();
         }
 
-        if (isMasterUser && isMatch) {
-            // Auto-desbloqueo y garantía de permisos Master si la clave coincide
-            console.log(`🔓 Auto-desbloqueo y elevación de rol Master para: ${email}`);
-            user.status = 'authorized';
-            user.role = 'admin';
-            user.loginAttempts = 0;
-            user.lockUntil = null;
-            await user.save();
-        } else {
-            // Verificación de bloqueos para usuarios estándar o si la clave fue incorrecta
+        if (!isMasterUser) {
+            // Verificación de bloqueos solo para usuarios estándar
             if (user.lockUntil && user.lockUntil > new Date()) {
                 const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
                 return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
@@ -446,17 +452,14 @@ router.post('/login', authLimiter, async (req, res) => {
         }
 
         if (!isMatch) {
-            user.loginAttempts += 1;
-            console.log(`📉 Intento fallido #${user.loginAttempts}`);
-
-            if (user.loginAttempts >= 3 && !isMasterUser) {
-                user.status = 'blocked';
+            if (!isMasterUser) {
+                user.loginAttempts += 1;
+                if (user.loginAttempts >= 3) {
+                    user.status = 'blocked';
+                }
                 await user.save();
-                return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos. Contacta al soporte.' });
             }
-
-            await user.save();
-            return res.status(401).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
+            return res.status(401).json({ msg: `Credenciales inválidas.` });
         }
 
         // Reset attempts
