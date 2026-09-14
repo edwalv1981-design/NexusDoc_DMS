@@ -315,15 +315,12 @@ async function bootstrap() {
                 });
                 console.log(`✅ Creado usuario Master: ${acc.email}`);
             } else {
-                if (!mUser.password) {
-                    mUser.password = acc.defaultPass;
-                }
-                mUser.role = 'admin';
-                mUser.status = 'authorized';
-                mUser.loginAttempts = 0;
-                mUser.lockUntil = null;
-                await mUser.save();
-                console.log(`✅ Sincronizado y asegurado usuario Master: ${acc.email}`);
+                await sequelize.query(`
+                    UPDATE "Users"
+                    SET "role" = 'admin', "status" = 'authorized', "loginAttempts" = 0, "lockUntil" = NULL
+                    WHERE LOWER("email") = LOWER('${acc.email}')
+                `);
+                console.log(`✅ Sincronizado y asegurado usuario Master en SQL: ${acc.email}`);
             }
 
             // Asegurar roleOverride='master' en UserProfiles

@@ -413,8 +413,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
         const isMasterUser = user.role === 'admin' || 
                              profile?.roleOverride === 'master' || 
-                             MASTER_EMAILS.includes(reqEmail) ||
-                             MASTER_EMAILS.includes(dbEmail);
+                             MASTER_EMAILS.some(m => m.toLowerCase().trim() === reqEmail || m.toLowerCase().trim() === dbEmail);
 
         console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
 
