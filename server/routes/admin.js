@@ -1331,4 +1331,141 @@ router.put('/users/:id/info', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   GET api/admin/search-user-360
+// @desc    Admin 360 Unified User Search (User Personal Info, Company Details, Uploaded Documents, Generated Forms)
+router.get('/search-user-360', [auth, isAdmin], async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q) {
+            return res.json({ users: [] });
+        }
+
+        // Search Users matching name, email, phone, uniqueCode
+        const userWhere = {
+            [Op.or]: [
+                { name: { [Op.iLike]: `%${q}%` } },
+                { email: { [Op.iLike]: `%${q}%` } },
+                { phone: { [Op.iLike]: `%${q}%` } },
+                { uniqueCode: { [Op.iLike]: `%${q}%` } },
+            ]
+        };
+
+        let matchedUsers = await User.findAll({
+            where: userWhere,
+            attributes: { exclude: ['password', 'securityCode'] },
+            limit: 50,
+            raw: true
+        });
+
+        const userIds = new Set(matchedUsers.map(u => u.id));
+
+        // Also search UserProfiles by companyName or taxId
+        try {
+            const [profileResults] = await sequelize.query(`
+                SELECT "userId" FROM "UserProfiles" 
+                WHERE "companyName" ILIKE :q OR "taxId" ILIKE :q OR "address" ILIKE :q
+            `, { replacements: { q: `%${q}%` } });
+            
+            profileResults.forEach(p => userIds.add(p.userId));
+        } catch (e) {}
+
+        // Also search FormData text content
+        try {
+            const formsMatched = await FormData.findAll({
+                where: sequelize.where(sequelize.cast(sequelize.col('data'), 'text'), { [Op.iLike]: `%${q}%` }),
+                attributes: ['userId'],
+                limit: 50
+            });
+            formsMatched.forEach(f => { if (f.userId) userIds.add(f.userId); });
+        } catch (e) {}
+
+        // Fetch full User objects for all matched userIds
+        const allUserIds = Array.from(userIds);
+        if (allUserIds.length === 0) {
+            return res.json({ users: [] });
+        }
+
+        const fullUsers = await User.findAll({
+            where: { id: { [Op.in]: allUserIds } },
+            attributes: { exclude: ['password', 'securityCode'] },
+            order: [['createdAt', 'DESC']],
+            raw: true
+        });
+
+        // Fetch UserProfiles for profiles map
+        let profileMap = {};
+        try {
+            const [profiles] = await sequelize.query(`
+                SELECT "userId", "companyName", "taxId", "address", "roleOverride" 
+                FROM "UserProfiles" WHERE "userId" IN (:userIds)
+            `, { replacements: { userIds: allUserIds } });
+            profiles.forEach(p => { profileMap[p.userId] = p; });
+        } catch (e) {}
+
+        // Build 360 results for each user
+        const results = await Promise.all(fullUsers.map(async (u) => {
+            const profile = profileMap[u.id] || {};
+
+            // 1. Personal Documents
+            const personalDocs = await UserDocument.findAll({
+                where: { userId: u.id },
+                attributes: ['id', 'fileName', 'fileType', 'docType', 'createdAt', 'updatedAt'],
+                order: [['createdAt', 'DESC']],
+                raw: true
+            });
+
+            // 2. Forms
+            const userForms = await FormData.findAll({
+                where: { userId: u.id },
+                order: [['updatedAt', 'DESC']],
+                raw: true
+            });
+
+            const formattedForms = userForms.map(f => {
+                const d = typeof f.data === 'string' ? JSON.parse(f.data) : (f.data || {});
+                const entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.accountHolder || d.fullName || d.name || d.beneficiaryName || `${f.formType} (${String(f.id).substring(0,8)})`;
+                return {
+                    id: f.id,
+                    formType: f.formType,
+                    entityName,
+                    userUniqueCode: u.uniqueCode || '',
+                    updatedAt: f.updatedAt,
+                    createdAt: f.createdAt,
+                    data: d
+                };
+            });
+
+            return {
+                id: u.id,
+                uniqueCode: u.uniqueCode || 'Sin Código',
+                name: u.name || 'Sin Nombre',
+                email: u.email || '',
+                phone: u.phone || '',
+                status: u.status || 'authorized',
+                role: u.role || 'user',
+                roleOverride: u.role === 'admin' ? 'master' : (profile.roleOverride || 'client'),
+                companyInfo: {
+                    companyName: profile.companyName || '',
+                    taxId: profile.taxId || '',
+                    address: profile.address || ''
+                },
+                personalDocuments: personalDocs.map(d => ({
+                    id: d.id,
+                    filename: d.fileName,
+                    fileType: d.fileType,
+                    docType: d.docType || 'Documento Personal',
+                    createdAt: d.createdAt,
+                    updatedAt: d.updatedAt
+                })),
+                generatedForms: formattedForms
+            };
+        }));
+
+        res.json({ users: results });
+    } catch (err) {
+        console.error('Error in GET /api/admin/search-user-360:', err);
+        res.status(500).json({ msg: 'Error en búsqueda integral 360: ' + err.message });
+    }
+});
+
 module.exports = router;
