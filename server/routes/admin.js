@@ -352,14 +352,17 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
-        const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '@RESET';
+        const customPass = req.body && req.body.newPassword;
+        const tempPassword = customPass || (crypto.randomBytes(6).toString('hex').toUpperCase() + '@RESET');
         user.password = tempPassword;
-        user.mustChangePassword = true;
+        user.mustChangePassword = customPass ? false : true;
         user.loginAttempts = 0; // Limpiar intentos fallidos al resetear
         user.lockUntil = null;  // Desbloquear al resetear
         await user.save();
 
-        await sendTemporaryPassword(user.email, tempPassword);
+        if (!customPass) {
+            await sendTemporaryPassword(user.email, tempPassword);
+        }
 
         await AuditLog.create({
             userId: req.user.id,
