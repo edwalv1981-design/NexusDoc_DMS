@@ -74,7 +74,17 @@ function directorFieldRow(label, value) {
 }
 
 function buildDirectorTable(d, index) {
-  const fields = [
+  const isCompany = d.entityType === 'company' || Boolean(d.companyName && !d.birthDate);
+  const fields = isCompany ? [
+    ['Entity Type / Tipo', 'Empresa / Persona Jurídica'],
+    ['Company Name / Razón Social', d.companyName || d.fullName || ''],
+    ['Country / País de Registro', d.country || d.incorporationCountry || ''],
+    ['Reg. Number / No. Registro', d.registrationNumber || d.passport || ''],
+    ['RUC / Tax ID', d.ruc || d.taxId || ''],
+    ['Registered Address / Domicilio Social', d.address || ''],
+    ['Phone / Teléfono', d.phone || ''],
+    ['Email', d.email || ''],
+  ] : [
     ['Full name / Nombre completo', getFullName(d)],
     ['Date of birth / Fecha de nacimiento', fmtDate(d.birthDate)],
     ['Marital Status / Estado civil', d.maritalStatus],
@@ -89,7 +99,7 @@ function buildDirectorTable(d, index) {
   const rows = fields.map(([label, val]) => directorFieldRow(label, val || '')).join('');
   return `<table style="width:100%;border-collapse:collapse;">
     <thead><tr>
-      <th colspan="2" style="background:${C.headerBg};color:${C.titleColor};font-size:9px;padding:4px 6px;text-align:center;border:1px solid ${C.border};">Director ${index + 1}</th>
+      <th colspan="2" style="background:${C.headerBg};color:${C.titleColor};font-size:9px;padding:4px 6px;text-align:center;border:1px solid ${C.border};">Director ${index + 1} (${isCompany ? 'Empresa' : 'Persona'})</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -173,13 +183,19 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   </div>`;
 
   /* Section 4 – Officers / Dignitaries */
-  const dignitaryRows = dignitaries.map(d => `<tr>
-    <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(d.role)}</td>
-    <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(d.fullName)}</td>
-    <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(fmtDate(d.birthDate))}</td>
-    <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(d.passport)}</td>
-    <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(d.registrationNumber)}</td>
-  </tr>`).join('');
+  const dignitaryRows = dignitaries.map(d => {
+    const isCompany = d.entityType === 'company' || Boolean(d.companyName && !d.birthDate);
+    const displayName = isCompany ? (d.companyName || d.fullName || '') : getFullName(d);
+    const displayReg = isCompany ? (d.registrationNumber || d.passport || '') : (d.passport || '');
+    const displayBirth = isCompany ? (d.ruc || d.taxId ? `RUC: ${d.ruc || d.taxId}` : 'Empresa') : fmtDate(d.birthDate);
+    return `<tr>
+      <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(d.role)}</td>
+      <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(displayName)}${isCompany ? ' 🏢' : ''}</td>
+      <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(displayBirth)}</td>
+      <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(displayReg)}</td>
+      <td style="${S.cell}font-size:8.5px;padding:3px 4px;">${esc(d.registrationNumber || '—')}</td>
+    </tr>`;
+  }).join('');
 
   const officersSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Officers / Dignatarios</div>
@@ -196,14 +212,18 @@ function buildHtml(data, logoDataUri, layoutCss, bodyClass) {
   </div>`;
 
   /* Section 5 – Shareholders */
-  const shareholderRows = shareholders.map((s, i) => `<tr>
-    <td style="${S.cell}text-align:center;">${i + 1}</td>
-    <td style="${S.cell}">${esc(s.certificate)}</td>
-    <td style="${S.cell}">${esc(s.value)}</td>
-    <td style="${S.cell}text-align:center;">${esc(s.shares)}</td>
-    <td style="${S.cell}">${esc(s.name)}</td>
-    <td style="${S.cell}">${esc(s.address)}</td>
-  </tr>`).join('');
+  const shareholderRows = shareholders.map((s, i) => {
+    const isCompany = s.entityType === 'company' || Boolean(s.companyName);
+    const displayName = isCompany ? `${s.companyName || s.name || ''} 🏢` : s.name;
+    return `<tr>
+      <td style="${S.cell}text-align:center;">${i + 1}</td>
+      <td style="${S.cell}">${esc(s.certificate)}</td>
+      <td style="${S.cell}">${esc(s.value)}</td>
+      <td style="${S.cell}text-align:center;">${esc(s.shares)}</td>
+      <td style="${S.cell}">${esc(displayName)}</td>
+      <td style="${S.cell}">${esc(s.address)}</td>
+    </tr>`;
+  }).join('');
 
   const shareholdersSection = `<div style="border:1px solid ${C.border};margin:6px 0;">
     <div style="${S.sectionBar}">Shareholders / Accionistas</div>
