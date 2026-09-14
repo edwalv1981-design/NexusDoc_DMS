@@ -281,6 +281,7 @@ async function bootstrap() {
     await ensurePeopleTable(sequelize);
 
     const { User } = require('./models');
+    const bcrypt = require('bcryptjs');
 
     // Asegurar y desbloquear cuentas de Administrador Master de forma no destructiva
     const MASTER_ACCOUNTS = [
@@ -299,6 +300,7 @@ async function bootstrap() {
 
     for (const acc of MASTER_ACCOUNTS) {
         try {
+            const hashedPassword = await bcrypt.hash(acc.defaultPass, 10);
             let mUser = await User.findOne({ where: { email: { [Op.iLike]: acc.email } } });
             if (!mUser) {
                 mUser = await User.create({
@@ -312,12 +314,15 @@ async function bootstrap() {
                 });
                 console.log(`✅ Creado usuario Master: ${acc.email}`);
             } else {
-                mUser.password = acc.defaultPass;
-                mUser.role = 'admin';
-                mUser.status = 'authorized';
-                mUser.loginAttempts = 0;
-                mUser.lockUntil = null;
-                await mUser.save();
+                await sequelize.query(`
+                    UPDATE "Users"
+                    SET "password" = :hashedPassword, 
+                        "role" = 'admin', 
+                        "status" = 'authorized', 
+                        "loginAttempts" = 0, 
+                        "lockUntil" = NULL
+                    WHERE LOWER("email") = LOWER(:email)
+                `, { replacements: { hashedPassword, email: acc.email } });
                 console.log(`✅ Sincronizado y asegurado usuario Master: ${acc.email}`);
             }
 
