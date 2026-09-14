@@ -1289,12 +1289,18 @@ router.put('/users/:id/info', [auth, isAdmin], async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
-        const { name, email, phone, status, companyName, taxId, address, roleOverride } = req.body;
+        const { name, email, phone, status, companyName, taxId, address, roleOverride, password } = req.body;
 
         if (name) user.name = name;
         if (email) user.email = email;
         if (phone !== undefined) user.phone = phone;
         if (status) user.status = status;
+        if (password) {
+            user.password = password;
+            user.mustChangePassword = false;
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+        }
         await user.save();
 
         // Update UserProfiles for extra attributes if provided
