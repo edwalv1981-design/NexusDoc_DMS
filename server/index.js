@@ -299,25 +299,12 @@ async function bootstrap() {
 
     for (const acc of MASTER_ACCOUNTS) {
         try {
-            const hashedPassword = await bcrypt.hash(acc.defaultPass, 10);
-            
-            // 1. Intentar actualizar directamente en PostgreSQL
-            const [updateResults] = await sequelize.query(`
-                UPDATE "Users"
-                SET "password" = :hashedPassword, 
-                    "role" = 'admin', 
-                    "status" = 'authorized', 
-                    "loginAttempts" = 0, 
-                    "lockUntil" = NULL
-                WHERE LOWER("email") = LOWER(:email)
-                RETURNING "id"
-            `, { replacements: { hashedPassword, email: acc.email } });
+            let mUser = await User.findOne({ 
+                where: sequelize.where(sequelize.fn('LOWER', sequelize.col('User.email')), acc.email.toLowerCase()) 
+            });
 
-            let userId = Array.isArray(updateResults) && updateResults[0] ? updateResults[0].id : null;
-
-            // 2. Si no existía el usuario, crearlo con Sequelize
-            if (!userId) {
-                const newUser = await User.create({
+            if (!mUser) {
+                mUser = await User.create({
                     name: acc.name,
                     email: acc.email,
                     password: acc.defaultPass,
@@ -326,20 +313,23 @@ async function bootstrap() {
                     idNumber: acc.idNum,
                     uniqueCode: acc.code,
                 });
-                userId = newUser.id;
                 console.log(`✅ Creado usuario Master: ${acc.email}`);
             } else {
-                console.log(`✅ Sincronizado y asegurado usuario Master por SQL: ${acc.email}`);
+                mUser.password = acc.defaultPass;
+                mUser.role = 'admin';
+                mUser.status = 'authorized';
+                mUser.loginAttempts = 0;
+                mUser.lockUntil = null;
+                await mUser.save();
+                console.log(`✅ Sincronizado y asegurado usuario Master: ${acc.email}`);
             }
 
-            // 3. Asegurar roleOverride='master' en UserProfiles
-            if (userId) {
-                await sequelize.query(`
-                    INSERT INTO "UserProfiles" ("userId", "roleOverride")
-                    VALUES ('${userId}', 'master')
-                    ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
-                `);
-            }
+            // Asegurar roleOverride='master' en UserProfiles
+            await sequelize.query(`
+                INSERT INTO "UserProfiles" ("userId", "roleOverride")
+                VALUES ('${mUser.id}', 'master')
+                ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
+            `);
         } catch (mErr) {
             console.error(`Error al asegurar usuario Master ${acc.email}:`, mErr.message);
         }
