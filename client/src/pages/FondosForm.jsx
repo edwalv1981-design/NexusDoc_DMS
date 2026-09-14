@@ -10,6 +10,8 @@ import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
 import { validateField, validateFields } from '../utils/fieldValidators';
 
+const sanitizeDigitsOnly = (val) => (val || '').replace(new RegExp('\\D', 'g'), '');
+
 const FIELD_LABELS = {
     companyName: 'Nombre de la Compañía',
     activities: 'Objeto Social / Actividades',
@@ -529,7 +531,7 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
-                                    <input type="text" className="corporate-input" style={{...getErrorStyle('custodyPhone'), ...getFieldErrorStyle('custodyPhone')}} autoComplete="off" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); handleFieldChange('custodyPhone', e.target.value.replace(/\D/g,'')); }} onBlur={() => handleFieldBlur('custodyPhone')} />
+                                    <input type="text" className="corporate-input" style={{...getErrorStyle('custodyPhone'), ...getFieldErrorStyle('custodyPhone')}} autoComplete="off" value={formData.custodyPhone} onChange={e => { const val = sanitizeDigitsOnly(e.target.value); setFormData({...formData, custodyPhone: val}); if (val) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); handleFieldChange('custodyPhone', val); }} onBlur={() => handleFieldBlur('custodyPhone')} />
                                     {renderFieldError('custodyPhone')}
                                 </div>
                                 <div>

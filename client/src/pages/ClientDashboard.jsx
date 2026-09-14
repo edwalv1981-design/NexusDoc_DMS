@@ -23,6 +23,10 @@ import {
   isKyciFormType,
   isKyceFormType,
 } from '../utils/formWizardRouting';
+
+const sanitizeDigitsOnly = (val) => (val || '').replace(new RegExp('\\D', 'g'), '');
+const sanitizeFormLabel = (str) => (str || '').replace(new RegExp('_', 'g'), ' ').toUpperCase();
+const sanitizeAccents = (str) => (str || '').toLowerCase().normalize("NFD").replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').trim();
 import { validateField, validateFields } from '../utils/fieldValidators';
 
 const ClientDashboard = () => {
@@ -168,7 +172,7 @@ const ClientDashboard = () => {
             if (templateStatus[key] && !formOptions.some(f => f.id === key)) {
                 formOptions.push({
                     id: key,
-                    label: key.replace(/_/g, ' ').toUpperCase(),
+                    label: sanitizeFormLabel(key),
                     icon: <ClipboardList size={24} />,
                     color: '#8b5cf6'
                 });
@@ -350,7 +354,7 @@ const ClientDashboard = () => {
     const handleDownloadPDF = async (doc) => {
         const id = doc.id;
         const token = localStorage.getItem('token');
-        const normType = doc.type ? doc.type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+        const normType = doc.type ? sanitizeAccents(doc.type) : '';
 
         showToast(t('toast.generatingFile'), 'success');
 
@@ -744,7 +748,7 @@ const ClientDashboard = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                                         <div className="field-group"><label>{t('fondos.custodyName')}</label><input className="input-expert" style={getFieldErrorStyle('custodyName')} value={formData.custodyName} onChange={e => { setFormData(prev => ({...prev, custodyName: e.target.value})); handleFieldChange('custodyName', e.target.value); }} onBlur={() => handleFieldBlur('custodyName')} required />{fieldErrors.custodyName && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyName}</span>}</div>
-                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" style={getFieldErrorStyle('custodyPhone')} value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); handleFieldChange('custodyPhone', e.target.value.replace(/\D/g,'')); }} onBlur={() => handleFieldBlur('custodyPhone')} required />{fieldErrors.custodyPhone && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyPhone}</span>}</div>
+                                        <div className="field-group"><label>{t('fondos.custodyPhone')}</label><input type="text" className="input-expert" style={getFieldErrorStyle('custodyPhone')} value={formData.custodyPhone} onChange={e => { const val = sanitizeDigitsOnly(e.target.value); setFormData({...formData, custodyPhone: val}); handleFieldChange('custodyPhone', val); }} onBlur={() => handleFieldBlur('custodyPhone')} required />{fieldErrors.custodyPhone && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyPhone}</span>}</div>
                                     </div>
                                     <div className="field-group"><label>{t('fondos.custodyEmail')}</label><input type="email" className="input-expert" style={getFieldErrorStyle('custodyEmail')} value={formData.custodyEmail} onChange={e => { setFormData({...formData, custodyEmail: e.target.value}); handleFieldChange('custodyEmail', e.target.value); }} onBlur={() => handleFieldBlur('custodyEmail')} required placeholder="ejemplo@correo.com" />{fieldErrors.custodyEmail && <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.custodyEmail}</span>}</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
