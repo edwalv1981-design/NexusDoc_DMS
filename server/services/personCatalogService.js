@@ -19,7 +19,6 @@ function extractPeopleFromPayload(data = {}) {
   const addPerson = (obj, roleLabel) => {
     if (!obj || typeof obj !== 'object') return;
     const fullName = (
-      obj.companyName ||
       obj.fullName ||
       obj.name ||
       obj.legalRepName ||

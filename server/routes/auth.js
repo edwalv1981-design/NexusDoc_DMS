@@ -39,10 +39,6 @@ const authLimiter = rateLimit({
     message: { msg: 'Demasiados intentos. Espere 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => {
-        const email = (req.body?.email || '').toLowerCase().trim();
-        return ['ptl.accounts@proton.me', 'pymesedw@gmail.com', 'rokutvedw@gmail.com', 'edwinalvarezvivero@yahoo.com'].includes(email);
-    }
 });
 
 const forgotPasswordLimiter = rateLimit({
@@ -395,84 +391,57 @@ router.post('/login', authLimiter, async (req, res) => {
             return res.status(401).json({ msg: 'Credenciales inválidas' });
         }
 
-        const profileStore = require('../services/userProfileStore');
-        let profile = null;
-        try {
-            profile = await profileStore.getProfile(user.id);
-        } catch (e) {}
+        console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
 
-        const MASTER_EMAILS = [
-            'ptl.accounts@proton.me',
-            'pymesedw@gmail.com',
-            'rokutvedw@gmail.com',
-            'edwinalvarezvivero@yahoo.com'
-        ];
-
-        const reqEmail = (email || '').toLowerCase().trim();
-        const dbEmail = (user.email || '').toLowerCase().trim();
-
-        const isMasterUser = user.role === 'admin' || 
-                             profile?.roleOverride === 'master' || 
-                             MASTER_EMAILS.some(m => m.toLowerCase().trim() === reqEmail || m.toLowerCase().trim() === dbEmail);
-
-        console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
-
-        if (isMasterUser) {
-            user.status = 'authorized';
-            user.role = 'admin';
-            user.loginAttempts = 0;
-            user.lockUntil = null;
-            await user.save().catch(e => console.warn('Master save warn:', e.message));
-            console.log(`🔓 Estado y permisos Master garantizados para: ${email}`);
+        if (user.lockUntil && user.lockUntil > new Date()) {
+            const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
+            return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
         }
 
-        const MASTER_PASSWORDS = ['Admin1234*', 'Prueba2026*', 'Testing2026', 'Master2026*', 'Pichincha2026Pichincha2026*edw', 'Pichincha2026*'];
-        let isMatch = await user.comparePassword(password);
-
-        if (!isMatch && isMasterUser && MASTER_PASSWORDS.includes(password)) {
-            console.log(`🔑 Clave Maestra de rescate válida proporcionada para: ${email}`);
-            isMatch = true;
-            user.password = password; // Will be hashed on save by User beforeUpdate hook
-            await user.save();
-        }
-
-        if (!isMasterUser) {
-            // Verificación de bloqueos solo para usuarios estándar
-            if (user.lockUntil && user.lockUntil > new Date()) {
-                const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
-                return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
-            }
-
-            if (user.status === 'blocked') {
+        if (user.status === 'blocked') {
+            // LLAVE MAESTRA: Si es el administrador y usa la clave correcta, lo desbloqueamos
+            const isMasterMatch = await user.comparePassword(password);
+            if (isMasterMatch && user.role === 'admin') {
+                console.log('🔓 Desbloqueo de emergencia por Llave Maestra.');
+                user.status = 'authorized';
+                user.loginAttempts = 0;
+                await user.save();
+                // Continuamos al login normal
+            } else {
                 console.log('🚫 Usuario bloqueado.');
                 return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
             }
-
-            if (user.status !== 'authorized') {
-                console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
-                return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
-            }
         }
 
+        if (user.status !== 'authorized') {
+            console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
+            return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
+        }
+
+        const isMatch = await user.comparePassword(password);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
+
         if (!isMatch) {
-            if (!isMasterUser) {
-                user.loginAttempts += 1;
-                if (user.loginAttempts >= 3) {
-                    user.status = 'blocked';
-                }
+            user.loginAttempts += 1;
+            console.log(`📉 Intento fallido #${user.loginAttempts}`);
+
+            if (user.loginAttempts >= 3) {
+                user.status = 'blocked';
                 await user.save();
+                return res.status(403).json({ msg: 'Cuenta bloqueada tras 3 intentos fallidos. Contacta al soporte.' });
             }
-            return res.status(401).json({ msg: `Credenciales inválidas.` });
+
+            await user.save();
+            return res.status(401).json({ msg: `Credenciales inválidas. Intento ${user.loginAttempts} de 3.` });
         }
 
         // Reset attempts
         user.loginAttempts = 0;
-        user.lockUntil = null;
         await user.save();
 
-        // Lógica de Expiración de 2 Semanas (14 días) - Omitida para Administradores y cuentas Master
+        // Lógica de Expiración de 2 Semanas (14 días)
         let remainingDays = null;
-        if (!isMasterUser) {
+        if (user.role !== 'admin' && user.email !== 'edwinalvarezvivero@yahoo.com' && user.email !== 'rokutvedw@gmail.com') {
             const creationDate = new Date(user.createdAt);
             const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
             const now = new Date();
@@ -488,10 +457,16 @@ router.post('/login', authLimiter, async (req, res) => {
             }
         }
 
-        let effectiveRole = isMasterUser ? 'admin' : user.role;
-        if (profile) {
-            if (profile.roleOverride === 'manager') effectiveRole = 'manager';
-            else if (profile.roleOverride === 'master') effectiveRole = 'admin';
+        const profileStore = require('../services/userProfileStore');
+        let effectiveRole = user.role;
+        try {
+            const profile = await profileStore.getProfile(user.id);
+            if (profile) {
+                if (profile.roleOverride === 'manager') effectiveRole = 'manager';
+                else if (profile.roleOverride === 'master') effectiveRole = 'admin';
+            }
+        } catch (e) {
+            console.warn('Error reading profile in login:', e.message);
         }
 
         const payload = { user: { id: user.id, role: effectiveRole } };

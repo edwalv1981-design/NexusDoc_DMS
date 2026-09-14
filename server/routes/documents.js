@@ -121,13 +121,10 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // @route   GET api/documents/download/:id
-// @desc    Download a document (Owner or Admin)
+// @desc    Download a document (Strict Security: only owner can download)
 router.get('/download/:id', auth, async (req, res) => {
     try {
-        const isAdminUser = req.user.role === 'admin' || req.user.roleOverride === 'master' || req.user.roleOverride === 'manager';
-        const doc = isAdminUser
-            ? await UserDocument.findByPk(req.params.id)
-            : await UserDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        const doc = await UserDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
         
         if (!doc) {
             return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
@@ -135,14 +132,11 @@ router.get('/download/:id', auth, async (req, res) => {
 
         await AuditLog.create({
             userId: req.user.id,
-            action: isAdminUser ? 'ADMIN_DOC_DOWNLOAD' : 'USER_DOC_DOWNLOAD',
-            description: isAdminUser
-                ? `Administrador descargó/revisó documento personal: ${doc.filename} del usuario ID ${doc.userId}`
-                : `El usuario descargó su documento adjunto: ${doc.filename}`
+            action: 'USER_DOC_DOWNLOAD',
+            description: `El usuario descargó su documento adjunto: ${doc.filename}`
         });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.filename)}"`);
         res.send(doc.fileData);
     } catch (err) {
         console.error(err);

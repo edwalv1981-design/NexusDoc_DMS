@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail, FolderOpen, Download, FileCheck, ExternalLink } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
-import { useLang, useT } from '../i18n';
+import { useT } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 /** Trámites que generan PDF con motor HTML (no dependen de AcroForm). */
@@ -15,21 +15,6 @@ const HTML_ENGINE_TEMPLATES = Object.freeze([
   'cumplimiento_individual',
   'cumplimiento_entidades',
 ]);
-
-const formatCamelCaseKey = (str) => {
-  if (!str || typeof str !== 'string') return '';
-  return str.replace(new RegExp('([A-Z])', 'g'), ' $1').replace(new RegExp('^.'), (s) => s.toUpperCase());
-};
-
-const sanitizeCustomTemplateName = (str) => {
-  if (!str || typeof str !== 'string') return '';
-  return str.toLowerCase().replace(new RegExp('[^a-z0-9_-]', 'g'), '_');
-};
-
-const formatTemplateNameLabel = (str) => {
-  if (!str || typeof str !== 'string') return '';
-  return str.replace(new RegExp('_', 'g'), ' ').toUpperCase();
-};
 
 const renderFormDataValue = (value) => {
   if (value === null || value === undefined || value === '') return <span style={{ color: '#94a3b8' }}>—</span>;
@@ -56,7 +41,7 @@ const renderFormDataValue = (value) => {
         <ul style={{ margin: 0, paddingLeft: '18px', listStyleType: 'circle', color: '#475569' }}>
           {keys.map(k => (
             <li key={k} style={{ marginBottom: '4px', fontSize: '12px' }}>
-              <strong style={{ color: '#334155' }}>{formatCamelCaseKey(k)}:</strong> 
+              <strong style={{ color: '#334155' }}>{k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> 
               <span style={{ marginLeft: '6px', color: '#1e293b' }}>{typeof value[k] === 'object' ? renderFormDataValue(value[k]) : String(value[k])}</span>
             </li>
           ))}
@@ -70,10 +55,7 @@ const renderFormDataValue = (value) => {
 };
 
 const AdminDashboard = () => {
-  const { lang } = useLang();
   const t = useT();
-  const navigate = useNavigate();
-  const toast = useToast();
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -125,259 +107,9 @@ const AdminDashboard = () => {
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [viewingFormData, setViewingFormData] = useState(null);
 
-  const [showUserDocsModal, setShowUserDocsModal] = useState(false);
-  const [selectedUserForDocs, setSelectedUserForDocs] = useState(null);
-  const [userDocsData, setUserDocsData] = useState({ personalDocuments: [], signedDocuments: [] });
-  const [userDocsLoading, setUserDocsLoading] = useState(false);
-  const [docsActiveTab, setDocsActiveTab] = useState('personal');
-
-  // States for Admin editing User/Company info
-  const [showEditUserModal, setShowEditUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [userEditData, setUserEditData] = useState({
-    name: '', email: '', phone: '', companyName: '', taxId: '', address: '', status: 'authorized', roleOverride: 'client'
-  });
-  const [savingUserEdit, setSavingUserEdit] = useState(false);
-
-  // States for Admin uploading personal doc for user
-  const [showAdminUploadModal, setShowAdminUploadModal] = useState(false);
-  const [adminUploadFile, setAdminUploadFile] = useState(null);
-  const [adminUploadDocType, setAdminUploadDocType] = useState('Identificación / Cédula / Pasaporte');
-  const [uploadingAdminDoc, setUploadingAdminDoc] = useState(false);
-
-  // States for Admin editing Form data
-  const [showEditFormModal, setShowEditFormModal] = useState(false);
-  const [editingForm, setEditingForm] = useState(null);
-  const [editingFormJson, setEditingFormJson] = useState('');
-  const [savingFormEdit, setSavingFormEdit] = useState(false);
-
-  // States for 360 User Search
-  const [search360Mode, setSearch360Mode] = useState('user360'); // 'user360' or 'formSearch'
-  const [user360Query, setUser360Query] = useState('');
-  const [user360Results, setUser360Results] = useState(null);
-  const [user360Loading, setUser360Loading] = useState(false);
-  const [expanded360User, setExpanded360User] = useState(null);
-
-  const handleSearchUser360 = async (e) => {
-    e && e.preventDefault();
-    if (!user360Query || !user360Query.trim()) {
-      return toast.error(lang === 'en' ? 'Please enter a search query' : 'Por favor ingrese un término de búsqueda');
-    }
-    setUser360Loading(true);
-    setExpanded360User(null);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/search-user-360`, {
-        headers: { 'x-auth-token': token },
-        params: { q: user360Query.trim() }
-      });
-      setUser360Results(res.data.users || []);
-    } catch (err) {
-      console.error('Error in 360 user search:', err);
-      toast.error(err.response?.data?.msg || 'Error en búsqueda integral 360');
-    } finally {
-      setUser360Loading(false);
-    }
-  };
-
-  const handleOpenEditUserModal = (userObj) => {
-    setEditingUser(userObj);
-    setUserEditData({
-      name: userObj.name || '',
-      email: userObj.email || '',
-      phone: userObj.phone || '',
-      companyName: userObj.companyName || '',
-      taxId: userObj.taxId || '',
-      address: userObj.address || '',
-      status: userObj.status || 'authorized',
-      roleOverride: userObj.roleOverride || 'client'
-    });
-    setShowEditUserModal(true);
-  };
-
-  const handleSaveUserEdit = async (e) => {
-    e.preventDefault();
-    setSavingUserEdit(true);
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API_BASE_URL}/api/admin/users/${editingUser.id}/info`, userEditData, {
-        headers: { 'x-auth-token': token }
-      });
-      toast.success(lang === 'en' ? 'User and company information updated successfully' : 'Información de usuario y empresa actualizada correctamente');
-      setShowEditUserModal(false);
-      fetchData();
-    } catch (err) {
-      console.error('Error updating user info:', err);
-      toast.error(err.response?.data?.msg || 'Error al actualizar información');
-    } finally {
-      setSavingUserEdit(false);
-    }
-  };
-
-  const handleDeleteUserDoc = async (docId, fileName) => {
-    if (!window.confirm(lang === 'en' ? `Delete document "${fileName}" permanently?` : `¿Eliminar permanentemente el documento "${fileName}"?`)) return;
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_BASE_URL}/api/admin/user-documents/${docId}`, {
-        headers: { 'x-auth-token': token }
-      });
-      toast.success(lang === 'en' ? 'Document deleted successfully' : 'Documento eliminado correctamente');
-      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
-    } catch (err) {
-      console.error('Error deleting document:', err);
-      toast.error(err.response?.data?.msg || 'Error al eliminar documento');
-    }
-  };
-
-  const handleAdminUploadDoc = async (e) => {
-    e.preventDefault();
-    if (!adminUploadFile) return toast.error(lang === 'en' ? 'Please select a file' : 'Por favor seleccione un archivo');
-    setUploadingAdminDoc(true);
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', adminUploadFile);
-      formData.append('docType', adminUploadDocType);
-
-      await axios.post(`${API_BASE_URL}/api/admin/user-documents/${selectedUserForDocs.id}/upload`, formData, {
-        headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
-      });
-      toast.success(lang === 'en' ? 'Document uploaded successfully' : 'Documento subido correctamente');
-      setShowAdminUploadModal(false);
-      setAdminUploadFile(null);
-      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
-    } catch (err) {
-      console.error('Error uploading doc:', err);
-      toast.error(err.response?.data?.msg || 'Error al subir el documento');
-    } finally {
-      setUploadingAdminDoc(false);
-    }
-  };
-
-  const handleDeleteUserForm = async (formId, formType) => {
-    if (!window.confirm(lang === 'en' ? `Delete form "${formType}" permanently?` : `¿Eliminar permanentemente el formulario "${formType}"?`)) return;
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_BASE_URL}/api/admin/forms/${formId}`, {
-        headers: { 'x-auth-token': token }
-      });
-      toast.success(lang === 'en' ? 'Form deleted successfully' : 'Formulario eliminado correctamente');
-      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
-      if (consultaResults) handleConsultaSearch();
-    } catch (err) {
-      console.error('Error deleting form:', err);
-      toast.error(err.response?.data?.msg || 'Error al eliminar el formulario');
-    }
-  };
-
-  const handleOpenEditFormModal = (formObj) => {
-    setEditingForm(formObj);
-    const dataObj = formObj.data || formObj.formData || {};
-    setEditingFormJson(JSON.stringify(dataObj, null, 2));
-    setShowEditFormModal(true);
-  };
-
-  const handleSaveAdminForm = async (e) => {
-    e.preventDefault();
-    let parsedData;
-    try {
-      parsedData = JSON.parse(editingFormJson);
-    } catch (jsonErr) {
-      return toast.error(lang === 'en' ? 'Invalid JSON format' : 'El formato de JSON ingresado no es válido');
-    }
-    setSavingFormEdit(true);
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API_BASE_URL}/api/admin/forms/${editingForm.id}`, { data: parsedData }, {
-        headers: { 'x-auth-token': token }
-      });
-      toast.success(lang === 'en' ? 'Form updated successfully' : 'Formulario actualizado correctamente');
-      setShowEditFormModal(false);
-      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
-      if (consultaResults) handleConsultaSearch();
-    } catch (err) {
-      console.error('Error updating form:', err);
-      toast.error(err.response?.data?.msg || 'Error al actualizar el formulario');
-    } finally {
-      setSavingFormEdit(false);
-    }
-  };
-
-  const handleOpenUserDocsModal = async (userObj) => {
-    setSelectedUserForDocs(userObj);
-    setShowUserDocsModal(true);
-    setUserDocsLoading(true);
-    setDocsActiveTab('personal');
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/user-documents/${userObj.id}`, {
-        headers: { 'x-auth-token': token }
-      });
-      setUserDocsData(res.data);
-    } catch (err) {
-      console.error('Error fetching user documents:', err);
-      toast.error('Error al cargar los documentos del usuario');
-    } finally {
-      setUserDocsLoading(false);
-    }
-  };
-
-  const handleDownloadUserDoc = async (type, docId, filename) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/documents/download/${type}/${docId}`, {
-        headers: { 'x-auth-token': token },
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 100);
-      toast.success('Descargando documento...');
-    } catch (err) {
-      console.error('Error downloading document:', err);
-      toast.error('Error al descargar el documento');
-    }
-  };
-
-  const handlePreviewUserDoc = async (type, docId, filename) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/documents/download/${type}/${docId}`, {
-        headers: { 'x-auth-token': token },
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      window.open(url, '_blank');
-    } catch (err) {
-      console.error('Error previewing document:', err);
-      toast.error('Error al previsualizar el documento');
-    }
-  };
-
-  const handleGenerateFormPdf = async (formId, formType) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/forms/generate-pdf/${formId}`, {
-        headers: { 'x-auth-token': token },
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      window.open(url, '_blank');
-    } catch (err) {
-      console.error('Error generating form PDF:', err);
-      toast.error('Error al generar el PDF del formulario');
-    }
-  };
-
   const itemsPerPage = 15;
+  const navigate = useNavigate();
+  const toast = useToast();
 
   const PRIMARY = '#0f172a';
   const ACCENT_TEAL = '#0f766e';
@@ -724,9 +456,7 @@ const AdminDashboard = () => {
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <button onClick={() => handleOpenUserDocsModal(user)} title={lang === 'en' ? "View Files & Forms" : "Ver Archivos / Documentos del Usuario"} style={{ border: '1px solid #99f6e4', background: '#f0fdfa', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0d9488', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FolderOpen size={14} /></button>
-                          <button onClick={() => handleOpenEditUserModal(user)} title={lang === 'en' ? "Edit Personal & Company Info" : "Editar Datos Personales y de Empresa"} style={{ border: '1px solid #fed7aa', background: '#fff7ed', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#c2410c', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Edit2 size={14} /></button>
-                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title={lang === 'en' ? "Authorize" : "Autorizar"} style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
+                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
                           <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: '#fffbeb', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><ShieldOff size={14} /></button>
                           {user.roleOverride !== 'master' && (
                             <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: '1px solid #bae6fd', background: '#f0f9ff', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0284c7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><UserCog size={14} /></button>
@@ -813,270 +543,16 @@ const AdminDashboard = () => {
 
             {activeTab === 'consultas' && (
               <div style={{ padding: '30px' }}>
-                {/* Search Mode Toggle Bar */}
-                <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-                  <button
-                    type="button"
-                    onClick={() => setSearch360Mode('user360')}
-                    style={{
-                      flex: 1,
-                      padding: '12px 18px',
-                      borderRadius: RADIUS,
-                      border: search360Mode === 'user360' ? '2px solid #0f766e' : `1px solid ${BORDER}`,
-                      background: search360Mode === 'user360' ? '#f0fdfa' : '#ffffff',
-                      color: search360Mode === 'user360' ? '#0f766e' : '#64748b',
-                      fontWeight: 800,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8
-                    }}
-                  >
-                    <User size={18} />
-                    {lang === 'en' ? '👤 360° Unified User Search (Personal, Company & Forms)' : '👤 Búsqueda Integral 360° de Usuario (Datos, Empresa y Formularios)'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSearch360Mode('formSearch')}
-                    style={{
-                      flex: 1,
-                      padding: '12px 18px',
-                      borderRadius: RADIUS,
-                      border: search360Mode === 'formSearch' ? '2px solid #0f766e' : `1px solid ${BORDER}`,
-                      background: search360Mode === 'formSearch' ? '#f0fdfa' : '#ffffff',
-                      color: search360Mode === 'formSearch' ? '#0f766e' : '#64748b',
-                      fontWeight: 800,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8
-                    }}
-                  >
-                    <SearchCheck size={18} />
-                    {lang === 'en' ? '📑 Advanced Search by Form Sections' : '📑 Búsqueda Avanzada por Secciones de Formulario'}
-                  </button>
-                </div>
-
-                {search360Mode === 'user360' ? (
-                  <div>
-                    <div style={{ background: '#f8fafc', padding: 24, borderRadius: RADIUS, border: `1px solid ${BORDER}`, marginBottom: 24 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                        <div style={{ background: '#f0fdfa', padding: 8, borderRadius: 8, border: '1px solid #99f6e4' }}>
-                          <User size={20} color="#0f766e" />
-                        </div>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
-                            {lang === 'en' ? '360° User & Company Search' : 'Búsqueda Integral 360° por Usuario o Empresa'}
-                          </h3>
-                          <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                            {lang === 'en'
-                              ? 'Search by User Name, Email, Unique Code, Passport, ID or Company Name to view complete profile, files, and forms.'
-                              : 'Ingrese el Nombre de usuario, Correo, Código único, Cédula o Razón Social para desplegar su expediente completo con opción de edición.'}
-                          </p>
-                        </div>
-                      </div>
-                      <form onSubmit={handleSearchUser360} style={{ display: 'flex', gap: 12 }}>
-                        <input
-                          type="text"
-                          value={user360Query}
-                          onChange={e => setUser360Query(e.target.value)}
-                          placeholder={lang === 'en' ? 'E.g. Edwin Alvarez, CASITA S.A., C001 or email@domain.com' : 'Ej: Edwin Alvarez, CASITA S.A., C001 o correo@ejemplo.com'}
-                          style={{ flex: 1, padding: '12px 16px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
-                        />
-                        <button type="submit" disabled={user360Loading} className="btn-primary" style={{ padding: '12px 28px', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                          {user360Loading ? (lang === 'en' ? 'BUSCANDO...' : 'BUSCANDO...') : (lang === 'en' ? 'BUSCAR USUARIO 360°' : 'BUSCAR USUARIO 360°')}
-                        </button>
-                      </form>
+                <div style={{ background: '#f8fafc', padding: 24, borderRadius: RADIUS, border: `1px solid ${BORDER}`, marginBottom: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                    <div style={{ background: '#e0f2fe', padding: 8, borderRadius: 8 }}>
+                      <Search size={18} color="#0284c7" />
                     </div>
-
-                    {/* Results for 360 Search */}
-                    {user360Results && user360Results.length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '50px 20px', background: '#ffffff', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
-                        <SearchCheck size={44} color="#cbd5e1" style={{ marginBottom: 12 }} />
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>
-                          {lang === 'en' ? 'No users or companies matched your search query.' : 'No se encontraron usuarios ni empresas que coincidan con la búsqueda.'}
-                        </p>
-                      </div>
-                    )}
-
-                    {user360Results && user360Results.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          {lang === 'en'
-                            ? `Found ${user360Results.length} Matched User Record(s):`
-                            : `Expediente(s) Encontrado(s) (${user360Results.length}):`}
-                        </div>
-                        {user360Results.map((uResult) => {
-                          return (
-                            <div key={uResult.id} style={{ background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                              
-                              {/* Executive Header */}
-                              <div style={{ padding: '20px 24px', background: '#0f172a', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(45, 212, 191, 0.15)', border: '2px solid #2dd4bf', color: '#2dd4bf', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18 }}>
-                                    {uResult.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <div style={{ fontSize: 17, fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                      {uResult.name}
-                                      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 800, background: uResult.status === 'authorized' ? '#dcfce7' : '#fee2e2', color: uResult.status === 'authorized' ? '#15803d' : '#b91c1c' }}>
-                                        {uResult.status.toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                                      <span>📧 {uResult.email}</span>
-                                      <span>🏷️ Código: <strong>{uResult.uniqueCode}</strong></span>
-                                      {uResult.phone && <span>📞 {uResult.phone}</span>}
-                                      <span>👑 Rol: <strong>{uResult.roleOverride.toUpperCase()}</strong></span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditUserModal(uResult)}
-                                  style={{ padding: '8px 16px', background: '#0f766e', color: 'white', border: 'none', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                                >
-                                  <Edit2 size={14} /> {lang === 'en' ? 'Edit User & Company Info' : 'Editar Datos Personales y Empresa'}
-                                </button>
-                              </div>
-
-                              {/* 3 Executive Sections */}
-                              <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, background: '#ffffff' }}>
-                                
-                                {/* Section 1: Company / Corporate Info */}
-                                <div style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: 18 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <Building2 size={18} color="#0f766e" />
-                                      <span>1. INFORMACIÓN DE LA EMPRESA Y PERFIL REGISTRADO</span>
-                                    </div>
-                                  </div>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, fontSize: 12 }}>
-                                    <div style={{ background: '#fff', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
-                                      <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Razón Social / Empresa</span>
-                                      <span style={{ fontWeight: 800, color: '#0f172a' }}>{uResult.companyInfo.companyName || '— Sin Registrar —'}</span>
-                                    </div>
-                                    <div style={{ background: '#fff', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
-                                      <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>RUC / Tax ID</span>
-                                      <span style={{ fontWeight: 800, color: '#0f172a' }}>{uResult.companyInfo.taxId || '— Sin Registrar —'}</span>
-                                    </div>
-                                    <div style={{ background: '#fff', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: 6, gridColumn: '1 / -1' }}>
-                                      <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Dirección Registrada / Domicilio Social</span>
-                                      <span style={{ fontWeight: 700, color: '#334155' }}>{uResult.companyInfo.address || '— Sin Registrar —'}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Section 2: Uploaded Personal Files */}
-                                <div style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: 18 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <FolderOpen size={18} color="#0d9488" />
-                                      <span>2. ARCHIVOS Y DOCUMENTOS PERSONALES SUBIDOS ({(uResult.personalDocuments || []).length})</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenUserDocsModal(uResult)}
-                                      style={{ padding: '6px 12px', background: '#0d9488', color: 'white', border: 'none', borderRadius: RADIUS, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                                    >
-                                      <UploadCloud size={14} /> {lang === 'en' ? 'Upload / Replace Document' : 'Subir / Reemplazar Documento'}
-                                    </button>
-                                  </div>
-                                  {(uResult.personalDocuments || []).length === 0 ? (
-                                    <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', background: '#fff', padding: '12px 16px', border: `1px dashed ${BORDER}`, borderRadius: 6 }}>
-                                      El usuario aún no tiene documentos personales subidos.
-                                    </div>
-                                  ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                      {uResult.personalDocuments.map(doc => (
-                                        <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <FileText size={16} color="#0d9488" />
-                                            <div>
-                                              <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{doc.filename}</span>
-                                              <span style={{ fontSize: 10, color: '#64748b', marginLeft: 8 }}>({doc.docType}) &middot; {new Date(doc.createdAt).toLocaleDateString()}</span>
-                                            </div>
-                                          </div>
-                                          <div style={{ display: 'flex', gap: 6 }}>
-                                            <button type="button" onClick={() => handlePreviewUserDoc('personal', doc.id, doc.filename)} style={{ border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <ExternalLink size={12} /> Ver
-                                            </button>
-                                            <button type="button" onClick={() => handleDownloadUserDoc('personal', doc.id, doc.filename)} style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <Download size={12} /> Descargar
-                                            </button>
-                                            <button type="button" onClick={() => handleDeleteUserDoc(doc.id, doc.filename)} style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <Trash2 size={12} />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Section 3: Generated Forms */}
-                                <div style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: 18 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Building2 size={18} color="#d97706" />
-                                    <span>3. FORMULARIOS Y TRÁMITES GENERADOS ({(uResult.generatedForms || []).length})</span>
-                                  </div>
-                                  {(uResult.generatedForms || []).length === 0 ? (
-                                    <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', background: '#fff', padding: '12px 16px', border: `1px dashed ${BORDER}`, borderRadius: 6 }}>
-                                      El usuario no ha generado ningún formulario aún.
-                                    </div>
-                                  ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                      {uResult.generatedForms.map(form => (
-                                        <div key={form.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <Building2 size={16} color="#d97706" />
-                                            <div>
-                                              <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{form.entityName}</span>
-                                              <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, marginLeft: 8 }}>{form.formType}</span>
-                                              <span style={{ fontSize: 10, color: '#64748b', marginLeft: 8 }}>Actualizado: {new Date(form.updatedAt).toLocaleDateString()}</span>
-                                            </div>
-                                          </div>
-                                          <div style={{ display: 'flex', gap: 6 }}>
-                                            <button type="button" onClick={() => handleGenerateFormPdf(form.id, form.formType)} style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <ExternalLink size={12} /> Ver PDF
-                                            </button>
-                                            <button type="button" onClick={() => handleOpenEditFormModal(form)} style={{ border: '1px solid #fed7aa', background: '#fff7ed', color: '#c2410c', padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <Edit2 size={12} /> Editar
-                                            </button>
-                                            <button type="button" onClick={() => handleDeleteUserForm(form.id, form.formType)} style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <Trash2 size={12} />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                              </div>
-
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>Búsqueda Avanzada</h3>
+                      <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ingrese una o varias opciones para filtrar los formularios</p>
+                    </div>
                   </div>
-                ) : (
-                  <div>
-                    <div style={{ background: '#f8fafc', padding: 24, borderRadius: RADIUS, border: `1px solid ${BORDER}`, marginBottom: 24 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                        <div style={{ background: '#e0f2fe', padding: 8, borderRadius: 8 }}>
-                          <Search size={18} color="#0284c7" />
-                        </div>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>Búsqueda Avanzada por Secciones</h3>
-                          <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ingrese una o varias opciones para filtrar los formularios</p>
-                        </div>
-                      </div>
                   <form onSubmit={handleConsultaSearch} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                       
@@ -1269,19 +745,9 @@ const AdminDashboard = () => {
                           {selectedUser.email} &middot; {selectedUser.uniqueCode || 'Sin código'} &middot; {selectedUser.idNumber || 'Sin cédula'}
                         </p>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <button
-                          onClick={() => handleOpenUserDocsModal(selectedUser)}
-                          title="Ver Archivos / Documentos del Usuario"
-                          style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '6px 12px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        >
-                          <FolderOpen size={14} />
-                          Ver Archivos Subidos
-                        </button>
-                        <button onClick={() => { setSelectedUser(null); setSelectedUserForms(null); }} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 6, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b' }}>
-                          <X size={14} />
-                        </button>
-                      </div>
+                      <button onClick={() => { setSelectedUser(null); setSelectedUserForms(null); }} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 6, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b' }}>
+                        <X size={14} />
+                      </button>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>
                       {selectedUserForms.length} formulario(s) encontrado(s)
@@ -1338,13 +804,6 @@ const AdminDashboard = () => {
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                   <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
                                   Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || 'Sin código'}) el {new Date(r.formDate).toLocaleDateString()}
-                                  <button
-                                    onClick={() => handleOpenUserDocsModal({ id: r.userId, name: r.userName, email: r.userEmail, uniqueCode: r.userCode })}
-                                    title="Ver Archivos / Documentos Subidos por este Usuario"
-                                    style={{ background: '#f0fdfa', border: '1px solid #99f6e4', color: '#0f766e', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                  >
-                                    <FolderOpen size={12} /> Archivos
-                                  </button>
                                 </div>
                             </div>
                             <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
@@ -1433,7 +892,7 @@ const AdminDashboard = () => {
                                         Object.entries(fd).map(([key, value], i) => (
                                           <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 12, background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                                             <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
-                                              {formatCamelCaseKey(key)}
+                                              {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                                             </td>
                                             <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
                                               {renderFormDataValue(value)}
@@ -1491,7 +950,7 @@ const AdminDashboard = () => {
                               Object.entries(viewingFormData.formData).map(([key, value], idx) => (
                                 <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 13, background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
                                   <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
-                                    {formatCamelCaseKey(key)}
+                                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                                   </td>
                                   <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
                                     {renderFormDataValue(value)}
@@ -1588,7 +1047,7 @@ const AdminDashboard = () => {
                             const baseIds = baseTypes.map(t => t.id);
                             const dynamicTypes = templates.filter(t => !baseIds.includes(t.name)).map(t => ({
                                 id: t.name,
-                                label: formatTemplateNameLabel(t.name) + ' (Dinámico)'
+                                label: t.name.replace(/_/g, ' ').toUpperCase() + ' (Dinámico)'
                             }));
                             const allTypes = [...baseTypes, ...dynamicTypes];
                             
@@ -1676,7 +1135,7 @@ const AdminDashboard = () => {
                               className="input-modern-admin" 
                               placeholder="Ej. contrato_arrendamiento" 
                               value={customTemplateName} 
-                              onChange={(e) => setCustomTemplateName(sanitizeCustomTemplateName(e.target.value))}
+                              onChange={(e) => setCustomTemplateName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '_'))}
                               required={templateUploadMode === 'custom'}
                             />
                         )}
@@ -1824,445 +1283,6 @@ const AdminDashboard = () => {
               <button type="submit" className="btn-primary" disabled={changingRole} style={{ marginTop: 10 }}>
                 {changingRole ? 'Guardando...' : 'Guardar Cambio'}
               </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showUserDocsModal && selectedUserForDocs && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', display: 'flex', flexDirection: 'column' }}>
-            
-            {/* Header */}
-            <div style={{ background: '#0f172a', padding: '20px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ background: 'rgba(45, 212, 191, 0.15)', border: '1px solid #2dd4bf', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FolderOpen size={22} color="#2dd4bf" />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'white' }}>
-                    Documentos Subidos por el Usuario
-                  </h3>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    <span>👤 <strong>{selectedUserForDocs.name}</strong></span>
-                    <span>📧 {selectedUserForDocs.email}</span>
-                    <span>🏷️ Code: <strong>{selectedUserForDocs.uniqueCode || 'Sin código'}</strong></span>
-                    {selectedUserForDocs.idNumber && <span>📄 ID: {selectedUserForDocs.idNumber}</span>}
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => { setShowUserDocsModal(false); setSelectedUserForDocs(null); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#94a3b8', borderRadius: 8, padding: 8, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Navigation Tabs */}
-            <div style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', gap: 16, overflowX: 'auto' }}>
-              <button
-                type="button"
-                onClick={() => setDocsActiveTab('personal')}
-                style={{
-                  padding: '14px 16px',
-                  border: 'none',
-                  borderBottom: docsActiveTab === 'personal' ? '3px solid #0f766e' : '3px solid transparent',
-                  background: 'transparent',
-                  color: docsActiveTab === 'personal' ? '#0f766e' : '#64748b',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FileText size={16} />
-                Documentos Personales ({(userDocsData.personalDocuments || []).length})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDocsActiveTab('forms')}
-                style={{
-                  padding: '14px 16px',
-                  border: 'none',
-                  borderBottom: docsActiveTab === 'forms' ? '3px solid #0f766e' : '3px solid transparent',
-                  background: 'transparent',
-                  color: docsActiveTab === 'forms' ? '#0f766e' : '#64748b',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <Building2 size={16} />
-                Formularios / Trámites Generados ({(userDocsData.userForms || []).length})
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setDocsActiveTab('signed')}
-                style={{
-                  padding: '14px 16px',
-                  border: 'none',
-                  borderBottom: docsActiveTab === 'signed' ? '3px solid #0f766e' : '3px solid transparent',
-                  background: 'transparent',
-                  color: docsActiveTab === 'signed' ? '#0f766e' : '#64748b',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FileCheck size={16} />
-                Documentos Firmados ({(userDocsData.signedDocuments || []).length})
-              </button>
-            </div>
-
-            {/* Content Body */}
-            <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
-              {userDocsLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
-                  <Clock size={32} style={{ marginBottom: 12, opacity: 0.6 }} />
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>Cargando documentos del usuario...</p>
-                </div>
-              ) : docsActiveTab === 'personal' ? (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>
-                      {lang === 'en' ? 'Uploaded Personal Files' : 'Archivos Personales Subidos'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowAdminUploadModal(true)}
-                      style={{ border: '1px solid #0f766e', background: '#0f766e', color: 'white', padding: '6px 14px', borderRadius: RADIUS, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <UploadCloud size={14} /> {lang === 'en' ? 'Upload / Replace File' : 'Subir / Reemplazar Documento'}
-                    </button>
-                  </div>
-                  {(userDocsData.personalDocuments || []).length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
-                      <FolderOpen size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>El usuario aún no ha subido documentos personales en su panel.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {(userDocsData.personalDocuments || []).map(doc => (
-                        <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', padding: 10, borderRadius: 8, color: '#0d9488' }}>
-                              <FileText size={20} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{doc.filename}</div>
-                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                Subido/Actualizado el: {new Date(doc.updatedAt || doc.createdAt).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                              type="button"
-                              onClick={() => handlePreviewUserDoc('personal', doc.id, doc.filename)}
-                              style={{ border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <ExternalLink size={14} /> Ver PDF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadUserDoc('personal', doc.id, doc.filename)}
-                              style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <Download size={14} /> Descargar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUserDoc(doc.id, doc.filename)}
-                              style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', padding: '8px 12px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                              title={lang === 'en' ? 'Delete document' : 'Eliminar documento'}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : docsActiveTab === 'forms' ? (
-                <div>
-                  {(userDocsData.userForms || []).length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
-                      <Building2 size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>El usuario no tiene formularios o trámites registrados en el sistema.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {(userDocsData.userForms || []).map(form => (
-                        <div key={form.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: 10, borderRadius: 8, color: '#d97706' }}>
-                              <Building2 size={20} />
-                            </div>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{form.entityName}</span>
-                                <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4 }}>
-                                  {form.formType}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                Código: <strong>{form.userUniqueCode || form.id}</strong> &middot; Actualizado el: {new Date(form.updatedAt || form.createdAt).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateFormPdf(form.id, form.formType)}
-                              style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <ExternalLink size={14} /> PDF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditFormModal(form)}
-                              style={{ border: '1px solid #fed7aa', background: '#fff7ed', color: '#c2410c', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <Edit2 size={14} /> {lang === 'en' ? 'Edit' : 'Editar'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUserForm(form.id, form.formType)}
-                              style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', padding: '8px 12px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                              title={lang === 'en' ? 'Delete form' : 'Eliminar trámite'}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  {(userDocsData.signedDocuments || []).length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
-                      <FileCheck size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#64748b' }}>El usuario no tiene documentos firmados subidos en el sistema.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {(userDocsData.signedDocuments || []).map(doc => (
-                        <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: 10, borderRadius: 8, color: '#2563eb' }}>
-                              <FileCheck size={20} />
-                            </div>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{doc.filename}</span>
-                                <span style={{
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  fontSize: '10px',
-                                  fontWeight: 800,
-                                  background: doc.signatureStatus === 'Firma Detectada' ? '#dcfce7' : '#fef3c7',
-                                  color: doc.signatureStatus === 'Firma Detectada' ? '#15803d' : '#92400e'
-                                }}>
-                                  {doc.signatureStatus || 'Firma Pendiente'}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                Subido el: {new Date(doc.updatedAt || doc.createdAt).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                              type="button"
-                              onClick={() => handlePreviewUserDoc('signed', doc.id, doc.filename)}
-                              style={{ border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <ExternalLink size={14} /> Ver PDF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadUserDoc('signed', doc.id, doc.filename)}
-                              style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <Download size={14} /> Descargar
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => { setShowUserDocsModal(false); setSelectedUserForDocs(null); }}
-                style={{ padding: '10px 24px', background: '#ffffff', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, fontWeight: 700, color: '#334155', cursor: 'pointer' }}
-              >
-                Cerrar
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Admin Edit User & Company Info Modal */}
-      {showEditUserModal && editingUser && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '100%', maxWidth: '550px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
-            <div style={{ background: '#0f172a', padding: '18px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Edit2 size={18} color="#2dd4bf" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
-                  {lang === 'en' ? 'Edit User & Company Information' : 'Editar Información de Usuario y Empresa'}
-                </h3>
-              </div>
-              <button onClick={() => setShowEditUserModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSaveUserEdit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="field-group-admin">
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'FULL NAME' : 'NOMBRE COMPLETO'}</label>
-                  <input className="input-modern-admin" type="text" value={userEditData.name} onChange={e => setUserEditData({ ...userEditData, name: e.target.value })} required />
-                </div>
-                <div className="field-group-admin">
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'EMAIL' : 'CORREO ELECTRÓNICO'}</label>
-                  <input className="input-modern-admin" type="email" value={userEditData.email} onChange={e => setUserEditData({ ...userEditData, email: e.target.value })} required />
-                </div>
-                <div className="field-group-admin">
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'PHONE' : 'TELÉFONO'}</label>
-                  <input className="input-modern-admin" type="text" value={userEditData.phone} onChange={e => setUserEditData({ ...userEditData, phone: e.target.value })} placeholder="+593 999 999 999" />
-                </div>
-                <div className="field-group-admin">
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'STATUS' : 'ESTADO'}</label>
-                  <select className="input-modern-admin" value={userEditData.status} onChange={e => setUserEditData({ ...userEditData, status: e.target.value })}>
-                    <option value="authorized">AUTORIZADO / ACTIVE</option>
-                    <option value="blocked">BLOQUEADO / INACTIVE</option>
-                  </select>
-                </div>
-                <div className="field-group-admin" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'COMPANY NAME / RAZÓN SOCIAL' : 'RAZÓN SOCIAL / NOMBRE DE LA EMPRESA'}</label>
-                  <input className="input-modern-admin" type="text" value={userEditData.companyName} onChange={e => setUserEditData({ ...userEditData, companyName: e.target.value })} placeholder="Ej: EDWIN S.A." />
-                </div>
-                <div className="field-group-admin">
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'RUC / TAX ID' : 'RUC / NO. IDENTIFICACIÓN FISCAL'}</label>
-                  <input className="input-modern-admin" type="text" value={userEditData.taxId} onChange={e => setUserEditData({ ...userEditData, taxId: e.target.value })} placeholder="Ej: 1790000000001" />
-                </div>
-                <div className="field-group-admin">
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'ROLE' : 'ROL DEL SISTEMA'}</label>
-                  <select className="input-modern-admin" value={userEditData.roleOverride} onChange={e => setUserEditData({ ...userEditData, roleOverride: e.target.value })}>
-                    <option value="client">CLIENTE NORMAL</option>
-                    <option value="manager">ADMINISTRADOR USUARIOS</option>
-                    <option value="master">ADMINISTRADOR MAESTRO</option>
-                  </select>
-                </div>
-                <div className="field-group-admin" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'REGISTERED ADDRESS' : 'DIRECCIÓN REGISTRADA / DOMICILIO SOCIAL'}</label>
-                  <input className="input-modern-admin" type="text" value={userEditData.address} onChange={e => setUserEditData({ ...userEditData, address: e.target.value })} placeholder="Dirección completa..." />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-                <button type="button" onClick={() => setShowEditUserModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
-                </button>
-                <button type="submit" disabled={savingUserEdit} className="btn-primary" style={{ padding: '9px 24px', fontSize: 12 }}>
-                  {savingUserEdit ? (lang === 'en' ? 'SAVING...' : 'GUARDANDO...') : (lang === 'en' ? 'SAVE CHANGES' : 'GUARDAR CAMBIOS')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Upload Document for User Modal */}
-      {showAdminUploadModal && selectedUserForDocs && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
-            <div style={{ background: '#0f172a', padding: '18px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <UploadCloud size={18} color="#2dd4bf" />
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>
-                  {lang === 'en' ? 'Upload Document for User' : 'Subir Documento para Usuario'}
-                </h3>
-              </div>
-              <button onClick={() => setShowAdminUploadModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleAdminUploadDoc} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'DOCUMENT TYPE' : 'TIPO DE DOCUMENTO'}</label>
-                <select className="input-modern-admin" value={adminUploadDocType} onChange={e => setAdminUploadDocType(e.target.value)}>
-                  <option value="Identificación / Cédula / Pasaporte">Identificación / Cédula / Pasaporte</option>
-                  <option value="Comprobante de Domicilio">Comprobante de Domicilio</option>
-                  <option value="Registro Mercantil / RUC">Registro Mercantil / RUC</option>
-                  <option value="Documento Personal / Otros">Documento Personal / Otros</option>
-                </select>
-              </div>
-              <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'PDF FILE' : 'ARCHIVO PDF'}</label>
-                <input type="file" accept="application/pdf" onChange={e => setAdminUploadFile(e.target.files[0])} className="input-modern-admin" required />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-                <button type="button" onClick={() => setShowAdminUploadModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
-                </button>
-                <button type="submit" disabled={uploadingAdminDoc} className="btn-primary" style={{ padding: '9px 24px', fontSize: 12 }}>
-                  {uploadingAdminDoc ? (lang === 'en' ? 'UPLOADING...' : 'SUBIENDO...') : (lang === 'en' ? 'UPLOAD FILE' : 'SUBIR ARCHIVO')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Edit Form Data Modal */}
-      {showEditFormModal && editingForm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '100%', maxWidth: '750px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
-            <div style={{ background: '#0f172a', padding: '18px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Edit2 size={18} color="#2dd4bf" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
-                  {lang === 'en' ? 'Edit Form Data' : 'Editar Datos del Formulario'} ({editingForm.formType})
-                </h3>
-              </div>
-              <button onClick={() => setShowEditFormModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSaveAdminForm} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, overflowY: 'auto' }}>
-              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                {lang === 'en' ? 'Modify the JSON structure below to update form details:' : 'Modifique la estructura JSON para actualizar cualquier información del formulario:'}
-              </div>
-              <textarea
-                value={editingFormJson}
-                onChange={e => setEditingFormJson(e.target.value)}
-                style={{ width: '100%', minHeight: '350px', fontFamily: 'monospace', fontSize: 12, padding: 14, border: `1px solid ${BORDER}`, borderRadius: RADIUS, background: '#0f172a', color: '#38bdf8', lineHeight: 1.5 }}
-                required
-              />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-                <button type="button" onClick={() => setShowEditFormModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
-                </button>
-                <button type="submit" disabled={savingFormEdit} className="btn-primary" style={{ padding: '9px 24px', fontSize: 12 }}>
-                  {savingFormEdit ? (lang === 'en' ? 'SAVING...' : 'GUARDANDO...') : (lang === 'en' ? 'SAVE FORM CHANGES' : 'GUARDAR CAMBIOS DEL TRÁMITE')}
-                </button>
-              </div>
             </form>
           </div>
         </div>

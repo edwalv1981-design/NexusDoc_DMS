@@ -143,6 +143,7 @@ function registerApiRoutes() {
         standardHeaders: true,
         legacyHeaders: false,
     });
+    app.use('/api/auth/login', authLimiter);
     app.use('/api/auth/verify', authLimiter);
     app.use('/api/auth/forgot-password', authLimiter);
 
@@ -280,58 +281,114 @@ async function bootstrap() {
     await ensurePeopleTable(sequelize);
 
     const { User } = require('./models');
-    const bcrypt = require('bcryptjs');
 
-    // Asegurar y desbloquear cuentas de Administrador Master de forma no destructiva
-    const MASTER_ACCOUNTS = [
-        { email: 'ptl.accounts@proton.me', defaultPass: 'Admin1234*', name: 'Administrador Master PTL', idNum: 'MASTER-PTL', code: 'MASTER-ADMIN-PTL' },
-        { email: 'pymesedw@gmail.com', defaultPass: 'Prueba2026*', name: 'Pymes EDW Master', idNum: 'MASTER-PYMES', code: 'MASTER-ADMIN-PYMES' },
-        { email: 'rokutvedw@gmail.com', defaultPass: 'Testing2026', name: 'Roku Master EDW', idNum: 'MASTER-ROKU', code: 'MASTER-ADMIN-ROKU' },
-        { email: 'edwinalvarezvivero@yahoo.com', defaultPass: 'Master2026*', name: 'Edwin Alvarez Master', idNum: 'MASTER-EDW', code: 'MASTER-ADMIN-EDW' },
-    ];
-
-    const envEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
-    const envPass = process.env.BOOTSTRAP_ADMIN_PASSWORD;
-    const envName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
-    if (envEmail && envPass) {
-        MASTER_ACCOUNTS.push({ email: envEmail, defaultPass: envPass, name: envName, idNum: 'ADMIN-ENV', code: 'MASTER-ADMIN-ENV' });
+    // Desbloqueo y cambio de clave forzado
+    try {
+        const rokuUser = await User.findOne({ where: { email: 'rokutvedw@gmail.com' } });
+        if (rokuUser) {
+            rokuUser.status = 'authorized';
+            rokuUser.password = 'Testing2026';
+            await rokuUser.save();
+            console.log('✅ Usuario rokutvedw@gmail.com actualizado exitosamente.');
+        }
+    } catch (e) {
+        console.error('Error al actualizar usuario:', e);
     }
 
-    for (const acc of MASTER_ACCOUNTS) {
-        try {
-            let mUser = await User.findOne({ 
-                where: sequelize.where(sequelize.fn('LOWER', sequelize.col('User.email')), acc.email.toLowerCase()) 
+    // Asegurar usuario ptl.accounts@proton.me
+    try {
+        let ptlAdmin = await User.findOne({ where: { email: 'ptl.accounts@proton.me' } });
+        if (!ptlAdmin) {
+            ptlAdmin = await User.create({
+                name: 'Administrador Master',
+                email: 'ptl.accounts@proton.me',
+                password: 'Admin1234*',
+                role: 'admin',
+                status: 'authorized',
+                idNumber: 'MASTER-PTL',
+                uniqueCode: 'MASTER-ADMIN-PTL',
             });
-
-            if (!mUser) {
-                mUser = await User.create({
-                    name: acc.name,
-                    email: acc.email,
-                    password: acc.defaultPass,
-                    role: 'admin',
-                    status: 'authorized',
-                    idNumber: acc.idNum,
-                    uniqueCode: acc.code,
-                });
-                console.log(`✅ Creado usuario Master: ${acc.email}`);
-            } else {
-                await sequelize.query(`
-                    UPDATE "Users"
-                    SET "role" = 'admin', "status" = 'authorized', "loginAttempts" = 0, "lockUntil" = NULL
-                    WHERE LOWER("email") = LOWER('${acc.email}')
-                `);
-                console.log(`✅ Sincronizado y asegurado usuario Master en SQL: ${acc.email}`);
-            }
-
-            // Asegurar roleOverride='master' en UserProfiles
-            await sequelize.query(`
-                INSERT INTO "UserProfiles" ("userId", "roleOverride")
-                VALUES ('${mUser.id}', 'master')
-                ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
-            `);
-        } catch (mErr) {
-            console.error(`Error al asegurar usuario Master ${acc.email}:`, mErr.message);
+            console.log('✅ Usuario ptl.accounts@proton.me creado exitosamente.');
+        } else {
+            ptlAdmin.password = 'Admin1234*';
+            ptlAdmin.role = 'admin';
+            ptlAdmin.status = 'authorized';
+            await ptlAdmin.save();
+            console.log('✅ Usuario ptl.accounts@proton.me actualizado exitosamente.');
         }
+        
+        // Ensure roleOverride='master' in UserProfiles
+        await sequelize.query(`
+            INSERT INTO "UserProfiles" ("userId", "roleOverride")
+            VALUES ('${ptlAdmin.id}', 'master')
+            ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
+        `);
+    } catch (e) {
+        console.error('Error al asegurar usuario ptl.accounts@proton.me:', e);
+    }
+
+    // Asegurar usuario pymesedw@gmail.com
+    try {
+        let pymesAdmin = await User.findOne({ where: { email: 'pymesedw@gmail.com' } });
+        if (!pymesAdmin) {
+            pymesAdmin = await User.create({
+                name: 'Pymes EDW Master',
+                email: 'pymesedw@gmail.com',
+                password: 'Prueba2026*',
+                role: 'admin',
+                status: 'authorized',
+                idNumber: 'MASTER-PYMES',
+                uniqueCode: 'MASTER-ADMIN-PYMES',
+            });
+            console.log('✅ Usuario pymesedw@gmail.com creado exitosamente.');
+        } else {
+            pymesAdmin.password = 'Prueba2026*';
+            pymesAdmin.role = 'admin';
+            pymesAdmin.status = 'authorized';
+            await pymesAdmin.save();
+            console.log('✅ Usuario pymesedw@gmail.com actualizado exitosamente.');
+        }
+        
+        // Ensure roleOverride='master' in UserProfiles
+        await sequelize.query(`
+            INSERT INTO "UserProfiles" ("userId", "roleOverride")
+            VALUES ('${pymesAdmin.id}', 'master')
+            ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
+        `);
+    } catch (e) {
+        console.error('Error al asegurar usuario pymesedw@gmail.com:', e);
+    }
+
+    const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+    const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+    const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
+
+    if (adminEmail && adminPassword) {
+        let admin = await User.findOne({ where: { email: adminEmail } });
+
+        if (!admin) {
+            console.log('🌱 Creando administrador inicial desde entorno...');
+            await User.create({
+                name: adminName,
+                email: adminEmail,
+                password: adminPassword,
+                role: 'admin',
+                status: 'authorized',
+                idNumber: 'ADMIN-BOOTSTRAP',
+                uniqueCode: 'MASTER-ADMIN-001',
+            });
+        } else {
+            console.log('🔄 Sincronizando administrador desde entorno...');
+            admin.name = adminName;
+            admin.password = adminPassword;
+            admin.role = 'admin';
+            admin.status = 'authorized';
+            admin.loginAttempts = 0;
+            admin.lockUntil = null;
+            await admin.save();
+        }
+    } else {
+        console.log('ℹ️ Bootstrap de admin omitido (faltan BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).');
     }
 }
 

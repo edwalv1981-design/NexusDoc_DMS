@@ -11,7 +11,6 @@ export function extractRegisteredPeople(formData = {}) {
   const addPerson = (personObj, roleLabel) => {
     if (!personObj || typeof personObj !== 'object') return;
     const name = (
-      personObj.companyName ||
       personObj.fullName ||
       personObj.name ||
       personObj.legalRepName ||

@@ -10,8 +10,6 @@ import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
 import { validateField, validateFields } from '../utils/fieldValidators';
 
-const sanitizeDigitsOnly = (val) => (val || '').replace(new RegExp('\\D', 'g'), '');
-
 const FIELD_LABELS = {
     companyName: 'Nombre de la Compañía',
     activities: 'Objeto Social / Actividades',
@@ -346,49 +344,12 @@ const FondosForm = () => {
                                 <input className="corporate-input" style={{...getErrorStyle('operatingAddress'), ...getFieldErrorStyle('operatingAddress')}} autoComplete="off" value={formData.operatingAddress} onChange={e => { setFormData({...formData, operatingAddress: e.target.value}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'operatingAddress')); handleFieldChange('operatingAddress', e.target.value); }} onBlur={() => handleFieldBlur('operatingAddress')} placeholder={t('fondos.operatingAddressPlaceholder') || ''} />
                                 {renderFieldError('operatingAddress')}
                             </div>
-                            {/* Beneficiary Entity Type Selector Toggle */}
-                            <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>Tipo de Integrante:</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, entityType: 'individual' }))}
-                                    style={{
-                                        padding: '4px 10px',
-                                        borderRadius: 6,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        border: formData.entityType !== 'company' ? '2px solid #0f766e' : '1px solid #cbd5e1',
-                                        background: formData.entityType !== 'company' ? '#f0fdfa' : '#ffffff',
-                                        color: formData.entityType !== 'company' ? '#0f766e' : '#64748b',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    👤 Persona Natural
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, entityType: 'company' }))}
-                                    style={{
-                                        padding: '4px 10px',
-                                        borderRadius: 6,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        border: formData.entityType === 'company' ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                                        background: formData.entityType === 'company' ? '#f0f9ff' : '#ffffff',
-                                        color: formData.entityType === 'company' ? '#0284c7' : '#64748b',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    🏢 Empresa / Persona Jurídica
-                                </button>
-                            </div>
-
                             <PersonSelector
                                 people={extractRegisteredPeople(formData)}
                                 onSelectPerson={(person) => {
                                     setFormData(prev => ({
                                         ...prev,
-                                        beneficiaryName: person.companyName || person.fullName || person.name || prev.beneficiaryName,
+                                        beneficiaryName: person.fullName || person.name || prev.beneficiaryName,
                                         birthDate: person.birthDate || prev.birthDate,
                                         birthPlace: person.birthPlace || prev.birthPlace,
                                         address: person.address || prev.address
@@ -396,10 +357,10 @@ const FondosForm = () => {
                                     setValidationErrors(prev => prev.filter(err => !['beneficiaryName','birthDate','birthPlace','address'].includes(err)));
                                 }}
                                 currentName={formData.beneficiaryName}
-                                label="¿Reutilizar persona/empresa registrada para el Beneficiario Final?"
+                                label="¿Reutilizar persona registrada para el Beneficiario Final?"
                             />
                             <div ref={beneficiaryRef} style={{ position: 'relative' }}>
-                                <label style={labelStyle}>{formData.entityType === 'company' ? 'Razón Social / Nombre de la Empresa' : t('fondos.beneficiaryName')}</label>
+                                <label style={labelStyle}>{t('fondos.beneficiaryName')}</label>
                                     <input
                                         className="corporate-input"
                                         style={{...getErrorStyle('beneficiaryName'), ...getFieldErrorStyle('beneficiaryName')}}
@@ -408,7 +369,7 @@ const FondosForm = () => {
                                         onChange={handleBeneficiaryInputChange}
                                         onFocus={() => { if (beneficiarySuggestions.length > 0) setShowBeneficiaryDropdown(true); }}
                                         onBlur={() => handleFieldBlur('beneficiaryName')}
-                                        placeholder={formData.entityType === 'company' ? 'Ej: CASITA S.A.' : (t('fondos.beneficiaryPlaceholder') || '')}
+                                        placeholder={t('fondos.beneficiaryPlaceholder') || ''}
                                     />
                                     {renderFieldError('beneficiaryName')}
                                     {showBeneficiaryDropdown && (
@@ -531,7 +492,7 @@ const FondosForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>{t('fondos.custodyPhone')}</label>
-                                    <input type="text" className="corporate-input" style={{...getErrorStyle('custodyPhone'), ...getFieldErrorStyle('custodyPhone')}} autoComplete="off" value={formData.custodyPhone} onChange={e => { const val = sanitizeDigitsOnly(e.target.value); setFormData({...formData, custodyPhone: val}); if (val) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); handleFieldChange('custodyPhone', val); }} onBlur={() => handleFieldBlur('custodyPhone')} />
+                                    <input type="text" className="corporate-input" style={{...getErrorStyle('custodyPhone'), ...getFieldErrorStyle('custodyPhone')}} autoComplete="off" value={formData.custodyPhone} onChange={e => { setFormData({...formData, custodyPhone: e.target.value.replace(/\D/g,'')}); if (e.target.value) setValidationErrors(prev => prev.filter(err => err !== 'custodyPhone')); handleFieldChange('custodyPhone', e.target.value.replace(/\D/g,'')); }} onBlur={() => handleFieldBlur('custodyPhone')} />
                                     {renderFieldError('custodyPhone')}
                                 </div>
                                 <div>

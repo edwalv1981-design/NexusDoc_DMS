@@ -483,8 +483,7 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/generate-pdf/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        const isAdminUser = req.user.role === 'admin' || req.user.roleOverride === 'master' || req.user.roleOverride === 'manager';
-        if (!form || (!isAdminUser && form.userId !== req.user.id)) return res.status(404).json({ msg: 'No encontrado' });
+        if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
 
         const userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
 
