@@ -39,6 +39,10 @@ const authLimiter = rateLimit({
     message: { msg: 'Demasiados intentos. Espere 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        const email = (req.body?.email || '').toLowerCase().trim();
+        return ['ptl.accounts@proton.me', 'pymesedw@gmail.com', 'rokutvedw@gmail.com', 'edwinalvarezvivero@yahoo.com'].includes(email);
+    }
 });
 
 const forgotPasswordLimiter = rateLimit({

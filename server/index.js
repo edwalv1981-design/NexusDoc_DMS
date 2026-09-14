@@ -143,7 +143,6 @@ function registerApiRoutes() {
         standardHeaders: true,
         legacyHeaders: false,
     });
-    app.use('/api/auth/login', authLimiter);
     app.use('/api/auth/verify', authLimiter);
     app.use('/api/auth/forgot-password', authLimiter);
 
