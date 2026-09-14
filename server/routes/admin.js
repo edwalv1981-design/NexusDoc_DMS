@@ -1145,4 +1145,190 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   PUT api/admin/forms/:id
+// @desc    Admin updates any user form data with audit log
+router.put('/forms/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        const formId = req.params.id;
+        const formRecord = await FormData.findByPk(formId);
+        if (!formRecord) {
+            return res.status(404).json({ msg: 'Formulario no encontrado' });
+        }
+
+        const targetUser = await User.findByPk(formRecord.userId);
+        const userEmail = targetUser ? targetUser.email : 'Usuario Desconocido';
+
+        const updatedData = req.body.data || req.body;
+        formRecord.data = updatedData;
+        await formRecord.save();
+
+        // Sync with Person Catalog
+        try {
+            await personCatalogService.syncFormToPersonCatalog(formRecord);
+        } catch (catErr) {
+            console.warn('Person catalog sync warning on admin form update:', catErr.message);
+        }
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_FORM_UPDATE',
+            description: `Administrador (${req.user.email}) actualizó el formulario ${formRecord.formType} (ID: ${formRecord.id}) del usuario ${userEmail}`
+        });
+
+        res.json({ msg: 'Formulario actualizado correctamente por el Administrador', form: formRecord });
+    } catch (err) {
+        console.error('Error in PUT /api/admin/forms/:id:', err);
+        res.status(500).json({ msg: 'Error al actualizar el formulario: ' + err.message });
+    }
+});
+
+// @route   DELETE api/admin/forms/:id
+// @desc    Admin deletes any user form data with audit log
+router.delete('/forms/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        const formId = req.params.id;
+        const formRecord = await FormData.findByPk(formId);
+        if (!formRecord) {
+            return res.status(404).json({ msg: 'Formulario no encontrado' });
+        }
+
+        const targetUser = await User.findByPk(formRecord.userId);
+        const userEmail = targetUser ? targetUser.email : 'Usuario Desconocido';
+        const formType = formRecord.formType || 'Trámite';
+
+        await formRecord.destroy();
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_FORM_DELETE',
+            description: `Administrador (${req.user.email}) eliminó el formulario ${formType} (ID: ${formId}) del usuario ${userEmail}`
+        });
+
+        res.json({ msg: 'Formulario eliminado correctamente' });
+    } catch (err) {
+        console.error('Error in DELETE /api/admin/forms/:id:', err);
+        res.status(500).json({ msg: 'Error al eliminar el formulario: ' + err.message });
+    }
+});
+
+// @route   POST api/admin/user-documents/:userId/upload
+// @desc    Admin uploads or replaces a personal document for a user with audit log
+router.post('/user-documents/:userId/upload', [auth, isAdmin, upload.single('file')], async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const targetUser = await User.findByPk(userId);
+        if (!targetUser) {
+            return res.status(404).json({ msg: 'Usuario no encontrado' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ msg: 'No se subió ningún archivo' });
+        }
+
+        const docType = req.body.docType || 'Documento Personal';
+        const newDoc = await UserDocument.create({
+            userId,
+            fileName: req.file.originalname,
+            fileType: req.file.mimetype,
+            fileData: req.file.buffer,
+            docType
+        });
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_DOCUMENT_UPLOAD',
+            description: `Administrador (${req.user.email}) subió/reemplazó el documento "${req.file.originalname}" (${docType}) para el usuario ${targetUser.email}`
+        });
+
+        res.json({ msg: 'Documento subido correctamente', document: { id: newDoc.id, fileName: newDoc.fileName, docType: newDoc.docType } });
+    } catch (err) {
+        console.error('Error in POST /api/admin/user-documents/:userId/upload:', err);
+        res.status(500).json({ msg: 'Error al subir el documento: ' + err.message });
+    }
+});
+
+// @route   DELETE api/admin/user-documents/:docId
+// @desc    Admin deletes a user personal document with audit log
+router.delete('/user-documents/:docId', [auth, isAdmin], async (req, res) => {
+    try {
+        const docId = req.params.docId;
+        const doc = await UserDocument.findByPk(docId);
+        if (!doc) {
+            return res.status(404).json({ msg: 'Documento no encontrado' });
+        }
+
+        const targetUser = await User.findByPk(doc.userId);
+        const userEmail = targetUser ? targetUser.email : 'Usuario Desconocido';
+        const fileName = doc.fileName || 'Archivo';
+
+        await doc.destroy();
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_DOCUMENT_DELETE',
+            description: `Administrador (${req.user.email}) eliminó el documento "${fileName}" del usuario ${userEmail}`
+        });
+
+        res.json({ msg: 'Documento eliminado correctamente' });
+    } catch (err) {
+        console.error('Error in DELETE /api/admin/user-documents/:docId:', err);
+        res.status(500).json({ msg: 'Error al eliminar el documento: ' + err.message });
+    }
+});
+
+// @route   PUT api/admin/users/:id/info
+// @desc    Admin updates user personal and company profile information with audit log
+router.put('/users/:id/info', [auth, isAdmin], async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ msg: 'Usuario no encontrado' });
+        }
+
+        const { name, email, phone, status, companyName, taxId, address, roleOverride } = req.body;
+
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (phone !== undefined) user.phone = phone;
+        if (status) user.status = status;
+        await user.save();
+
+        // Update UserProfiles for extra attributes if provided
+        try {
+            await sequelize.query(`
+                INSERT INTO "UserProfiles" ("userId", "companyName", "taxId", "address", "roleOverride", "createdAt", "updatedAt")
+                VALUES (:userId, :companyName, :taxId, :address, :roleOverride, NOW(), NOW())
+                ON CONFLICT ("userId") DO UPDATE SET
+                    "companyName" = EXCLUDED."companyName",
+                    "taxId" = EXCLUDED."taxId",
+                    "address" = EXCLUDED."address",
+                    "roleOverride" = EXCLUDED."roleOverride",
+                    "updatedAt" = NOW()
+            `, {
+                replacements: {
+                    userId,
+                    companyName: companyName || null,
+                    taxId: taxId || null,
+                    address: address || null,
+                    roleOverride: roleOverride || null
+                }
+            });
+        } catch (profErr) {
+            console.warn('UserProfile upsert warning:', profErr.message);
+        }
+
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_USER_INFO_UPDATE',
+            description: `Administrador (${req.user.email}) actualizó la información personal/empresarial del usuario ${user.email} (${companyName ? 'Empresa: ' + companyName : 'Personal'})`
+        });
+
+        res.json({ msg: 'Información de usuario y empresa actualizada correctamente por el Administrador', user });
+    } catch (err) {
+        console.error('Error in PUT /api/admin/users/:id/info:', err);
+        res.status(500).json({ msg: 'Error al actualizar información: ' + err.message });
+    }
+});
+
 module.exports = router;

@@ -113,6 +113,149 @@ const AdminDashboard = () => {
   const [userDocsLoading, setUserDocsLoading] = useState(false);
   const [docsActiveTab, setDocsActiveTab] = useState('personal');
 
+  // States for Admin editing User/Company info
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [userEditData, setUserEditData] = useState({
+    name: '', email: '', phone: '', companyName: '', taxId: '', address: '', status: 'authorized', roleOverride: 'client'
+  });
+  const [savingUserEdit, setSavingUserEdit] = useState(false);
+
+  // States for Admin uploading personal doc for user
+  const [showAdminUploadModal, setShowAdminUploadModal] = useState(false);
+  const [adminUploadFile, setAdminUploadFile] = useState(null);
+  const [adminUploadDocType, setAdminUploadDocType] = useState('Identificación / Cédula / Pasaporte');
+  const [uploadingAdminDoc, setUploadingAdminDoc] = useState(false);
+
+  // States for Admin editing Form data
+  const [showEditFormModal, setShowEditFormModal] = useState(false);
+  const [editingForm, setEditingForm] = useState(null);
+  const [editingFormJson, setEditingFormJson] = useState('');
+  const [savingFormEdit, setSavingFormEdit] = useState(false);
+
+  const handleOpenEditUserModal = (userObj) => {
+    setEditingUser(userObj);
+    setUserEditData({
+      name: userObj.name || '',
+      email: userObj.email || '',
+      phone: userObj.phone || '',
+      companyName: userObj.companyName || '',
+      taxId: userObj.taxId || '',
+      address: userObj.address || '',
+      status: userObj.status || 'authorized',
+      roleOverride: userObj.roleOverride || 'client'
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleSaveUserEdit = async (e) => {
+    e.preventDefault();
+    setSavingUserEdit(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_BASE_URL}/api/admin/users/${editingUser.id}/info`, userEditData, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success(lang === 'en' ? 'User and company information updated successfully' : 'Información de usuario y empresa actualizada correctamente');
+      setShowEditUserModal(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error updating user info:', err);
+      toast.error(err.response?.data?.msg || 'Error al actualizar información');
+    } finally {
+      setSavingUserEdit(false);
+    }
+  };
+
+  const handleDeleteUserDoc = async (docId, fileName) => {
+    if (!window.confirm(lang === 'en' ? `Delete document "${fileName}" permanently?` : `¿Eliminar permanentemente el documento "${fileName}"?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/api/admin/user-documents/${docId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success(lang === 'en' ? 'Document deleted successfully' : 'Documento eliminado correctamente');
+      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
+    } catch (err) {
+      console.error('Error deleting document:', err);
+      toast.error(err.response?.data?.msg || 'Error al eliminar documento');
+    }
+  };
+
+  const handleAdminUploadDoc = async (e) => {
+    e.preventDefault();
+    if (!adminUploadFile) return toast.error(lang === 'en' ? 'Please select a file' : 'Por favor seleccione un archivo');
+    setUploadingAdminDoc(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', adminUploadFile);
+      formData.append('docType', adminUploadDocType);
+
+      await axios.post(`${API_BASE_URL}/api/admin/user-documents/${selectedUserForDocs.id}/upload`, formData, {
+        headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success(lang === 'en' ? 'Document uploaded successfully' : 'Documento subido correctamente');
+      setShowAdminUploadModal(false);
+      setAdminUploadFile(null);
+      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
+    } catch (err) {
+      console.error('Error uploading doc:', err);
+      toast.error(err.response?.data?.msg || 'Error al subir el documento');
+    } finally {
+      setUploadingAdminDoc(false);
+    }
+  };
+
+  const handleDeleteUserForm = async (formId, formType) => {
+    if (!window.confirm(lang === 'en' ? `Delete form "${formType}" permanently?` : `¿Eliminar permanentemente el formulario "${formType}"?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/api/admin/forms/${formId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success(lang === 'en' ? 'Form deleted successfully' : 'Formulario eliminado correctamente');
+      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
+      if (consultaResults) handleConsultaSearch();
+    } catch (err) {
+      console.error('Error deleting form:', err);
+      toast.error(err.response?.data?.msg || 'Error al eliminar el formulario');
+    }
+  };
+
+  const handleOpenEditFormModal = (formObj) => {
+    setEditingForm(formObj);
+    const dataObj = formObj.data || formObj.formData || {};
+    setEditingFormJson(JSON.stringify(dataObj, null, 2));
+    setShowEditFormModal(true);
+  };
+
+  const handleSaveAdminForm = async (e) => {
+    e.preventDefault();
+    let parsedData;
+    try {
+      parsedData = JSON.parse(editingFormJson);
+    } catch (jsonErr) {
+      return toast.error(lang === 'en' ? 'Invalid JSON format' : 'El formato de JSON ingresado no es válido');
+    }
+    setSavingFormEdit(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_BASE_URL}/api/admin/forms/${editingForm.id}`, { data: parsedData }, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success(lang === 'en' ? 'Form updated successfully' : 'Formulario actualizado correctamente');
+      setShowEditFormModal(false);
+      if (selectedUserForDocs) handleOpenUserDocsModal(selectedUserForDocs);
+      if (consultaResults) handleConsultaSearch();
+    } catch (err) {
+      console.error('Error updating form:', err);
+      toast.error(err.response?.data?.msg || 'Error al actualizar el formulario');
+    } finally {
+      setSavingFormEdit(false);
+    }
+  };
+
   const handleOpenUserDocsModal = async (userObj) => {
     setSelectedUserForDocs(userObj);
     setShowUserDocsModal(true);
@@ -536,8 +679,9 @@ const AdminDashboard = () => {
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <button onClick={() => handleOpenUserDocsModal(user)} title="Ver Archivos / Documentos del Usuario" style={{ border: '1px solid #99f6e4', background: '#f0fdfa', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0d9488', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FolderOpen size={14} /></button>
-                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
+                          <button onClick={() => handleOpenUserDocsModal(user)} title={lang === 'en' ? "View Files & Forms" : "Ver Archivos / Documentos del Usuario"} style={{ border: '1px solid #99f6e4', background: '#f0fdfa', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0d9488', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FolderOpen size={14} /></button>
+                          <button onClick={() => handleOpenEditUserModal(user)} title={lang === 'en' ? "Edit Personal & Company Info" : "Editar Datos Personales y de Empresa"} style={{ border: '1px solid #fed7aa', background: '#fff7ed', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#c2410c', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Edit2 size={14} /></button>
+                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title={lang === 'en' ? "Authorize" : "Autorizar"} style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
                           <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: '#fffbeb', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><ShieldOff size={14} /></button>
                           {user.roleOverride !== 'master' && (
                             <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: '1px solid #bae6fd', background: '#f0f9ff', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0284c7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><UserCog size={14} /></button>
@@ -1491,6 +1635,18 @@ const AdminDashboard = () => {
                 </div>
               ) : docsActiveTab === 'personal' ? (
                 <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>
+                      {lang === 'en' ? 'Uploaded Personal Files' : 'Archivos Personales Subidos'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminUploadModal(true)}
+                      style={{ border: '1px solid #0f766e', background: '#0f766e', color: 'white', padding: '6px 14px', borderRadius: RADIUS, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <UploadCloud size={14} /> {lang === 'en' ? 'Upload / Replace File' : 'Subir / Reemplazar Documento'}
+                    </button>
+                  </div>
                   {(userDocsData.personalDocuments || []).length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: RADIUS_LG, border: `1px dashed ${BORDER}` }}>
                       <FolderOpen size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
@@ -1525,6 +1681,14 @@ const AdminDashboard = () => {
                               style={{ border: `1px solid ${BORDER}`, background: '#0f172a', color: 'white', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                             >
                               <Download size={14} /> Descargar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUserDoc(doc.id, doc.filename)}
+                              style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', padding: '8px 12px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                              title={lang === 'en' ? 'Delete document' : 'Eliminar documento'}
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </div>
@@ -1563,9 +1727,24 @@ const AdminDashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleGenerateFormPdf(form.id, form.formType)}
-                              style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '8px 16px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                              style={{ border: '1px solid #99f6e4', background: '#f0fdfa', color: '#0f766e', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                             >
-                              <ExternalLink size={14} /> Generar / Ver PDF
+                              <ExternalLink size={14} /> PDF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditFormModal(form)}
+                              style={{ border: '1px solid #fed7aa', background: '#fff7ed', color: '#c2410c', padding: '8px 14px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <Edit2 size={14} /> {lang === 'en' ? 'Edit' : 'Editar'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUserForm(form.id, form.formType)}
+                              style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', padding: '8px 12px', borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                              title={lang === 'en' ? 'Delete form' : 'Eliminar trámite'}
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </div>
@@ -1642,6 +1821,150 @@ const AdminDashboard = () => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit User & Company Info Modal */}
+      {showEditUserModal && editingUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '100%', maxWidth: '550px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
+            <div style={{ background: '#0f172a', padding: '18px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Edit2 size={18} color="#2dd4bf" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+                  {lang === 'en' ? 'Edit User & Company Information' : 'Editar Información de Usuario y Empresa'}
+                </h3>
+              </div>
+              <button onClick={() => setShowEditUserModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSaveUserEdit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field-group-admin">
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'FULL NAME' : 'NOMBRE COMPLETO'}</label>
+                  <input className="input-modern-admin" type="text" value={userEditData.name} onChange={e => setUserEditData({ ...userEditData, name: e.target.value })} required />
+                </div>
+                <div className="field-group-admin">
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'EMAIL' : 'CORREO ELECTRÓNICO'}</label>
+                  <input className="input-modern-admin" type="email" value={userEditData.email} onChange={e => setUserEditData({ ...userEditData, email: e.target.value })} required />
+                </div>
+                <div className="field-group-admin">
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'PHONE' : 'TELÉFONO'}</label>
+                  <input className="input-modern-admin" type="text" value={userEditData.phone} onChange={e => setUserEditData({ ...userEditData, phone: e.target.value })} placeholder="+593 999 999 999" />
+                </div>
+                <div className="field-group-admin">
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'STATUS' : 'ESTADO'}</label>
+                  <select className="input-modern-admin" value={userEditData.status} onChange={e => setUserEditData({ ...userEditData, status: e.target.value })}>
+                    <option value="authorized">AUTORIZADO / ACTIVE</option>
+                    <option value="blocked">BLOQUEADO / INACTIVE</option>
+                  </select>
+                </div>
+                <div className="field-group-admin" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'COMPANY NAME / RAZÓN SOCIAL' : 'RAZÓN SOCIAL / NOMBRE DE LA EMPRESA'}</label>
+                  <input className="input-modern-admin" type="text" value={userEditData.companyName} onChange={e => setUserEditData({ ...userEditData, companyName: e.target.value })} placeholder="Ej: EDWIN S.A." />
+                </div>
+                <div className="field-group-admin">
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'RUC / TAX ID' : 'RUC / NO. IDENTIFICACIÓN FISCAL'}</label>
+                  <input className="input-modern-admin" type="text" value={userEditData.taxId} onChange={e => setUserEditData({ ...userEditData, taxId: e.target.value })} placeholder="Ej: 1790000000001" />
+                </div>
+                <div className="field-group-admin">
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'ROLE' : 'ROL DEL SISTEMA'}</label>
+                  <select className="input-modern-admin" value={userEditData.roleOverride} onChange={e => setUserEditData({ ...userEditData, roleOverride: e.target.value })}>
+                    <option value="client">CLIENTE NORMAL</option>
+                    <option value="manager">ADMINISTRADOR USUARIOS</option>
+                    <option value="master">ADMINISTRADOR MAESTRO</option>
+                  </select>
+                </div>
+                <div className="field-group-admin" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'REGISTERED ADDRESS' : 'DIRECCIÓN REGISTRADA / DOMICILIO SOCIAL'}</label>
+                  <input className="input-modern-admin" type="text" value={userEditData.address} onChange={e => setUserEditData({ ...userEditData, address: e.target.value })} placeholder="Dirección completa..." />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+                <button type="button" onClick={() => setShowEditUserModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
+                </button>
+                <button type="submit" disabled={savingUserEdit} className="btn-primary" style={{ padding: '9px 24px', fontSize: 12 }}>
+                  {savingUserEdit ? (lang === 'en' ? 'SAVING...' : 'GUARDANDO...') : (lang === 'en' ? 'SAVE CHANGES' : 'GUARDAR CAMBIOS')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Upload Document for User Modal */}
+      {showAdminUploadModal && selectedUserForDocs && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
+            <div style={{ background: '#0f172a', padding: '18px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <UploadCloud size={18} color="#2dd4bf" />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>
+                  {lang === 'en' ? 'Upload Document for User' : 'Subir Documento para Usuario'}
+                </h3>
+              </div>
+              <button onClick={() => setShowAdminUploadModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAdminUploadDoc} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'DOCUMENT TYPE' : 'TIPO DE DOCUMENTO'}</label>
+                <select className="input-modern-admin" value={adminUploadDocType} onChange={e => setAdminUploadDocType(e.target.value)}>
+                  <option value="Identificación / Cédula / Pasaporte">Identificación / Cédula / Pasaporte</option>
+                  <option value="Comprobante de Domicilio">Comprobante de Domicilio</option>
+                  <option value="Registro Mercantil / RUC">Registro Mercantil / RUC</option>
+                  <option value="Documento Personal / Otros">Documento Personal / Otros</option>
+                </select>
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{lang === 'en' ? 'PDF FILE' : 'ARCHIVO PDF'}</label>
+                <input type="file" accept="application/pdf" onChange={e => setAdminUploadFile(e.target.files[0])} className="input-modern-admin" required />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+                <button type="button" onClick={() => setShowAdminUploadModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
+                </button>
+                <button type="submit" disabled={uploadingAdminDoc} className="btn-primary" style={{ padding: '9px 24px', fontSize: 12 }}>
+                  {uploadingAdminDoc ? (lang === 'en' ? 'UPLOADING...' : 'SUBIENDO...') : (lang === 'en' ? 'UPLOAD FILE' : 'SUBIR ARCHIVO')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit Form Data Modal */}
+      {showEditFormModal && editingForm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '100%', maxWidth: '750px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
+            <div style={{ background: '#0f172a', padding: '18px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Edit2 size={18} color="#2dd4bf" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+                  {lang === 'en' ? 'Edit Form Data' : 'Editar Datos del Formulario'} ({editingForm.formType})
+                </h3>
+              </div>
+              <button onClick={() => setShowEditFormModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSaveAdminForm} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, overflowY: 'auto' }}>
+              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                {lang === 'en' ? 'Modify the JSON structure below to update form details:' : 'Modifique la estructura JSON para actualizar cualquier información del formulario:'}
+              </div>
+              <textarea
+                value={editingFormJson}
+                onChange={e => setEditingFormJson(e.target.value)}
+                style={{ width: '100%', minHeight: '350px', fontFamily: 'monospace', fontSize: 12, padding: 14, border: `1px solid ${BORDER}`, borderRadius: RADIUS, background: '#0f172a', color: '#38bdf8', lineHeight: 1.5 }}
+                required
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+                <button type="button" onClick={() => setShowEditFormModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {lang === 'en' ? 'Cancel' : 'Cancelar'}
+                </button>
+                <button type="submit" disabled={savingFormEdit} className="btn-primary" style={{ padding: '9px 24px', fontSize: 12 }}>
+                  {savingFormEdit ? (lang === 'en' ? 'SAVING...' : 'GUARDANDO...') : (lang === 'en' ? 'SAVE FORM CHANGES' : 'GUARDAR CAMBIOS DEL TRÁMITE')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
