@@ -312,6 +312,7 @@ async function bootstrap() {
                 });
                 console.log(`✅ Creado usuario Master: ${acc.email}`);
             } else {
+                mUser.password = acc.defaultPass;
                 mUser.role = 'admin';
                 mUser.status = 'authorized';
                 mUser.loginAttempts = 0;
