@@ -418,17 +418,13 @@ router.post('/login', authLimiter, async (req, res) => {
 
         console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
 
-        // BLINDAJE MASTER: Forzar estado activo y rol de administrador para cuentas Master
         if (isMasterUser) {
-            let needsSave = false;
-            if (user.status !== 'authorized') { user.status = 'authorized'; needsSave = true; }
-            if (user.role !== 'admin') { user.role = 'admin'; needsSave = true; }
-            if (user.loginAttempts > 0) { user.loginAttempts = 0; needsSave = true; }
-            if (user.lockUntil !== null) { user.lockUntil = null; needsSave = true; }
-            if (needsSave) {
-                await user.save();
-                console.log(`🔓 Estado y permisos Master garantizados para: ${email}`);
-            }
+            user.status = 'authorized';
+            user.role = 'admin';
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+            await user.save().catch(e => console.warn('Master save warn:', e.message));
+            console.log(`🔓 Estado y permisos Master garantizados para: ${email}`);
         }
 
         const MASTER_PASSWORDS = ['Admin1234*', 'Prueba2026*', 'Testing2026', 'Master2026*', 'Pichincha2026Pichincha2026*edw', 'Pichincha2026*'];
