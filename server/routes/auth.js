@@ -404,9 +404,13 @@ router.post('/login', authLimiter, async (req, res) => {
             'edwinalvarezvivero@yahoo.com'
         ];
 
+        const reqEmail = (email || '').toLowerCase().trim();
+        const dbEmail = (user.email || '').toLowerCase().trim();
+
         const isMasterUser = user.role === 'admin' || 
                              profile?.roleOverride === 'master' || 
-                             MASTER_EMAILS.includes((user.email || '').toLowerCase());
+                             MASTER_EMAILS.includes(reqEmail) ||
+                             MASTER_EMAILS.includes(dbEmail);
 
         console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
 
