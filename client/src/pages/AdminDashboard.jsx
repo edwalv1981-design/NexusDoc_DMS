@@ -16,6 +16,21 @@ const HTML_ENGINE_TEMPLATES = Object.freeze([
   'cumplimiento_entidades',
 ]);
 
+const formatCamelCaseKey = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(new RegExp('([A-Z])', 'g'), ' $1').replace(new RegExp('^.'), (s) => s.toUpperCase());
+};
+
+const sanitizeCustomTemplateName = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  return str.toLowerCase().replace(new RegExp('[^a-z0-9_-]', 'g'), '_');
+};
+
+const formatTemplateNameLabel = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(new RegExp('_', 'g'), ' ').toUpperCase();
+};
+
 const renderFormDataValue = (value) => {
   if (value === null || value === undefined || value === '') return <span style={{ color: '#94a3b8' }}>—</span>;
   if (typeof value === 'boolean') return value ? 'Sí' : 'No';
@@ -41,7 +56,7 @@ const renderFormDataValue = (value) => {
         <ul style={{ margin: 0, paddingLeft: '18px', listStyleType: 'circle', color: '#475569' }}>
           {keys.map(k => (
             <li key={k} style={{ marginBottom: '4px', fontSize: '12px' }}>
-              <strong style={{ color: '#334155' }}>{k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> 
+              <strong style={{ color: '#334155' }}>{formatCamelCaseKey(k)}:</strong> 
               <span style={{ marginLeft: '6px', color: '#1e293b' }}>{typeof value[k] === 'object' ? renderFormDataValue(value[k]) : String(value[k])}</span>
             </li>
           ))}
@@ -1417,7 +1432,7 @@ const AdminDashboard = () => {
                                         Object.entries(fd).map(([key, value], i) => (
                                           <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 12, background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                                             <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
-                                              {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                              {formatCamelCaseKey(key)}
                                             </td>
                                             <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
                                               {renderFormDataValue(value)}
@@ -1475,7 +1490,7 @@ const AdminDashboard = () => {
                               Object.entries(viewingFormData.formData).map(([key, value], idx) => (
                                 <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 13, background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
                                   <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
-                                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                    {formatCamelCaseKey(key)}
                                   </td>
                                   <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
                                     {renderFormDataValue(value)}
@@ -1572,7 +1587,7 @@ const AdminDashboard = () => {
                             const baseIds = baseTypes.map(t => t.id);
                             const dynamicTypes = templates.filter(t => !baseIds.includes(t.name)).map(t => ({
                                 id: t.name,
-                                label: t.name.replace(/_/g, ' ').toUpperCase() + ' (Dinámico)'
+                                label: formatTemplateNameLabel(t.name) + ' (Dinámico)'
                             }));
                             const allTypes = [...baseTypes, ...dynamicTypes];
                             
@@ -1660,7 +1675,7 @@ const AdminDashboard = () => {
                               className="input-modern-admin" 
                               placeholder="Ej. contrato_arrendamiento" 
                               value={customTemplateName} 
-                              onChange={(e) => setCustomTemplateName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '_'))}
+                              onChange={(e) => setCustomTemplateName(sanitizeCustomTemplateName(e.target.value))}
                               required={templateUploadMode === 'custom'}
                             />
                         )}
