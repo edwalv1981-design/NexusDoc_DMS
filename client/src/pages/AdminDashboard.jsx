@@ -109,9 +109,18 @@ const AdminDashboard = () => {
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [viewingFormData, setViewingFormData] = useState(null);
 
-  const handleDownloadDoc = (docId) => {
+  const handleDownloadDoc = async (docId) => {
     const token = localStorage.getItem('token');
-    window.open(`${API_BASE_URL}/api/admin/user-documents/${docId}/download?x-auth-token=${token}`, '_blank');
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/user-documents/${docId}/download`, {
+        headers: { 'x-auth-token': token },
+        responseType: 'blob'
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: res.headers['content-type'] || 'application/pdf' }));
+      window.open(blobUrl, '_blank');
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al descargar el documento');
+    }
   };
 
   const handleDeleteDoc = async (docId) => {
@@ -510,20 +519,20 @@ const AdminDashboard = () => {
     } finally { setConsultaLoading(false); }
   };
 
-  const handleExportSearchPdf = () => {
+  const handleExportSearchPdf = async () => {
     const token = localStorage.getItem('token');
     const { nombres, ruc, codigoUnico, usuario, empresa, formType } = searchFilters;
-    const params = new URLSearchParams({
-      nombres: nombres || '',
-      ruc: ruc || '',
-      codigoUnico: codigoUnico || '',
-      usuario: usuario || '',
-      empresa: empresa || '',
-      formType: formType || '',
-      'x-auth-token': token
-    }).toString();
-
-    window.open(`${API_BASE_URL}/api/admin/export-search-pdf?${params}`, '_blank');
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/export-search-pdf`, {
+        headers: { 'x-auth-token': token },
+        params: { nombres, ruc, codigoUnico, usuario, empresa, formType },
+        responseType: 'blob'
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(blobUrl, '_blank');
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al exportar el PDF');
+    }
   };
 
   const handleViewUserForms = async (userId) => {

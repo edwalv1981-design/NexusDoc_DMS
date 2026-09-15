@@ -6,6 +6,7 @@ const { SignedDocument, AuditLog } = require('../models');
 const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
+const { isPdfBuffer, sanitizeDownloadFilename } = require('../utils/pdfMagic');
 
 const storage = multer.memoryStorage();
 const upload = multer({ 
@@ -83,6 +84,7 @@ router.get('/', auth, async (req, res) => {
 router.post('/upload', [auth, upload.single('document')], async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ msg: 'Seleccione un archivo PDF.' });
+        if (!isPdfBuffer(req.file.buffer)) return res.status(400).json({ msg: 'El archivo no es un PDF válido.' });
 
         // 1. Run the Internal Agent to check for signatures
         const status = await checkSignatureAgent(req.file.buffer);
@@ -90,7 +92,7 @@ router.post('/upload', [auth, upload.single('document')], async (req, res) => {
         // 2. Save to DB
         const newDoc = await SignedDocument.create({
             userId: req.user.id,
-            filename: req.file.originalname,
+            filename: sanitizeDownloadFilename(req.file.originalname),
             fileData: req.file.buffer,
             signatureStatus: status
         });
@@ -113,6 +115,7 @@ router.post('/upload', [auth, upload.single('document')], async (req, res) => {
 router.put('/update/:id', [auth, upload.single('document')], async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ msg: 'Seleccione un archivo PDF válido.' });
+        if (!isPdfBuffer(req.file.buffer)) return res.status(400).json({ msg: 'El archivo no es un PDF válido.' });
 
         const doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!doc) return res.status(404).json({ msg: 'Documento no encontrado o no autorizado.' });

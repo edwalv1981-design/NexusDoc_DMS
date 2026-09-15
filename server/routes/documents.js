@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const { UserDocument, AuditLog } = require('../models');
-const path = require('path');
+const { isPdfBuffer, sanitizeDownloadFilename } = require('../utils/pdfMagic');
 
 // Configure Multer for memory storage (PDF only)
 const storage = multer.memoryStorage();
@@ -42,10 +42,13 @@ router.post('/upload', [auth, upload.single('document')], async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ msg: 'Por favor seleccione un archivo PDF válido.' });
         }
+        if (!isPdfBuffer(req.file.buffer)) {
+            return res.status(400).json({ msg: 'El archivo no es un PDF válido.' });
+        }
 
         const newDoc = await UserDocument.create({
             userId: req.user.id,
-            filename: req.file.originalname,
+            filename: sanitizeDownloadFilename(req.file.originalname),
             fileData: req.file.buffer
         });
 
@@ -70,6 +73,9 @@ router.put('/update/:id', [auth, upload.single('document')], async (req, res) =>
         if (!req.file) {
             return res.status(400).json({ msg: 'Por favor seleccione un archivo PDF válido.' });
         }
+        if (!isPdfBuffer(req.file.buffer)) {
+            return res.status(400).json({ msg: 'El archivo no es un PDF válido.' });
+        }
 
         const doc = await UserDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
         
@@ -77,7 +83,7 @@ router.put('/update/:id', [auth, upload.single('document')], async (req, res) =>
             return res.status(404).json({ msg: 'Documento no encontrado o no tiene permisos.' });
         }
 
-        doc.filename = req.file.originalname;
+        doc.filename = sanitizeDownloadFilename(req.file.originalname);
         doc.fileData = req.file.buffer;
         await doc.save();
 

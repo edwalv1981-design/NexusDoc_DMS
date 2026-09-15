@@ -22,9 +22,9 @@ Espere. El script prueba la conexión, migra, crea el admin y despliega en Fly.
 
 ## Entrar
 
-- https://nexusdoc-dms.fly.dev/dashboard  
-- Email: `edwinalvarezvivero@yahoo.com`  
-- Contraseña de la app: la que dejó en el script (`U3m3O2CJz1wnZegcsTYt`)
+- URL de producción (Railway)
+- Email del administrador que usted creó
+- Contraseña: la que definió en secretos (`BOOTSTRAP_ADMIN_PASSWORD`). Nunca se documenta en este archivo.
 
 ---
 

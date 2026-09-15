@@ -3,23 +3,8 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 
-router.get('/test-smtp', async (req, res) => {
-    try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 465,
-            secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : undefined
-            }
-        });
-        await transporter.verify();
-        res.json({ status: 'ok', msg: 'Conexión SMTP exitosa con ' + process.env.SMTP_HOST });
-    } catch (err) {
-        res.json({ status: 'error', msg: err.message });
-    }
+router.get('/test-smtp', (req, res) => {
+    return res.status(404).json({ msg: 'Not found' });
 });
 const { User, AuditLog, PendingRegistration } = require('../models');
 const { sendSecurityCode, sendTemporaryPassword, sendAccountLockedNotice } = require('../services/emailService');
@@ -31,6 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const stablePdfForms = require('../config/stablePdfForms');
 const userLanguageStore = require('../services/userLanguageStore');
 const { sequelize } = require('../config/db');
+const { publicUser } = require('../utils/publicUser');
 const { normalizeLoginEmail, mapLoginInfrastructureError } = require('../utils/loginAuth');
 
 const authLimiter = rateLimit({
@@ -277,7 +263,7 @@ router.post('/verify', async (req, res) => {
 router.get('/me', auth, async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id, {
-            attributes: { exclude: ['password'] }
+            attributes: { exclude: ['password', 'securityCode', 'activeToken'] }
         });
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
         
@@ -307,15 +293,14 @@ router.get('/me', auth, async (req, res) => {
             }
         }
 
-        const payload = user.get({ plain: true });
-        payload.language = language;
-        payload.remainingDays = remainingDays;
+        const payload = publicUser(user, { language, remainingDays });
 
         try {
             const profileStore = require('../services/userProfileStore');
             const profile = await profileStore.getProfile(user.id);
             if (profile) {
-                if (profile.roleOverride === 'manager') payload.role = 'manager';
+                if (user.role === 'admin') payload.role = 'admin';
+                else if (profile.roleOverride === 'manager') payload.role = 'manager';
                 else if (profile.roleOverride === 'master') payload.role = 'admin';
             }
         } catch (pErr) {
@@ -516,7 +501,7 @@ router.post('/login', authLimiter, async (req, res) => {
 // @desc    Update user email and/or password
 router.put('/update-profile', auth, async (req, res) => {
     try {
-        const { email, newPassword } = req.body;
+        const { email, newPassword, currentPassword } = req.body;
         
         if (!req.user || !req.user.id) {
             return res.status(401).json({ msg: 'Sesión no válida o ID faltante' });
@@ -524,6 +509,15 @@ router.put('/update-profile', auth, async (req, res) => {
 
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado en la base de datos' });
+
+        const isDbAdmin = user.role === 'admin';
+        if (newPassword && newPassword.trim() !== '' && !user.mustChangePassword && !isDbAdmin) {
+            if (!currentPassword) {
+                return res.status(400).json({ msg: 'Debe indicar su contraseña actual' });
+            }
+            const ok = await user.comparePassword(currentPassword);
+            if (!ok) return res.status(401).json({ msg: 'La contraseña actual no es correcta' });
+        }
 
         // Update email if provided
         if (email && email !== user.email) {
@@ -574,13 +568,6 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
         
         if (!user) {
             return res.json({ msg: 'Si el correo está registrado, recibirá un código de seguridad.' });
-        }
-        
-        // DESBLOQUEO PROACTIVO: Si es admin, limpiamos su estado al momento de pedir el código
-        if (user.role === 'admin') {
-            console.log('🔓 Desbloqueo proactivo ejecutado para Administrador Maestro.');
-            user.status = 'authorized';
-            user.loginAttempts = 0;
         }
 
         // Generamos SOLO el código de 6 dígitos
@@ -683,9 +670,9 @@ const verifyForgotPasswordHandler = async (req, res) => {
 };
 
 // @route   POST api/auth/verify-forgot-password
-router.post('/verify-forgot-password', verifyForgotPasswordHandler);
+router.post('/verify-forgot-password', forgotPasswordLimiter, verifyForgotPasswordHandler);
 
 // @route   POST api/auth/verify-code (Route Alias)
-router.post('/verify-code', verifyForgotPasswordHandler);
+router.post('/verify-code', forgotPasswordLimiter, verifyForgotPasswordHandler);
 
 module.exports = router;

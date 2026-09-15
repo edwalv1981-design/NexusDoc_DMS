@@ -5,27 +5,27 @@ const { User } = require('../models');
 async function createAdmin() {
     try {
         await connectDB();
-        const email = 'pymesedw@gmail.com';
-        const password = 'Prueba2026*';
-        
+        const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
+        const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+        if (!email || !password) {
+            console.error('❌ Defina BOOTSTRAP_ADMIN_EMAIL y BOOTSTRAP_ADMIN_PASSWORD. No se admiten claves en el script.');
+            process.exit(1);
+        }
+
         let admin = await User.findOne({ where: { email } });
         if (!admin) {
             await User.create({
-                name: 'Administrador Pymes',
+                name: process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador',
                 email,
                 password,
                 role: 'admin',
                 status: 'authorized',
-                idNumber: 'ADMIN-PYMES-' + Date.now(),
-                uniqueCode: 'MASTER-PYMES-' + Date.now()
+                idNumber: 'ADMIN-BOOTSTRAP-' + Date.now(),
+                uniqueCode: 'MASTER-' + Date.now()
             });
-            console.log('✅ Usuario master creado exitosamente: ' + email);
+            console.log('✅ Usuario master creado: ' + email);
         } else {
-            admin.password = password;
-            admin.role = 'admin';
-            admin.status = 'authorized';
-            await admin.save();
-            console.log('✅ El usuario ' + email + ' ya existía. Se actualizó su contraseña y permisos de administrador.');
+            console.log('ℹ️ El usuario ya existe. Este script no modifica claves existentes.');
         }
         process.exit(0);
     } catch (err) {

@@ -17,6 +17,28 @@ const templateAvailability = require('../utils/templateAvailability');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
 const personCatalogService = require('../services/personCatalogService');
 
+function isDbAdmin(req) {
+    return req.dbUser?.role === 'admin' || req.user?.role === 'admin';
+}
+
+async function queryFormDataScoped(sequelize, sqlTemplate, replacements, req) {
+    const uid = req.user && req.user.id;
+    const ownerClauses = isDbAdmin(req)
+        ? ['']
+        : [' AND user_id = :uid', ' AND "userId" = :uid'];
+    const params = { ...replacements, uid };
+    for (const owner of ownerClauses) {
+        const sql = sqlTemplate.replace('/*OWNER*/', owner);
+        try {
+            const [rows] = await sequelize.query(sql, { replacements: params });
+            return rows || [];
+        } catch (e) {
+            /* siguiente variante de columna */
+        }
+    }
+    return [];
+}
+
 // Execute background backfill of historical forms on startup
 personCatalogService.backfillHistoricalData().catch(err => console.error('Backfill error:', err));
 
@@ -57,16 +79,19 @@ router.get('/beneficiaries/search', auth, async (req, res) => {
         if (!q || q.length < 2) return res.json([]);
 
         const { sequelize } = require('../config/db');
-        const [rows] = await sequelize.query(
+        const rows = await queryFormDataScoped(
+            sequelize,
             `SELECT data->>'beneficiaryName' AS "beneficiaryName",
                     data->>'birthDate'       AS "birthDate",
                     data->>'birthPlace'      AS "birthPlace",
                     data->>'address'         AS "address"
              FROM "FormData"
              WHERE data->>'beneficiaryName' ILIKE :pattern
+             /*OWNER*/
              ORDER BY "updatedAt" DESC
              LIMIT 50`,
-            { replacements: { pattern: `%${q}%` } }
+            { pattern: `%${q}%` },
+            req
         );
 
         const resultsMap = new Map();
@@ -114,7 +139,8 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
             console.error('Catalog search error:', catErr);
         }
 
-        // 2. Secondary: Fallback to Users table
+        // 2. Secondary: Fallback to Users table (solo admin; clientes usan su catálogo)
+        if (isDbAdmin(req)) {
         try {
             const { sequelize } = require('../config/db');
             const [userRows] = await sequelize.query(
@@ -140,6 +166,7 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
         } catch (userErr) {
             console.error('User search fallback error:', userErr);
         }
+        }
 
         return res.json(Array.from(resultsMap.values()).slice(0, 10));
     } catch (err) {
@@ -156,7 +183,8 @@ router.get('/corporacion/search-shareholder', auth, async (req, res) => {
 
         const { sequelize } = require('../config/db');
 
-        const [rows] = await sequelize.query(
+        const rows = await queryFormDataScoped(
+            sequelize,
             `SELECT DISTINCT ON (elem->>'name')
                     elem->>'name'        AS "name",
                     elem->>'address'     AS "address",
@@ -168,9 +196,11 @@ router.get('/corporacion/search-shareholder', auth, async (req, res) => {
              WHERE elem->>'name' ILIKE :pattern
                AND elem->>'name' IS NOT NULL
                AND elem->>'name' != ''
+             /*OWNER*/
              ORDER BY elem->>'name', "updatedAt" DESC
              LIMIT 50`,
-            { replacements: { pattern: `%${q}%` } }
+            { pattern: `%${q}%` },
+            req
         );
 
         const resultsMap = new Map();
@@ -213,7 +243,8 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
             console.error('Catalog search error:', catErr);
         }
 
-        // 2. Secondary: Fallback to Users table
+        // 2. Secondary: Fallback to Users table (solo admin; clientes usan su catálogo)
+        if (isDbAdmin(req)) {
         try {
             const { sequelize } = require('../config/db');
             const [userRows] = await sequelize.query(
@@ -240,6 +271,7 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
         } catch (userErr) {
             console.error('User search fallback error:', userErr);
         }
+        }
 
         return res.json(Array.from(resultsMap.values()).slice(0, 10));
     } catch (err) {
@@ -256,7 +288,8 @@ router.get('/fundacion/search-beneficiary', auth, async (req, res) => {
 
         const { sequelize } = require('../config/db');
 
-        const [rows] = await sequelize.query(
+        const rows = await queryFormDataScoped(
+            sequelize,
             `SELECT elem->>'shareholder' AS "shareholder",
                     elem->>'birthDate'   AS "birthDate",
                     elem->>'address'     AS "address"
@@ -265,9 +298,11 @@ router.get('/fundacion/search-beneficiary', auth, async (req, res) => {
              WHERE elem->>'shareholder' ILIKE :pattern
                AND elem->>'shareholder' IS NOT NULL
                AND elem->>'shareholder' != ''
+             /*OWNER*/
              ORDER BY "updatedAt" DESC
              LIMIT 50`,
-            { replacements: { pattern: `%${q}%` } }
+            { pattern: `%${q}%` },
+            req
         );
 
         const resultsMap = new Map();

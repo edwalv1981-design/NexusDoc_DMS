@@ -21,6 +21,8 @@ const auth = require('../middleware/auth');
 const templateAvailability = require('../utils/templateAvailability');
 const personCatalogService = require('../services/personCatalogService');
 const adminSearchPdfService = require('../services/adminSearchPdfService');
+const { publicUser } = require('../utils/publicUser');
+const { isPdfBuffer, sanitizeDownloadFilename } = require('../utils/pdfMagic');
 const {
     quotePhysicalTable,
     normalizeUserListRow,
@@ -30,9 +32,9 @@ const {
 
 // Middleware to verify Admin role (JWT o rol real en BD)
 const isAdmin = (req, res, next) => {
-    const role = req.user?.role;
-    const dbRole = req.dbUser?.role;
-    if (role !== 'admin' && role !== 'manager' && dbRole !== 'admin') {
+    const jwtAdmin = req.user?.role === 'admin';
+    const dbAdmin = req.dbUser?.role === 'admin';
+    if (!jwtAdmin && !dbAdmin) {
         return res.status(403).json({ msg: 'Acceso denegado: Se requiere rol de administrador' });
     }
     next();
@@ -126,6 +128,10 @@ router.get(['/users', '/users/'], [auth, isAdmin], async (req, res) => {
 router.put('/users/:id/status', [auth, isAdmin], async (req, res) => {
     try {
         const { status } = req.body;
+        const allowedStatus = ['pending', 'authorized', 'revoked', 'blocked'];
+        if (!allowedStatus.includes(status)) {
+            return res.status(400).json({ msg: 'Estado inválido' });
+        }
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
@@ -145,7 +151,7 @@ router.put('/users/:id/status', [auth, isAdmin], async (req, res) => {
             description: `Admin cambió estado de ${user.email} a ${status}`
         });
 
-        res.json(user);
+        res.json(publicUser(user));
     } catch (err) {
         res.status(500).send('Server error');
     }
@@ -320,6 +326,9 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
         const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '!@';
         const uniqueCode = `ADM-${Date.now()}-${crypto.randomInt(100, 999)}`;
 
+        const allowedCreateRoles = ['client', 'manager', 'master'];
+        const safeRole = allowedCreateRoles.includes(roleOverride) ? roleOverride : 'client';
+
         const newUser = await User.create({
             name,
             email,
@@ -333,7 +342,7 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
 
         const profileStore = require('../services/userProfileStore');
         await profileStore.setProfile(newUser.id, {
-            roleOverride: roleOverride || 'client',
+            roleOverride: safeRole,
             phone: '',
             address: '',
             createdBy: req.user.id
@@ -347,7 +356,7 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
             description: `Admin creó al usuario ${email} con rol ${roleOverride}`
         });
 
-        res.json({ msg: 'Usuario creado con éxito y correo enviado', user: newUser });
+        res.json({ msg: 'Usuario creado con éxito y correo enviado', user: publicUser(newUser) });
     } catch (err) {
         console.error('Error creating user:', err.message);
         res.status(500).json({ msg: 'Error al crear usuario' });
@@ -359,7 +368,10 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
 router.put('/users/:id/role', [auth, isAdmin], async (req, res) => {
     try {
         const { roleOverride } = req.body;
-        if (!roleOverride) return res.status(400).json({ msg: 'El rol es obligatorio' });
+        const allowedRoles = ['client', 'manager', 'master'];
+        if (!allowedRoles.includes(roleOverride)) {
+            return res.status(400).json({ msg: 'El rol es inválido' });
+        }
 
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
@@ -537,6 +549,9 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
     try {
         if (!req.file) {
             return res.status(400).json({ msg: 'No se subió ningún archivo' });
+        }
+        if (!isPdfBuffer(req.file.buffer)) {
+            return res.status(400).json({ msg: 'El archivo no es un PDF válido' });
         }
 
         const templateName = req.body.name || req.file.originalname;
@@ -1419,6 +1434,13 @@ router.delete('/user-documents/:id', [auth, isAdmin], async (req, res) => {
             userId: req.user.id
         }).catch(e => console.error('AuditLog error:', e.message));
 
+        res.json({ msg: 'Documento eliminado exitosamente' });
+    } catch (err) {
+        console.error('Error deleting document:', err);
+        res.status(500).json({ msg: 'Error al eliminar documento: ' + err.message });
+    }
+});
+
 // @route   GET api/admin/user-documents/:id/download
 // @desc    Descarga un documento adjunto o firmado (Admin Only)
 router.get('/user-documents/:id/download', [auth, isAdmin], async (req, res) => {
@@ -1439,7 +1461,7 @@ router.get('/user-documents/:id/download', [auth, isAdmin], async (req, res) => 
         else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
 
         res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `inline; filename="${doc.filename || 'documento'}"`);
+        res.setHeader('Content-Disposition', `inline; filename="${sanitizeDownloadFilename(doc.filename)}"`);
         res.send(doc.fileData);
     } catch (err) {
         console.error('Error downloading document:', err);

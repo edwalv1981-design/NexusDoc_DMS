@@ -30,7 +30,21 @@ console.log(
 
 const helmet = require('helmet');
 app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'blob:'],
+            fontSrc: ["'self'", 'data:'],
+            connectSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            frameAncestors: ["'self'"],
+        },
+    },
     crossOriginEmbedderPolicy: false,
     frameguard: { action: 'sameorigin' },
     dnsPrefetchControl: { allow: false },
@@ -130,6 +144,10 @@ const authLimiter = rateLimit({
 app.use(['/api/auth/login', '/admin/api/auth/login'], authLimiter);
 app.use(['/api/auth/verify', '/admin/api/auth/verify'], authLimiter);
 app.use(['/api/auth/forgot-password', '/admin/api/auth/forgot-password'], authLimiter);
+app.use(['/api/auth/verify-forgot-password', '/admin/api/auth/verify-forgot-password'], authLimiter);
+app.use(['/api/auth/verify-code', '/admin/api/auth/verify-code'], authLimiter);
+app.use(['/api/auth/resend-code', '/admin/api/auth/resend-code'], authLimiter);
+app.use(['/api/auth/register', '/admin/api/auth/register'], authLimiter);
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -154,7 +172,7 @@ if (process.env.NODE_ENV !== 'production') {
         }
     });
 }
-app.use('/templates', express.static(path.join(__dirname, '../templates')));
+// Plantillas PDF se leen en disco (Puppeteer). No se publican por HTTP.
 
 // --- SPA Fallback & Static Files ---
 app.get('/', (req, res, next) => {
@@ -287,92 +305,15 @@ async function bootstrap() {
 
     const { User } = require('./models');
 
-    // Desbloqueo y cambio de clave forzado
-    try {
-        const rokuUser = await User.findOne({ where: { email: 'rokutvedw@gmail.com' } });
-        if (rokuUser) {
-            rokuUser.status = 'authorized';
-            rokuUser.password = 'Testing2026';
-            await rokuUser.save();
-            console.log('✅ Usuario rokutvedw@gmail.com actualizado exitosamente.');
-        }
-    } catch (e) {
-        console.error('Error al actualizar usuario:', e);
-    }
-
-    // Asegurar usuario ptl.accounts@proton.me
-    try {
-        let ptlAdmin = await User.findOne({ where: { email: 'ptl.accounts@proton.me' } });
-        if (!ptlAdmin) {
-            ptlAdmin = await User.create({
-                name: 'Administrador Master',
-                email: 'ptl.accounts@proton.me',
-                password: 'Admin1234*',
-                role: 'admin',
-                status: 'authorized',
-                idNumber: 'MASTER-PTL',
-                uniqueCode: 'MASTER-ADMIN-PTL',
-            });
-            console.log('✅ Usuario ptl.accounts@proton.me creado exitosamente.');
-        } else {
-            ptlAdmin.password = 'Admin1234*';
-            ptlAdmin.role = 'admin';
-            ptlAdmin.status = 'authorized';
-            await ptlAdmin.save();
-            console.log('✅ Usuario ptl.accounts@proton.me actualizado exitosamente.');
-        }
-        
-        // Ensure roleOverride='master' in UserProfiles
-        await sequelize.query(`
-            INSERT INTO "UserProfiles" ("userId", "roleOverride")
-            VALUES ('${ptlAdmin.id}', 'master')
-            ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
-        `);
-    } catch (e) {
-        console.error('Error al asegurar usuario ptl.accounts@proton.me:', e);
-    }
-
-    // Asegurar usuario pymesedw@gmail.com
-    try {
-        let pymesAdmin = await User.findOne({ where: { email: 'pymesedw@gmail.com' } });
-        if (!pymesAdmin) {
-            pymesAdmin = await User.create({
-                name: 'Pymes EDW Master',
-                email: 'pymesedw@gmail.com',
-                password: 'Prueba2026*',
-                role: 'admin',
-                status: 'authorized',
-                idNumber: 'MASTER-PYMES',
-                uniqueCode: 'MASTER-ADMIN-PYMES',
-            });
-            console.log('✅ Usuario pymesedw@gmail.com creado exitosamente.');
-        } else {
-            pymesAdmin.password = 'Prueba2026*';
-            pymesAdmin.role = 'admin';
-            pymesAdmin.status = 'authorized';
-            await pymesAdmin.save();
-            console.log('✅ Usuario pymesedw@gmail.com actualizado exitosamente.');
-        }
-        
-        // Ensure roleOverride='master' in UserProfiles
-        await sequelize.query(`
-            INSERT INTO "UserProfiles" ("userId", "roleOverride")
-            VALUES ('${pymesAdmin.id}', 'master')
-            ON CONFLICT ("userId") DO UPDATE SET "roleOverride" = 'master'
-        `);
-    } catch (e) {
-        console.error('Error al asegurar usuario pymesedw@gmail.com:', e);
-    }
-
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const adminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Administrador Maestro';
 
     if (adminEmail && adminPassword) {
-        let admin = await User.findOne({ where: { email: adminEmail } });
+        const admin = await User.findOne({ where: { email: adminEmail } });
 
         if (!admin) {
-            console.log('🌱 Creando administrador inicial desde entorno...');
+            console.log('🌱 Creando administrador inicial desde entorno (solo si no existe)...');
             await User.create({
                 name: adminName,
                 email: adminEmail,
@@ -383,14 +324,7 @@ async function bootstrap() {
                 uniqueCode: 'MASTER-ADMIN-001',
             });
         } else {
-            console.log('🔄 Sincronizando administrador desde entorno...');
-            admin.name = adminName;
-            admin.password = adminPassword;
-            admin.role = 'admin';
-            admin.status = 'authorized';
-            admin.loginAttempts = 0;
-            admin.lockUntil = null;
-            await admin.save();
+            console.log('ℹ️ Administrador de entorno ya existe; la clave NO se modifica en el arranque.');
         }
     } else {
         console.log('ℹ️ Bootstrap de admin omitido (faltan BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).');
