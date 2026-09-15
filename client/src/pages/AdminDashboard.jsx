@@ -107,9 +107,117 @@ const AdminDashboard = () => {
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [viewingFormData, setViewingFormData] = useState(null);
 
+  // Admin Form & User Edit/Delete Modals State
+  const [editingForm, setEditingForm] = useState(null);
+  const [editFormDataJson, setEditFormDataJson] = useState('');
+  const [savingFormEdit, setSavingFormEdit] = useState(false);
+
+  const [deletingForm, setDeletingForm] = useState(null);
+  const [deletingFormLoading, setDeletingFormLoading] = useState(false);
+
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({ name: '', email: '', idNumber: '', nationality: '' });
+  const [savingUserEdit, setSavingUserEdit] = useState(false);
+
   const itemsPerPage = 15;
   const navigate = useNavigate();
   const toast = useToast();
+
+  const handleOpenEditForm = (item) => {
+    setEditingForm(item);
+    setEditFormDataJson(JSON.stringify(item.formData || {}, null, 2));
+  };
+
+  const handleSaveEditForm = async () => {
+    if (!editingForm) return;
+    setSavingFormEdit(true);
+    try {
+      let parsedData;
+      try {
+        parsedData = JSON.parse(editFormDataJson);
+      } catch (jsonErr) {
+        toast.error('El formato JSON del formulario no es válido. Revisa la sintaxis.');
+        setSavingFormEdit(false);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${API_BASE_URL}/api/admin/forms/${editingForm.formId}`, {
+        data: parsedData,
+        formType: editingForm.formType
+      }, {
+        headers: { 'x-auth-token': token }
+      });
+
+      toast.success(res.data.msg || 'Formulario actualizado correctamente');
+      setEditingForm(null);
+
+      if (consultaResults) {
+        setConsultaResults(prev => prev.map(r => r.formId === editingForm.formId ? { ...r, formData: parsedData } : r));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al actualizar el formulario');
+    } finally {
+      setSavingFormEdit(false);
+    }
+  };
+
+  const handleConfirmDeleteForm = async () => {
+    if (!deletingForm) return;
+    setDeletingFormLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`${API_BASE_URL}/api/admin/forms/${deletingForm.formId}`, {
+        headers: { 'x-auth-token': token }
+      });
+
+      toast.success(res.data.msg || 'Formulario eliminado exitosamente');
+      setDeletingForm(null);
+
+      if (consultaResults) {
+        setConsultaResults(prev => prev.filter(r => r.formId !== deletingForm.formId));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al eliminar el formulario');
+    } finally {
+      setDeletingFormLoading(false);
+    }
+  };
+
+  const handleOpenEditUser = (item) => {
+    setEditingUser(item);
+    setEditUserForm({
+      name: item.userName || '',
+      email: item.userEmail || '',
+      idNumber: item.personPassport || item.userCode || '',
+      nationality: ''
+    });
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser || !editingUser.userId) {
+      toast.error('No se pudo identificar el ID del usuario');
+      return;
+    }
+    setSavingUserEdit(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${API_BASE_URL}/api/admin/users/${editingUser.userId}/info`, editUserForm, {
+        headers: { 'x-auth-token': token }
+      });
+
+      toast.success(res.data.msg || 'Información de usuario actualizada correctamente');
+      setEditingUser(null);
+
+      if (consultaResults) {
+        setConsultaResults(prev => prev.map(r => r.userId === editingUser.userId ? { ...r, userName: editUserForm.name, userEmail: editUserForm.email } : r));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al actualizar información de usuario');
+    } finally {
+      setSavingUserEdit(false);
+    }
+  };
 
   const PRIMARY = '#0f172a';
   const ACCENT_TEAL = '#0f766e';
@@ -804,11 +912,22 @@ const AdminDashboard = () => {
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                   <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
                                   Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || 'Sin código'}) el {new Date(r.formDate).toLocaleDateString()}
+                                  <button onClick={() => handleOpenEditUser(r)} title="Editar datos del usuario" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                    <UserCog size={10} /> Editar Usuario
+                                  </button>
                                 </div>
                             </div>
-                            <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
-                              {isExpanded ? 'Ver Menos' : 'Ver Más Detalles'}
-                            </button>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <button onClick={() => handleOpenEditForm(r)} title="Editar formulario" style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Edit2 size={12} /> Editar
+                              </button>
+                              <button onClick={() => setDeletingForm(r)} title="Eliminar formulario" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Trash2 size={12} /> Eliminar
+                              </button>
+                              <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
+                                {isExpanded ? 'Ver Menos' : 'Ver Más Detalles'}
+                              </button>
+                            </div>
                           </div>
                           
                           {/* Matched Form Sections & Roles Banner */}
@@ -1284,6 +1403,106 @@ const AdminDashboard = () => {
                 {changingRole ? 'Guardando...' : 'Guardar Cambio'}
               </button>
             </form>
+      {/* Modal Editar Formulario */}
+      {editingForm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '650px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Edit2 size={18} color="#f59e0b" />
+                <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY, fontWeight: 800 }}>Editar Datos de Formulario</h2>
+              </div>
+              <button onClick={() => setEditingForm(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                Formulario: <strong>{editingForm.formType}</strong> &middot; ID: <code>{editingForm.formId}</code>
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>DATOS DEL FORMULARIO (JSON)</label>
+                <textarea
+                  className="input-modern-admin"
+                  rows={14}
+                  value={editFormDataJson}
+                  onChange={e => setEditFormDataJson(e.target.value)}
+                  style={{ fontFamily: 'monospace', fontSize: 12, lineHeight: 1.4 }}
+                />
+              </div>
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#f8fafc', borderRadius: `0 0 ${RADIUS_LG} ${RADIUS_LG}` }}>
+              <button onClick={() => setEditingForm(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={handleSaveEditForm} disabled={savingFormEdit} style={{ padding: '10px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                {savingFormEdit ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Eliminar Formulario */}
+      {deletingForm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Trash2 size={18} color="#ef4444" />
+                <h2 style={{ fontSize: 16, margin: 0, color: '#dc2626', fontWeight: 800 }}>Eliminar Formulario</h2>
+              </div>
+              <button onClick={() => setDeletingForm(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
+                ¿Está seguro de que desea eliminar el formulario <strong>{deletingForm.formType}</strong> ({deletingForm.entityName || deletingForm.formId})?
+              </p>
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 11, color: '#991b1b' }}>
+                ⚠️ <strong>Atención:</strong> Esta acción es permanente e irreversible en la base de datos.
+              </div>
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#f8fafc', borderRadius: `0 0 ${RADIUS_LG} ${RADIUS_LG}` }}>
+              <button onClick={() => setDeletingForm(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={handleConfirmDeleteForm} disabled={deletingFormLoading} style={{ padding: '10px 20px', background: '#dc2626', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                {deletingFormLoading ? 'Eliminando...' : 'Sí, Eliminar Formulario'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Información de Usuario */}
+      {editingUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '450px', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <UserCog size={18} color="#0284c7" />
+                <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY, fontWeight: 800 }}>Editar Datos Personales de Usuario</h2>
+              </div>
+              <button onClick={() => setEditingUser(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>NOMBRE COMPLETO</label>
+                <input className="input-modern-admin" type="text" value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
+                <input className="input-modern-admin" type="email" value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })} />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>CÉDULA / PASAPORTE / RUC</label>
+                <input className="input-modern-admin" type="text" value={editUserForm.idNumber} onChange={e => setEditUserForm({ ...editUserForm, idNumber: e.target.value })} />
+              </div>
+              <div className="field-group-admin">
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>NACIONALIDAD</label>
+                <input className="input-modern-admin" type="text" value={editUserForm.nationality} onChange={e => setEditUserForm({ ...editUserForm, nationality: e.target.value })} placeholder="Ej. Ecuatoriana" />
+              </div>
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#f8fafc', borderRadius: `0 0 ${RADIUS_LG} ${RADIUS_LG}` }}>
+              <button onClick={() => setEditingUser(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={handleSaveEditUser} disabled={savingUserEdit} style={{ padding: '10px 20px', background: '#0284c7', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                {savingUserEdit ? 'Guardando...' : 'Guardar Datos'}
+              </button>
+            </div>
           </div>
         </div>
       )}

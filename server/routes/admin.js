@@ -1042,4 +1042,120 @@ router.get('/search-person', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   PUT api/admin/forms/:id
+// @desc    Actualiza los datos o tipo de un formulario específico (Admin Only)
+router.put('/forms/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        const { formType, data } = req.body;
+        const form = await FormData.findByPk(req.params.id);
+        if (!form) {
+            return res.status(404).json({ msg: 'Formulario no encontrado' });
+        }
+
+        if (formType) form.formType = formType;
+        if (data && typeof data === 'object') form.data = data;
+
+        await form.save();
+
+        await AuditLog.create({
+            action: 'ADMIN_FORM_UPDATE',
+            description: `Administrador ${req.user.email} actualizó el formulario ${form.formType} (ID: ${form.id})`,
+            userId: req.user.id
+        }).catch(e => console.error('AuditLog error:', e.message));
+
+        res.json({ msg: 'Formulario actualizado exitosamente', form });
+    } catch (err) {
+        console.error('Error updating form:', err);
+        res.status(500).json({ msg: 'Error al actualizar formulario: ' + err.message });
+    }
+});
+
+// @route   DELETE api/admin/forms/:id
+// @desc    Elimina un formulario específico de la base de datos (Admin Only)
+router.delete('/forms/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        const form = await FormData.findByPk(req.params.id);
+        if (!form) {
+            return res.status(404).json({ msg: 'Formulario no encontrado' });
+        }
+
+        const formId = form.id;
+        const formType = form.formType;
+
+        await form.destroy();
+
+        await AuditLog.create({
+            action: 'ADMIN_FORM_DELETE',
+            description: `Administrador ${req.user.email} eliminó el formulario ${formType} (ID: ${formId})`,
+            userId: req.user.id
+        }).catch(e => console.error('AuditLog error:', e.message));
+
+        res.json({ msg: 'Formulario eliminado exitosamente' });
+    } catch (err) {
+        console.error('Error deleting form:', err);
+        res.status(500).json({ msg: 'Error al eliminar formulario: ' + err.message });
+    }
+});
+
+// @route   PUT api/admin/users/:id/info
+// @desc    Actualiza la información personal de un usuario (Admin Only)
+router.put('/users/:id/info', [auth, isAdmin], async (req, res) => {
+    try {
+        const { name, email, idNumber, nationality } = req.body;
+        const user = await User.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'Usuario no encontrado' });
+        }
+
+        if (name) user.name = name.trim();
+        if (email) user.email = email.trim().toLowerCase();
+        if (idNumber !== undefined) user.idNumber = idNumber ? idNumber.trim() : null;
+        if (nationality !== undefined) user.nationality = nationality ? nationality.trim() : null;
+
+        await user.save();
+
+        await AuditLog.create({
+            action: 'ADMIN_USER_INFO_UPDATE',
+            description: `Administrador ${req.user.email} actualizó los datos del usuario ${user.email} (ID: ${user.id})`,
+            userId: req.user.id
+        }).catch(e => console.error('AuditLog error:', e.message));
+
+        res.json({ msg: 'Información de usuario actualizada correctamente', user: { id: user.id, name: user.name, email: user.email, idNumber: user.idNumber, nationality: user.nationality } });
+    } catch (err) {
+        console.error('Error updating user info:', err);
+        res.status(500).json({ msg: 'Error al actualizar usuario: ' + err.message });
+    }
+});
+
+// @route   DELETE api/admin/user-documents/:id
+// @desc    Elimina un documento personal o firmado (Admin Only)
+router.delete('/user-documents/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        let doc = await UserDocument.findByPk(req.params.id);
+        let docType = 'UserDocument';
+        if (!doc) {
+            doc = await SignedDocument.findByPk(req.params.id);
+            docType = 'SignedDocument';
+        }
+
+        if (!doc) {
+            return res.status(404).json({ msg: 'Documento no encontrado' });
+        }
+
+        const docId = doc.id;
+        await doc.destroy();
+
+        await AuditLog.create({
+            action: 'ADMIN_DOCUMENT_DELETE',
+            description: `Administrador ${req.user.email} eliminó el documento (${docType}, ID: ${docId})`,
+            userId: req.user.id
+        }).catch(e => console.error('AuditLog error:', e.message));
+
+        res.json({ msg: 'Documento eliminado exitosamente' });
+    } catch (err) {
+        console.error('Error deleting document:', err);
+        res.status(500).json({ msg: 'Error al eliminar documento: ' + err.message });
+    }
+});
+
 module.exports = router;
