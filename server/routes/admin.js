@@ -676,7 +676,24 @@ router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
             return summary;
         });
 
-        res.json({ user, forms: summaries });
+        const userDocs = await UserDocument.findAll({
+            where: { userId },
+            attributes: ['id', 'filename', 'createdAt', 'updatedAt'],
+            order: [['createdAt', 'DESC']]
+        }).catch(() => []);
+
+        const signedDocs = await SignedDocument.findAll({
+            where: { userId },
+            attributes: ['id', 'filename', 'signatureStatus', 'createdAt', 'updatedAt'],
+            order: [['createdAt', 'DESC']]
+        }).catch(() => []);
+
+        const documents = [
+            ...userDocs.map(d => ({ id: d.id, filename: d.filename, type: 'UserDocument', signatureStatus: 'Adjunto Usuario', createdAt: d.createdAt })),
+            ...signedDocs.map(d => ({ id: d.id, filename: d.filename, type: 'SignedDocument', signatureStatus: d.signatureStatus || 'Firmado', createdAt: d.createdAt }))
+        ];
+
+        res.json({ user, forms: summaries, documents });
     } catch (err) {
         console.error('Error fetching user forms:', err);
         res.status(500).json({ msg: 'Error al obtener formularios del usuario' });
@@ -1151,10 +1168,65 @@ router.delete('/user-documents/:id', [auth, isAdmin], async (req, res) => {
             userId: req.user.id
         }).catch(e => console.error('AuditLog error:', e.message));
 
-        res.json({ msg: 'Documento eliminado exitosamente' });
+// @route   GET api/admin/user-documents/:id/download
+// @desc    Descarga un documento adjunto o firmado (Admin Only)
+router.get('/user-documents/:id/download', [auth, isAdmin], async (req, res) => {
+    try {
+        let doc = await UserDocument.findByPk(req.params.id);
+        if (!doc) {
+            doc = await SignedDocument.findByPk(req.params.id);
+        }
+
+        if (!doc || !doc.fileData) {
+            return res.status(404).json({ msg: 'Archivo no encontrado' });
+        }
+
+        const ext = path.extname(doc.filename || '').toLowerCase();
+        let contentType = 'application/octet-stream';
+        if (ext === '.pdf') contentType = 'application/pdf';
+        else if (ext === '.png') contentType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="${doc.filename || 'documento'}"`);
+        res.send(doc.fileData);
     } catch (err) {
-        console.error('Error deleting document:', err);
-        res.status(500).json({ msg: 'Error al eliminar documento: ' + err.message });
+        console.error('Error downloading document:', err);
+        res.status(500).json({ msg: 'Error al descargar documento: ' + err.message });
+    }
+});
+
+// @route   PUT api/admin/user-documents/:id
+// @desc    Actualiza el nombre o estado de un documento adjunto o firmado (Admin Only)
+router.put('/user-documents/:id', [auth, isAdmin], async (req, res) => {
+    try {
+        const { filename, signatureStatus } = req.body;
+        let doc = await UserDocument.findByPk(req.params.id);
+        let docType = 'UserDocument';
+        if (!doc) {
+            doc = await SignedDocument.findByPk(req.params.id);
+            docType = 'SignedDocument';
+        }
+
+        if (!doc) {
+            return res.status(404).json({ msg: 'Documento no encontrado' });
+        }
+
+        if (filename) doc.filename = filename.trim();
+        if (signatureStatus && docType === 'SignedDocument') doc.signatureStatus = signatureStatus;
+
+        await doc.save();
+
+        await AuditLog.create({
+            action: 'ADMIN_DOCUMENT_UPDATE',
+            description: `Administrador ${req.user.email} actualizó el documento ${doc.filename} (ID: ${doc.id})`,
+            userId: req.user.id
+        }).catch(e => console.error('AuditLog error:', e.message));
+
+        res.json({ msg: 'Documento actualizado exitosamente', doc: { id: doc.id, filename: doc.filename, signatureStatus: doc.signatureStatus } });
+    } catch (err) {
+        console.error('Error updating document:', err);
+        res.status(500).json({ msg: 'Error al actualizar documento: ' + err.message });
     }
 });
 

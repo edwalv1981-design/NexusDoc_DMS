@@ -104,8 +104,28 @@ const AdminDashboard = () => {
   const [consultaLoading, setConsultaLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserForms, setSelectedUserForms] = useState(null);
+  const [selectedUserDocuments, setSelectedUserDocuments] = useState([]);
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [viewingFormData, setViewingFormData] = useState(null);
+
+  const handleDownloadDoc = (docId) => {
+    const token = localStorage.getItem('token');
+    window.open(`${API_BASE_URL}/api/admin/user-documents/${docId}/download?x-auth-token=${token}`, '_blank');
+  };
+
+  const handleDeleteDoc = async (docId) => {
+    if (!window.confirm('⚠️ ¿Está seguro de eliminar este documento adjunto?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`${API_BASE_URL}/api/admin/user-documents/${docId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.success(res.data.msg || 'Documento eliminado exitosamente');
+      setSelectedUserDocuments(prev => prev.filter(d => d.id !== docId));
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Error al eliminar el documento');
+    }
+  };
 
   // Admin Form & User Edit/Delete Modals State
   const [editingForm, setEditingForm] = useState(null);
@@ -481,6 +501,7 @@ const AdminDashboard = () => {
       });
       setSelectedUser(res.data.user);
       setSelectedUserForms(res.data.forms);
+      setSelectedUserDocuments(res.data.documents || []);
     } catch (err) {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
       toast.error('Error al cargar formularios');
@@ -889,6 +910,48 @@ const AdminDashboard = () => {
                         ))}
                       </tbody>
                     </table>
+
+                    {/* Tabla de Documentos Adjuntos del Usuario */}
+                    {selectedUserDocuments && selectedUserDocuments.length > 0 && (
+                      <div style={{ marginTop: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#0f766e', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          📎 DOCUMENTOS ADJUNTOS Y FIRMADOS DEL USUARIO ({selectedUserDocuments.length}):
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
+                          <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
+                            <tr style={{ fontSize: 10, color: '#64748b', fontWeight: 800 }}>
+                              <th style={{ padding: '10px 12px' }}>NOMBRE DEL ARCHIVO</th>
+                              <th style={{ padding: '10px 12px' }}>TIPO / ESTADO</th>
+                              <th style={{ padding: '10px 12px' }}>FECHA DE SUBIDA</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right' }}>ACCIONES</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedUserDocuments.map(d => (
+                              <tr key={d.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: 11 }}>
+                                <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{d.filename}</td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
+                                    {d.signatureStatus || d.type}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(d.createdAt).toLocaleDateString()}</td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                                    <button onClick={() => handleDownloadDoc(d.id)} title="Descargar/Ver Documento" style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', padding: '4px 8px', fontSize: 10, fontWeight: 700 }}>
+                                      Descargar
+                                    </button>
+                                    <button onClick={() => handleDeleteDoc(d.id)} title="Eliminar Documento" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', padding: '4px 8px', fontSize: 10, fontWeight: 700 }}>
+                                      Eliminar
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
 
