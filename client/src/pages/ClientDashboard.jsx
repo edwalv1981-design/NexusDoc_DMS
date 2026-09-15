@@ -471,7 +471,7 @@ const ClientDashboard = () => {
                     )}
                 </nav>
                 <LanguageSwitcher variant="sidebar" />
-                <button onClick={() => { localStorage.clear(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#ef4444', cursor: 'pointer', fontWeight: 700, fontSize: '12px', borderRadius: RADIUS, marginTop: 14, transition: 'all 0.2s ease' }}>
+                <button onClick={() => { localStorage.clear(); window.location.replace('/'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#ef4444', cursor: 'pointer', fontWeight: 700, fontSize: '12px', borderRadius: RADIUS, marginTop: 14, transition: 'all 0.2s ease' }}>
                     <LogOut size={16} /> {t('sidebar.logout')}
                 </button>
             </aside>

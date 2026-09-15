@@ -28,8 +28,8 @@ const Login = () => {
       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password, website_hp });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      if (res.data.user.mustChangePassword) return navigate('/reset-password');
-      res.data.user.role === 'admin' ? navigate('/admin') : navigate('/dashboard');
+      if (res.data.user.mustChangePassword) return navigate('/reset-password', { replace: true });
+      res.data.user.role === 'admin' ? navigate('/admin', { replace: true }) : navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || t('login.errorGeneric'));
     }
@@ -71,7 +71,7 @@ const Login = () => {
       if (data.token && data.user) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/reset-password');
+        navigate('/reset-password', { replace: true });
       } else {
         throw new Error(data.msg || 'Error de autenticación.');
       }

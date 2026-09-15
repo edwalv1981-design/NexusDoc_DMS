@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import SessionHistoryGuard from './components/SessionHistoryGuard';
 import { ToastProvider } from './components/Toast';
 import { useT } from './i18n';
 
@@ -47,7 +48,7 @@ function App() {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     try { localStorage.clear(); } catch (_) {}
     setShowTimeoutModal(false);
-    window.location.href = '/'; 
+    window.location.replace('/');
   };
 
   const handleStay = () => {
@@ -77,16 +78,7 @@ function App() {
     };
   }, [showTimeoutModal]);
 
-  // 4. EFECTO PARA DESLOGUEAR AL RECARGAR PÁGINA (F5)
-  useEffect(() => {
-    const navEntries = window.performance.getEntriesByType('navigation');
-    if (navEntries.length > 0 && navEntries[0].type === 'reload') {
-      localStorage.clear();
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
-      }
-    }
-  }, []);
+  // 4. Recarga y botón Atrás: SessionHistoryGuard (dentro del Router)
 
   // 5. EFECTO PARA DETECTAR ACTIVIDAD Y CHEQUEAR TIEMPO MUERTO
   useEffect(() => {
@@ -115,21 +107,10 @@ function App() {
     };
   }, []);
 
-  // 6. EFECTO PARA BLOQUEAR EL BOTÓN ATRÁS DEL NAVEGADOR
-  useEffect(() => {
-    // Empuja un estado inicial
-    window.history.pushState(null, null, window.location.href);
-    const handlePopState = (event) => {
-      // Forzar que el usuario siempre se mantenga en el estado actual si intenta retroceder
-      window.history.pushState(null, null, window.location.href);
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
   return (
     <ToastProvider>
       <Router>
+        <SessionHistoryGuard />
         <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Cargando...</div>}>
         <Routes>
           <Route path="/" element={<Login />} />

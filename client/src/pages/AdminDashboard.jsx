@@ -550,7 +550,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const logout = () => { localStorage.clear(); navigate('/'); };
+  const logout = () => { localStorage.clear(); window.location.replace('/'); };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>

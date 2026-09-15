@@ -45,8 +45,8 @@ const ResetPassword = () => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
       // Redirect based on role
-      if (updatedUser.role === 'admin') navigate('/admin');
-      else navigate('/dashboard');
+      if (updatedUser.role === 'admin') navigate('/admin', { replace: true });
+      else navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || getTranslation('reset.updateError', 'Error al actualizar la contraseña.'));
     } finally {
