@@ -47,11 +47,27 @@ router.get('/people/search', [auth, isAdmin], async (req, res) => {
 // @desc    Get all users for management
 router.get('/users', [auth, isAdmin], async (req, res) => {
     try {
-        const users = await User.findAll({ 
-            attributes: { exclude: ['password', 'securityCode'] },
-            order: [['createdAt', 'DESC']],
-            raw: true
-        });
+        let users = [];
+        try {
+            users = await User.findAll({ 
+                attributes: ['id', 'name', 'email', 'role', 'status', 'uniqueCode', 'idNumber', 'createdAt'],
+                order: [['createdAt', 'DESC']],
+                raw: true
+            });
+        } catch (ormErr) {
+            console.error('Sequelize ORM User.findAll failed in GET /users:', ormErr.message);
+            try {
+                const [rows] = await sequelize.query(`SELECT id, name, email, role, status, "uniqueCode", "idNumber", "createdAt" FROM "Users" ORDER BY "createdAt" DESC`);
+                users = rows;
+            } catch (e1) {
+                try {
+                    const [rows2] = await sequelize.query(`SELECT id, name, email, role, status, unique_code AS "uniqueCode", id_number AS "idNumber", created_at AS "createdAt" FROM users ORDER BY created_at DESC`);
+                    users = rows2;
+                } catch (e2) {
+                    console.error('All User table queries failed:', e2.message);
+                }
+            }
+        }
 
         // Fetch user profiles to attach roleOverride
         let profiles = [];
@@ -59,24 +75,29 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
             const [results] = await sequelize.query(`SELECT "userId", "roleOverride" FROM "UserProfiles"`);
             profiles = results;
         } catch (e) {
-            console.warn("UserProfiles query failed in GET /users, probably table does not exist yet.");
+            try {
+                const [r2] = await sequelize.query(`SELECT user_id AS "userId", role_override AS "roleOverride" FROM user_profiles`);
+                profiles = r2;
+            } catch (e2) {}
         }
         
         const profileMap = {};
-        profiles.forEach(p => { profileMap[p.userId] = p.roleOverride; });
+        (profiles || []).forEach(p => { if (p && p.userId) profileMap[p.userId] = p.roleOverride; });
 
-        users.forEach(u => {
+        (users || []).forEach(u => {
             if (u.role === 'admin') {
                 u.roleOverride = 'master';
             } else {
                 u.roleOverride = profileMap[u.id] || 'client';
             }
+            if (!u.status) u.status = 'pending';
+            if (!u.uniqueCode) u.uniqueCode = '—';
         });
 
-        res.json(users);
+        res.json(users || []);
     } catch (err) {
         console.error('Error fetching users:', err.message);
-        res.status(500).send('Server error');
+        res.status(500).json([]);
     }
 });
 

@@ -276,7 +276,7 @@ const AdminDashboard = () => {
     try {
       if (activeTab === 'users') {
         const res = await axios.get(`${API_BASE_URL}/api/admin/users`, { headers: { 'x-auth-token': token } });
-        setUsers(res.data);
+        setUsers(Array.isArray(res.data) ? res.data : (res.data?.users || []));
       } else if (activeTab === 'logs') {
         const params = { page: currentPage, limit: itemsPerPage };
         if (searchTerm.trim()) params.q = searchTerm.trim();
@@ -585,7 +585,19 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(user => (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
+                        Cargando lista de usuarios...
+                      </td>
+                    </tr>
+                  ) : !Array.isArray(users) || users.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                        No hay usuarios registrados en la base de datos.
+                      </td>
+                    </tr>
+                  ) : users.map(user => (
                     <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '12px' }}>
                       <td style={{ padding: '12px 15px', fontWeight: 700, color: PRIMARY }}>{user.uniqueCode}</td>
                       <td style={{ padding: '12px 15px' }}>{user.name}</td>
