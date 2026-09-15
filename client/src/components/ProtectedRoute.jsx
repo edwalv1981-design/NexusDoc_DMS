@@ -30,7 +30,7 @@ const ProtectedRoute = ({ children, roleRequired }) => {
         const user = JSON.parse(userStr);
         
         // Si la ruta requiere ser admin y el usuario no lo es, al login
-        if (roleRequired === 'admin' && user.role !== 'admin') {
+        if (roleRequired === 'admin' && user.role !== 'admin' && user.role !== 'manager') {
             console.warn('Acceso denegado: Se requiere rol de administrador');
             return <Navigate to="/" replace />;
         }

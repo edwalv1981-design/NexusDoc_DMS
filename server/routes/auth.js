@@ -461,7 +461,10 @@ router.post('/login', authLimiter, async (req, res) => {
         let effectiveRole = user.role;
         try {
             const profile = await profileStore.getProfile(user.id);
-            if (profile) {
+            // Un usuario con Users.role = admin nunca se degrada a manager/client.
+            if (user.role === 'admin') {
+                effectiveRole = 'admin';
+            } else if (profile) {
                 if (profile.roleOverride === 'manager') effectiveRole = 'manager';
                 else if (profile.roleOverride === 'master') effectiveRole = 'admin';
             }

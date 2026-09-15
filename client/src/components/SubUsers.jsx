@@ -22,7 +22,7 @@ const SubUsers = () => {
             const res = await axios.get(`${API_BASE_URL}/api/manager/sub-users`, {
                 headers: { 'x-auth-token': token }
             });
-            setSubUsers(res.data);
+            setSubUsers(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             toast.error('Error al cargar usuarios adicionales');
         } finally {

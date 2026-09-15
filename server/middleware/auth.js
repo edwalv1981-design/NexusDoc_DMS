@@ -21,8 +21,9 @@ module.exports = async function (req, res, next) {
     } catch (dbErr) {
       console.warn('[AUTH DB WARNING]', dbErr.message);
     }
+    if (user) req.dbUser = user;
 
-    const isUserAdmin = req.user?.role === 'admin' || req.user?.role === 'manager' || (user && (user.role === 'admin' || user.role === 'manager'));
+    const isUserAdmin = req.user?.role === 'admin' || req.user?.role === 'manager' || (user && user.role === 'admin');
 
     if (!user && !isUserAdmin) {
       return res.status(401).json({ msg: 'Usuario inexistente' });

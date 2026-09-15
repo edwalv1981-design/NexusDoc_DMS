@@ -21,11 +21,18 @@ const auth = require('../middleware/auth');
 const templateAvailability = require('../utils/templateAvailability');
 const personCatalogService = require('../services/personCatalogService');
 const adminSearchPdfService = require('../services/adminSearchPdfService');
+const {
+    quotePhysicalTable,
+    normalizeUserListRow,
+    normalizeAuditLogRow,
+    normalizeTemplateRow,
+} = require('../utils/pgTable');
 
-// Middleware to verify Admin role
+// Middleware to verify Admin role (JWT o rol real en BD)
 const isAdmin = (req, res, next) => {
     const role = req.user?.role;
-    if (role !== 'admin' && role !== 'manager') {
+    const dbRole = req.dbUser?.role;
+    if (role !== 'admin' && role !== 'manager' && dbRole !== 'admin') {
         return res.status(403).json({ msg: 'Acceso denegado: Se requiere rol de administrador' });
     }
     next();
@@ -50,44 +57,38 @@ router.get(['/users', '/users/'], [auth, isAdmin], async (req, res) => {
     try {
         let users = [];
         try {
-            const dbUsers = await User.findAll({ 
-                attributes: { exclude: ['password', 'securityCode'] },
+            const dbUsers = await User.findAll({
+                attributes: { exclude: ['password', 'securityCode', 'activeToken'] },
                 order: [['createdAt', 'DESC']]
             });
-            users = dbUsers.map(u => (u && u.get ? u.get({ plain: true }) : u));
+            users = (dbUsers || []).map(normalizeUserListRow);
         } catch (ormErr) {
             console.error('Sequelize ORM User.findAll failed in GET /users:', ormErr.message);
         }
 
-        // Si ORM no retornó resultados o falló por esquema, intentar SQL directo con COALESCE defensivo
         if (!users || users.length === 0) {
-            try {
-                const [rows] = await sequelize.query(`
-                    SELECT 
-                        id, 
-                        name, 
-                        email, 
-                        role, 
-                        status, 
-                        COALESCE(unique_code, "uniqueCode", '—') AS "uniqueCode", 
-                        COALESCE(id_number, "idNumber", '') AS "idNumber", 
-                        COALESCE(created_at, "createdAt", NOW()) AS "createdAt" 
-                    FROM "Users" 
-                    ORDER BY COALESCE(created_at, "createdAt", NOW()) DESC
-                `);
-                users = rows;
-            } catch (sqlErr1) {
-                console.error('SQL Fallback 1 failed in GET /users:', sqlErr1.message);
-                try {
-                    const [rows2] = await sequelize.query(`SELECT id, name, email, role, status FROM "Users"`);
-                    users = rows2;
-                } catch (sqlErr2) {
-                    console.error('SQL Fallback 2 failed in GET /users:', sqlErr2.message);
+            const quoted = await quotePhysicalTable(sequelize, ['Users', 'users']);
+            if (quoted) {
+                const attempts = [
+                    `SELECT id, name, email, role, status, unique_code AS "uniqueCode", id_number AS "idNumber", created_at AS "createdAt" FROM ${quoted} ORDER BY created_at DESC`,
+                    `SELECT id, name, email, role, status, "uniqueCode", "idNumber", "createdAt" FROM ${quoted} ORDER BY "createdAt" DESC`,
+                    `SELECT id, name, email, role, status FROM ${quoted}`,
+                ];
+                for (const sql of attempts) {
+                    try {
+                        const [rows] = await sequelize.query(sql);
+                        if (Array.isArray(rows) && rows.length) {
+                            users = rows.map(normalizeUserListRow);
+                            break;
+                        }
+                        if (Array.isArray(rows)) users = rows.map(normalizeUserListRow);
+                    } catch (sqlErr) {
+                        console.error('SQL fallback GET /users:', sqlErr.message);
+                    }
                 }
             }
         }
 
-        // Fetch user profiles to attach roleOverride
         let profiles = [];
         try {
             const [results] = await sequelize.query(`SELECT "userId", "roleOverride" FROM "UserProfiles"`);
@@ -96,23 +97,24 @@ router.get(['/users', '/users/'], [auth, isAdmin], async (req, res) => {
             try {
                 const [r2] = await sequelize.query(`SELECT user_id AS "userId", role_override AS "roleOverride" FROM user_profiles`);
                 profiles = r2;
-            } catch (e2) {}
-        }
-        
-        const profileMap = {};
-        (profiles || []).forEach(p => { if (p && p.userId) profileMap[p.userId] = p.roleOverride; });
-
-        (users || []).forEach(u => {
-            if (u.role === 'admin') {
-                u.roleOverride = 'master';
-            } else {
-                u.roleOverride = profileMap[u.id] || 'client';
+            } catch (e2) {
+                console.warn('UserProfiles lookup failed in GET /users:', e2.message);
             }
-            if (!u.status) u.status = 'pending';
-            if (!u.uniqueCode) u.uniqueCode = '—';
+        }
+
+        const profileMap = {};
+        (profiles || []).forEach((p) => {
+            if (p && p.userId) profileMap[String(p.userId)] = p.roleOverride;
         });
 
-        res.json(users || []);
+        users = (users || []).map((u) => {
+            const roleOverride = u.role === 'admin'
+                ? 'master'
+                : (profileMap[String(u.id)] || 'client');
+            return { ...u, roleOverride };
+        });
+
+        res.json(users);
     } catch (err) {
         console.error('Error fetching users:', err.message);
         res.status(500).json({ msg: 'Error al obtener la lista de usuarios', error: err.message });
@@ -454,19 +456,72 @@ router.get(['/logs', '/logs/'], [auth, isAdmin], async (req, res) => {
             count = result.count;
             rows = result.rows;
         } catch (findErr) {
-            console.warn('AuditLog.findAndCountAll warning in GET /logs:', findErr.message);
+            console.warn('AuditLog.findAndCountAll with User include failed:', findErr.message);
+            try {
+                const result = await AuditLog.findAndCountAll({
+                    where,
+                    order: [['createdAt', 'DESC']],
+                    limit,
+                    offset: (page - 1) * limit
+                });
+                count = result.count;
+                rows = result.rows;
+            } catch (findErr2) {
+                console.warn('AuditLog.findAndCountAll without include failed:', findErr2.message);
+            }
         }
 
+        if (!rows.length) {
+            try {
+                const auditQuoted = await quotePhysicalTable(sequelize, ['AuditLogs', 'audit_logs']);
+                if (auditQuoted) {
+                    const countSqlAttempts = [
+                        `SELECT COUNT(*)::int AS total FROM ${auditQuoted}`,
+                    ];
+                    let totalRow = null;
+                    for (const sql of countSqlAttempts) {
+                        try {
+                            const [cRows] = await sequelize.query(sql);
+                            totalRow = Array.isArray(cRows) ? cRows[0] : cRows;
+                            if (totalRow) break;
+                        } catch (_) { /* next */ }
+                    }
+                    count = Number(totalRow?.total || totalRow?.count || 0);
+                    const offset = (page - 1) * limit;
+                    const listAttempts = [
+                        `SELECT id, action, description, user_id AS "userId", created_at AS "createdAt" FROM ${auditQuoted} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+                        `SELECT id, action, description, "userId", "createdAt" FROM ${auditQuoted} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${offset}`,
+                    ];
+                    for (const sql of listAttempts) {
+                        try {
+                            const [logRows] = await sequelize.query(sql);
+                            if (Array.isArray(logRows)) {
+                                rows = logRows;
+                                break;
+                            }
+                        } catch (sqlErr) {
+                            console.error('SQL fallback GET /logs:', sqlErr.message);
+                        }
+                    }
+                }
+            } catch (rawErr) {
+                console.error('Raw SQL GET /logs failed:', rawErr.message);
+            }
+        }
+
+        const logs = (rows || []).map(normalizeAuditLogRow);
+
         res.json({
-            logs: rows,
-            total: count,
+            logs,
+            total: count || logs.length,
             page,
             limit,
-            totalPages: Math.max(1, Math.ceil(count / limit))
+            totalPages: Math.max(1, Math.ceil((count || logs.length) / limit))
         });
     } catch (err) {
         console.error('Error fetching audit logs:', err.message);
-        res.json({
+        res.status(500).json({
+            msg: 'Error al obtener la bitácora',
             logs: [],
             total: 0,
             page,
@@ -568,19 +623,40 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 router.get(['/templates', '/templates/'], [auth, isAdmin], async (req, res) => {
     try {
         let normalized = [];
+        let ormOk = false;
         try {
             const templates = await DocumentTemplate.findAll({
                 attributes: ['id', 'name', 'updatedAt']
             });
-            normalized = templates.map(t => {
-                const raw = t.toJSON ? t.toJSON() : t;
-                if (raw.name === 'referencia_maestra') {
-                    raw.name = 'fondos';
-                }
-                return raw;
-            });
+            normalized = (templates || []).map(normalizeTemplateRow);
+            ormOk = true;
         } catch (dbErr) {
             console.warn('DocumentTemplate.findAll warning in GET /templates:', dbErr.message);
+        }
+
+        if (!ormOk || normalized.length === 0) {
+            try {
+                const quoted = await quotePhysicalTable(sequelize, ['DocumentTemplates', 'document_templates']);
+                if (quoted) {
+                    const attempts = [
+                        `SELECT id, name, updated_at AS "updatedAt" FROM ${quoted}`,
+                        `SELECT id, name, "updatedAt" FROM ${quoted}`,
+                    ];
+                    for (const sql of attempts) {
+                        try {
+                            const [rows] = await sequelize.query(sql);
+                            if (Array.isArray(rows) && (rows.length || !ormOk)) {
+                                normalized = rows.map(normalizeTemplateRow);
+                                break;
+                            }
+                        } catch (sqlErr) {
+                            console.error('SQL fallback GET /templates:', sqlErr.message);
+                        }
+                    }
+                }
+            } catch (rawErr) {
+                console.error('Raw SQL GET /templates failed:', rawErr.message);
+            }
         }
 
         let statusRows = [];

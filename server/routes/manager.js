@@ -69,15 +69,35 @@ router.post('/sub-users', [auth, isManager], async (req, res) => {
 // @desc    Get all sub-users created by the manager
 router.get('/sub-users', [auth, isManager], async (req, res) => {
     try {
-        const [results] = await sequelize.query(`
-            SELECT u.id, u.name, u.email, u.status, u."createdAt", p.phone, p.address 
-            FROM "Users" u
-            JOIN "UserProfiles" p ON u.id = p."userId"
-            WHERE p."createdBy" = :managerId
-            ORDER BY u."createdAt" DESC
-        `, {
-            replacements: { managerId: req.user.id }
-        });
+        const { quotePhysicalTable } = require('../utils/pgTable');
+        const usersTable = (await quotePhysicalTable(sequelize, ['Users', 'users'])) || '"Users"';
+        const attempts = [
+            `SELECT u.id, u.name, u.email, u.status, u.created_at AS "createdAt", p.phone, p.address
+               FROM ${usersTable} u
+               JOIN "UserProfiles" p ON u.id = p."userId"
+              WHERE p."createdBy" = :managerId
+              ORDER BY u.created_at DESC`,
+            `SELECT u.id, u.name, u.email, u.status, u."createdAt", p.phone, p.address
+               FROM ${usersTable} u
+               JOIN "UserProfiles" p ON u.id = p."userId"
+              WHERE p."createdBy" = :managerId
+              ORDER BY u."createdAt" DESC`,
+        ];
+        let results = [];
+        let lastErr = null;
+        for (const sql of attempts) {
+            try {
+                const [rows] = await sequelize.query(sql, {
+                    replacements: { managerId: req.user.id }
+                });
+                results = Array.isArray(rows) ? rows : [];
+                lastErr = null;
+                break;
+            } catch (sqlErr) {
+                lastErr = sqlErr;
+            }
+        }
+        if (lastErr) throw lastErr;
 
         res.json(results);
     } catch (err) {

@@ -276,7 +276,17 @@ const AdminDashboard = () => {
     try {
       if (activeTab === 'users') {
         const res = await axios.get(`${API_BASE_URL}/api/admin/users`, { headers: { 'x-auth-token': token } });
-        setUsers(Array.isArray(res.data) ? res.data : (res.data?.users || []));
+        const payload = res.data;
+        if (typeof payload === 'string') {
+          toast.error('El servidor no devolvió la lista de usuarios (respuesta no JSON).');
+          setUsers([]);
+        } else {
+          const list = Array.isArray(payload) ? payload : (payload?.users || []);
+          setUsers(Array.isArray(list) ? list : []);
+          if (!Array.isArray(list) || (payload && !Array.isArray(payload) && payload.msg && !payload.users)) {
+            toast.error(payload?.msg || 'No se pudo leer la lista de usuarios.');
+          }
+        }
       } else if (activeTab === 'logs') {
         const params = { page: currentPage, limit: itemsPerPage };
         if (searchTerm.trim()) params.q = searchTerm.trim();
@@ -284,23 +294,28 @@ const AdminDashboard = () => {
           headers: { 'x-auth-token': token },
           params
         });
-        setLogs(res.data.logs || []);
-        setLogsTotal(res.data.total ?? 0);
-        setLogsTotalPages(res.data.totalPages ?? 1);
+        const payload = res.data;
+        const list = Array.isArray(payload) ? payload : (payload?.logs || []);
+        setLogs(Array.isArray(list) ? list : []);
+        setLogsTotal(payload?.total ?? (Array.isArray(list) ? list.length : 0));
+        setLogsTotalPages(payload?.totalPages ?? 1);
+        if (payload?.msg && !list.length) toast.error(payload.msg);
       } else if (activeTab === 'templates') {
         const res = await axios.get(`${API_BASE_URL}/api/admin/templates`, { headers: { 'x-auth-token': token } });
         const payload = res.data;
+        const htmlStatus = HTML_ENGINE_TEMPLATES.map((id) => ({ id, kind: 'html', available: true }));
         if (Array.isArray(payload)) {
           setTemplates(payload);
-          setTemplateStatus([]);
+          setTemplateStatus(htmlStatus);
         } else {
-          setTemplates(payload.templates || []);
-          setTemplateStatus(payload.status || []);
+          setTemplates(Array.isArray(payload?.templates) ? payload.templates : []);
+          setTemplateStatus(Array.isArray(payload?.status) && payload.status.length ? payload.status : htmlStatus);
         }
       }
     } catch (err) { 
-      if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-      console.error(err); 
+      if (err.response?.status === 401) { localStorage.clear(); navigate('/'); return; }
+      console.error(err);
+      toast.error(err.response?.data?.msg || 'No se pudo cargar la información del panel de administración.');
     } finally { setLoading(false); }
   };
 
@@ -611,7 +626,7 @@ const AdminDashboard = () => {
                         )}
                       </td>
                       <td style={{ padding: '12px 15px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{user.status.toUpperCase()}</span>
+                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{String(user.status || 'pending').toUpperCase()}</span>
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -650,7 +665,7 @@ const AdminDashboard = () => {
                       <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '11px' }}>
                         <td style={{ padding: '10px 15px', color: '#666' }}>{new Date(log.createdAt).toLocaleString()}</td>
                         <td style={{ padding: '10px 15px' }}><span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{log.action}</span></td>
-                        <td style={{ padding: '10px 15px', fontWeight: 600 }}>{log.User?.name || 'Sistema'}</td>
+                        <td style={{ padding: '10px 15px', fontWeight: 600 }}>{log.User?.name || log.user?.name || 'Sistema'}</td>
                         <td style={{ padding: '10px 15px', color: '#444' }}>{log.description}</td>
                       </tr>
                     ))}
