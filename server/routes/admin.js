@@ -20,6 +20,7 @@ const upload = multer({
 const auth = require('../middleware/auth');
 const templateAvailability = require('../utils/templateAvailability');
 const personCatalogService = require('../services/personCatalogService');
+const adminSearchPdfService = require('../services/adminSearchPdfService');
 
 // Middleware to verify Admin role
 const isAdmin = (req, res, next) => {
@@ -869,193 +870,285 @@ function extractAllParticipantsFromForm(d) {
   return participants;
 }
 
-// @route   GET api/admin/search-person?q=<name_or_passport>
-// @desc    Search across ALL form data for a person by name or passport/cedula
+async function performAdminSearch(queryParams) {
+    const { nombres, ruc, codigoUnico, usuario, empresa, formType } = queryParams;
+
+    let forms = [];
+    try {
+        const whereClauses = [];
+
+        if (formType && formType.trim()) {
+            const ft = formType.trim().toLowerCase();
+            let pattern = `%${ft}%`;
+            if (ft.includes('corporac') || ft.includes('incorporac')) pattern = '%corporac%';
+            else if (ft.includes('fundac')) pattern = '%fundac%';
+            else if (ft.includes('entidad')) pattern = '%entidad%';
+            else if (ft.includes('individual')) pattern = '%individual%';
+            else if (ft.includes('fondo')) pattern = '%fondo%';
+
+            whereClauses.push(sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('FormData.formType')),
+                { [Op.like]: pattern }
+            ));
+        }
+
+        const searchConds = [];
+
+        if (nombres && nombres.trim()) {
+            const rawName = nombres.trim();
+            const cleanName = rawName.replace(/[^a-zA-Z0-9\s]/g, '');
+            searchConds.push(
+                sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawName}%` }),
+                sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${rawName}%` })
+            );
+            if (cleanName && cleanName !== rawName) {
+                searchConds.push(
+                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${cleanName}%` })
+                );
+            }
+        }
+
+        if (ruc && ruc.trim()) {
+            const rawRuc = ruc.trim();
+            const cleanRuc = rawRuc.replace(/[^a-zA-Z0-9]/g, '');
+            searchConds.push(
+                sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawRuc}%` })
+            );
+            if (cleanRuc && cleanRuc !== rawRuc) {
+                searchConds.push(
+                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${cleanRuc}%` })
+                );
+            }
+        }
+
+        if (codigoUnico && codigoUnico.trim()) {
+            const code = codigoUnico.trim();
+            searchConds.push(
+                sequelize.where(sequelize.col('User.uniqueCode'), { [Op.iLike]: `%${code}%` }),
+                sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${code}%` })
+            );
+        }
+
+        if (usuario && usuario.trim()) {
+            const uTerm = usuario.trim();
+            searchConds.push(
+                sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${uTerm}%` }),
+                sequelize.where(sequelize.col('User.email'), { [Op.iLike]: `%${uTerm}%` })
+            );
+        }
+
+        if (empresa && empresa.trim()) {
+            searchConds.push(
+                sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${empresa.trim()}%` })
+            );
+        }
+
+        if (searchConds.length > 0) {
+            whereClauses.push({ [Op.or]: searchConds });
+        }
+
+        const finalWhere = whereClauses.length > 0 ? { [Op.and]: whereClauses } : {};
+
+        forms = await FormData.findAll({
+            where: finalWhere,
+            include: [{
+                model: User,
+                required: false,
+                attributes: ['id', 'name', 'email', 'uniqueCode']
+            }],
+            order: [['updatedAt', 'DESC']],
+            limit: 150
+        });
+    } catch (ormErr) {
+        console.error('Sequelize ORM search error in admin search-person:', ormErr.message);
+        let rawRows = [];
+        try {
+            const [r1] = await sequelize.query(`SELECT id, form_type AS "formType", user_id AS "userId", updated_at AS "updatedAt", data FROM form_data ORDER BY updated_at DESC LIMIT 150`);
+            rawRows = r1;
+        } catch (e1) {
+            try {
+                const [r2] = await sequelize.query(`SELECT id, "formType", "userId", "updatedAt", data FROM "FormData" ORDER BY "updatedAt" DESC LIMIT 150`);
+                rawRows = r2;
+            } catch (e2) {
+                console.error('All table query fallbacks failed:', e2.message);
+            }
+        }
+
+        forms = rawRows.map(r => ({
+            id: r.id,
+            formType: r.formType,
+            userId: r.userId,
+            updatedAt: r.updatedAt,
+            User: {},
+            data: typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {})
+        }));
+    }
+
+    let catalogPeople = [];
+    try {
+        const searchTerm = nombres || ruc || usuario || empresa || codigoUnico || '';
+        catalogPeople = await personCatalogService.searchAdminPersonCatalog(searchTerm);
+    } catch (catErr) {
+        console.error('Catalog admin search error:', catErr);
+    }
+
+    const results = [];
+    const searchTermsList = [nombres, ruc, codigoUnico, usuario, empresa].filter(Boolean);
+
+    forms.forEach(f => {
+        const d = f.data || {};
+        const u = f.User || {};
+
+        const matchedSections = scanFormForMatches(d, searchTermsList);
+        const participants = extractAllParticipantsFromForm(d);
+
+        let entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.accountHolder || d.fullName || d.name || d.beneficiaryName || '';
+        if (!entityName || entityName === 'N/A') {
+            if (matchedSections.length > 0 && matchedSections[0].name) {
+                entityName = `${matchedSections[0].name} (${matchedSections[0].idNumber || u.uniqueCode || 'Trámite'})`;
+            } else if (participants.length > 0 && participants[0].name) {
+                entityName = `${participants[0].name} (${participants[0].idNumber || u.uniqueCode || 'Trámite'})`;
+            } else if (u.uniqueCode) {
+                entityName = `Trámite ${u.uniqueCode}`;
+            } else {
+                entityName = `${f.formType} (ID: ${String(f.id).substring(0, 8)})`;
+            }
+        }
+
+        const rolesList = matchedSections.map(s => s.role);
+        const mainRole = rolesList.length > 0 ? rolesList.join(' / ') : 'Mencionado en Formulario';
+
+        results.push({
+            formId: f.id,
+            formType: f.formType,
+            userId: f.userId,
+            userName: u.name || 'Usuario Registrado',
+            userEmail: u.email || '',
+            userCode: u.uniqueCode || '',
+            role: mainRole,
+            matchedSections,
+            participants,
+            personName: d.fullName || d.beneficiaryName || d.name || entityName,
+            personPassport: d.passport || d.idNumber || '',
+            personDetails: {},
+            entityName: entityName,
+            formData: d,
+            formDate: f.updatedAt
+        });
+    });
+
+    // Search Matching User Documents and Signed Documents
+    let matchingDocuments = [];
+    try {
+        const userDocConds = [];
+        const term = (nombres || ruc || codigoUnico || usuario || empresa || '').trim();
+
+        if (term) {
+            userDocConds.push(
+                { '$User.name$': { [Op.iLike]: `%${term}%` } },
+                { '$User.email$': { [Op.iLike]: `%${term}%` } },
+                { '$User.uniqueCode$': { [Op.iLike]: `%${term}%` } },
+                { '$User.idNumber$': { [Op.iLike]: `%${term}%` } },
+                { filename: { [Op.iLike]: `%${term}%` } }
+            );
+        }
+
+        const userIdsFromForms = Array.from(new Set(results.map(r => r.userId).filter(Boolean)));
+        if (userIdsFromForms.length > 0) {
+            userDocConds.push({ userId: { [Op.in]: userIdsFromForms } });
+        }
+
+        if (userDocConds.length > 0) {
+            const userDocs = await UserDocument.findAll({
+                where: { [Op.or]: userDocConds },
+                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+                order: [['createdAt', 'DESC']],
+                limit: 100
+            }).catch(() => []);
+
+            const signedDocs = await SignedDocument.findAll({
+                where: { [Op.or]: userDocConds },
+                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+                order: [['createdAt', 'DESC']],
+                limit: 100
+            }).catch(() => []);
+
+            matchingDocuments = [
+                ...userDocs.map(d => ({
+                    id: d.id,
+                    filename: d.filename,
+                    type: 'UserDocument',
+                    signatureStatus: 'Adjunto Usuario',
+                    userId: d.userId,
+                    userName: d.User?.name || 'Usuario Registrado',
+                    userEmail: d.User?.email || '',
+                    userCode: d.User?.uniqueCode || '',
+                    createdAt: d.createdAt
+                })),
+                ...signedDocs.map(d => ({
+                    id: d.id,
+                    filename: d.filename,
+                    type: 'SignedDocument',
+                    signatureStatus: d.signatureStatus || 'Firmado',
+                    userId: d.userId,
+                    userName: d.User?.name || 'Usuario Registrado',
+                    userEmail: d.User?.email || '',
+                    userCode: d.User?.uniqueCode || '',
+                    createdAt: d.createdAt
+                }))
+            ];
+        }
+    } catch (docErr) {
+        console.error('Error fetching matching docs:', docErr.message);
+    }
+
+    return { results, catalogPeople, matchingDocuments };
+}
+
+// @route   GET api/admin/search-person
+// @desc    Search across ALL form data and attached documents for a person/company
 router.get('/search-person', [auth, isAdmin], async (req, res) => {
     try {
-        const { nombres, ruc, codigoUnico, usuario, empresa, formType } = req.query;
-        
-        // Trigger asynchronous historical backfill for person catalog to ensure complete indexing
         personCatalogService.backfillHistoricalData().catch(e => console.warn('Async backfill error:', e.message));
-
-        let forms = [];
-        try {
-            const whereClauses = [];
-
-            if (formType && formType.trim()) {
-                const ft = formType.trim().toLowerCase();
-                let pattern = `%${ft}%`;
-                if (ft.includes('corporac') || ft.includes('incorporac')) pattern = '%corporac%';
-                else if (ft.includes('fundac')) pattern = '%fundac%';
-                else if (ft.includes('entidad')) pattern = '%entidad%';
-                else if (ft.includes('individual')) pattern = '%individual%';
-                else if (ft.includes('fondo')) pattern = '%fondo%';
-
-                whereClauses.push(sequelize.where(
-                    sequelize.fn('LOWER', sequelize.col('FormData.formType')),
-                    { [Op.like]: pattern }
-                ));
-            }
-
-            const searchConds = [];
-
-            if (nombres && nombres.trim()) {
-                const rawName = nombres.trim();
-                const cleanName = rawName.replace(/[^a-zA-Z0-9\s]/g, '');
-                searchConds.push(
-                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawName}%` }),
-                    sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${rawName}%` })
-                );
-                if (cleanName && cleanName !== rawName) {
-                    searchConds.push(
-                        sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${cleanName}%` })
-                    );
-                }
-            }
-
-            if (ruc && ruc.trim()) {
-                const rawRuc = ruc.trim();
-                const cleanRuc = rawRuc.replace(/[^a-zA-Z0-9]/g, '');
-                searchConds.push(
-                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawRuc}%` })
-                );
-                if (cleanRuc && cleanRuc !== rawRuc) {
-                    searchConds.push(
-                        sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${cleanRuc}%` })
-                    );
-                }
-            }
-
-            if (codigoUnico && codigoUnico.trim()) {
-                const code = codigoUnico.trim();
-                searchConds.push(
-                    sequelize.where(sequelize.col('User.uniqueCode'), { [Op.iLike]: `%${code}%` }),
-                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${code}%` })
-                );
-            }
-
-            if (usuario && usuario.trim()) {
-                const uTerm = usuario.trim();
-                searchConds.push(
-                    sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${uTerm}%` }),
-                    sequelize.where(sequelize.col('User.email'), { [Op.iLike]: `%${uTerm}%` })
-                );
-            }
-
-            if (empresa && empresa.trim()) {
-                searchConds.push(
-                    sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${empresa.trim()}%` })
-                );
-            }
-
-            if (searchConds.length > 0) {
-                whereClauses.push({ [Op.or]: searchConds });
-            }
-
-            const finalWhere = whereClauses.length > 0 ? { [Op.and]: whereClauses } : {};
-
-            forms = await FormData.findAll({
-                where: finalWhere,
-                include: [{
-                    model: User,
-                    required: false,
-                    attributes: ['id', 'name', 'email', 'uniqueCode']
-                }],
-                order: [['updatedAt', 'DESC']],
-                limit: 150
-            });
-        } catch (ormErr) {
-            console.error('Sequelize ORM search error in admin search-person:', ormErr.message);
-            let rawRows = [];
-            try {
-                const [r1] = await sequelize.query(`SELECT id, form_type AS "formType", user_id AS "userId", updated_at AS "updatedAt", data FROM form_data ORDER BY updated_at DESC LIMIT 150`);
-                rawRows = r1;
-            } catch (e1) {
-                try {
-                    const [r2] = await sequelize.query(`SELECT id, "formType", "userId", "updatedAt", data FROM "FormData" ORDER BY "updatedAt" DESC LIMIT 150`);
-                    rawRows = r2;
-                } catch (e2) {
-                    console.error('All table query fallbacks failed:', e2.message);
-                }
-            }
-
-            forms = rawRows.map(r => ({
-                id: r.id,
-                formType: r.formType,
-                userId: r.userId,
-                updatedAt: r.updatedAt,
-                User: {},
-                data: typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {})
-            }));
-        }
-
-        // Also search in Master Person Catalog
-        let catalogPeople = [];
-        try {
-            const searchTerm = nombres || ruc || usuario || empresa || codigoUnico || '';
-            catalogPeople = await personCatalogService.searchAdminPersonCatalog(searchTerm);
-        } catch (catErr) {
-            console.error('Catalog admin search error:', catErr);
-        }
-
-        const results = [];
-        const searchTermsList = [nombres, ruc, codigoUnico, usuario, empresa].filter(Boolean);
-
-        forms.forEach(f => {
-            const d = f.data || {};
-            const u = f.User || {};
-
-            const matchedSections = scanFormForMatches(d, searchTermsList);
-            const participants = extractAllParticipantsFromForm(d);
-
-            let entityName = d.companyName || d.corporationName || d.foundationName || d.nombreFundacion || d.accountHolder || d.fullName || d.name || d.beneficiaryName || '';
-            if (!entityName || entityName === 'N/A') {
-                if (matchedSections.length > 0 && matchedSections[0].name) {
-                    entityName = `${matchedSections[0].name} (${matchedSections[0].idNumber || u.uniqueCode || 'Trámite'})`;
-                } else if (participants.length > 0 && participants[0].name) {
-                    entityName = `${participants[0].name} (${participants[0].idNumber || u.uniqueCode || 'Trámite'})`;
-                } else if (u.uniqueCode) {
-                    entityName = `Trámite ${u.uniqueCode}`;
-                } else {
-                    entityName = `${f.formType} (ID: ${String(f.id).substring(0, 8)})`;
-                }
-            }
-
-            const rolesList = matchedSections.map(s => s.role);
-            const mainRole = rolesList.length > 0 ? rolesList.join(' / ') : 'Mencionado en Formulario';
-
-            results.push({
-                formId: f.id,
-                formType: f.formType,
-                userId: f.userId,
-                userName: u.name || 'Usuario Registrado',
-                userEmail: u.email || '',
-                userCode: u.uniqueCode || '',
-                role: mainRole,
-                matchedSections,
-                participants,
-                personName: d.fullName || d.beneficiaryName || d.name || entityName,
-                personPassport: d.passport || d.idNumber || '',
-                personDetails: {},
-                entityName: entityName,
-                formData: d,
-                formDate: f.updatedAt
-            });
-        });
+        
+        const { results, catalogPeople, matchingDocuments } = await performAdminSearch(req.query);
 
         res.json({
             results,
             catalogPeople,
+            matchingDocuments,
             summary: {
                 totalResults: results.length,
+                totalDocuments: matchingDocuments.length,
                 uniqueForms: new Set(results.map(r => r.formId)).size,
-                uniqueUsers: new Set(results.map(r => r.userId)).size,
+                uniqueUsers: new Set([...results.map(r => r.userId), ...matchingDocuments.map(d => d.userId)].filter(Boolean)).size,
                 roles: [...new Set(results.map(r => r.role))]
             }
         });
     } catch (err) {
         console.error('Error searching person:', err);
         res.status(500).json({ msg: 'Error al buscar persona: ' + err.message });
+    }
+});
+
+// @route   GET api/admin/export-search-pdf
+// @desc    Export admin search results summary as a professional PDF
+router.get('/export-search-pdf', [auth, isAdmin], async (req, res) => {
+    try {
+        const { results, catalogPeople, matchingDocuments } = await performAdminSearch(req.query);
+        const pdfBuffer = await adminSearchPdfService.generateSearchPdf({
+            searchFilters: req.query,
+            results,
+            matchingDocuments,
+            catalogPeople
+        });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="reporte_busqueda_admin.pdf"');
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('Error exporting search PDF:', err);
+        res.status(500).json({ msg: 'Error al exportar reporte PDF: ' + err.message });
     }
 });
 

@@ -87,6 +87,7 @@ const AdminDashboard = () => {
     formType: ''
   });
   const [consultaResults, setConsultaResults] = useState(null);
+  const [consultaDocuments, setConsultaDocuments] = useState([]);
   const [consultaCatalogPeople, setConsultaCatalogPeople] = useState([]);
   const [consultaSummary, setConsultaSummary] = useState(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -485,12 +486,29 @@ const AdminDashboard = () => {
         params: { nombres, ruc, codigoUnico, usuario, empresa, formType }
       });
       setConsultaResults(res.data.results || []);
+      setConsultaDocuments(res.data.matchingDocuments || []);
       setConsultaCatalogPeople(res.data.catalogPeople || []);
       setConsultaSummary(res.data.summary || null);
     } catch (err) {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
       toast.error(err.response?.data?.msg || 'Error en la búsqueda');
     } finally { setConsultaLoading(false); }
+  };
+
+  const handleExportSearchPdf = () => {
+    const token = localStorage.getItem('token');
+    const { nombres, ruc, codigoUnico, usuario, empresa, formType } = searchFilters;
+    const params = new URLSearchParams({
+      nombres: nombres || '',
+      ruc: ruc || '',
+      codigoUnico: codigoUnico || '',
+      usuario: usuario || '',
+      empresa: empresa || '',
+      formType: formType || '',
+      'x-auth-token': token
+    }).toString();
+
+    window.open(`${API_BASE_URL}/api/admin/export-search-pdf?${params}`, '_blank');
   };
 
   const handleViewUserForms = async (userId) => {
@@ -742,7 +760,12 @@ const AdminDashboard = () => {
                       </div>
 
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
+                      {consultaResults && (
+                        <button type="button" onClick={handleExportSearchPdf} style={{ padding: '12px 24px', fontWeight: 800, background: '#0f766e', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <FileText size={16} /> DESCARGAR REPORTE EN PDF
+                        </button>
+                      )}
                       <button type="submit" disabled={consultaLoading} className="btn-primary" style={{ padding: '12px 40px', fontWeight: 800, letterSpacing: '0.5px' }}>
                         {consultaLoading ? 'BUSCANDO...' : 'EJECUTAR BÚSQUEDA'}
                       </button>
@@ -760,25 +783,238 @@ const AdminDashboard = () => {
                 {consultaSummary && (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 140, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: RADIUS, padding: '14px 18px' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#15803d' }}>{consultaSummary.totalResults}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginTop: 2 }}>RESULTADOS</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#15803d' }}>{consultaSummary.totalResults || 0}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginTop: 2 }}>FORMULARIOS ENCONTRADOS</div>
                     </div>
                     <div style={{ flex: 1, minWidth: 140, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: RADIUS, padding: '14px 18px' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#1d4ed8' }}>{consultaSummary.uniqueForms}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', marginTop: 2 }}>FORMULARIOS</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#1d4ed8' }}>{consultaDocuments ? consultaDocuments.length : 0}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', marginTop: 2 }}>DOCUMENTOS ADJUNTOS</div>
                     </div>
                     <div style={{ flex: 1, minWidth: 140, background: '#fefce8', border: '1px solid #fde68a', borderRadius: RADIUS, padding: '14px 18px' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#a16207' }}>{consultaSummary.uniqueUsers}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#facc15', marginTop: 2 }}>USUARIOS</div>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 140, background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: RADIUS, padding: '14px 18px' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#7e22ce' }}>{(consultaSummary.roles || []).join(', ')}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#c084fc', marginTop: 2 }}>ROLES ENCONTRADOS</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#a16207' }}>{consultaSummary.uniqueUsers || 0}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#facc15', marginTop: 2 }}>USUARIOS ASOCIADOS</div>
                     </div>
                   </div>
                 )}
 
-                {/* Master Person Catalog Multi-Form Traceability Section */}
+                {/* SECCIÓN 1: FORMULARIOS CREADOS / DISPONIBLES */}
+                {consultaResults && consultaResults.length > 0 && (
+                  <div style={{ marginBottom: 35 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div style={{ background: '#f0fdf4', padding: 8, borderRadius: 8, border: '1px solid #bbf7d0' }}>
+                        <FileText size={18} color="#15803d" />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
+                          1. Formularios Creados y Disponibles ({consultaResults.length})
+                        </h3>
+                        <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                          Trámites y formularios creados en el sistema con opciones de edición y eliminación
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {consultaResults.map((r, idx) => {
+                        const isExpanded = expandedPerson === idx;
+                        const fd = r.formData || {};
+
+                        return (
+                          <div key={`${r.formId}-${idx}`} style={{ background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                            <div style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                  <h3 style={{ margin: 0, fontSize: 15, color: '#0f766e', fontWeight: 800 }}>{r.entityName || 'Formulario'}</h3>
+                                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                    <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
+                                    Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || 'Sin código'}) el {new Date(r.formDate).toLocaleDateString()}
+                                    <button onClick={() => handleOpenEditUser(r)} title="Editar datos del usuario" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                      <UserCog size={10} /> Editar Usuario
+                                    </button>
+                                  </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <button onClick={() => handleOpenEditForm(r)} title="Editar formulario" style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Edit2 size={12} /> Editar
+                                </button>
+                                <button onClick={() => setDeletingForm(r)} title="Eliminar formulario" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Trash2 size={12} /> Eliminar
+                                </button>
+                                <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
+                                  {isExpanded ? 'Ver Menos' : 'Ver Más Detalles'}
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Matched Form Sections & Roles Banner */}
+                            {r.matchedSections && r.matchedSections.length > 0 && (
+                              <div style={{ background: '#f0fdf4', padding: '12px 20px', borderBottom: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span>📍</span> UBICACIÓN Y ROLES EXACTOS EN ESTE FORMULARIO ({r.matchedSections.length}):
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                  {r.matchedSections.map((ms, msIdx) => (
+                                    <div key={msIdx} style={{ background: 'white', border: '1px solid #bbf7d0', borderRadius: 6, padding: '6px 12px', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ background: '#dcfce7', color: '#16a34a', fontWeight: 800, padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
+                                        {ms.section}
+                                      </span>
+                                      <span style={{ color: '#0f172a', fontWeight: 700 }}>
+                                        {ms.role}
+                                      </span>
+                                      {ms.name && (
+                                        <span style={{ color: '#475569' }}>
+                                          ({ms.name} {ms.idNumber ? `- ${ms.idNumber}` : ''})
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Extracted Participants Grid */}
+                            <div style={{ padding: '16px 20px', borderTop: `1px solid ${BORDER}` }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Users size={14} color="#0f766e" />
+                                Personas y Roles Registrados en este Formulario ({r.participants ? r.participants.length : 0}):
+                              </div>
+                              {r.participants && r.participants.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+                                  {r.participants.map((part, pIdx) => {
+                                    const queryTerm = (searchFilters.ruc || searchFilters.nombres || searchFilters.codigoUnico || '').toLowerCase().trim();
+                                    const isMatched = queryTerm && (
+                                      (part.name && part.name.toLowerCase().includes(queryTerm)) ||
+                                      (part.idNumber && part.idNumber.toLowerCase().includes(queryTerm))
+                                    );
+                                    return (
+                                      <div key={pIdx} style={{ background: isMatched ? '#f0fdf4' : '#f8fafc', border: `1px solid ${isMatched ? '#86efac' : '#e2e8f0'}`, borderRadius: 8, padding: '10px 12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                          <span style={{ background: isMatched ? '#dcfce7' : '#e0f2fe', color: isMatched ? '#16a34a' : '#0369a1', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                                            {part.role}
+                                          </span>
+                                          {isMatched && (
+                                            <span style={{ background: '#16a34a', color: 'white', fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 10 }}>
+                                              COINCIDENCIA
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{part.name}</div>
+                                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                          📄 ID: <strong>{part.idNumber || '—'}</strong>
+                                          {part.nationality && <span> &middot; 🌐 {part.nationality}</span>}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: '#64748b' }}>No se identificaron personas en arreglos. Haz clic en "Ver Más Detalles" para ver toda la información extraída.</div>
+                              )}
+                            </div>
+
+                            {/* Full Table when expanded */}
+                            {isExpanded && (
+                              <div style={{ borderTop: `1px solid ${BORDER}`, padding: '0', background: '#f8fafc' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                    <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
+                                      <tr style={{ fontSize: 10, color: '#475569', fontWeight: 800 }}>
+                                        <th style={{ padding: '12px 20px', width: '35%' }}>TODOS LOS CAMPOS DEL FORMULARIO</th>
+                                        <th style={{ padding: '12px 20px', width: '65%' }}>VALOR REGISTRADO</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Object.entries(fd).length > 0 ? (
+                                          Object.entries(fd).map(([key, value], i) => (
+                                            <tr key={key} style={{ borderBottom: `1px solid #f1f5f9`, fontSize: 12, background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                                              <td style={{ padding: '12px 20px', fontWeight: 700, color: '#334155', wordBreak: 'break-word' }}>
+                                                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                              </td>
+                                              <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
+                                                {renderFormDataValue(value)}
+                                              </td>
+                                            </tr>
+                                          ))
+                                      ) : (
+                                          <tr>
+                                            <td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                                                No hay datos registrados adicionales.
+                                            </td>
+                                          </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* SECCIÓN 2: DOCUMENTOS ADJUNTOS Y FIRMADOS DISPONIBLES */}
+                {consultaDocuments && consultaDocuments.length > 0 && (
+                  <div style={{ marginBottom: 35 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div style={{ background: '#e0f2fe', padding: 8, borderRadius: 8, border: '1px solid #bae6fd' }}>
+                        <UploadCloud size={18} color="#0284c7" />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
+                          2. Documentos Adjuntos y Firmados Disponibles ({consultaDocuments.length})
+                        </h3>
+                        <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                          Documentación adjunta subida y firmada por los usuarios para su descarga o eliminación
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                          <tr style={{ fontSize: 10, color: '#64748b', fontWeight: 800 }}>
+                            <th style={{ padding: '12px 16px' }}>NOMBRE DEL ARCHIVO / TÍTULO</th>
+                            <th style={{ padding: '12px 16px' }}>TIPO / ESTADO</th>
+                            <th style={{ padding: '12px 16px' }}>USUARIO PROPIETARIO</th>
+                            <th style={{ padding: '12px 16px' }}>FECHA DE SUBIDA</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>ACCIONES</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {consultaDocuments.map(doc => (
+                            <tr key={`${doc.type}-${doc.id}`} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: 11 }}>
+                              <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
+                                📄 {doc.filename}
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                <span style={{ background: doc.type === 'SignedDocument' ? '#dcfce7' : '#e0f2fe', color: doc.type === 'SignedDocument' ? '#15803d' : '#0369a1', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
+                                  {doc.signatureStatus || doc.type}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 16px', color: '#334155', fontWeight: 600 }}>
+                                {doc.userName} ({doc.userCode || doc.userEmail || 'Cliente'})
+                              </td>
+                              <td style={{ padding: '12px 16px', color: '#64748b' }}>
+                                {new Date(doc.createdAt).toLocaleDateString()}
+                              </td>
+                              <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                  <button onClick={() => handleDownloadDoc(doc.id)} title="Descargar/Ver Documento" style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '6px 12px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    Descargar
+                                  </button>
+                                  <button onClick={() => handleDeleteDoc(doc.id)} title="Eliminar Documento" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '6px 12px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <Trash2 size={12} /> Eliminar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* SECCIÓN 3: CATÁLOGO MAESTRO DE PERSONAS (TRAZABILIDAD) */}
                 {consultaCatalogPeople && consultaCatalogPeople.length > 0 && (
                   <div style={{ marginBottom: 30 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -787,7 +1023,7 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
-                          Catálogo Maestro de Personas ({consultaCatalogPeople.length} Coincidencias)
+                          3. Catálogo Maestro de Personas ({consultaCatalogPeople.length} Coincidencias)
                         </h3>
                         <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
                           Trazabilidad de la persona en múltiples trámites y formularios del sistema
@@ -825,7 +1061,7 @@ const AdminDashboard = () => {
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                               <FileText size={14} color="#0f766e" />
-                              Trámites y Formularios donde esta Persona Participa ({person.associatedForms.length}):
+                              Trámites y Formularios donde esta Persona Participa ({person.associatedForms ? person.associatedForms.length : 0}):
                             </div>
                             {person.associatedForms && person.associatedForms.length > 0 ? (
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
@@ -861,105 +1097,6 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
-
-                {selectedUser && selectedUserForms && (
-                  <div style={{ marginBottom: 24, background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, padding: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: 16, color: '#1e293b' }}>
-                          <User size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                          {selectedUser.name}
-                        </h3>
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
-                          {selectedUser.email} &middot; {selectedUser.uniqueCode || 'Sin código'} &middot; {selectedUser.idNumber || 'Sin cédula'}
-                        </p>
-                      </div>
-                      <button onClick={() => { setSelectedUser(null); setSelectedUserForms(null); }} style={{ border: `1px solid ${BORDER}`, background: 'white', padding: 6, borderRadius: RADIUS, cursor: 'pointer', color: '#64748b' }}>
-                        <X size={14} />
-                      </button>
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>
-                      {selectedUserForms.length} formulario(s) encontrado(s)
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
-                      <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
-                        <tr style={{ fontSize: 10, color: '#64748b', fontWeight: 800 }}>
-                          <th style={{ padding: '10px 12px' }}>TIPO</th>
-                          <th style={{ padding: '10px 12px' }}>ENTIDAD/EMPRESA</th>
-                          <th style={{ padding: '10px 12px' }}>DETALLES</th>
-                          <th style={{ padding: '10px 12px' }}>FECHA</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedUserForms.map(f => (
-                          <tr key={f.formId} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: 11 }}>
-                            <td style={{ padding: '10px 12px' }}>
-                              <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>{f.formType}</span>
-                            </td>
-                            <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{f.entityName || '—'}</td>
-                            <td style={{ padding: '10px 12px', color: '#64748b' }}>
-                              {f.directorCount > 0 && <span style={{ marginRight: 8 }}>{f.directorCount} director(es)</span>}
-                              {f.dignitaryCount > 0 && <span style={{ marginRight: 8 }}>{f.dignitaryCount} dignatario(s)</span>}
-                              {f.shareholderCount > 0 && <span style={{ marginRight: 8 }}>{f.shareholderCount} accionista(s)</span>}
-                              {f.beneficiaryCount > 0 && <span style={{ marginRight: 8 }}>{f.beneficiaryCount} beneficiario(s)</span>}
-                              {f.memberCount > 0 && <span>{f.memberCount} miembro(s)</span>}
-                              {!f.directorCount && !f.dignitaryCount && !f.shareholderCount && !f.beneficiaryCount && !f.memberCount && '—'}
-                            </td>
-                            <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(f.updatedAt).toLocaleDateString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    {/* Tabla de Documentos Adjuntos del Usuario */}
-                    {selectedUserDocuments && selectedUserDocuments.length > 0 && (
-                      <div style={{ marginTop: 20 }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#0f766e', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          📎 DOCUMENTOS ADJUNTOS Y FIRMADOS DEL USUARIO ({selectedUserDocuments.length}):
-                        </div>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
-                          <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
-                            <tr style={{ fontSize: 10, color: '#64748b', fontWeight: 800 }}>
-                              <th style={{ padding: '10px 12px' }}>NOMBRE DEL ARCHIVO</th>
-                              <th style={{ padding: '10px 12px' }}>TIPO / ESTADO</th>
-                              <th style={{ padding: '10px 12px' }}>FECHA DE SUBIDA</th>
-                              <th style={{ padding: '10px 12px', textAlign: 'right' }}>ACCIONES</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedUserDocuments.map(d => (
-                              <tr key={d.id} style={{ borderBottom: `1px solid ${BORDER}`, fontSize: 11 }}>
-                                <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{d.filename}</td>
-                                <td style={{ padding: '10px 12px' }}>
-                                  <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
-                                    {d.signatureStatus || d.type}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{new Date(d.createdAt).toLocaleDateString()}</td>
-                                <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                                    <button onClick={() => handleDownloadDoc(d.id)} title="Descargar/Ver Documento" style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', padding: '4px 8px', fontSize: 10, fontWeight: 700 }}>
-                                      Descargar
-                                    </button>
-                                    <button onClick={() => handleDeleteDoc(d.id)} title="Eliminar Documento" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', padding: '4px 8px', fontSize: 10, fontWeight: 700 }}>
-                                      Eliminar
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-
-
-                {consultaResults && consultaResults.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {consultaResults.map((r, idx) => {
                       const isExpanded = expandedPerson === idx;
                       const fd = r.formData || {};
                       
