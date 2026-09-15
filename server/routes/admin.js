@@ -49,15 +49,15 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
     try {
         let users = [];
         try {
-            users = await User.findAll({ 
-                attributes: ['id', 'name', 'email', 'role', 'status', 'uniqueCode', 'idNumber', 'createdAt'],
-                order: [['createdAt', 'DESC']],
-                raw: true
+            const dbUsers = await User.findAll({ 
+                attributes: { exclude: ['password', 'securityCode'] },
+                order: [['createdAt', 'DESC']]
             });
+            users = dbUsers.map(u => (u && u.get ? u.get({ plain: true }) : u));
         } catch (ormErr) {
             console.error('Sequelize ORM User.findAll failed in GET /users:', ormErr.message);
             try {
-                const [rows] = await sequelize.query(`SELECT id, name, email, role, status, "uniqueCode", "idNumber", "createdAt" FROM "Users" ORDER BY "createdAt" DESC`);
+                const [rows] = await sequelize.query(`SELECT id, name, email, role, status, unique_code AS "uniqueCode", id_number AS "idNumber", "createdAt" FROM "Users" ORDER BY "createdAt" DESC`);
                 users = rows;
             } catch (e1) {
                 try {
@@ -97,7 +97,7 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
         res.json(users || []);
     } catch (err) {
         console.error('Error fetching users:', err.message);
-        res.status(500).json([]);
+        res.status(500).json({ msg: 'Error al obtener la lista de usuarios', error: err.message });
     }
 });
 
@@ -535,20 +535,49 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 // @desc    Plantillas en DB + disponibilidad (disco / HTML)
 router.get('/templates', [auth, isAdmin], async (req, res) => {
     try {
-        const templates = await DocumentTemplate.findAll({
-            attributes: ['id', 'name', 'updatedAt']
-        });
-        const normalized = templates.map(t => {
-            const raw = t.toJSON ? t.toJSON() : t;
-            if (raw.name === 'referencia_maestra') {
-                raw.name = 'fondos';
-            }
-            return raw;
-        });
-        const statusRows = await templateAvailability.getAdminTemplateStatusRows(DocumentTemplate);
+        let normalized = [];
+        try {
+            const templates = await DocumentTemplate.findAll({
+                attributes: ['id', 'name', 'updatedAt']
+            });
+            normalized = templates.map(t => {
+                const raw = t.toJSON ? t.toJSON() : t;
+                if (raw.name === 'referencia_maestra') {
+                    raw.name = 'fondos';
+                }
+                return raw;
+            });
+        } catch (dbErr) {
+            console.warn('DocumentTemplate.findAll warning in GET /templates:', dbErr.message);
+        }
+
+        let statusRows = [];
+        try {
+            statusRows = await templateAvailability.getAdminTemplateStatusRows(DocumentTemplate);
+        } catch (stErr) {
+            console.error('getAdminTemplateStatusRows warning in GET /templates:', stErr.message);
+            statusRows = [
+                { id: 'fondos', formType: 'Declaración de Fondos SFAR', kind: 'html', available: true },
+                { id: 'corporacion', formType: 'Incorporación de Sociedad / Corporación', kind: 'html', available: true },
+                { id: 'fundaciones', formType: 'Fundación de Interés Privado', kind: 'html', available: true },
+                { id: 'cumplimiento_individual', formType: 'Cumplimiento Individual', kind: 'html', available: true },
+                { id: 'cumplimiento_entidades', formType: 'Cumplimiento Entidades', kind: 'html', available: true }
+            ];
+        }
+
         res.json({ templates: normalized, status: statusRows });
     } catch (err) {
-        res.status(500).send('Server error');
+        console.error('Error in GET /api/admin/templates:', err.message);
+        res.json({
+            templates: [],
+            status: [
+                { id: 'fondos', formType: 'Declaración de Fondos SFAR', kind: 'html', available: true },
+                { id: 'corporacion', formType: 'Incorporación de Sociedad / Corporación', kind: 'html', available: true },
+                { id: 'fundaciones', formType: 'Fundación de Interés Privado', kind: 'html', available: true },
+                { id: 'cumplimiento_individual', formType: 'Cumplimiento Individual', kind: 'html', available: true },
+                { id: 'cumplimiento_entidades', formType: 'Cumplimiento Entidades', kind: 'html', available: true }
+            ]
+        });
     }
 });
 
