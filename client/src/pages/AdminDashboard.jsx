@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
-import { useT } from '../i18n';
+import { useT, useLang } from '../i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 /** Trámites que generan PDF con motor HTML (no dependen de AcroForm). */
@@ -16,17 +16,17 @@ const HTML_ENGINE_TEMPLATES = Object.freeze([
   'cumplimiento_entidades',
 ]);
 
-const renderFormDataValue = (value) => {
+const renderFormDataValue = (value, t) => {
   if (value === null || value === undefined || value === '') return <span style={{ color: '#94a3b8' }}>—</span>;
-  if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+  if (typeof value === 'boolean') return value ? t('admin.yes') : t('admin.no');
   
   if (Array.isArray(value)) {
-    if (value.length === 0) return <span style={{ color: '#94a3b8' }}>Ninguno</span>;
+    if (value.length === 0) return <span style={{ color: '#94a3b8' }}>{t('admin.none')}</span>;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '4px 0' }}>
         {value.map((v, i) => (
           <div key={i} style={{ padding: typeof v === 'object' ? '8px 12px' : '0', background: typeof v === 'object' ? '#ffffff' : 'transparent', border: typeof v === 'object' ? '1px solid #e2e8f0' : 'none', borderRadius: '6px' }}>
-            {typeof v === 'object' ? renderFormDataValue(v) : String(v)}
+            {typeof v === 'object' ? renderFormDataValue(v, t) : String(v)}
           </div>
         ))}
       </div>
@@ -36,13 +36,13 @@ const renderFormDataValue = (value) => {
   if (typeof value === 'object') {
     try {
       const keys = Object.keys(value);
-      if (keys.length === 0) return <span style={{ color: '#94a3b8' }}>Vacío</span>;
+      if (keys.length === 0) return <span style={{ color: '#94a3b8' }}>{t('admin.empty')}</span>;
       return (
         <ul style={{ margin: 0, paddingLeft: '18px', listStyleType: 'circle', color: '#475569' }}>
           {keys.map(k => (
             <li key={k} style={{ marginBottom: '4px', fontSize: '12px' }}>
               <strong style={{ color: '#334155' }}>{k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> 
-              <span style={{ marginLeft: '6px', color: '#1e293b' }}>{typeof value[k] === 'object' ? renderFormDataValue(value[k]) : String(value[k])}</span>
+              <span style={{ marginLeft: '6px', color: '#1e293b' }}>{typeof value[k] === 'object' ? renderFormDataValue(value[k], t) : String(value[k])}</span>
             </li>
           ))}
         </ul>
@@ -54,8 +54,22 @@ const renderFormDataValue = (value) => {
   return String(value);
 };
 
+const adminStatusLabel = (status, t) => {
+  const key = `admin.status_${status || 'pending'}`;
+  const label = t(key);
+  return label === key ? String(status || 'pending').toUpperCase() : label;
+};
+
+const adminRoleLabel = (roleOverride, t) => {
+  if (roleOverride === 'master') return t('admin.roleMaster');
+  if (roleOverride === 'manager') return t('admin.roleManager');
+  return t('admin.roleClient');
+};
+
 const AdminDashboard = () => {
   const t = useT();
+  const { lang } = useLang();
+  const locale = lang === 'en' ? 'en-US' : 'es-EC';
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -119,21 +133,21 @@ const AdminDashboard = () => {
       const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: res.headers['content-type'] || 'application/pdf' }));
       window.open(blobUrl, '_blank');
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al descargar el documento');
+      toast.error(err.response?.data?.msg || t('admin.errDownloadDoc'));
     }
   };
 
   const handleDeleteDoc = async (docId) => {
-    if (!window.confirm('⚠️ ¿Está seguro de eliminar este documento adjunto?')) return;
+    if (!window.confirm(t('admin.confirmDeleteDoc'))) return;
     try {
       const token = localStorage.getItem('token');
       const res = await axios.delete(`${API_BASE_URL}/api/admin/user-documents/${docId}`, {
         headers: { 'x-auth-token': token }
       });
-      toast.success(res.data.msg || 'Documento eliminado exitosamente');
+      toast.success(res.data.msg || t('admin.docDeleted'));
       setSelectedUserDocuments(prev => prev.filter(d => d.id !== docId));
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al eliminar el documento');
+      toast.error(err.response?.data?.msg || t('admin.errDeleteDoc'));
     }
   };
 
@@ -166,7 +180,7 @@ const AdminDashboard = () => {
       try {
         parsedData = JSON.parse(editFormDataJson);
       } catch (jsonErr) {
-        toast.error('El formato JSON del formulario no es válido. Revisa la sintaxis.');
+        toast.error(t('admin.invalidJson'));
         setSavingFormEdit(false);
         return;
       }
@@ -179,14 +193,14 @@ const AdminDashboard = () => {
         headers: { 'x-auth-token': token }
       });
 
-      toast.success(res.data.msg || 'Formulario actualizado correctamente');
+      toast.success(res.data.msg || t('admin.formUpdated'));
       setEditingForm(null);
 
       if (consultaResults) {
         setConsultaResults(prev => prev.map(r => r.formId === editingForm.formId ? { ...r, formData: parsedData } : r));
       }
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al actualizar el formulario');
+      toast.error(err.response?.data?.msg || t('admin.errUpdateForm'));
     } finally {
       setSavingFormEdit(false);
     }
@@ -201,14 +215,14 @@ const AdminDashboard = () => {
         headers: { 'x-auth-token': token }
       });
 
-      toast.success(res.data.msg || 'Formulario eliminado exitosamente');
+      toast.success(res.data.msg || t('admin.formDeletedOk'));
       setDeletingForm(null);
 
       if (consultaResults) {
         setConsultaResults(prev => prev.filter(r => r.formId !== deletingForm.formId));
       }
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al eliminar el formulario');
+      toast.error(err.response?.data?.msg || t('admin.errDeleteForm'));
     } finally {
       setDeletingFormLoading(false);
     }
@@ -226,7 +240,7 @@ const AdminDashboard = () => {
 
   const handleSaveEditUser = async () => {
     if (!editingUser || !editingUser.userId) {
-      toast.error('No se pudo identificar el ID del usuario');
+      toast.error(t('admin.noUserId'));
       return;
     }
     setSavingUserEdit(true);
@@ -236,14 +250,14 @@ const AdminDashboard = () => {
         headers: { 'x-auth-token': token }
       });
 
-      toast.success(res.data.msg || 'Información de usuario actualizada correctamente');
+      toast.success(res.data.msg || t('admin.userInfoUpdated'));
       setEditingUser(null);
 
       if (consultaResults) {
         setConsultaResults(prev => prev.map(r => r.userId === editingUser.userId ? { ...r, userName: editUserForm.name, userEmail: editUserForm.email } : r));
       }
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al actualizar información de usuario');
+      toast.error(err.response?.data?.msg || t('admin.errUpdateUserInfo'));
     } finally {
       setSavingUserEdit(false);
     }
@@ -267,12 +281,12 @@ const AdminDashboard = () => {
       await axios.post(`${API_BASE_URL}/api/admin/users/create`, createUserForm, {
         headers: { 'x-auth-token': token }
       });
-      toast.success('Usuario creado con éxito y correo enviado');
+      toast.success(t('admin.userCreated'));
       setShowCreateUserModal(false);
       setCreateUserForm({ name: '', email: '', idNumber: '', roleOverride: 'client' });
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al crear usuario');
+      toast.error(err.response?.data?.msg || t('admin.errCreateUser'));
     } finally {
       setCreatingUser(false);
     }
@@ -287,13 +301,13 @@ const AdminDashboard = () => {
         const res = await axios.get(`${API_BASE_URL}/api/admin/users`, { headers: { 'x-auth-token': token } });
         const payload = res.data;
         if (typeof payload === 'string') {
-          toast.error('El servidor no devolvió la lista de usuarios (respuesta no JSON).');
+          toast.error(t('admin.errUsersNotJson'));
           setUsers([]);
         } else {
           const list = Array.isArray(payload) ? payload : (payload?.users || []);
           setUsers(Array.isArray(list) ? list : []);
           if (!Array.isArray(list) || (payload && !Array.isArray(payload) && payload.msg && !payload.users)) {
-            toast.error(payload?.msg || 'No se pudo leer la lista de usuarios.');
+            toast.error(payload?.msg || t('admin.errReadUsers'));
           }
         }
       } else if (activeTab === 'logs') {
@@ -324,7 +338,7 @@ const AdminDashboard = () => {
     } catch (err) { 
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); return; }
       console.error(err);
-      toast.error(err.response?.data?.msg || 'No se pudo cargar la información del panel de administración.');
+      toast.error(err.response?.data?.msg || t('admin.errLoadAdmin'));
     } finally { setLoading(false); }
   };
 
@@ -333,38 +347,38 @@ const AdminDashboard = () => {
     try {
       await axios.put(`${API_BASE_URL}/api/admin/users/${userId}/status`, { status: newStatus }, { headers: { 'x-auth-token': token } });
       fetchData();
-      toast.success('Estado actualizado');
+      toast.success(t('admin.statusUpdated'));
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-        toast.error('Error'); 
+        toast.error(t('admin.errGeneric')); 
     }
   };
 
   const handleDeleteUser = async (userId) => {
     const token = localStorage.getItem('token');
-    if (window.confirm('¿Está seguro de eliminar permanentemente a este usuario y liberar su correo de la base de datos?')) {
+    if (window.confirm(t('admin.confirmDeleteUser'))) {
       try {
         const res = await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, { headers: { 'x-auth-token': token } });
         fetchData();
-        toast.success(res.data?.msg || 'Usuario eliminado totalmente de la base de datos');
+        toast.success(res.data?.msg || t('admin.userDeletedDb'));
       } catch (err) { 
           if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-          toast.error(err.response?.data?.msg || 'Error al eliminar usuario'); 
+          toast.error(err.response?.data?.msg || t('admin.errDeleteUser')); 
       }
     }
   };
 
   const handlePurgeInactiveUsers = async () => {
-    if (!window.confirm('¿Desea depurar y eliminar permanentemente de la base de datos todos los usuarios no activos e historial de registros huérfanos?')) return;
+    if (!window.confirm(t('admin.confirmPurge'))) return;
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(`${API_BASE_URL}/api/admin/users/purge-inactive`, {}, {
         headers: { 'x-auth-token': token }
       });
-      toast.success(res.data?.msg || 'Depuración completada');
+      toast.success(res.data?.msg || t('admin.purgeDone'));
       fetchData();
     } catch (err) {
-      toast.error('Error al depurar usuarios inactivos');
+      toast.error(t('admin.errPurge'));
     }
   };
 
@@ -374,10 +388,10 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { email: adminEmail }, { headers: { 'x-auth-token': token } });
-      toast.success('Correo electrónico actualizado con éxito');
+      toast.success(t('admin.emailUpdated'));
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-        toast.error(err.response?.data?.msg || 'Error al actualizar correo'); 
+        toast.error(err.response?.data?.msg || t('admin.errUpdateEmail')); 
     } finally { setSavingSettings(false); }
   };
 
@@ -387,11 +401,11 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { newPassword }, { headers: { 'x-auth-token': token } });
-      toast.success('Contraseña actualizada con éxito');
+      toast.success(t('admin.passwordUpdated'));
       setNewPassword('');
     } catch (err) { 
         if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-        toast.error(err.response?.data?.msg || 'Error al actualizar contraseña'); 
+        toast.error(err.response?.data?.msg || t('admin.errUpdatePassword')); 
     } finally { setSavingSettings(false); }
   };
   const handleChangeRoleSubmit = async (e) => {
@@ -403,37 +417,37 @@ const AdminDashboard = () => {
       await axios.put(`${API_BASE_URL}/api/admin/users/${selectedUserForRole.id}/role`, { roleOverride: newRoleOverride }, {
         headers: { 'x-auth-token': token }
       });
-      toast.success('Rol cambiado exitosamente');
+      toast.success(t('admin.roleChanged'));
       setShowChangeRoleModal(false);
       setSelectedUserForRole(null);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al cambiar rol');
+      toast.error(err.response?.data?.msg || t('admin.errChangeRole'));
     } finally {
       setChangingRole(false);
     }
   };
 
   const handleResetPassword = async (userId) => {
-    if (window.confirm('¿Resetear contraseña y enviar por correo?')) {
+    if (window.confirm(t('admin.confirmResetPassword'))) {
       const token = localStorage.getItem('token');
       try {
         await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/reset-password`, {}, { headers: { 'x-auth-token': token } });
-        toast.success('Contraseña enviada al usuario');
+        toast.success(t('admin.passwordSent'));
       } catch (err) { 
           if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-          toast.error('Error al resetear'); 
+          toast.error(t('admin.errReset')); 
       }
     }
   };
 
   const handleTemplateUpload = async (e) => {
     e.preventDefault();
-    if (!templateFile) return toast.error('Selecciona un archivo PDF');
+    if (!templateFile) return toast.error(t('admin.selectPdf'));
     
     const finalTemplateName = templateUploadMode === 'custom' ? customTemplateName : templateName;
     if (templateUploadMode === 'custom' && !finalTemplateName.trim()) {
-      return toast.error('Ingrese un nombre para la nueva plantilla');
+      return toast.error(t('admin.enterTemplateName'));
     }
 
     setUploadingTemplate(true);
@@ -471,30 +485,30 @@ const AdminDashboard = () => {
       setTemplateFile(null);
       await fetchData();
     } catch (err) {
-      toast.error('Error al subir la plantilla');
+      toast.error(t('admin.errUploadTemplate'));
     } finally {
       setUploadingTemplate(false);
     }
   };
 
   const handleDeleteTemplate = async (name) => {
-    if (!window.confirm(`⚠️ ADVERTENCIA: ¿Está seguro de eliminar la plantilla de "${name}"? \n\nSi la elimina, los usuarios NO podrán generar PDFs para este trámite hasta que suba una nueva plantilla.`)) return;
+    if (!window.confirm(t('admin.confirmDeleteTemplate', { name }))) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE_URL}/api/admin/delete-template/${name}`, {
         headers: { 'x-auth-token': token }
       });
-      toast.success('Plantilla eliminada correctamente');
+      toast.success(t('admin.templateDeleted'));
       fetchData();
     } catch (err) {
-      toast.error('Error al eliminar la plantilla');
+      toast.error(t('admin.errDeleteTemplate'));
     }
   };
 
   const handleEditTemplate = (name) => {
     setTemplateUploadMode('custom');
     setCustomTemplateName(name);
-    toast.info('Seleccione un nuevo archivo PDF para reemplazar esta plantilla');
+    toast.info(t('admin.selectReplacePdf'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -515,7 +529,7 @@ const AdminDashboard = () => {
       setConsultaSummary(res.data.summary || null);
     } catch (err) {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-      toast.error(err.response?.data?.msg || 'Error en la búsqueda');
+      toast.error(err.response?.data?.msg || t('admin.errSearch'));
     } finally { setConsultaLoading(false); }
   };
 
@@ -531,7 +545,7 @@ const AdminDashboard = () => {
       const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       window.open(blobUrl, '_blank');
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Error al exportar el PDF');
+      toast.error(err.response?.data?.msg || t('admin.errExportPdf'));
     }
   };
 
@@ -546,7 +560,7 @@ const AdminDashboard = () => {
       setSelectedUserDocuments(res.data.documents || []);
     } catch (err) {
       if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-      toast.error('Error al cargar formularios');
+      toast.error(t('admin.errLoadForms'));
     }
   };
 
@@ -559,10 +573,10 @@ const AdminDashboard = () => {
           <div style={{ padding: '6px', background: 'rgba(20, 184, 166, 0.2)', border: '1px solid rgba(45, 212, 191, 0.3)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shield size={18} color="#2dd4bf" />
           </div>
-          <span style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '-0.3px', color: '#ffffff' }}>NEXUSDOC ADMIN</span>
+          <span style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '-0.3px', color: '#ffffff' }}>{t('admin.brand')}</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: 'Consultas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'change-password', icon: Key, label: 'Cambio de Clave' }, { id: 'change-email', icon: Mail, label: 'Cambio de Correo' }].map(item => (
+          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: t('admin.consultas') }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'change-password', icon: Key, label: t('admin.changePassword') }, { id: 'change-email', icon: Mail, label: t('admin.changeEmail') }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 15px', border: 'none', background: activeTab === item.id ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(15, 118, 110, 0.4) 100%)' : 'transparent', color: activeTab === item.id ? '#ffffff' : '#cbd5e1', cursor: 'pointer', fontWeight: 600, fontSize: '12.5px', borderRadius: RADIUS, borderLeft: activeTab === item.id ? '4px solid #2dd4bf' : '4px solid transparent', transition: 'all 0.2s ease' }}>
               <item.icon size={16} color={activeTab === item.id ? '#2dd4bf' : '#94a3b8'} /> {item.label}
             </button>
@@ -577,14 +591,14 @@ const AdminDashboard = () => {
       <div style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
         <div style={{ maxWidth: '1000px' }}>
           <header style={{ marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <h1>ADMINISTRACIÓN MASTER</h1>
+            <h1>{t('admin.masterTitle')}</h1>
             {activeTab === 'users' && (
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handlePurgeInactiveUsers} title="Eliminar permanentemente todos los usuarios no activos de la base de datos" style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', borderRadius: RADIUS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                  <Trash2 size={15} /> Depurar Inactivos
+                <button onClick={handlePurgeInactiveUsers} title={t('admin.purgeInactiveTitle')} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', borderRadius: RADIUS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                  <Trash2 size={15} /> {t('admin.purgeInactive')}
                 </button>
                 <button onClick={() => setShowCreateUserModal(true)} className="btn-primary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Plus size={16} /> Crear Usuario
+                  <Plus size={16} /> {t('admin.createUser')}
                 </button>
               </div>
             )}
@@ -601,24 +615,24 @@ const AdminDashboard = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ background: '#f9f9f9', borderBottom: `1px solid ${BORDER}` }}>
                   <tr style={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>
-                    <th style={{ padding: '12px 15px' }}>ID</th>
-                    <th style={{ padding: '12px 15px' }}>USUARIO</th>
-                    <th style={{ padding: '12px 15px' }}>ROL</th>
-                    <th style={{ padding: '12px 15px' }}>ESTADO</th>
-                    <th style={{ padding: '12px 15px' }}>ACCIONES</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.colId')}</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.user')}</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.role')}</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.status')}</th>
+                    <th style={{ padding: '12px 15px' }}>{t('admin.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
                       <td colSpan={5} style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
-                        Cargando lista de usuarios...
+                        {t('admin.loadingUsers')}
                       </td>
                     </tr>
                   ) : !Array.isArray(users) || users.length === 0 ? (
                     <tr>
                       <td colSpan={5} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                        No hay usuarios registrados en la base de datos.
+                        {t('admin.noUsers')}
                       </td>
                     </tr>
                   ) : users.map(user => (
@@ -627,25 +641,25 @@ const AdminDashboard = () => {
                       <td style={{ padding: '12px 15px' }}>{user.name}</td>
                       <td style={{ padding: '12px 15px' }}>
                         {user.roleOverride === 'master' ? (
-                          <span style={{ padding: '3px 8px', borderRadius: '20px', background: '#fef08a', fontSize: '9px', color: '#854d0e', fontWeight: 800 }}>MASTER</span>
+                          <span style={{ padding: '3px 8px', borderRadius: '20px', background: '#fef08a', fontSize: '9px', color: '#854d0e', fontWeight: 800 }}>{t('admin.roleMaster')}</span>
                         ) : (
                           <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.roleOverride === 'manager' ? '#e0f2fe' : '#f1f5f9', fontSize: '9px', color: user.roleOverride === 'manager' ? '#0284c7' : '#64748b', fontWeight: 700 }}>
-                            {user.roleOverride === 'manager' ? 'ADMIN USUARIOS' : 'CLIENTE'}
+                            {adminRoleLabel(user.roleOverride, t)}
                           </span>
                         )}
                       </td>
                       <td style={{ padding: '12px 15px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{String(user.status || 'pending').toUpperCase()}</span>
+                        <span style={{ padding: '3px 8px', borderRadius: '20px', background: user.status === 'authorized' ? '#dcfce7' : '#fee2e2', fontSize: '9px', color: user.status === 'authorized' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{adminStatusLabel(user.status, t)}</span>
                       </td>
                       <td style={{ padding: '12px 15px' }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title="Autorizar" style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
-                          <button onClick={() => handleStatusChange(user.id, 'blocked')} title="Desautorizar" style={{ border: `1px solid ${BORDER}`, background: '#fffbeb', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><ShieldOff size={14} /></button>
+                          <button onClick={() => handleStatusChange(user.id, 'authorized')} title={t('admin.authorize')} style={{ border: `1px solid ${BORDER}`, background: '#f0fdf4', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={14} /></button>
+                          <button onClick={() => handleStatusChange(user.id, 'blocked')} title={t('admin.revoke')} style={{ border: `1px solid ${BORDER}`, background: '#fffbeb', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><ShieldOff size={14} /></button>
                           {user.roleOverride !== 'master' && (
-                            <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title="Cambiar Rol" style={{ border: '1px solid #bae6fd', background: '#f0f9ff', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0284c7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><UserCog size={14} /></button>
+                            <button onClick={() => { setSelectedUserForRole(user); setNewRoleOverride(user.roleOverride || 'client'); setShowChangeRoleModal(true); }} title={t('admin.changeRole')} style={{ border: '1px solid #bae6fd', background: '#f0f9ff', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0284c7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><UserCog size={14} /></button>
                           )}
-                          <button onClick={() => handleResetPassword(user.id)} title="Resetear Clave" style={{ border: `1px solid ${BORDER}`, background: '#f8fafc', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Key size={14} /></button>
-                          <button onClick={() => handleDeleteUser(user.id)} title="Eliminar" style={{ border: '1px solid #fecaca', background: '#fef2f2', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={14} /></button>
+                          <button onClick={() => handleResetPassword(user.id)} title={t('admin.resetKey')} style={{ border: `1px solid ${BORDER}`, background: '#f8fafc', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Key size={14} /></button>
+                          <button onClick={() => handleDeleteUser(user.id)} title={t('admin.deleteUser')} style={{ border: '1px solid #fecaca', background: '#fef2f2', padding: '6px', borderRadius: RADIUS, cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
@@ -672,9 +686,9 @@ const AdminDashboard = () => {
                       <tr><td colSpan={4} style={{ padding: '20px 15px', textAlign: 'center', color: '#888' }}>{t('admin.noLogs')}</td></tr>
                     ) : logs.map(log => (
                       <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '11px' }}>
-                        <td style={{ padding: '10px 15px', color: '#666' }}>{new Date(log.createdAt).toLocaleString()}</td>
+                        <td style={{ padding: '10px 15px', color: '#666' }}>{new Date(log.createdAt).toLocaleString(locale)}</td>
                         <td style={{ padding: '10px 15px' }}><span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{log.action}</span></td>
-                        <td style={{ padding: '10px 15px', fontWeight: 600 }}>{log.User?.name || log.user?.name || 'Sistema'}</td>
+                        <td style={{ padding: '10px 15px', fontWeight: 600 }}>{log.User?.name || log.user?.name || t('admin.system')}</td>
                         <td style={{ padding: '10px 15px', color: '#444' }}>{log.description}</td>
                       </tr>
                     ))}
@@ -732,66 +746,66 @@ const AdminDashboard = () => {
                       <Search size={18} color="#0284c7" />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>Búsqueda Avanzada</h3>
-                      <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ingrese una o varias opciones para filtrar los formularios</p>
+                      <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>{t('admin.searchTitle')}</h3>
+                      <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{t('admin.searchSubtitle')}</p>
                     </div>
                   </div>
                   <form onSubmit={handleConsultaSearch} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Nombres / Apellidos</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('admin.names')}</label>
                         <input type="text" value={searchFilters.nombres} onChange={e => setSearchFilters({...searchFilters, nombres: e.target.value})}
-                          placeholder="Ej. Edwin Alvarez"
+                          placeholder={t('admin.phNames')}
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
                         />
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>RUC / Identificación</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('admin.ruc')}</label>
                         <input type="text" value={searchFilters.ruc} onChange={e => setSearchFilters({...searchFilters, ruc: e.target.value})}
-                          placeholder="Ej. 1700000000001"
+                          placeholder={t('admin.phRuc')}
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
                         />
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Código Único</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('admin.uniqueCode')}</label>
                         <input type="text" value={searchFilters.codigoUnico} onChange={e => setSearchFilters({...searchFilters, codigoUnico: e.target.value})}
-                          placeholder="Ej. C001"
+                          placeholder={t('admin.phCode')}
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
                         />
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Usuario</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('admin.userFilter')}</label>
                         <input type="text" value={searchFilters.usuario} onChange={e => setSearchFilters({...searchFilters, usuario: e.target.value})}
-                          placeholder="Nombre o Email"
+                          placeholder={t('admin.phUser')}
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
                         />
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Nombre de Empresa</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('admin.companyName')}</label>
                         <input type="text" value={searchFilters.empresa} onChange={e => setSearchFilters({...searchFilters, empresa: e.target.value})}
-                          placeholder="Razón Social"
+                          placeholder={t('admin.phCompany')}
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff' }}
                         />
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Tipo de Formulario</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('admin.formTypeLabel')}</label>
                         <select 
                           value={searchFilters.formType} 
                           onChange={e => setSearchFilters({...searchFilters, formType: e.target.value})}
                           style={{ width: '100%', padding: '10px 14px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: 13, background: '#fff', cursor: 'pointer' }}
                         >
-                          <option value="">Todos los formularios</option>
-                          <option value="corporacion">Formulario de Corporación</option>
-                          <option value="fundacion">Formulario de Fundación</option>
-                          <option value="cumplimiento-entidad">Cumplimiento (Entidad)</option>
-                          <option value="cumplimiento-individual">Cumplimiento (Individual)</option>
-                          <option value="fondos">Declaración de Fondos</option>
+                          <option value="">{t('admin.allForms')}</option>
+                          <option value="corporacion">{t('admin.formCorp')}</option>
+                          <option value="fundacion">{t('admin.formFund')}</option>
+                          <option value="cumplimiento-entidad">{t('admin.formKyce')}</option>
+                          <option value="cumplimiento-individual">{t('admin.formKyci')}</option>
+                          <option value="fondos">{t('admin.formFunds')}</option>
                         </select>
                       </div>
 
@@ -799,11 +813,11 @@ const AdminDashboard = () => {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
                       {consultaResults && (
                         <button type="button" onClick={handleExportSearchPdf} style={{ padding: '12px 24px', fontWeight: 800, background: '#0f766e', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <FileText size={16} /> DESCARGAR REPORTE EN PDF
+                          <FileText size={16} /> {t('admin.downloadPdfReport')}
                         </button>
                       )}
                       <button type="submit" disabled={consultaLoading} className="btn-primary" style={{ padding: '12px 40px', fontWeight: 800, letterSpacing: '0.5px' }}>
-                        {consultaLoading ? 'BUSCANDO...' : 'EJECUTAR BÚSQUEDA'}
+                        {consultaLoading ? t('admin.searching') : t('admin.runSearch')}
                       </button>
                     </div>
                   </form>
@@ -812,7 +826,7 @@ const AdminDashboard = () => {
                 {consultaResults && consultaResults.length === 0 && (
                   <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
                     <SearchCheck size={40} style={{ marginBottom: 10, opacity: 0.4 }} />
-                    <p style={{ fontSize: 13 }}>No se encontraron resultados para los filtros ingresados.</p>
+                    <p style={{ fontSize: 13 }}>{t('admin.noSearchResults')}</p>
                   </div>
                 )}
 
@@ -820,15 +834,15 @@ const AdminDashboard = () => {
                   <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 140, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: RADIUS, padding: '14px 18px' }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: '#15803d' }}>{consultaSummary.totalResults || 0}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginTop: 2 }}>FORMULARIOS ENCONTRADOS</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginTop: 2 }}>{t('admin.formsFound')}</div>
                     </div>
                     <div style={{ flex: 1, minWidth: 140, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: RADIUS, padding: '14px 18px' }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: '#1d4ed8' }}>{consultaDocuments ? consultaDocuments.length : 0}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', marginTop: 2 }}>DOCUMENTOS ADJUNTOS</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', marginTop: 2 }}>{t('admin.attachedDocs')}</div>
                     </div>
                     <div style={{ flex: 1, minWidth: 140, background: '#fefce8', border: '1px solid #fde68a', borderRadius: RADIUS, padding: '14px 18px' }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: '#a16207' }}>{consultaSummary.uniqueUsers || 0}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#facc15', marginTop: 2 }}>USUARIOS ASOCIADOS</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#facc15', marginTop: 2 }}>{t('admin.associatedUsers')}</div>
                     </div>
                   </div>
                 )}
@@ -842,10 +856,10 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
-                          1. Formularios Creados y Disponibles ({consultaResults.length})
+                          {t('admin.formsCreatedTitle', { count: consultaResults.length })}
                         </h3>
                         <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                          Trámites y formularios creados en el sistema con opciones de edición y eliminación
+                          {t('admin.formsCreatedSubtitle')}
                         </p>
                       </div>
                     </div>
@@ -859,24 +873,24 @@ const AdminDashboard = () => {
                           <div key={`${r.formId}-${idx}`} style={{ background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                             <div style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
-                                  <h3 style={{ margin: 0, fontSize: 15, color: '#0f766e', fontWeight: 800 }}>{r.entityName || 'Formulario'}</h3>
+                                  <h3 style={{ margin: 0, fontSize: 15, color: '#0f766e', fontWeight: 800 }}>{r.entityName || t('admin.formGeneric')}</h3>
                                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                     <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
-                                    Subido por <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || 'Sin código'}) el {new Date(r.formDate).toLocaleDateString()}
-                                    <button onClick={() => handleOpenEditUser(r)} title="Editar datos del usuario" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                      <UserCog size={10} /> Editar Usuario
+                                    {t('admin.uploadedBy')} <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || t('admin.noCode')}) {t('admin.onDate')} {new Date(r.formDate).toLocaleDateString(locale)}
+                                    <button onClick={() => handleOpenEditUser(r)} title={t('admin.editUser')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                      <UserCog size={10} /> {t('admin.editUser')}
                                     </button>
                                   </div>
                               </div>
                               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <button onClick={() => handleOpenEditForm(r)} title="Editar formulario" style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Edit2 size={12} /> Editar
+                                <button onClick={() => handleOpenEditForm(r)} title={t('admin.editForm')} style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Edit2 size={12} /> {t('common.edit')}
                                 </button>
-                                <button onClick={() => setDeletingForm(r)} title="Eliminar formulario" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Trash2 size={12} /> Eliminar
+                                <button onClick={() => setDeletingForm(r)} title={t('admin.deleteForm')} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Trash2 size={12} /> {t('common.delete')}
                                 </button>
                                 <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
-                                  {isExpanded ? 'Ver Menos' : 'Ver Más Detalles'}
+                                  {isExpanded ? t('admin.seeLess') : t('admin.seeMore')}
                                 </button>
                               </div>
                             </div>
@@ -885,7 +899,7 @@ const AdminDashboard = () => {
                             {r.matchedSections && r.matchedSections.length > 0 && (
                               <div style={{ background: '#f0fdf4', padding: '12px 20px', borderBottom: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <div style={{ fontSize: 11, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span>📍</span> UBICACIÓN Y ROLES EXACTOS EN ESTE FORMULARIO ({r.matchedSections.length}):
+                                  <span>📍</span> {t('admin.exactRoles', { count: r.matchedSections.length })}
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                   {r.matchedSections.map((ms, msIdx) => (
@@ -911,7 +925,7 @@ const AdminDashboard = () => {
                             <div style={{ padding: '16px 20px', borderTop: `1px solid ${BORDER}` }}>
                               <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <Users size={14} color="#0f766e" />
-                                Personas y Roles Registrados en este Formulario ({r.participants ? r.participants.length : 0}):
+                                {t('admin.peopleInForm', { count: r.participants ? r.participants.length : 0 })}
                               </div>
                               {r.participants && r.participants.length > 0 ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
@@ -929,7 +943,7 @@ const AdminDashboard = () => {
                                           </span>
                                           {isMatched && (
                                             <span style={{ background: '#16a34a', color: 'white', fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 10 }}>
-                                              COINCIDENCIA
+                                              {t('admin.match')}
                                             </span>
                                           )}
                                         </div>
@@ -943,7 +957,7 @@ const AdminDashboard = () => {
                                   })}
                                 </div>
                               ) : (
-                                <div style={{ fontSize: 12, color: '#64748b' }}>No se identificaron personas en arreglos. Haz clic en "Ver Más Detalles" para ver toda la información extraída.</div>
+                                <div style={{ fontSize: 12, color: '#64748b' }}>{t('admin.noPeopleHint')}</div>
                               )}
                             </div>
 
@@ -953,8 +967,8 @@ const AdminDashboard = () => {
                                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                     <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
                                       <tr style={{ fontSize: 10, color: '#475569', fontWeight: 800 }}>
-                                        <th style={{ padding: '12px 20px', width: '35%' }}>TODOS LOS CAMPOS DEL FORMULARIO</th>
-                                        <th style={{ padding: '12px 20px', width: '65%' }}>VALOR REGISTRADO</th>
+                                        <th style={{ padding: '12px 20px', width: '35%' }}>{t('admin.allFormFields')}</th>
+                                        <th style={{ padding: '12px 20px', width: '65%' }}>{t('admin.registeredValue')}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -965,14 +979,14 @@ const AdminDashboard = () => {
                                                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                                               </td>
                                               <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
-                                                {renderFormDataValue(value)}
+                                                {renderFormDataValue(value, t)}
                                               </td>
                                             </tr>
                                           ))
                                       ) : (
                                           <tr>
                                             <td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                                                No hay datos registrados adicionales.
+                                                {t('admin.noExtraData')}
                                             </td>
                                           </tr>
                                       )}
@@ -996,10 +1010,10 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a', fontWeight: 800 }}>
-                          2. Documentos Adjuntos y Firmados Disponibles ({consultaDocuments.length})
+                          {t('admin.docsSectionTitle', { count: consultaDocuments.length })}
                         </h3>
                         <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                          Documentación adjunta subida y firmada por los usuarios para su descarga o eliminación
+                          {t('admin.docsSectionSubtitle')}
                         </p>
                       </div>
                     </div>
@@ -1008,11 +1022,11 @@ const AdminDashboard = () => {
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                           <tr style={{ fontSize: 10, color: '#64748b', fontWeight: 800 }}>
-                            <th style={{ padding: '12px 16px' }}>NOMBRE DEL ARCHIVO / TÍTULO</th>
-                            <th style={{ padding: '12px 16px' }}>TIPO / ESTADO</th>
-                            <th style={{ padding: '12px 16px' }}>USUARIO PROPIETARIO</th>
-                            <th style={{ padding: '12px 16px' }}>FECHA DE SUBIDA</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>ACCIONES</th>
+                            <th style={{ padding: '12px 16px' }}>{t('admin.fileTitle')}</th>
+                            <th style={{ padding: '12px 16px' }}>{t('admin.typeStatus')}</th>
+                            <th style={{ padding: '12px 16px' }}>{t('admin.ownerUser')}</th>
+                            <th style={{ padding: '12px 16px' }}>{t('admin.uploadDate')}</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{t('admin.actions')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1027,18 +1041,18 @@ const AdminDashboard = () => {
                                 </span>
                               </td>
                               <td style={{ padding: '12px 16px', color: '#334155', fontWeight: 600 }}>
-                                {doc.userName} ({doc.userCode || doc.userEmail || 'Cliente'})
+                                {doc.userName} ({doc.userCode || doc.userEmail || t('admin.ownerClient')})
                               </td>
                               <td style={{ padding: '12px 16px', color: '#64748b' }}>
-                                {new Date(doc.createdAt).toLocaleDateString()}
+                                {new Date(doc.createdAt).toLocaleDateString(locale)}
                               </td>
                               <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                                  <button onClick={() => handleDownloadDoc(doc.id)} title="Descargar/Ver Documento" style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '6px 12px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    Descargar
+                                  <button onClick={() => handleDownloadDoc(doc.id)} title={t('admin.download')} style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '6px 12px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    {t('admin.download')}
                                   </button>
-                                  <button onClick={() => handleDeleteDoc(doc.id)} title="Eliminar Documento" style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '6px 12px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <Trash2 size={12} /> Eliminar
+                                  <button onClick={() => handleDeleteDoc(doc.id)} title={t('common.delete')} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '6px 12px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <Trash2 size={12} /> {t('common.delete')}
                                   </button>
                                 </div>
                               </td>
@@ -1054,7 +1068,7 @@ const AdminDashboard = () => {
                 {!consultaResults && !consultaLoading && (
                   <div style={{ textAlign: 'center', padding: 50, color: '#cbd5e1' }}>
                     <Building2 size={48} style={{ marginBottom: 12, opacity: 0.3 }} />
-                    <p style={{ fontSize: 13, color: '#94a3b8' }}>Busque una persona por nombre, pasaporte o cédula para ver en qué empresas y formularios aparece.</p>
+                    <p style={{ fontSize: 13, color: '#94a3b8' }}>{t('admin.emptySearchHint')}</p>
                   </div>
                 )}
 
@@ -1064,10 +1078,10 @@ const AdminDashboard = () => {
                       <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <h2 style={{ fontSize: 18, margin: 0, color: '#0f766e', fontWeight: 800 }}>
-                            {viewingFormData.entityName || 'Datos del Formulario'}
+                            {viewingFormData.entityName || t('admin.formDataTitle')}
                           </h2>
                           <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>
-                            {viewingFormData.formType} &middot; Subido por: {viewingFormData.userName} ({viewingFormData.userEmail})
+                            {t('admin.uploadedByModal', { type: viewingFormData.formType, name: viewingFormData.userName, email: viewingFormData.userEmail })}
                           </p>
                         </div>
                         <button onClick={() => setViewingFormData(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={24} /></button>
@@ -1076,8 +1090,8 @@ const AdminDashboard = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: 'hidden', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                           <thead style={{ background: '#f1f5f9', borderBottom: `1px solid ${BORDER}` }}>
                             <tr style={{ fontSize: 11, color: '#475569', fontWeight: 800 }}>
-                              <th style={{ padding: '14px 20px', width: '35%' }}>CAMPO</th>
-                              <th style={{ padding: '14px 20px', width: '65%' }}>VALOR INGRESADO</th>
+                              <th style={{ padding: '14px 20px', width: '35%' }}>{t('admin.field')}</th>
+                              <th style={{ padding: '14px 20px', width: '65%' }}>{t('admin.enteredValue')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1088,14 +1102,14 @@ const AdminDashboard = () => {
                                     {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                                   </td>
                                   <td style={{ padding: '12px 20px', color: '#1e293b', wordBreak: 'break-word' }}>
-                                    {renderFormDataValue(value)}
+                                    {renderFormDataValue(value, t)}
                                   </td>
                                 </tr>
                               ))
                             ) : (
                               <tr>
                                 <td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                                  No hay datos registrados en este formulario.
+                                  {t('admin.noFormData')}
                                 </td>
                               </tr>
                             )}
@@ -1103,7 +1117,7 @@ const AdminDashboard = () => {
                         </table>
                       </div>
                       <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, textAlign: 'right' }}>
-                        <button onClick={() => setViewingFormData(null)} className="btn-primary" style={{ padding: '8px 16px' }}>Cerrar</button>
+                        <button onClick={() => setViewingFormData(null)} className="btn-primary" style={{ padding: '8px 16px' }}>{t('admin.close')}</button>
                       </div>
                     </div>
                   </div>
@@ -1114,14 +1128,14 @@ const AdminDashboard = () => {
 
             {activeTab === 'change-email' && (
               <div style={{ padding: '30px', maxWidth: '450px' }}>
-                <h3 style={{ marginBottom: '20px' }}>Actualizar Correo Electrónico</h3>
+                <h3 style={{ marginBottom: '20px' }}>{t('admin.updateEmailTitle')}</h3>
                 <form onSubmit={handleUpdateEmail} style={{ display: 'flex', flexDirection: 'column', gap: 15, marginBottom: '40px' }}>
                   <div className="field-group-admin">
-                    <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
+                    <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.email')}</label>
                     <input className="input-modern-admin" type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} required />
                   </div>
                   <button type="submit" disabled={savingSettings} className="btn-primary" style={{ width: '100%', marginTop: 10 }}>
-                    {savingSettings ? 'GUARDANDO...' : 'ACTUALIZAR CORREO'}
+                    {savingSettings ? t('admin.saving') : t('admin.updateEmailBtn')}
                   </button>
                 </form>
               </div>
@@ -1129,10 +1143,10 @@ const AdminDashboard = () => {
 
             {activeTab === 'change-password' && (
               <div style={{ padding: '30px', maxWidth: '450px' }}>
-                <h3 style={{ marginBottom: '20px' }}>Actualizar Contraseña</h3>
+                <h3 style={{ marginBottom: '20px' }}>{t('admin.updatePasswordTitle')}</h3>
                 <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                   <div className="field-group-admin">
-                    <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVA CONTRASEÑA</label>
+                    <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.newPassword')}</label>
                     <div style={{ position: 'relative' }}>
                       <input 
                         className="input-modern-admin" 
@@ -1152,7 +1166,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <button type="submit" disabled={savingSettings} className="btn-primary" style={{ width: '100%', marginTop: 10 }}>
-                    {savingSettings ? 'GUARDANDO...' : 'ACTUALIZAR CONTRASEÑA'}
+                    {savingSettings ? t('admin.saving') : t('admin.updatePasswordBtn')}
                   </button>
                 </form>
               </div>
@@ -1162,27 +1176,27 @@ const AdminDashboard = () => {
               <div style={{ padding: '30px' }}>
                 <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>Estado de Plantillas Base</h3>
+                    <h3 style={{ marginBottom: '20px', fontSize: '16px' }}>{t('admin.templatesStatus')}</h3>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', border: `1px solid ${BORDER}` }}>
                         <thead style={{ background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                           <tr style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>
-                            <th style={{ padding: '12px' }}>TIPO DE TRÁMITE</th>
-                            <th style={{ padding: '12px' }}>ESTADO ACTUAL</th>
+                            <th style={{ padding: '12px' }}>{t('admin.processType')}</th>
+                            <th style={{ padding: '12px' }}>{t('admin.currentStatus')}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {(() => {
                             const baseTypes = [
-                              { id: 'fondos', label: 'Declaración de Fondos' },
-                              { id: 'corporacion', label: 'Incorporación' },
-                              { id: 'fundaciones', label: 'Fundaciones' },
-                              { id: 'cumplimiento_individual', label: 'Cumplimiento Individual' },
-                              { id: 'cumplimiento_entidades', label: 'Cumplimiento Entidades' }
+                              { id: 'fondos', label: t('admin.processFondos') },
+                              { id: 'corporacion', label: t('admin.processCorp') },
+                              { id: 'fundaciones', label: t('admin.processFund') },
+                              { id: 'cumplimiento_individual', label: t('admin.processKyci') },
+                              { id: 'cumplimiento_entidades', label: t('admin.processKyce') }
                             ];
-                            const baseIds = baseTypes.map(t => t.id);
-                            const dynamicTypes = templates.filter(t => !baseIds.includes(t.name)).map(t => ({
-                                id: t.name,
-                                label: t.name.replace(/_/g, ' ').toUpperCase() + ' (Dinámico)'
+                            const baseIds = baseTypes.map(bt => bt.id);
+                            const dynamicTypes = templates.filter(tpl => !baseIds.includes(tpl.name)).map(tpl => ({
+                                id: tpl.name,
+                                label: `${tpl.name.replace(/_/g, ' ').toUpperCase()} ${t('admin.dynamicSuffix')}`
                             }));
                             const allTypes = [...baseTypes, ...dynamicTypes];
                             
@@ -1204,7 +1218,7 @@ const AdminDashboard = () => {
                                               <button 
                                                   onClick={() => handleEditTemplate(type.id)}
                                                   style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                  title="Editar plantilla (Reemplazar PDF)"
+                                                  title={t('admin.editTemplateTitle')}
                                               >
                                                   <Edit2 size={14} />
                                               </button>
@@ -1212,7 +1226,7 @@ const AdminDashboard = () => {
                                               <button 
                                                   onClick={() => handleDeleteTemplate(type.id)}
                                                   style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                  title="Eliminar plantilla"
+                                                  title={t('admin.deleteTemplateTitle')}
                                               >
                                                   <Trash2 size={14} />
                                               </button>
@@ -1234,20 +1248,20 @@ const AdminDashboard = () => {
                   <div style={{ flex: 1, background: '#f8fafc', padding: '25px', borderRadius: RADIUS_LG, border: `1px dashed #cbd5e1` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                       <UploadCloud size={20} color={PRIMARY} />
-                      <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Subir/Reemplazar Plantilla</h3>
+                      <h3 style={{ fontSize: '14px', fontWeight: 700 }}>{t('admin.uploadReplace')}</h3>
                     </div>
                     <form onSubmit={handleTemplateUpload} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                       <div className="field-group-admin" style={{ display: 'flex', gap: '15px', marginBottom: 5 }}>
                         <label style={{ fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                          <input type="radio" checked={templateUploadMode === 'base'} onChange={() => setTemplateUploadMode('base')} /> Trámite del Sistema
+                          <input type="radio" checked={templateUploadMode === 'base'} onChange={() => setTemplateUploadMode('base')} /> {t('admin.systemProcess')}
                         </label>
                         <label style={{ fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                          <input type="radio" checked={templateUploadMode === 'custom'} onChange={() => setTemplateUploadMode('custom')} /> Plantilla Dinámica
+                          <input type="radio" checked={templateUploadMode === 'custom'} onChange={() => setTemplateUploadMode('custom')} /> {t('admin.dynamicTemplate')}
                         </label>
                       </div>
 
                       <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{templateUploadMode === 'base' ? 'TIPO DE TRÁMITE A VINCULAR' : 'NOMBRE DE LA NUEVA PLANTILLA'}</label>
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{templateUploadMode === 'base' ? t('admin.processToLink') : t('admin.newTemplateName')}</label>
                         {templateUploadMode === 'base' ? (
                             <select
                               className="input-modern-admin"
@@ -1258,17 +1272,17 @@ const AdminDashboard = () => {
                               }}
                               style={{ cursor: 'pointer' }}
                             >
-                              <option value="fondos">Declaración de Fondos</option>
-                              <option value="corporacion">Incorporación</option>
-                              <option value="fundaciones">Fundaciones</option>
-                              <option value="cumplimiento_individual">Cumplimiento Individual</option>
-                              <option value="cumplimiento_entidades">Cumplimiento Entidades</option>
+                              <option value="fondos">{t('admin.processFondos')}</option>
+                              <option value="corporacion">{t('admin.processCorp')}</option>
+                              <option value="fundaciones">{t('admin.processFund')}</option>
+                              <option value="cumplimiento_individual">{t('admin.processKyci')}</option>
+                              <option value="cumplimiento_entidades">{t('admin.processKyce')}</option>
                             </select>
                         ) : (
                             <input 
                               type="text" 
                               className="input-modern-admin" 
-                              placeholder="Ej. contrato_arrendamiento" 
+                              placeholder={t('admin.phTemplate')} 
                               value={customTemplateName} 
                               onChange={(e) => setCustomTemplateName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '_'))}
                               required={templateUploadMode === 'custom'}
@@ -1282,7 +1296,7 @@ const AdminDashboard = () => {
                         )}
                       </div>
                       <div className="field-group-admin">
-                        <label style={{ fontSize: '10px', fontWeight: 700 }}>ARCHIVO PDF</label>
+                        <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.pdfFile')}</label>
                         <input 
                           type="file" 
                           accept=".pdf" 
@@ -1296,12 +1310,12 @@ const AdminDashboard = () => {
                         type="submit" 
                         disabled={uploadingTemplate || !templateFile} 
                         className="btn-primary" 
-                        style={{ marginTop: 10, background: templates.some(t => t.name === templateName) ? '#f59e0b' : '#16a34a' }}
+                        style={{ marginTop: 10, background: templates.some(tpl => tpl.name === templateName) ? '#f59e0b' : '#16a34a' }}
                       >
-                        {uploadingTemplate ? 'PROCESANDO...' : (templates.some(t => t.name === templateName) ? 'ACTUALIZAR PLANTILLA EXISTENTE' : 'SUBIR NUEVA PLANTILLA')}
+                        {uploadingTemplate ? t('admin.processing') : (templates.some(tpl => tpl.name === templateName) ? t('admin.updateExistingTemplate') : t('admin.uploadNewTemplate'))}
                       </button>
                       <p style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>
-                        {templates.some(t => t.name === templateName) ? 'Esta acción sobreescribirá el archivo actual en la base de datos.' : 'Se inyectará un nuevo archivo en el sistema maestro.'}
+                        {templates.some(tpl => tpl.name === templateName) ? t('admin.overwriteHint') : t('admin.injectHint')}
                       </p>
                       {lastDetectedFields && (
                         <div
@@ -1363,32 +1377,32 @@ const AdminDashboard = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY }}>Crear Usuario</h2>
+              <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY }}>{t('admin.createUser')}</h2>
               <button onClick={() => setShowCreateUserModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateUser} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 15 }}>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>NOMBRES COMPLETOS</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.fullName')}</label>
                 <input className="input-modern-admin" type="text" value={createUserForm.name} onChange={e => setCreateUserForm({ ...createUserForm, name: e.target.value })} required />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.email')}</label>
                 <input className="input-modern-admin" type="email" value={createUserForm.email} onChange={e => setCreateUserForm({ ...createUserForm, email: e.target.value })} required />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>IDENTIFICACIÓN (OPCIONAL)</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.idOptional')}</label>
                 <input className="input-modern-admin" type="text" value={createUserForm.idNumber} onChange={e => setCreateUserForm({ ...createUserForm, idNumber: e.target.value })} />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>ROL</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.role')}</label>
                 <select className="input-modern-admin" value={createUserForm.roleOverride} onChange={e => setCreateUserForm({ ...createUserForm, roleOverride: e.target.value })} required>
-                  <option value="client">Cliente Normal</option>
-                  <option value="manager">Administrador Usuarios</option>
-                  <option value="master">Administrador Maestro</option>
+                  <option value="client">{t('admin.roleClientFull')}</option>
+                  <option value="manager">{t('admin.roleManagerFull')}</option>
+                  <option value="master">{t('admin.roleMasterFull')}</option>
                 </select>
               </div>
               <button type="submit" className="btn-primary" disabled={creatingUser} style={{ marginTop: 10 }}>
-                {creatingUser ? 'Creando...' : 'Crear Usuario'}
+                {creatingUser ? t('admin.creating') : t('admin.createUser')}
               </button>
             </form>
           </div>
@@ -1399,24 +1413,24 @@ const AdminDashboard = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ background: 'white', borderRadius: RADIUS_LG, width: '90%', maxWidth: '350px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY }}>Cambiar Rol</h2>
+              <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY }}>{t('admin.changeRole')}</h2>
               <button onClick={() => setShowChangeRoleModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleChangeRoleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 15 }}>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>USUARIO</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.user')}</label>
                 <input className="input-modern-admin" type="text" value={selectedUserForRole.email} disabled style={{ background: '#f8fafc' }} />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>NUEVO ROL</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.newRole')}</label>
                 <select className="input-modern-admin" value={newRoleOverride} onChange={e => setNewRoleOverride(e.target.value)} required>
-                  <option value="client">Cliente Normal</option>
-                  <option value="manager">Administrador Usuarios</option>
-                  <option value="master">Administrador Maestro</option>
+                  <option value="client">{t('admin.roleClientFull')}</option>
+                  <option value="manager">{t('admin.roleManagerFull')}</option>
+                  <option value="master">{t('admin.roleMasterFull')}</option>
                 </select>
               </div>
               <button type="submit" className="btn-primary" disabled={changingRole} style={{ marginTop: 10 }}>
-                {changingRole ? 'Guardando...' : 'Guardar Cambio'}
+                {changingRole ? t('admin.savingShort') : t('admin.saveRole')}
               </button>
             </form>
           </div>
@@ -1430,16 +1444,16 @@ const AdminDashboard = () => {
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Edit2 size={18} color="#f59e0b" />
-                <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY, fontWeight: 800 }}>Editar Datos de Formulario</h2>
+                <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY, fontWeight: 800 }}>{t('admin.editFormData')}</h2>
               </div>
               <button onClick={() => setEditingForm(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
             <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ fontSize: 12, color: '#64748b' }}>
-                Formulario: <strong>{editingForm.formType}</strong> &middot; ID: <code>{editingForm.formId}</code>
+                {t('admin.formIdLine', { type: editingForm.formType, id: editingForm.formId })}
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>DATOS DEL FORMULARIO (JSON)</label>
+                <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>{t('admin.formJson')}</label>
                 <textarea
                   className="input-modern-admin"
                   rows={14}
@@ -1450,9 +1464,9 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#f8fafc', borderRadius: `0 0 ${RADIUS_LG} ${RADIUS_LG}` }}>
-              <button onClick={() => setEditingForm(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={() => setEditingForm(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{t('admin.cancel')}</button>
               <button onClick={handleSaveEditForm} disabled={savingFormEdit} style={{ padding: '10px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
-                {savingFormEdit ? 'Guardando...' : 'Guardar Cambios'}
+                {savingFormEdit ? t('admin.savingShort') : t('admin.saveChanges')}
               </button>
             </div>
           </div>
@@ -1466,22 +1480,22 @@ const AdminDashboard = () => {
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Trash2 size={18} color="#ef4444" />
-                <h2 style={{ fontSize: 16, margin: 0, color: '#dc2626', fontWeight: 800 }}>Eliminar Formulario</h2>
+                <h2 style={{ fontSize: 16, margin: 0, color: '#dc2626', fontWeight: 800 }}>{t('admin.deleteFormTitle')}</h2>
               </div>
               <button onClick={() => setDeletingForm(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
-                ¿Está seguro de que desea eliminar el formulario <strong>{deletingForm.formType}</strong> ({deletingForm.entityName || deletingForm.formId})?
+                {t('admin.deleteFormConfirm', { type: deletingForm.formType, name: deletingForm.entityName || deletingForm.formId })}
               </p>
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 11, color: '#991b1b' }}>
-                ⚠️ <strong>Atención:</strong> Esta acción es permanente e irreversible en la base de datos.
+                {t('admin.deleteFormWarn')}
               </div>
             </div>
             <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#f8fafc', borderRadius: `0 0 ${RADIUS_LG} ${RADIUS_LG}` }}>
-              <button onClick={() => setDeletingForm(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={() => setDeletingForm(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{t('admin.cancel')}</button>
               <button onClick={handleConfirmDeleteForm} disabled={deletingFormLoading} style={{ padding: '10px 20px', background: '#dc2626', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
-                {deletingFormLoading ? 'Eliminando...' : 'Sí, Eliminar Formulario'}
+                {deletingFormLoading ? t('admin.deleting') : t('admin.yesDeleteForm')}
               </button>
             </div>
           </div>
@@ -1495,32 +1509,32 @@ const AdminDashboard = () => {
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <UserCog size={18} color="#0284c7" />
-                <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY, fontWeight: 800 }}>Editar Datos Personales de Usuario</h2>
+                <h2 style={{ fontSize: 16, margin: 0, color: PRIMARY, fontWeight: 800 }}>{t('admin.editUserData')}</h2>
               </div>
               <button onClick={() => setEditingUser(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>NOMBRE COMPLETO</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.fullName')}</label>
                 <input className="input-modern-admin" type="text" value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>CORREO ELECTRÓNICO</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.email')}</label>
                 <input className="input-modern-admin" type="email" value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })} />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>CÉDULA / PASAPORTE / RUC</label>
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.idPassportRuc')}</label>
                 <input className="input-modern-admin" type="text" value={editUserForm.idNumber} onChange={e => setEditUserForm({ ...editUserForm, idNumber: e.target.value })} />
               </div>
               <div className="field-group-admin">
-                <label style={{ fontSize: '10px', fontWeight: 700 }}>NACIONALIDAD</label>
-                <input className="input-modern-admin" type="text" value={editUserForm.nationality} onChange={e => setEditUserForm({ ...editUserForm, nationality: e.target.value })} placeholder="Ej. Ecuatoriana" />
+                <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.nationality')}</label>
+                <input className="input-modern-admin" type="text" value={editUserForm.nationality} onChange={e => setEditUserForm({ ...editUserForm, nationality: e.target.value })} placeholder={t('admin.phNationality')} />
               </div>
             </div>
             <div style={{ padding: '16px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#f8fafc', borderRadius: `0 0 ${RADIUS_LG} ${RADIUS_LG}` }}>
-              <button onClick={() => setEditingUser(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={() => setEditingUser(null)} style={{ padding: '10px 18px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{t('admin.cancel')}</button>
               <button onClick={handleSaveEditUser} disabled={savingUserEdit} style={{ padding: '10px 20px', background: '#0284c7', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
-                {savingUserEdit ? 'Guardando...' : 'Guardar Datos'}
+                {savingUserEdit ? t('admin.savingShort') : t('admin.saveData')}
               </button>
             </div>
           </div>

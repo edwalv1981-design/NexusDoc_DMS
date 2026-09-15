@@ -1,15 +1,16 @@
 import React from 'react';
 import { Globe } from 'lucide-react';
-import { useLang } from '../i18n';
+import { useLang, useT } from '../i18n';
 
 const LanguageSwitcher = ({ variant = 'pill', dark = false }) => {
   const { lang, setLang } = useLang();
+  const t = useT();
 
   if (variant === 'sidebar') {
     return (
       <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 800, letterSpacing: '0.5px', marginBottom: 6 }}>
-          <Globe size={12} /> {lang === 'es' ? 'IDIOMA' : 'LANGUAGE'}
+          <Globe size={12} /> {t('sidebar.language')}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {['es', 'en'].map((code) => (
