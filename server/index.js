@@ -51,7 +51,7 @@ console.log(
 );
 
 function isApiPath(reqPath) {
-    return reqPath === '/api' || reqPath.startsWith('/api/');
+    return reqPath === '/api' || reqPath.startsWith('/api/') || reqPath.startsWith('/admin/api/');
 }
 
 function shouldServeSpa(req) {
@@ -64,7 +64,7 @@ function sendSpaIndex(req, res, next) {
     if (!hasFrontend) {
         return res.status(503).type('text/plain').send('Frontend no construido (falta client/dist/index.html)');
     }
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.sendFile('index.html', { root: distPath }, (err) => {
@@ -90,6 +90,17 @@ app.use(cors({
     credentials: true,
 }));
 app.use(express.json({ limit: '2mb' }));
+
+// Reescritura defensiva para navegadores con código desfasado (/admin/api/* -> /api/*)
+app.use((req, res, next) => {
+    if (req.path.startsWith('/admin/api/')) {
+        const queryIndex = req.url.indexOf('?');
+        const queryString = queryIndex !== -1 ? req.url.substring(queryIndex) : '';
+        const cleanPath = req.path.replace('/admin/api/', '/api/');
+        req.url = cleanPath + queryString;
+    }
+    next();
+});
 
 app.use((err, req, res, next) => {
     if (err.type === 'entity.parse.failed') {
