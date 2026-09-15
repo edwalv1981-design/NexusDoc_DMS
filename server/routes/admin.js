@@ -24,7 +24,8 @@ const adminSearchPdfService = require('../services/adminSearchPdfService');
 
 // Middleware to verify Admin role
 const isAdmin = (req, res, next) => {
-    if (req.user.role !== 'admin') {
+    const role = req.user?.role;
+    if (role !== 'admin' && role !== 'manager') {
         return res.status(403).json({ msg: 'Acceso denegado: Se requiere rol de administrador' });
     }
     next();
@@ -56,15 +57,32 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
             users = dbUsers.map(u => (u && u.get ? u.get({ plain: true }) : u));
         } catch (ormErr) {
             console.error('Sequelize ORM User.findAll failed in GET /users:', ormErr.message);
+        }
+
+        // Si ORM no retornó resultados o falló por esquema, intentar SQL directo con COALESCE defensivo
+        if (!users || users.length === 0) {
             try {
-                const [rows] = await sequelize.query(`SELECT id, name, email, role, status, unique_code AS "uniqueCode", id_number AS "idNumber", "createdAt" FROM "Users" ORDER BY "createdAt" DESC`);
+                const [rows] = await sequelize.query(`
+                    SELECT 
+                        id, 
+                        name, 
+                        email, 
+                        role, 
+                        status, 
+                        COALESCE(unique_code, "uniqueCode", '—') AS "uniqueCode", 
+                        COALESCE(id_number, "idNumber", '') AS "idNumber", 
+                        COALESCE(created_at, "createdAt", NOW()) AS "createdAt" 
+                    FROM "Users" 
+                    ORDER BY COALESCE(created_at, "createdAt", NOW()) DESC
+                `);
                 users = rows;
-            } catch (e1) {
+            } catch (sqlErr1) {
+                console.error('SQL Fallback 1 failed in GET /users:', sqlErr1.message);
                 try {
-                    const [rows2] = await sequelize.query(`SELECT id, name, email, role, status, unique_code AS "uniqueCode", id_number AS "idNumber", created_at AS "createdAt" FROM users ORDER BY created_at DESC`);
+                    const [rows2] = await sequelize.query(`SELECT id, name, email, role, status FROM "Users"`);
                     users = rows2;
-                } catch (e2) {
-                    console.error('All User table queries failed:', e2.message);
+                } catch (sqlErr2) {
+                    console.error('SQL Fallback 2 failed in GET /users:', sqlErr2.message);
                 }
             }
         }

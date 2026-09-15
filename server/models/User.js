@@ -85,6 +85,7 @@ const User = sequelize.define('User', {
     // El idioma se lee/escribe vía SQL raw en server/services/userLanguageStore.js,
     // que tolera ausencia de columna y siempre cae a 'es' como fallback seguro.
 }, {
+    underscored: true,
     hooks: {
         beforeCreate: async (user) => {
             if (user.password) {

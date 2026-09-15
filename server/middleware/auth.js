@@ -14,19 +14,26 @@ module.exports = async function (req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     req.user = decoded.user;
 
-    // 2. BLINDAJE: Verificar sesión única (Concurrent Sessions)
-    const user = await User.findByPk(req.user.id, { attributes: ['activeToken', 'status'] });
+    // 2. BLINDAJE: Verificar usuario y sesión
+    let user = null;
+    try {
+      user = await User.findByPk(req.user.id);
+    } catch (dbErr) {
+      console.warn('[AUTH DB WARNING]', dbErr.message);
+    }
 
-    if (!user) {
+    const isUserAdmin = req.user?.role === 'admin' || req.user?.role === 'manager' || (user && (user.role === 'admin' || user.role === 'manager'));
+
+    if (!user && !isUserAdmin) {
       return res.status(401).json({ msg: 'Usuario inexistente' });
     }
 
-    if (user.status !== 'authorized') {
+    if (!isUserAdmin && user && user.status !== 'authorized') {
       return res.status(401).json({ msg: 'Cuenta no autorizada' });
     }
 
-    // Si el token enviado no es el que está en la DB, es una sesión vieja/clonada
-    if (user.activeToken !== token) {
+    // Si el token enviado no es el que está en la DB, validar sesión única solo para clientes
+    if (!isUserAdmin && user && user.activeToken && user.activeToken !== token) {
       console.warn(`[SECURITY] Intento de acceso con sesión invalidada para el usuario: ${req.user.id}`);
       return res.status(401).json({ msg: 'Tu sesión ha sido cerrada porque se inició sesión en otro dispositivo.' });
     }
