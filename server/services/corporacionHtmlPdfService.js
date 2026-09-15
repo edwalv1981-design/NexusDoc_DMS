@@ -74,7 +74,18 @@ function directorFieldRow(label, value) {
 }
 
 function buildDirectorTable(d, index) {
-  const fields = [
+  const isCompany = d.entityType === 'company';
+  const fields = isCompany ? [
+    ['Company Name / Razón Social', getFullName(d)],
+    ['Country of Reg. / País Constitución', d.registrationCountry || d.country],
+    ['Reg. Number / No. Registro', d.registrationNumber],
+    ['RUC / Tax ID', d.companyTaxId || d.passport],
+    ['Address / Dirección Registrada', d.address],
+    ['Legal Rep / Rep. Legal', d.legalRepName],
+    ['Legal Rep ID / Doc. Rep.', d.legalRepPassport],
+    ['Phone / Teléfono', d.phone],
+    ['Email', d.email],
+  ] : [
     ['Full name / Nombre completo', getFullName(d)],
     ['Date of birth / Fecha de nacimiento', fmtDate(d.birthDate)],
     ['Marital Status / Estado civil', d.maritalStatus],
@@ -89,7 +100,7 @@ function buildDirectorTable(d, index) {
   const rows = fields.map(([label, val]) => directorFieldRow(label, val || '')).join('');
   return `<table style="width:100%;border-collapse:collapse;">
     <thead><tr>
-      <th colspan="2" style="background:${C.headerBg};color:${C.titleColor};font-size:9px;padding:4px 6px;text-align:center;border:1px solid ${C.border};">Director ${index + 1}</th>
+      <th colspan="2" style="background:${C.headerBg};color:${C.titleColor};font-size:9px;padding:4px 6px;text-align:center;border:1px solid ${C.border};">Director ${index + 1}${isCompany ? ' (Empresa)' : ''}</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;

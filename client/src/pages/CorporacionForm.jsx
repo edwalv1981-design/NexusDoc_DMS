@@ -285,10 +285,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
     const ArrayFieldError = ({ array, index, field }) => <FieldError name={`${array}.${index}.${field}`} />;
 
     /* ── Array operations ── */
-    const addDignitary = () => {
+    const addDignitary = (type = 'individual') => {
+        const entityType = typeof type === 'string' ? type : 'individual';
         setFormData(prev => ({
             ...prev,
-            dignitaries: [...prev.dignitaries, { _id: generateId(), entityType: 'individual', role: '', fullName: '', birthDate: '', passport: '', registrationNumber: '' }]
+            dignitaries: [...prev.dignitaries, { _id: generateId(), entityType, role: '', fullName: '', companyName: '', birthDate: '', passport: '', registrationNumber: '', companyCountry: '', companyTaxId: '', address: '', legalRepName: '', legalRepPassport: '' }]
         }));
     };
 
@@ -308,10 +309,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }
     };
 
-    const addDirector = () => {
+    const addDirector = (type = 'individual') => {
+        const entityType = typeof type === 'string' ? type : 'individual';
         setFormData(prev => ({
             ...prev,
-            directors: [...prev.directors, { _id: generateId(), entityType: 'individual', fullName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', phone: '', email: '', address: '', city: '', country: '' }]
+            directors: [...prev.directors, { _id: generateId(), entityType, fullName: '', companyName: '', birthDate: '', maritalStatus: '', nationality: '', passport: '', phone: '', email: '', address: '', city: '', country: '', companyCountry: '', registrationNumber: '', companyTaxId: '', legalRepName: '', legalRepPassport: '' }]
         }));
     };
 
@@ -331,10 +333,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         }
     };
 
-    const addShareholder = () => {
+    const addShareholder = (type = 'individual') => {
+        const entityType = typeof type === 'string' ? type : 'individual';
         setFormData(prev => ({
             ...prev,
-            shareholders: [...prev.shareholders, { _id: generateId(), entityType: 'individual', certificate: '', value: '', shares: '', name: '', address: '' }]
+            shareholders: [...prev.shareholders, { _id: generateId(), entityType, certificate: '', value: '', shares: '', name: '', companyName: '', address: '', companyCountry: '', registrationNumber: '', companyTaxId: '', legalRepName: '', legalRepPassport: '' }]
         }));
     };
 
@@ -488,14 +491,21 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="corp-step">
             <div className="corp-section-header">
                 <h2 className="corp-section-title"><Users size={18} /> {t('corporacion.steps.directors')}</h2>
-                <button onClick={addDirector} className="corp-btn-add"><Plus size={14} /> {t('corporacion.fields.addDirector')}</button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => addDirector('individual')} className="corp-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Director (Individual)' : '+ Añadir Director (Persona)'}
+                    </button>
+                    <button onClick={() => addDirector('company')} className="corp-btn-add" style={{ background: '#0284c7' }}>
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Director (Company)' : '+ Añadir Director (Empresa)'}
+                    </button>
+                </div>
             </div>
             <div className="corp-hint-box">
                 <Info size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'In Panama, a minimum of 3 directors are required for the board of directors.'
-                        : 'En Panamá se requieren mínimo 3 directores para la junta directiva.'
+                        ? 'In Panama, a minimum of 3 directors are required for the board of directors. Directors can be individuals or corporate entities.'
+                        : 'En Panamá se requieren mínimo 3 directores para la junta directiva. Pueden ser personas naturales o empresas.'
                     }
                 </div>
             </div>
@@ -503,60 +513,115 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <div key={d._id || i} className="corp-card">
                     <div className="corp-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
+                    
+                    {/* Toggle Selector Tipo: Persona vs Empresa */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
+                            {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: d.entityType !== 'company' ? 700 : 400, color: d.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
+                            <input type="radio" name={`entityType-dir-${i}`} checked={d.entityType !== 'company'} onChange={() => updateDirector(i, 'entityType', 'individual')} />
+                            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: d.entityType === 'company' ? 700 : 400, color: d.entityType === 'company' ? '#0f766e' : '#64748b' }}>
+                            <input type="radio" name={`entityType-dir-${i}`} checked={d.entityType === 'company'} onChange={() => updateDirector(i, 'entityType', 'company')} />
+                            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
+                        </label>
+                    </div>
+
                     <PersonSelector
                         people={registeredPeople}
                         onSelectPerson={(person) => handleAutoFillDirector(i, person)}
                         currentName={d.fullName}
                     />
-                    <div className="corp-grid">
-                        <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-name-${i}`] = el}>
-                            <label>{d.entityType === "company" ? (lang === "en" ? "Company Name" : "Razón Social") : (lang === "en" ? "Full name" : "Nombre completo")}</label>
-                            <input className="corp-input" style={getArrayErrorStyle('directors', i, 'fullName')} value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director', 'name'); }} onFocus={() => { if (directorSuggestions[`${i}-name`]?.length) setActiveDirectorKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('directors', i, 'fullName')} placeholder={d.entityType === "company" ? "EJ: EMPRESA S.A." : (lang === "en" ? "Full name as on Passport/ID" : "Nombre completo como aparece en pasaporte/cédula")} />
-                            <ArrayFieldError array="directors" index={i} field="fullName" />
-                            {activeDirectorKey === `${i}-name` && directorSuggestions[`${i}-name`]?.length > 0 && (
-                                <div className="corp-autocomplete-dropdown">
-                                    {directorSuggestions[`${i}-name`].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p, 'name'); }}>
-                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
-                                            <span className="corp-ac-detail">{p.passport || ''}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+
+                    {d.entityType === 'company' ? (
+                        <div className="corp-grid">
+                            <div className="corp-field full-width">
+                                <label>{lang === 'en' ? 'Company Name / Business Name' : 'Nombre de la Empresa / Razón Social'}</label>
+                                <input className="corp-input" value={d.companyName || d.fullName || ''} onChange={e => { updateDirector(i, 'companyName', e.target.value); updateDirector(i, 'fullName', e.target.value); }} placeholder="EJ: CASITA S.A." />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Country of Registration' : 'País de Registro / Constitución'}</label>
+                                <input className="corp-input" value={d.companyCountry || d.country || ''} onChange={e => { updateDirector(i, 'companyCountry', e.target.value); updateDirector(i, 'country', e.target.value); }} placeholder="EJ: Panamá" />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label>
+                                <input className="corp-input" value={d.registrationNumber || ''} onChange={e => updateDirector(i, 'registrationNumber', e.target.value)} placeholder="EJ: 15548923" />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'RUC / Tax ID' : 'Número de RUC / Tax Number'}</label>
+                                <input className="corp-input" value={d.companyTaxId || d.passport || ''} onChange={e => { updateDirector(i, 'companyTaxId', e.target.value); updateDirector(i, 'passport', e.target.value); }} placeholder="EJ: 15548923-2-2021" />
+                            </div>
+                            <div className="corp-field full-width">
+                                <label>{lang === 'en' ? 'Registered Address' : 'Dirección Registrada de la Empresa'}</label>
+                                <input className="corp-input" value={d.address || ''} onChange={e => updateDirector(i, 'address', e.target.value)} placeholder="EJ: Calle 50, Edificio Global, Piso 12" />
+                            </div>
+                            <div className="corp-field full-width" style={{ marginTop: 6, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f766e', textTransform: 'uppercase' }}>
+                                    👤 {lang === 'en' ? 'Legal Representative Information' : 'Información del Representante Legal de la Empresa'}
+                                </span>
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Legal Representative Full Name' : 'Nombre Completo del Representante Legal'}</label>
+                                <input className="corp-input" value={d.legalRepName || ''} onChange={e => updateDirector(i, 'legalRepName', e.target.value)} placeholder="EJ: Juan Pérez" />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Legal Representative Passport / ID' : 'Pasaporte / Cédula del Representante Legal'}</label>
+                                <input className="corp-input" value={d.legalRepPassport || ''} onChange={e => updateDirector(i, 'legalRepPassport', e.target.value)} placeholder="EJ: E-8-12345" />
+                            </div>
                         </div>
-                        <div className="corp-field">
-                            <label>{lang === 'en' ? 'Marital Status' : 'Estado civil'}</label>
-                            <select className="corp-input" value={d.maritalStatus} onChange={e => updateDirector(i, 'maritalStatus', e.target.value)}>
-                                <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
-                                <option value="Soltero(a)">{lang === 'en' ? 'Single' : 'Soltero(a)'}</option>
-                                <option value="Casado(a)">{lang === 'en' ? 'Married' : 'Casado(a)'}</option>
-                                <option value="Divorciado(a)">{lang === 'en' ? 'Divorced' : 'Divorciado(a)'}</option>
-                                <option value="Viudo(a)">{lang === 'en' ? 'Widowed' : 'Viudo(a)'}</option>
-                            </select>
+                    ) : (
+                        <div className="corp-grid">
+                            <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-name-${i}`] = el}>
+                                <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
+                                <input className="corp-input" style={getArrayErrorStyle('directors', i, 'fullName')} value={d.fullName} autoComplete="off" onChange={e => { updateDirector(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'director', 'name'); }} onFocus={() => { if (directorSuggestions[`${i}-name`]?.length) setActiveDirectorKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('directors', i, 'fullName')} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} />
+                                <ArrayFieldError array="directors" index={i} field="fullName" />
+                                {activeDirectorKey === `${i}-name` && directorSuggestions[`${i}-name`]?.length > 0 && (
+                                    <div className="corp-autocomplete-dropdown">
+                                        {directorSuggestions[`${i}-name`].map((p, j) => (
+                                            <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p, 'name'); }}>
+                                                <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                                <span className="corp-ac-detail">{p.passport || ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Marital Status' : 'Estado civil'}</label>
+                                <select className="corp-input" value={d.maritalStatus} onChange={e => updateDirector(i, 'maritalStatus', e.target.value)}>
+                                    <option value="">{lang === 'en' ? 'Select...' : 'Seleccione...'}</option>
+                                    <option value="Soltero(a)">{lang === 'en' ? 'Single' : 'Soltero(a)'}</option>
+                                    <option value="Casado(a)">{lang === 'en' ? 'Married' : 'Casado(a)'}</option>
+                                    <option value="Divorciado(a)">{lang === 'en' ? 'Divorced' : 'Divorciado(a)'}</option>
+                                    <option value="Viudo(a)">{lang === 'en' ? 'Widowed' : 'Viudo(a)'}</option>
+                                </select>
+                            </div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'nationality')} value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'nationality')} /><ArrayFieldError array="directors" index={i} field="nationality" /></div>
+                            <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-pass-${i}`] = el}>
+                                <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
+                                <input className="corp-input" style={getArrayErrorStyle('directors', i, 'passport')} value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director', 'passport'); }} onFocus={() => { if (directorSuggestions[`${i}-passport`]?.length) setActiveDirectorKey(`${i}-passport`); }} onBlur={() => handleArrayFieldBlur('directors', i, 'passport')} />
+                                <ArrayFieldError array="directors" index={i} field="passport" />
+                                {activeDirectorKey === `${i}-passport` && directorSuggestions[`${i}-passport`]?.length > 0 && (
+                                    <div className="corp-autocomplete-dropdown">
+                                        {directorSuggestions[`${i}-passport`].map((p, j) => (
+                                            <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p, 'passport'); }}>
+                                                <span className="corp-ac-passport">{p.passport}</span>
+                                                <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" style={getArrayErrorStyle('directors', i, 'birthDate')} value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'birthDate')} /><ArrayFieldError array="directors" index={i} field="birthDate" /></div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'Phone' : 'Teléfono'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'phone')} value={d.phone} onChange={e => updateDirector(i, 'phone', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'phone')} placeholder={lang === 'en' ? '+1-555-0100' : '+507-6000-0000'} /><ArrayFieldError array="directors" index={i} field="phone" /></div>
+                            <div className="corp-field full-width"><label>{lang === 'en' ? 'Email' : 'Correo electrónico'}</label><input type="email" className="corp-input" style={getArrayErrorStyle('directors', i, 'email')} value={d.email} onChange={e => updateDirector(i, 'email', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'email')} placeholder="name@example.com" /><ArrayFieldError array="directors" index={i} field="email" /></div>
+                            <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'address')} value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'address')} /><ArrayFieldError array="directors" index={i} field="address" /></div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'City' : 'Ciudad'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'city')} value={d.city} onChange={e => updateDirector(i, 'city', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'city')} /><ArrayFieldError array="directors" index={i} field="city" /></div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'Country' : 'País'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'country')} value={d.country} onChange={e => updateDirector(i, 'country', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'country')} /><ArrayFieldError array="directors" index={i} field="country" /></div>
                         </div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Citizenship' : 'Nacionalidad'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'nationality')} value={d.nationality} onChange={e => updateDirector(i, 'nationality', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'nationality')} /><ArrayFieldError array="directors" index={i} field="nationality" /></div>
-                        <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dir-pass-${i}`] = el}>
-                            <label>{d.entityType === "company" ? (lang === "en" ? "Registration Number / RUC" : "RUC / No. de Registro") : (lang === "en" ? "Passport / ID" : "Pasaporte / Cédula")}</label>
-                            <input className="corp-input" style={getArrayErrorStyle('directors', i, 'passport')} value={d.passport} autoComplete="off" onChange={e => { updateDirector(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'director', 'passport'); }} onFocus={() => { if (directorSuggestions[`${i}-passport`]?.length) setActiveDirectorKey(`${i}-passport`); }} onBlur={() => handleArrayFieldBlur('directors', i, 'passport')} />
-                            <ArrayFieldError array="directors" index={i} field="passport" />
-                            {activeDirectorKey === `${i}-passport` && directorSuggestions[`${i}-passport`]?.length > 0 && (
-                                <div className="corp-autocomplete-dropdown">
-                                    {directorSuggestions[`${i}-passport`].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDirectorSuggestion(i, p, 'passport'); }}>
-                                            <span className="corp-ac-passport">{p.passport}</span>
-                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" style={getArrayErrorStyle('directors', i, 'birthDate')} value={d.birthDate} onChange={e => updateDirector(i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'birthDate')} /><ArrayFieldError array="directors" index={i} field="birthDate" /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Phone' : 'Teléfono'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'phone')} value={d.phone} onChange={e => updateDirector(i, 'phone', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'phone')} placeholder={lang === 'en' ? '+1-555-0100' : '+507-6000-0000'} /><ArrayFieldError array="directors" index={i} field="phone" /></div>
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Email' : 'Correo electrónico'}</label><input type="email" className="corp-input" style={getArrayErrorStyle('directors', i, 'email')} value={d.email} onChange={e => updateDirector(i, 'email', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'email')} placeholder="name@example.com" /><ArrayFieldError array="directors" index={i} field="email" /></div>
-                        <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección completa'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'address')} value={d.address} onChange={e => updateDirector(i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'address')} /><ArrayFieldError array="directors" index={i} field="address" /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'City' : 'Ciudad'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'city')} value={d.city} onChange={e => updateDirector(i, 'city', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'city')} /><ArrayFieldError array="directors" index={i} field="city" /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Country' : 'País'}</label><input className="corp-input" style={getArrayErrorStyle('directors', i, 'country')} value={d.country} onChange={e => updateDirector(i, 'country', e.target.value)} onBlur={() => handleArrayFieldBlur('directors', i, 'country')} /><ArrayFieldError array="directors" index={i} field="country" /></div>
-                    </div>
+                    )}
                 </div>
             ))}
         </div>
@@ -566,14 +631,21 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="corp-step">
             <div className="corp-section-header">
                 <h2 className="corp-section-title"><UserCheck size={18} /> {t('corporacion.steps.dignitaries')}</h2>
-                <button onClick={addDignitary} className="corp-btn-add"><Plus size={14} /> {t('corporacion.fields.addDignitary')}</button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => addDignitary('individual')} className="corp-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Dignitary (Individual)' : '+ Añadir Dignatario (Persona)'}
+                    </button>
+                    <button onClick={() => addDignitary('company')} className="corp-btn-add" style={{ background: '#0284c7' }}>
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Dignitary (Company)' : '+ Añadir Dignatario (Empresa)'}
+                    </button>
+                </div>
             </div>
             <div className="corp-hint-box">
                 <Info size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
                     {lang === 'en'
-                        ? 'Dignitaries can be the directors themselves or third parties.'
-                        : 'Los dignatarios pueden ser los mismos directores o terceras personas.'
+                        ? 'Dignitaries can be the directors themselves, third parties, or corporate entities.'
+                        : 'Los dignatarios pueden ser los mismos directores, terceras personas o empresas.'
                     }
                 </div>
             </div>
@@ -581,46 +653,102 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <div key={dig._id || i} className="corp-card">
                     <div className="corp-card-label">{lang === 'en' ? 'DIGNITARY' : 'DIGNATARIO'} #{i+1}</div>
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
+                    
+                    {/* Toggle Selector Tipo: Persona vs Empresa */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
+                            {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: dig.entityType !== 'company' ? 700 : 400, color: dig.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
+                            <input type="radio" name={`entityType-dig-${i}`} checked={dig.entityType !== 'company'} onChange={() => updateDignitary(i, 'entityType', 'individual')} />
+                            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: dig.entityType === 'company' ? 700 : 400, color: dig.entityType === 'company' ? '#0f766e' : '#64748b' }}>
+                            <input type="radio" name={`entityType-dig-${i}`} checked={dig.entityType === 'company'} onChange={() => updateDignitary(i, 'entityType', 'company')} />
+                            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
+                        </label>
+                    </div>
+
                     <PersonSelector
                         people={registeredPeople}
                         onSelectPerson={(person) => handleAutoFillDignitary(i, person)}
                         currentName={dig.fullName}
                     />
-                    <div className="corp-grid">
-                        <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'role')} value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'role')} placeholder="EJ: PRESIDENTE" /><ArrayFieldError array="dignitaries" index={i} field="role" /></div>
-                        <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-name-${i}`] = el}>
-                            <label>{dig.entityType === "company" ? (lang === "en" ? "Company Name" : "Razón Social") : (lang === "en" ? "Full name" : "Nombre completo")}</label>
-                            <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'fullName')} value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'name'); }} onFocus={() => { if (dignitarySuggestions[`${i}-name`]?.length) setActiveDignitaryKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'fullName')} />
-                            <ArrayFieldError array="dignitaries" index={i} field="fullName" />
-                            {activeDignitaryKey === `${i}-name` && dignitarySuggestions[`${i}-name`]?.length > 0 && (
-                                <div className="corp-autocomplete-dropdown">
-                                    {dignitarySuggestions[`${i}-name`].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
-                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
-                                            <span className="corp-ac-detail">{p.passport || ''}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+
+                    {dig.entityType === 'company' ? (
+                        <div className="corp-grid">
+                            <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'role')} value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'role')} placeholder="EJ: PRESIDENTE" /><ArrayFieldError array="dignitaries" index={i} field="role" /></div>
+                            <div className="corp-field full-width">
+                                <label>{lang === 'en' ? 'Company Name / Business Name' : 'Nombre de la Empresa / Razón Social'}</label>
+                                <input className="corp-input" value={dig.companyName || dig.fullName || ''} onChange={e => { updateDignitary(i, 'companyName', e.target.value); updateDignitary(i, 'fullName', e.target.value); }} placeholder="EJ: CASITA S.A." />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Country of Registration' : 'País de Registro / Constitución'}</label>
+                                <input className="corp-input" value={dig.companyCountry || ''} onChange={e => updateDignitary(i, 'companyCountry', e.target.value)} placeholder="EJ: Panamá" />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label>
+                                <input className="corp-input" value={dig.registrationNumber || ''} onChange={e => updateDignitary(i, 'registrationNumber', e.target.value)} placeholder="EJ: 15548923" />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'RUC / Tax ID' : 'Número de RUC / Tax Number'}</label>
+                                <input className="corp-input" value={dig.companyTaxId || dig.passport || ''} onChange={e => { updateDignitary(i, 'companyTaxId', e.target.value); updateDignitary(i, 'passport', e.target.value); }} placeholder="EJ: 15548923-2-2021" />
+                            </div>
+                            <div className="corp-field full-width">
+                                <label>{lang === 'en' ? 'Registered Address' : 'Dirección Registrada de la Empresa'}</label>
+                                <input className="corp-input" value={dig.address || ''} onChange={e => updateDignitary(i, 'address', e.target.value)} placeholder="EJ: Calle 50, Edificio Global, Piso 12" />
+                            </div>
+                            <div className="corp-field full-width" style={{ marginTop: 6, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f766e', textTransform: 'uppercase' }}>
+                                    👤 {lang === 'en' ? 'Legal Representative Information' : 'Información del Representante Legal de la Empresa'}
+                                </span>
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Legal Representative Full Name' : 'Nombre Completo del Representante Legal'}</label>
+                                <input className="corp-input" value={dig.legalRepName || ''} onChange={e => updateDignitary(i, 'legalRepName', e.target.value)} placeholder="EJ: Juan Pérez" />
+                            </div>
+                            <div className="corp-field">
+                                <label>{lang === 'en' ? 'Legal Representative Passport / ID' : 'Pasaporte / Cédula del Representante Legal'}</label>
+                                <input className="corp-input" value={dig.legalRepPassport || ''} onChange={e => updateDignitary(i, 'legalRepPassport', e.target.value)} placeholder="EJ: E-8-12345" />
+                            </div>
                         </div>
-                        <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-pass-${i}`] = el}>
-                            <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
-                            <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'passport')} value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'passport'); }} onFocus={() => { if (dignitarySuggestions[`${i}-passport`]?.length) setActiveDignitaryKey(`${i}-passport`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'passport')} />
-                            <ArrayFieldError array="dignitaries" index={i} field="passport" />
-                            {activeDignitaryKey === `${i}-passport` && dignitarySuggestions[`${i}-passport`]?.length > 0 && (
-                                <div className="corp-autocomplete-dropdown">
-                                    {dignitarySuggestions[`${i}-passport`].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
-                                            <span className="corp-ac-passport">{p.passport}</span>
-                                            <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                    ) : (
+                        <div className="corp-grid">
+                            <div className="corp-field"><label>{lang === 'en' ? 'Position / Role' : 'Cargo (Presidente, Secretario, Tesorero...)'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'role')} value={dig.role} onChange={e => updateDignitary(i, 'role', e.target.value.toUpperCase())} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'role')} placeholder="EJ: PRESIDENTE" /><ArrayFieldError array="dignitaries" index={i} field="role" /></div>
+                            <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-name-${i}`] = el}>
+                                <label>{lang === 'en' ? 'Full name' : 'Nombre completo'}</label>
+                                <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'fullName')} value={dig.fullName} autoComplete="off" onChange={e => { updateDignitary(i, 'fullName', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'name'); }} onFocus={() => { if (dignitarySuggestions[`${i}-name`]?.length) setActiveDignitaryKey(`${i}-name`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'fullName')} />
+                                <ArrayFieldError array="dignitaries" index={i} field="fullName" />
+                                {activeDignitaryKey === `${i}-name` && dignitarySuggestions[`${i}-name`]?.length > 0 && (
+                                    <div className="corp-autocomplete-dropdown">
+                                        {dignitarySuggestions[`${i}-name`].map((p, j) => (
+                                            <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
+                                                <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                                <span className="corp-ac-detail">{p.passport || ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="corp-field" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`dig-pass-${i}`] = el}>
+                                <label>{lang === 'en' ? 'Passport / ID' : 'Pasaporte / Cédula'}</label>
+                                <input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'passport')} value={dig.passport} autoComplete="off" onChange={e => { updateDignitary(i, 'passport', e.target.value); searchPerson(e.target.value, i, 'dignitary', 'passport'); }} onFocus={() => { if (dignitarySuggestions[`${i}-passport`]?.length) setActiveDignitaryKey(`${i}-passport`); }} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'passport')} />
+                                <ArrayFieldError array="dignitaries" index={i} field="passport" />
+                                {activeDignitaryKey === `${i}-passport` && dignitarySuggestions[`${i}-passport`]?.length > 0 && (
+                                    <div className="corp-autocomplete-dropdown">
+                                        {dignitarySuggestions[`${i}-passport`].map((p, j) => (
+                                            <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectDignitarySuggestion(i, p); }}>
+                                                <span className="corp-ac-passport">{p.passport}</span>
+                                                <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'birthDate')} value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'birthDate')} /><ArrayFieldError array="dignitaries" index={i} field="birthDate" /></div>
+                            <div className="corp-field"><label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'registrationNumber')} value={dig.registrationNumber || ''} onChange={e => updateDignitary(i, 'registrationNumber', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'registrationNumber')} placeholder={lang === 'en' ? 'Reg. number' : 'No. Registro'} /><ArrayFieldError array="dignitaries" index={i} field="registrationNumber" /></div>
                         </div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Date of birth' : 'Fecha de nacimiento'}</label><input type="date" className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'birthDate')} value={dig.birthDate} onChange={e => updateDignitary(i, 'birthDate', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'birthDate')} /><ArrayFieldError array="dignitaries" index={i} field="birthDate" /></div>
-                        {dig.entityType !== "company" && <div className="corp-field"><label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label><input className="corp-input" style={getArrayErrorStyle('dignitaries', i, 'registrationNumber')} value={dig.registrationNumber || ''} onChange={e => updateDignitary(i, 'registrationNumber', e.target.value)} onBlur={() => handleArrayFieldBlur('dignitaries', i, 'registrationNumber')} placeholder={lang === 'en' ? 'Reg. number' : 'No. Registro'} /><ArrayFieldError array="dignitaries" index={i} field="registrationNumber" /></div>}
-                    </div>
+                    )}
                 </div>
             ))}
         </div>
@@ -630,7 +758,14 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
         <div className="corp-step">
             <div className="corp-section-header">
                 <h2 className="corp-section-title"><Award size={18} /> {t('corporacion.steps.shareholders')}</h2>
-                <button onClick={addShareholder} className="corp-btn-add"><Plus size={14} /> {t('corporacion.fields.addShareholder')}</button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => addShareholder('individual')} className="corp-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Shareholder (Individual)' : '+ Añadir Accionista (Persona)'}
+                    </button>
+                    <button onClick={() => addShareholder('company')} className="corp-btn-add" style={{ background: '#0284c7' }}>
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Shareholder (Company)' : '+ Añadir Accionista (Empresa)'}
+                    </button>
+                </div>
             </div>
             <div className="corp-hint-box">
                 <Info size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -645,6 +780,22 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                 <div key={s._id || i} className="corp-card">
                     <div className="corp-card-label">{lang === 'en' ? 'SHAREHOLDER' : 'ACCIONISTA'} #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
+                    
+                    {/* Toggle Selector Tipo: Persona vs Empresa */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
+                            {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: s.entityType !== 'company' ? 700 : 400, color: s.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
+                            <input type="radio" name={`entityType-sh-${i}`} checked={s.entityType !== 'company'} onChange={() => updateShareholder(i, 'entityType', 'individual')} />
+                            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: s.entityType === 'company' ? 700 : 400, color: s.entityType === 'company' ? '#0f766e' : '#64748b' }}>
+                            <input type="radio" name={`entityType-sh-${i}`} checked={s.entityType === 'company'} onChange={() => updateShareholder(i, 'entityType', 'company')} />
+                            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
+                        </label>
+                    </div>
+
                     <PersonSelector
                         people={registeredPeople}
                         onSelectPerson={(person) => handleAutoFillShareholder(i, person)}
@@ -653,23 +804,64 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-grid">
                         <div className="corp-field"><label>{lang === 'en' ? 'Share Certificate Number' : 'No. de Certificado'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'certificate')} value={s.certificate} onChange={e => updateShareholder(i, 'certificate', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'certificate')} /><ArrayFieldError array="shareholders" index={i} field="certificate" /></div>
                         <div className="corp-field"><label>{lang === 'en' ? "Share's value (USD)" : 'Valor por acción (USD)'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'value')} value={s.value} onChange={e => updateShareholder(i, 'value', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'value')} /><ArrayFieldError array="shareholders" index={i} field="value" /></div>
-                        <div className="corp-field"><label>{lang === 'en' ? 'Number of shares' : 'Cantidad de acciones'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'shares')} value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'shares')} /><ArrayFieldError array="shareholders" index={i} field="shares" /></div>
-                        <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`sh-${i}`] = el}>
-                            <label>{s.entityType === "company" ? (lang === "en" ? "Company Name" : "Razón Social") : (lang === "en" ? "Shareholder (Full name)" : "Accionista (Nombre completo)")}</label>
-                            <input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'name')} value={s.name} autoComplete="off" onChange={e => { updateShareholder(i, 'name', e.target.value); searchShareholder(e.target.value, i); }} onFocus={() => { if (shareholderSuggestions[i]?.length) setActiveShareholderIdx(i); }} onBlur={() => handleArrayFieldBlur('shareholders', i, 'name')} />
-                            <ArrayFieldError array="shareholders" index={i} field="name" />
-                            {activeShareholderIdx === i && shareholderSuggestions[i]?.length > 0 && (
-                                <div className="corp-autocomplete-dropdown">
-                                    {shareholderSuggestions[i].map((p, j) => (
-                                        <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectShareholderSuggestion(i, p); }}>
-                                            <span className="corp-ac-name">{p.name}</span>
-                                            {p.address && <span className="corp-ac-detail">{p.address}</span>}
-                                        </div>
-                                    ))}
+                        <div className="corp-field"><label>{lang === 'en' ? 'Number of Shares' : 'No. de Acciones'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'shares')} value={s.shares} onChange={e => updateShareholder(i, 'shares', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'shares')} /><ArrayFieldError array="shareholders" index={i} field="shares" /></div>
+                        
+                        {s.entityType === 'company' ? (
+                            <>
+                                <div className="corp-field full-width">
+                                    <label>{lang === 'en' ? 'Company Name / Business Name' : 'Nombre de la Empresa / Razón Social'}</label>
+                                    <input className="corp-input" value={s.companyName || s.name || ''} onChange={e => { updateShareholder(i, 'companyName', e.target.value); updateShareholder(i, 'name', e.target.value); }} placeholder="EJ: CASITA S.A." />
                                 </div>
-                            )}
-                        </div>
-                        <div className="corp-field full-width"><label>{s.entityType === "company" ? (lang === "en" ? "Registered Address" : "Dirección Registrada") : (lang === "en" ? "Residential Address" : "Dirección residencial")}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'address')} value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'address')} /><ArrayFieldError array="shareholders" index={i} field="address" /></div>
+                                <div className="corp-field">
+                                    <label>{lang === 'en' ? 'Country of Registration' : 'País de Registro / Constitución'}</label>
+                                    <input className="corp-input" value={s.companyCountry || ''} onChange={e => updateShareholder(i, 'companyCountry', e.target.value)} placeholder="EJ: Panamá" />
+                                </div>
+                                <div className="corp-field">
+                                    <label>{lang === 'en' ? 'Registration Number' : 'Número de Registro'}</label>
+                                    <input className="corp-input" value={s.registrationNumber || ''} onChange={e => updateShareholder(i, 'registrationNumber', e.target.value)} placeholder="EJ: 15548923" />
+                                </div>
+                                <div className="corp-field">
+                                    <label>{lang === 'en' ? 'RUC / Tax ID' : 'Número de RUC / Tax Number'}</label>
+                                    <input className="corp-input" value={s.companyTaxId || ''} onChange={e => updateShareholder(i, 'companyTaxId', e.target.value)} placeholder="EJ: 15548923-2-2021" />
+                                </div>
+                                <div className="corp-field full-width">
+                                    <label>{lang === 'en' ? 'Registered Address' : 'Dirección Registrada de la Empresa'}</label>
+                                    <input className="corp-input" value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} placeholder="EJ: Calle 50, Edificio Global, Piso 12" />
+                                </div>
+                                <div className="corp-field full-width" style={{ marginTop: 6, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f766e', textTransform: 'uppercase' }}>
+                                        👤 {lang === 'en' ? 'Legal Representative Information' : 'Información del Representante Legal de la Empresa'}
+                                    </span>
+                                </div>
+                                <div className="corp-field">
+                                    <label>{lang === 'en' ? 'Legal Representative Full Name' : 'Nombre Completo del Representante Legal'}</label>
+                                    <input className="corp-input" value={s.legalRepName || ''} onChange={e => updateShareholder(i, 'legalRepName', e.target.value)} placeholder="EJ: Juan Pérez" />
+                                </div>
+                                <div className="corp-field">
+                                    <label>{lang === 'en' ? 'Legal Representative Passport / ID' : 'Pasaporte / Cédula del Representante Legal'}</label>
+                                    <input className="corp-input" value={s.legalRepPassport || ''} onChange={e => updateShareholder(i, 'legalRepPassport', e.target.value)} placeholder="EJ: E-8-12345" />
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="corp-field full-width" style={{ position: 'relative' }} ref={el => autocompleteRefs.current[`sh-name-${i}`] = el}>
+                                    <label>{lang === 'en' ? 'Shareholder (Full name)' : 'Accionista (Nombre completo)'}</label>
+                                    <input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'name')} value={s.name} autoComplete="off" onChange={e => { updateShareholder(i, 'name', e.target.value); searchPerson(e.target.value, i, 'shareholder', 'name'); }} onFocus={() => { if (shareholderSuggestions[`${i}-name`]?.length) setActiveShareholderIdx(i); }} onBlur={() => handleArrayFieldBlur('shareholders', i, 'name')} />
+                                    <ArrayFieldError array="shareholders" index={i} field="name" />
+                                    {activeShareholderIdx === i && shareholderSuggestions[`${i}-name`]?.length > 0 && (
+                                        <div className="corp-autocomplete-dropdown">
+                                            {shareholderSuggestions[`${i}-name`].map((p, j) => (
+                                                <div key={j} className="corp-autocomplete-item" onMouseDown={(e) => { e.preventDefault(); selectShareholderSuggestion(i, p); }}>
+                                                    <span className="corp-ac-name">{p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ') || ''}</span>
+                                                    <span className="corp-ac-detail">{p.passport || ''}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="corp-field full-width"><label>{lang === 'en' ? 'Residential Address' : 'Dirección residencial'}</label><input className="corp-input" style={getArrayErrorStyle('shareholders', i, 'address')} value={s.address} onChange={e => updateShareholder(i, 'address', e.target.value)} onBlur={() => handleArrayFieldBlur('shareholders', i, 'address')} /><ArrayFieldError array="shareholders" index={i} field="address" /></div>
+                            </>
+                        )}
                     </div>
                 </div>
             ))}

@@ -53,8 +53,19 @@ function getFounderRecord(data) {
 
 function personFieldRows(person, t, { includeEmpty = false } = {}) {
   const p = normalizeFundacionPerson(person);
+  const isCompany = p.entityType === 'company';
   const fullName = p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ');
-  const rows = [
+  const rows = isCompany ? [
+    ['Company Name / Razón Social', fullName],
+    ['Country of Registration / País de Constitución', p.registrationCountry || p.country],
+    ['Reg. Number / No. Registro', p.registrationNumber],
+    ['RUC / Tax ID', p.companyTaxId || p.passport],
+    ['Address / Dirección Registrada', p.address],
+    ['Legal Rep / Rep. Legal', p.legalRepName],
+    ['Legal Rep ID / Doc. Rep.', p.legalRepPassport],
+    ['Email', p.email],
+    ['Phone / Teléfono', p.phone],
+  ] : [
     [t.poaFullName || 'Full name / Nombre completo', fullName],
     [t.poaBirthDate, fmtDate(p.birthDate)],
     [t.poaMaritalStatus, p.maritalStatus],
