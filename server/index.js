@@ -75,14 +75,70 @@ function sendSpaIndex(req, res, next) {
     });
 }
 
-// --- Health + SPA: always available (Fly/Railway probes, JWT/DB not required) ---
-app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
+// --- Middlewares globales ---
+const cors = require('cors');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
+app.use(compression());
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(new Error('Origen no permitido por CORS'));
+    },
+    credentials: true,
+}));
+app.use(express.json({ limit: '2mb' }));
+
+app.use((err, req, res, next) => {
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ msg: 'JSON malformado en el cuerpo de la solicitud.' });
+    }
+    next(err);
+});
+
+const botProtection = require('./middleware/botProtection');
+app.use(botProtection);
+
+// --- Health check endpoints ---
+app.get('/health', (req, res) => res.send('OK - Servidor Vivo'));
 app.get('/ready', (req, res) => {
     if (apiReady) return res.send('ready');
     return res.status(503).send('bootstrap en progreso');
 });
 
+// --- API Routes Registration ---
+const authLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: { msg: 'Demasiadas solicitudes desde esta IP. Por favor intente más tarde por razones de seguridad.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/verify', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/manager', require('./routes/manager'));
+app.use('/api/forms', require('./routes/formRoutes'));
+app.use('/api/documents', require('./routes/documents'));
+app.use('/api/signed-docs', require('./routes/signedDocuments'));
+if (process.env.NODE_ENV !== 'production') {
+    app.get('/api/debug-pdf', (req, res) => {
+        const logPath = path.join(__dirname, 'last_pdf_error.txt');
+        if (fs.existsSync(logPath)) {
+            res.sendFile(logPath);
+        } else {
+            res.status(404).send('No logs available yet.');
+        }
+    });
+}
+app.use('/templates', express.static(path.join(__dirname, '../templates')));
+
+// --- SPA Fallback & Static Files ---
 app.get('/', (req, res, next) => {
     if (hasFrontend) return sendSpaIndex(req, res, next);
     return res.send('OK - NexusDoc DMS');
@@ -97,86 +153,17 @@ app.use((req, res, next) => {
     return sendSpaIndex(req, res, next);
 });
 
-function verifySharedLib() {
-    const libSpec = path.join(__dirname, '../lib/kyciMasterSpec.cjs');
-    if (!fs.existsSync(libSpec)) {
-        console.warn(`⚠️ MODULE_NOT_FOUND: falta ${libSpec} — API KYCI degradada, /health y SPA activos.`);
-        return false;
+app.use((req, res) => {
+    if (isApiPath(req.path)) {
+        return res.status(404).json({ msg: 'API Route not found' });
     }
-    return true;
-}
-
-function registerApiRoutes() {
-    if (routesRegistered) return;
-    routesRegistered = true;
-
-    const cors = require('cors');
-    const compression = require('compression');
-    const rateLimit = require('express-rate-limit');
-
-    app.use(compression());
-
-    app.use(cors({
-        origin: (origin, callback) => {
-            if (!origin) return callback(null, true);
-            if (CORS_ORIGINS.includes(origin)) return callback(null, true);
-            return callback(new Error('Origen no permitido por CORS'));
-        },
-        credentials: true,
-    }));
-    app.use(express.json({ limit: '2mb' }));
-
-    app.use((err, req, res, next) => {
-        if (err.type === 'entity.parse.failed') {
-            return res.status(400).json({ msg: 'JSON malformado en el cuerpo de la solicitud.' });
-        }
-        next(err);
-    });
-
-    const botProtection = require('./middleware/botProtection');
-    app.use(botProtection);
-
-    const authLimiter = rateLimit({
-        windowMs: 60 * 1000,
-        max: 10,
-        message: { msg: 'Demasiadas solicitudes desde esta IP. Por favor intente más tarde por razones de seguridad.' },
-        standardHeaders: true,
-        legacyHeaders: false,
-    });
-    app.use('/api/auth/login', authLimiter);
-    app.use('/api/auth/verify', authLimiter);
-    app.use('/api/auth/forgot-password', authLimiter);
-
-    app.use('/api/auth', require('./routes/auth'));
-    app.use('/api/admin', require('./routes/admin'));
-    app.use('/api/manager', require('./routes/manager'));
-    app.use('/api/forms', require('./routes/formRoutes'));
-    app.use('/api/documents', require('./routes/documents'));
-    app.use('/api/signed-docs', require('./routes/signedDocuments'));
-    if (process.env.NODE_ENV !== 'production') {
-        app.get('/api/debug-pdf', (req, res) => {
-            const logPath = path.join(__dirname, 'last_pdf_error.txt');
-            if (fs.existsSync(logPath)) {
-                res.sendFile(logPath);
-            } else {
-                res.status(404).send('No logs available yet.');
-            }
+    if (shouldServeSpa(req)) {
+        return sendSpaIndex(req, res, () => {
+            res.status(404).send('Not found');
         });
     }
-    app.use('/templates', express.static(path.join(__dirname, '../templates')));
-
-    app.use((req, res) => {
-        if (isApiPath(req.path)) {
-            return res.status(404).json({ msg: 'API Route not found' });
-        }
-        if (shouldServeSpa(req)) {
-            return sendSpaIndex(req, res, () => {
-                res.status(404).send('Not found');
-            });
-        }
-        res.status(404).send('Not found');
-    });
-}
+    res.status(404).send('Not found');
+});
 
 function registerErrorHandler() {
     app.use((err, req, res, next) => {
@@ -402,14 +389,6 @@ if (!JWT_SECRET) {
 }
 
 setImmediate(async () => {
-    try {
-        verifySharedLib();
-        registerApiRoutes();
-        console.log('✅ Rutas API registradas.');
-    } catch (err) {
-        console.error('⚠️ Falló carga de rutas/API (modo degradado, /health y SPA siguen activos):', err.message);
-    }
-
     registerErrorHandler();
 
     if (process.env.NODE_ENV === 'production') {

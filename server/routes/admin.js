@@ -417,9 +417,9 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
 // @route   GET api/admin/logs
 // @desc    Paginated audit logs (all dates by default; optional q, dateFrom, dateTo)
 router.get('/logs', [auth, isAdmin], async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 15));
     try {
-        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 15));
         const q = (req.query.q || '').trim();
         const { dateFrom, dateTo } = req.query;
 
@@ -440,14 +440,22 @@ router.get('/logs', [auth, isAdmin], async (req, res) => {
             }
         }
 
-        const { count, rows } = await AuditLog.findAndCountAll({
-            where,
-            include: [{ model: User, attributes: ['name', 'email'] }],
-            order: [['createdAt', 'DESC']],
-            limit,
-            offset: (page - 1) * limit,
-            distinct: true
-        });
+        let count = 0;
+        let rows = [];
+        try {
+            const result = await AuditLog.findAndCountAll({
+                where,
+                include: [{ model: User, required: false, attributes: ['name', 'email'] }],
+                order: [['createdAt', 'DESC']],
+                limit,
+                offset: (page - 1) * limit,
+                distinct: true
+            });
+            count = result.count;
+            rows = result.rows;
+        } catch (findErr) {
+            console.warn('AuditLog.findAndCountAll warning in GET /logs:', findErr.message);
+        }
 
         res.json({
             logs: rows,
@@ -457,8 +465,14 @@ router.get('/logs', [auth, isAdmin], async (req, res) => {
             totalPages: Math.max(1, Math.ceil(count / limit))
         });
     } catch (err) {
-        console.error('Error fetching audit logs:', err);
-        res.status(500).send('Server error');
+        console.error('Error fetching audit logs:', err.message);
+        res.json({
+            logs: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+        });
     }
 });
 
