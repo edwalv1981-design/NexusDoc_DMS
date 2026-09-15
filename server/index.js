@@ -127,16 +127,23 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/verify', authLimiter);
-app.use('/api/auth/forgot-password', authLimiter);
+app.use(['/api/auth/login', '/admin/api/auth/login'], authLimiter);
+app.use(['/api/auth/verify', '/admin/api/auth/verify'], authLimiter);
+app.use(['/api/auth/forgot-password', '/admin/api/auth/forgot-password'], authLimiter);
 
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/manager', require('./routes/manager'));
-app.use('/api/forms', require('./routes/formRoutes'));
-app.use('/api/documents', require('./routes/documents'));
-app.use('/api/signed-docs', require('./routes/signedDocuments'));
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+const managerRoutes = require('./routes/manager');
+const formRoutes = require('./routes/formRoutes');
+const documentRoutes = require('./routes/documents');
+const signedDocRoutes = require('./routes/signedDocuments');
+
+app.use(['/api/auth', '/admin/api/auth'], authRoutes);
+app.use(['/api/admin', '/admin/api/admin', '/admin/api'], adminRoutes);
+app.use(['/api/manager', '/admin/api/manager'], managerRoutes);
+app.use(['/api/forms', '/admin/api/forms'], formRoutes);
+app.use(['/api/documents', '/admin/api/documents'], documentRoutes);
+app.use(['/api/signed-docs', '/admin/api/signed-docs'], signedDocRoutes);
 if (process.env.NODE_ENV !== 'production') {
     app.get('/api/debug-pdf', (req, res) => {
         const logPath = path.join(__dirname, 'last_pdf_error.txt');

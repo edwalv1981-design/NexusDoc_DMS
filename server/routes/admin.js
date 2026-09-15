@@ -46,7 +46,7 @@ router.get('/people/search', [auth, isAdmin], async (req, res) => {
 
 // @route   GET api/admin/users
 // @desc    Get all users for management
-router.get('/users', [auth, isAdmin], async (req, res) => {
+router.get(['/users', '/users/'], [auth, isAdmin], async (req, res) => {
     try {
         let users = [];
         try {
@@ -416,7 +416,7 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
 
 // @route   GET api/admin/logs
 // @desc    Paginated audit logs (all dates by default; optional q, dateFrom, dateTo)
-router.get('/logs', [auth, isAdmin], async (req, res) => {
+router.get(['/logs', '/logs/'], [auth, isAdmin], async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 15));
     try {
@@ -565,7 +565,7 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 
 // @route   GET api/admin/templates
 // @desc    Plantillas en DB + disponibilidad (disco / HTML)
-router.get('/templates', [auth, isAdmin], async (req, res) => {
+router.get(['/templates', '/templates/'], [auth, isAdmin], async (req, res) => {
     try {
         let normalized = [];
         try {
