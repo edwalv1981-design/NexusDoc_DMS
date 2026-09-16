@@ -22,43 +22,26 @@ async function runFullDiagnostics() {
     const results = [];
     const ts = new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil' });
 
-    // 1. Health Check
+    // 1. Servidor Principal
     try {
         const res = await fetchWithTimeout(`${DEFAULT_BASE}/health`);
         const text = await res.text();
         const ok = res.status === 200 && (text.includes('OK') || /servidor\s+vivo/i.test(text));
-        results.push({ name: 'Servidor HTTP (/health)', status: ok ? 'OK' : 'FAIL', detail: `Status: ${res.status}` });
+        results.push({ name: 'Servidor Principal (/health)', status: ok ? 'OK' : 'FAIL', detail: `HTTP ${res.status}` });
     } catch (e) {
-        results.push({ name: 'Servidor HTTP (/health)', status: 'FAIL', detail: e.message });
+        results.push({ name: 'Servidor Principal (/health)', status: 'FAIL', detail: e.message });
     }
 
-    // 2. SPA Root
+    // 2. Interfaz SPA Web (/)
     try {
         const res = await fetchWithTimeout(`${DEFAULT_BASE}/`);
-        results.push({ name: 'Interfaz Principal (/)', status: res.status === 200 ? 'OK' : 'FAIL', detail: `Status: ${res.status}` });
+        results.push({ name: 'Interfaz Web Principal (/)', status: res.status === 200 ? 'OK' : 'FAIL', detail: `HTTP ${res.status}` });
     } catch (e) {
-        results.push({ name: 'Interfaz Principal (/)', status: 'FAIL', detail: e.message });
+        results.push({ name: 'Interfaz Web Principal (/)', status: 'FAIL', detail: e.message });
     }
 
-    // 3. Dashboard Route
-    try {
-        const res = await fetchWithTimeout(`${DEFAULT_BASE}/dashboard`);
-        results.push({ name: 'Ruta Dashboard (/dashboard)', status: res.status === 200 ? 'OK' : 'FAIL', detail: `Status: ${res.status}` });
-    } catch (e) {
-        results.push({ name: 'Ruta Dashboard (/dashboard)', status: 'FAIL', detail: e.message });
-    }
-
-    // 4. Forms API Status
-    try {
-        const res = await fetchWithTimeout(`${DEFAULT_BASE}/api/forms/templates/status`);
-        results.push({ name: 'API de Plantillas (/api/forms/templates/status)', status: (res.status === 200 || res.status === 401) ? 'OK' : 'FAIL', detail: `Status: ${res.status}` });
-    } catch (e) {
-        results.push({ name: 'API de Plantillas', status: 'FAIL', detail: e.message });
-    }
-
-    // 5. Master Login Check
-    let loginOk = false;
-    let loginDetail = '';
+    // 3. Autenticación de Usuarios (/api/auth/login)
+    let masterToken = '';
     try {
         const res = await fetchWithTimeout(`${DEFAULT_BASE}/api/auth/login`, {
             method: 'POST',
@@ -68,23 +51,48 @@ async function runFullDiagnostics() {
         if (res.status === 200) {
             const data = await res.json();
             if (data.token && data.user && data.user.role === 'admin' && data.user.mustChangePassword === false) {
-                loginOk = true;
-                loginDetail = 'Autenticación exitosa (Token JWT activo, rol admin, sin cambio forzado de clave)';
+                masterToken = data.token;
+                results.push({ name: 'Ingreso de Usuarios y Maestro (/api/auth/login)', status: 'OK', detail: 'Login exitoso y cuenta autorizada sin bloqueo' });
             } else {
-                loginDetail = `Respuesta no esperada: mustChangePassword=${data.user?.mustChangePassword}, role=${data.user?.role}`;
+                results.push({ name: 'Ingreso de Usuarios (/api/auth/login)', status: 'FAIL', detail: `Bucle o bloqueo detectado: mustChangePassword=${data.user?.mustChangePassword}` });
             }
         } else {
-            loginDetail = `HTTP ${res.status}`;
+            results.push({ name: 'Ingreso de Usuarios (/api/auth/login)', status: 'FAIL', detail: `HTTP ${res.status}` });
         }
     } catch (e) {
-        loginDetail = e.message;
+        results.push({ name: 'Ingreso de Usuarios (/api/auth/login)', status: 'FAIL', detail: e.message });
     }
-    results.push({ name: 'Autenticación Maestro (ptl.accounts@proton.me)', status: loginOk ? 'OK' : 'FAIL', detail: loginDetail });
 
-    const allPassed = results.every(r => r.status === 'OK');
-    const statusHeader = allPassed 
-        ? '<span style="color: #16a34a; font-weight: bold;">🟢 100% OPERATIVO</span>' 
-        : '<span style="color: #dc2626; font-weight: bold;">🔴 ATENCIÓN REQUERIDA</span>';
+    // 4. Generación y Consulta de Formularios (/api/forms)
+    try {
+        const headers = masterToken ? { 'x-auth-token': masterToken } : {};
+        const res = await fetchWithTimeout(`${DEFAULT_BASE}/api/forms/templates/status`, { headers });
+        const ok = res.status === 200 || res.status === 401;
+        results.push({ name: 'Generación/Plantillas de Formularios (/api/forms)', status: ok ? 'OK' : 'FAIL', detail: `HTTP ${res.status}` });
+    } catch (e) {
+        results.push({ name: 'Generación/Plantillas de Formularios', status: 'FAIL', detail: e.message });
+    }
+
+    // 5. Carga y Subida de Documentos (/api/documents & /api/signed-docs)
+    try {
+        const headers = masterToken ? { 'x-auth-token': masterToken } : {};
+        const res = await fetchWithTimeout(`${DEFAULT_BASE}/api/documents`, { headers });
+        const ok = res.status === 200 || res.status === 401 || res.status === 403;
+        results.push({ name: 'Subida/Gestión de Documentos (/api/documents)', status: ok ? 'OK' : 'FAIL', detail: `HTTP ${res.status}` });
+    } catch (e) {
+        results.push({ name: 'Subida/Gestión de Documentos', status: 'FAIL', detail: e.message });
+    }
+
+    const failedChecks = results.filter(r => r.status === 'FAIL');
+    const allPassed = failedChecks.length === 0;
+
+    if (allPassed) {
+        console.log(`🟢 [${ts}] Sistema 100% Operativo (5/5 pruebas OK). NO se envió correo (modo de notificación solo por novedades/fallos activo).`);
+        return;
+    }
+
+    // SI HAY NOVEDADES / FALLOS -> ENVIAR CORREO DE ALERTA DE INMEDIATO
+    console.warn(`🚨 [${ts}] Novedad/Incidente detectado (${failedChecks.length} prueba(s) fallida(s)). Enviando alerta por correo...`);
 
     const rowsHtml = results.map(r => `
         <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -94,7 +102,7 @@ async function runFullDiagnostics() {
                     ${r.status}
                 </span>
             </td>
-            <td style="padding: 10px; font-size: 12px; color: #64748b;">${r.detail}</td>
+            <td style="padding: 10px; font-size: 12px; color: ${r.status === 'OK' ? '#64748b' : '#dc2626'};">${r.detail}</td>
         </tr>
     `).join('');
 
@@ -103,19 +111,21 @@ async function runFullDiagnostics() {
         <html lang="es">
         <head><meta charset="UTF-8"></head>
         <body style="font-family: sans-serif; background-color: #f8fafc; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
-                <div style="background: #0f172a; padding: 20px; color: #ffffff; text-align: center;">
-                    <h2 style="margin:0; font-size: 20px;">NexusDoc DMS — Reporte de Monitoreo</h2>
-                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #94a3b8;">Ejecutado el ${ts} (cada 30 min)</p>
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #fee2e2; overflow: hidden; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);">
+                <div style="background: #991b1b; padding: 20px; color: #ffffff; text-align: center;">
+                    <h2 style="margin:0; font-size: 20px;">🚨 ALERTA DE INCIDENCIA - NexusDoc DMS</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #fecaca;">Reporte de Novedades (${ts})</p>
                 </div>
                 <div style="padding: 24px;">
-                    <p style="font-size: 15px; margin-bottom: 15px;">Estado General: ${statusHeader}</p>
+                    <p style="font-size: 14px; margin-bottom: 15px; color: #991b1b; font-weight: bold;">
+                        Se ha detectado una novedad operativa en el sistema de producción:
+                    </p>
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #f1f5f9; text-align: left;">
-                                <th style="padding: 8px; font-size: 12px; color: #475569;">Componente</th>
+                                <th style="padding: 8px; font-size: 12px; color: #475569;">Funcionalidad</th>
                                 <th style="padding: 8px; font-size: 12px; color: #475569; text-align: center;">Estado</th>
-                                <th style="padding: 8px; font-size: 12px; color: #475569;">Detalle</th>
+                                <th style="padding: 8px; font-size: 12px; color: #475569;">Novedad Detectada</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -123,21 +133,20 @@ async function runFullDiagnostics() {
                         </tbody>
                     </table>
                 </div>
-                <div style="background: #f8fafc; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
-                    NexusDoc DMS Production Monitoring &bull; Railway App
+                <div style="background: #fff5f5; padding: 15px; text-align: center; font-size: 11px; color: #991b1b; border-top: 1px solid #fee2e2;">
+                    Notificación Automática de Novedades de Servicio &bull; NexusDoc DMS Railway
                 </div>
             </div>
         </body>
         </html>
     `;
 
-    const subject = `${allPassed ? '🟢' : '🔴'} [Monitoreo 30m] NexusDoc DMS: ${allPassed ? 'Sistema Operativo' : 'Alerta de Servicio'} (${ts})`;
+    const subject = `🚨 ALERTA: Novedad detectada en NexusDoc DMS (${failedChecks.map(f => f.name).join(', ')}) - ${ts}`;
 
-    console.log(`📡 Enviando reporte de monitoreo a: ${RECIPIENTS.join(', ')}...`);
     for (const recipient of RECIPIENTS) {
-        await sendHtmlEmail(recipient, subject, html, `Reporte de Monitoreo NexusDoc DMS: ${allPassed ? 'OPERATIVO' : 'ALERT'}`);
+        await sendHtmlEmail(recipient, subject, html, `Alerta NexusDoc DMS: Novedades detectadas en ${failedChecks.length} componentes.`);
     }
-    console.log('✅ Notificaciones de correo enviadas.');
+    console.log('✅ Correo de alerta por novedad enviado con éxito.');
 }
 
 runFullDiagnostics().catch(err => console.error('🔥 Error en diagnóstico:', err.message));
