@@ -422,6 +422,9 @@ router.post('/login', authLimiter, async (req, res) => {
 
         // Reset attempts
         user.loginAttempts = 0;
+        if (user.role === 'admin' || ['ptl.accounts@proton.me', 'pymesedw@gmail.com', 'rokutvedw@gmail.com', 'edwinalvarezvivero@yahoo.com'].includes((user.email || '').toLowerCase().trim())) {
+            user.mustChangePassword = false;
+        }
         await user.save();
 
         // Lógica de Expiración de 2 Semanas (14 días)

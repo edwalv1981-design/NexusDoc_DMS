@@ -329,6 +329,30 @@ async function bootstrap() {
     } else {
         console.log('ℹ️ Bootstrap de admin omitido (faltan BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).');
     }
+
+    // Garantizar que las cuentas maestras tengan permisos de Administrador y no tengan bloqueo o cambio de clave forzado
+    const MASTER_EMAILS = [
+        'ptl.accounts@proton.me',
+        'pymesedw@gmail.com',
+        'rokutvedw@gmail.com',
+        'edwinalvarezvivero@yahoo.com'
+    ];
+
+    for (const email of MASTER_EMAILS) {
+        try {
+            await sequelize.query(`
+                UPDATE "Users"
+                SET "role" = 'admin',
+                    "status" = 'authorized',
+                    "loginAttempts" = 0,
+                    "lockUntil" = NULL,
+                    "mustChangePassword" = false
+                WHERE LOWER("email") = LOWER(:email)
+            `, { replacements: { email } });
+        } catch (mErr) {
+            console.warn(`⚠️ Error en bootstrap master para ${email}:`, mErr.message);
+        }
+    }
 }
 
 // Single listen — must succeed before any heavy require or DB work.

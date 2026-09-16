@@ -27,8 +27,9 @@ const Login = () => {
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password, website_hp });
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      if (res.data.user.mustChangePassword) return navigate('/reset-password', { replace: true });
+      if (res.data.user.mustChangePassword && res.data.user.role !== 'admin') {
+        return navigate('/reset-password', { replace: true });
+      }
       res.data.user.role === 'admin' ? navigate('/admin', { replace: true }) : navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || t('login.errorGeneric'));

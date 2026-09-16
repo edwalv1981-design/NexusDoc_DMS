@@ -44,7 +44,7 @@ module.exports = async function (req, res, next) {
       return res.status(401).json({ msg: 'Tu sesión ha sido cerrada porque se inició sesión en otro dispositivo.' });
     }
 
-    if (user.mustChangePassword && !pathAllowsMustChange(req)) {
+    if (user.mustChangePassword && !isDbAdmin && !pathAllowsMustChange(req)) {
       return res.status(403).json({
         msg: 'Debe cambiar su contraseña temporal antes de continuar.',
         mustChangePassword: true,
