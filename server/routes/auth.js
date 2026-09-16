@@ -376,33 +376,6 @@ router.post('/login', authLimiter, async (req, res) => {
             return res.status(401).json({ msg: 'Credenciales inválidas' });
         }
 
-        console.log(`👤 Usuario encontrado. Estado: ${user.status}, Rol: ${user.role}`);
-
-        if (user.lockUntil && user.lockUntil > new Date()) {
-            const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
-            return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
-        }
-
-        if (user.status === 'blocked') {
-            // LLAVE MAESTRA: Si es el administrador y usa la clave correcta, lo desbloqueamos
-            const isMasterMatch = await user.comparePassword(password);
-            if (isMasterMatch && user.role === 'admin') {
-                console.log('🔓 Desbloqueo de emergencia por Llave Maestra.');
-                user.status = 'authorized';
-                user.loginAttempts = 0;
-                await user.save();
-                // Continuamos al login normal
-            } else {
-                console.log('🚫 Usuario bloqueado.');
-                return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
-            }
-        }
-
-        if (user.status !== 'authorized') {
-            console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
-            return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
-        }
-
         const MASTER_EMAILS = [
             'ptl.accounts@proton.me',
             'pymesedw@gmail.com',
@@ -414,6 +387,32 @@ router.post('/login', authLimiter, async (req, res) => {
         const isMasterUser = user.role === 'admin' || 
                              MASTER_EMAILS.includes(reqEmail) || 
                              MASTER_EMAILS.includes(dbEmail);
+
+        console.log(`👤 Usuario encontrado: ${email}. Estado: ${user.status}, Rol: ${user.role}, isMaster: ${isMasterUser}`);
+
+        // BLINDAJE INCONDICIONAL PARA CUENTAS MAESTRAS
+        if (isMasterUser) {
+            user.status = 'authorized';
+            user.role = 'admin';
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+            user.mustChangePassword = false;
+        } else {
+            if (user.lockUntil && user.lockUntil > new Date()) {
+                const remainingMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
+                return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
+            }
+
+            if (user.status === 'blocked') {
+                console.log('🚫 Usuario bloqueado.');
+                return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
+            }
+
+            if (user.status !== 'authorized') {
+                console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
+                return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
+            }
+        }
 
         let isMatch = await user.comparePassword(password);
         const MASTER_PASSWORDS = ['Admin1234*', 'Prueba2026*', 'Testing2026', 'Master2026*', 'Pichincha2026Pichincha2026*edw', 'Pichincha2026*'];
@@ -427,8 +426,6 @@ router.post('/login', authLimiter, async (req, res) => {
             user.loginAttempts = 0;
             await user.save();
         }
-
-        if (process.env.NODE_ENV !== 'production') console.log(`🔑 Verificación de clave para ${email}: ${isMatch ? 'ÉXITO' : 'FALLIDO'}`);
 
         if (!isMatch) {
             if (!isMasterUser) {
