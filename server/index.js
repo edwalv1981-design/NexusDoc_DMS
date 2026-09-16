@@ -304,6 +304,7 @@ async function bootstrap() {
     await ensurePeopleTable(sequelize);
 
     const { User } = require('./models');
+    const { Op } = require('sequelize');
 
     const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
@@ -340,6 +341,20 @@ async function bootstrap() {
 
     for (const email of MASTER_EMAILS) {
         try {
+            await User.update({
+                role: 'admin',
+                status: 'authorized',
+                loginAttempts: 0,
+                lockUntil: null,
+                mustChangePassword: false
+            }, {
+                where: { email: { [Op.iLike]: email } }
+            });
+        } catch (mErr) {
+            console.warn(`⚠️ Error en bootstrap User.update para ${email}:`, mErr.message);
+        }
+
+        try {
             await sequelize.query(`
                 UPDATE "Users"
                 SET "role" = 'admin',
@@ -348,9 +363,19 @@ async function bootstrap() {
                     "lockUntil" = NULL,
                     "mustChangePassword" = false
                 WHERE LOWER("email") = LOWER(:email)
-            `, { replacements: { email } });
-        } catch (mErr) {
-            console.warn(`⚠️ Error en bootstrap master para ${email}:`, mErr.message);
+            `, { replacements: { email } }).catch(() => {});
+
+            await sequelize.query(`
+                UPDATE "users"
+                SET "role" = 'admin',
+                    "status" = 'authorized',
+                    "login_attempts" = 0,
+                    "lock_until" = NULL,
+                    "must_change_password" = false
+                WHERE LOWER("email") = LOWER(:email)
+            `, { replacements: { email } }).catch(() => {});
+        } catch (mSqlErr) {
+            // Ignorado si la consulta raw falla
         }
     }
 }

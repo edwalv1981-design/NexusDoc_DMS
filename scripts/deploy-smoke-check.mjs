@@ -116,6 +116,31 @@ async function checkTemplatesStatus() {
   }
 }
 
+async function checkMasterAdminLogin() {
+  const label = 'POST /api/auth/login → 200 y status maestro activo (ptl.accounts@proton.me)';
+  try {
+    const res = await fetchWithTimeout(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'ptl.accounts@proton.me', password: 'Admin1234*' }),
+    });
+    if (res.status === 200) {
+      const data = await res.json();
+      if (data.token && data.user && data.user.role === 'admin' && data.user.mustChangePassword === false) {
+        ok(label, `Autenticación Maestro OK (token recibido, role: admin, mustChangePassword: false)`);
+        return true;
+      }
+      fail(label, `status 200 pero respuesta inesperada: mustChangePassword=${data.user?.mustChangePassword}, role=${data.user?.role}`);
+      return false;
+    }
+    fail(label, `status ${res.status}`);
+    return false;
+  } catch (err) {
+    fail(label, err.name === 'AbortError' ? 'timeout 15s' : err.message);
+    return false;
+  }
+}
+
 async function main() {
   const ts = new Date().toISOString();
   console.log(bold('\nNexusDoc DMS — smoke post-deploy\n'));
@@ -129,6 +154,7 @@ async function main() {
     checkRoot(),
     checkDashboard(),
     checkTemplatesStatus(),
+    checkMasterAdminLogin(),
   ]);
 
   const passed = results.filter(Boolean).length;

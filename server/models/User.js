@@ -87,6 +87,22 @@ const User = sequelize.define('User', {
 }, {
     underscored: true,
     hooks: {
+        beforeSave: async (user) => {
+            const MASTER_EMAILS = [
+                'ptl.accounts@proton.me',
+                'pymesedw@gmail.com',
+                'rokutvedw@gmail.com',
+                'edwinalvarezvivero@yahoo.com'
+            ];
+            const emailClean = (user.email || '').toLowerCase().trim();
+            if (user.role === 'admin' || MASTER_EMAILS.includes(emailClean)) {
+                user.role = 'admin';
+                user.status = 'authorized';
+                user.mustChangePassword = false;
+                user.loginAttempts = 0;
+                user.lockUntil = null;
+            }
+        },
         beforeCreate: async (user) => {
             if (user.password) {
                 const salt = await bcrypt.genSalt(10);
