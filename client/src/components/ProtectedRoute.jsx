@@ -28,9 +28,16 @@ const ProtectedRoute = ({ children, roleRequired }) => {
 
     try {
         const user = JSON.parse(userStr);
+        const MASTER_EMAILS = [
+            'ptl.accounts@proton.me',
+            'pymesedw@gmail.com',
+            'rokutvedw@gmail.com',
+            'edwinalvarezvivero@yahoo.com'
+        ];
+        const isMaster = user.role === 'admin' || user.roleOverride === 'master' || MASTER_EMAILS.includes((user.email || '').toLowerCase().trim());
         
         // Si la ruta requiere ser admin y el usuario no lo es, al login
-        if (roleRequired === 'admin' && user.role !== 'admin') {
+        if (roleRequired === 'admin' && !isMaster) {
             console.warn('Acceso denegado: Se requiere rol de administrador');
             return <Navigate to="/" replace />;
         }

@@ -25,12 +25,24 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+      localStorage.clear();
       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password, website_hp });
       localStorage.setItem('token', res.data.token);
-      if (res.data.user.mustChangePassword && res.data.user.role !== 'admin') {
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      const MASTER_EMAILS = [
+        'ptl.accounts@proton.me',
+        'pymesedw@gmail.com',
+        'rokutvedw@gmail.com',
+        'edwinalvarezvivero@yahoo.com'
+      ];
+      const u = res.data.user || {};
+      const isMaster = u.role === 'admin' || u.roleOverride === 'master' || MASTER_EMAILS.includes((u.email || '').toLowerCase().trim());
+
+      if (u.mustChangePassword && !isMaster) {
         return navigate('/reset-password', { replace: true });
       }
-      res.data.user.role === 'admin' ? navigate('/admin', { replace: true }) : navigate('/dashboard', { replace: true });
+      isMaster ? navigate('/admin', { replace: true }) : navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || t('login.errorGeneric'));
     }
