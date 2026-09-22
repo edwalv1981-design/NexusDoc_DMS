@@ -11,6 +11,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const DEFAULT_CORS_ORIGINS = [
     'https://nexusdocdms-production.up.railway.app',
     'https://nexusdoc-dms.fly.dev',
+    'https://nexusdoc.online',
+    'http://nexusdoc.online',
+    'https://www.nexusdoc.online',
+    'http://www.nexusdoc.online',
     'https://nexusdoc.it.com',
     'http://nexusdoc.it.com',
     'https://www.nexusdoc.it.com',
