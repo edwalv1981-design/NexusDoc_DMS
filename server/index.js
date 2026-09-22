@@ -113,6 +113,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 
+// Redirección forzada a HTTPS en producción
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+});
+
 // Reescritura defensiva para navegadores con código desfasado (/admin/api/* -> /api/*)
 app.use((req, res, next) => {
     if (req.path.startsWith('/admin/api/')) {
