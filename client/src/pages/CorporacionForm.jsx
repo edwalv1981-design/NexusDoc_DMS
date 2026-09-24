@@ -514,15 +514,17 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     
-                    {/* Toggle Selector Tipo: Empresa / Persona Jurídica */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
+                    {/* Enunciado Tipo de Integrante */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
                         </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
-                            <input type="radio" name={`entityType-dir-${i}`} checked={true} readOnly />
-                            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
-                        </label>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', background: 'white', padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            {d.entityType === 'company'
+                                ? (lang === 'en' ? '🏢 COMPANY / LEGAL ENTITY' : '🏢 EMPRESA / PERSONA JURÍDICA')
+                                : (lang === 'en' ? '👤 NATURAL PERSON' : '👤 PERSONA NATURAL')
+                            }
+                        </span>
                     </div>
 
                     <PersonSelector
@@ -650,15 +652,17 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">{lang === 'en' ? 'DIGNITARY' : 'DIGNATARIO'} #{i+1}</div>
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     
-                    {/* Toggle Selector Tipo: Empresa / Persona Jurídica */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
+                    {/* Enunciado Tipo de Integrante */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
                         </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
-                            <input type="radio" name={`entityType-dig-${i}`} checked={true} readOnly />
-                            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
-                        </label>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', background: 'white', padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            {dig.entityType === 'company'
+                                ? (lang === 'en' ? '🏢 COMPANY / LEGAL ENTITY' : '🏢 EMPRESA / PERSONA JURÍDICA')
+                                : (lang === 'en' ? '👤 NATURAL PERSON' : '👤 PERSONA NATURAL')
+                            }
+                        </span>
                     </div>
 
                     <PersonSelector
@@ -773,15 +777,17 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">{lang === 'en' ? 'SHAREHOLDER' : 'ACCIONISTA'} #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     
-                    {/* Toggle Selector Tipo: Empresa / Persona Jurídica */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
+                    {/* Enunciado Tipo de Integrante */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
                         </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
-                            <input type="radio" name={`entityType-sh-${i}`} checked={true} readOnly />
-                            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
-                        </label>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', background: 'white', padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            {s.entityType === 'company'
+                                ? (lang === 'en' ? '🏢 COMPANY / LEGAL ENTITY' : '🏢 EMPRESA / PERSONA JURÍDICA')
+                                : (lang === 'en' ? '👤 NATURAL PERSON' : '👤 PERSONA NATURAL')
+                            }
+                        </span>
                     </div>
 
                     <PersonSelector

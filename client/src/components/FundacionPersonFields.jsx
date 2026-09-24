@@ -57,16 +57,18 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
 
   return (
     <div className="expert-grid person-fields-grid" ref={dropdownRef}>
-      {/* Selector Tipo Integrante: Empresa / Persona Jurídica */}
+      {/* Enunciado Tipo de Integrante */}
       <div className="expert-field full-width" style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', marginBottom: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
           </span>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
-            <input type="radio" name={`entityType-${person?._id || Math.random()}`} checked={true} readOnly />
-            🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
-          </label>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', background: 'white', padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            {person?.entityType === 'company'
+              ? (lang === 'en' ? '🏢 COMPANY / LEGAL ENTITY' : '🏢 EMPRESA / PERSONA JURÍDICA')
+              : (lang === 'en' ? '👤 NATURAL PERSON' : '👤 PERSONA NATURAL')
+            }
+          </span>
         </div>
       </div>
 
