@@ -1103,7 +1103,8 @@ async function performAdminSearch(queryParams) {
             const cleanName = rawName.replace(/[^a-zA-Z0-9\s]/g, '');
             searchConds.push(
                 sequelize.where(sequelize.cast(sequelize.col('FormData.data'), 'text'), { [Op.iLike]: `%${rawName}%` }),
-                sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${rawName}%` })
+                sequelize.where(sequelize.col('User.name'), { [Op.iLike]: `%${rawName}%` }),
+                sequelize.where(sequelize.col('User.email'), { [Op.iLike]: `%${rawName}%` })
             );
             if (cleanName && cleanName !== rawName) {
                 searchConds.push(
@@ -1244,64 +1245,98 @@ async function performAdminSearch(queryParams) {
     // Search Matching User Documents and Signed Documents
     let matchingDocuments = [];
     try {
-        const userDocConds = [];
-        const term = (nombres || ruc || codigoUnico || usuario || empresa || '').trim();
+        const matchedUserIds = new Set();
+        const allTerms = [nombres, ruc, codigoUnico, usuario, empresa].filter(Boolean).map(t => t.trim());
 
-        if (term) {
-            userDocConds.push(
-                { '$User.name$': { [Op.iLike]: `%${term}%` } },
-                { '$User.email$': { [Op.iLike]: `%${term}%` } },
-                { '$User.uniqueCode$': { [Op.iLike]: `%${term}%` } },
-                { '$User.idNumber$': { [Op.iLike]: `%${term}%` } },
-                { filename: { [Op.iLike]: `%${term}%` } }
-            );
+        if (allTerms.length > 0) {
+            const userConds = [];
+            for (const term of allTerms) {
+                userConds.push(
+                    { name: { [Op.iLike]: `%${term}%` } },
+                    { email: { [Op.iLike]: `%${term}%` } },
+                    { uniqueCode: { [Op.iLike]: `%${term}%` } }
+                );
+                const tokens = term.split(/\s+/).filter(tok => tok.length > 2);
+                for (const tok of tokens) {
+                    userConds.push(
+                        { name: { [Op.iLike]: `%${tok}%` } },
+                        { email: { [Op.iLike]: `%${tok}%` } }
+                    );
+                }
+            }
+
+            try {
+                const matchedUsers = await User.findAll({
+                    where: { [Op.or]: userConds },
+                    attributes: ['id', 'name', 'email', 'uniqueCode']
+                });
+                matchedUsers.forEach(u => matchedUserIds.add(u.id));
+            } catch (uErr) {
+                console.warn('Error querying matching users in performAdminSearch:', uErr.message);
+            }
         }
 
-        const userIdsFromForms = Array.from(new Set(results.map(r => r.userId).filter(Boolean)));
-        if (userIdsFromForms.length > 0) {
-            userDocConds.push({ userId: { [Op.in]: userIdsFromForms } });
+        // Add userIds from matched forms
+        results.forEach(r => {
+            if (r.userId) matchedUserIds.add(r.userId);
+        });
+
+        const docConds = [];
+        if (matchedUserIds.size > 0) {
+            docConds.push({ userId: { [Op.in]: Array.from(matchedUserIds) } });
+        }
+        for (const term of allTerms) {
+            docConds.push({ filename: { [Op.iLike]: `%${term}%` } });
         }
 
-        const whereClause = userDocConds.length > 0 ? { [Op.or]: userDocConds } : {};
+        if (docConds.length > 0) {
+            const whereClause = { [Op.or]: docConds };
 
-        const userDocs = await UserDocument.findAll({
-            where: whereClause,
-            include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
-            order: [['createdAt', 'DESC']],
-            limit: 100
-        }).catch(() => []);
+            const userDocs = await UserDocument.findAll({
+                where: whereClause,
+                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+                order: [['createdAt', 'DESC']],
+                limit: 100
+            }).catch(e => {
+                console.error('Error fetching UserDocuments in admin search:', e.message);
+                return [];
+            });
 
-        const signedDocs = await SignedDocument.findAll({
-            where: whereClause,
-            include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
-            order: [['createdAt', 'DESC']],
-            limit: 100
-        }).catch(() => []);
+            const signedDocs = await SignedDocument.findAll({
+                where: whereClause,
+                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+                order: [['createdAt', 'DESC']],
+                limit: 100
+            }).catch(e => {
+                console.error('Error fetching SignedDocuments in admin search:', e.message);
+                return [];
+            });
 
-        matchingDocuments = [
-            ...userDocs.map(d => ({
-                id: d.id,
-                filename: d.filename,
-                type: 'UserDocument',
-                signatureStatus: 'Adjunto Usuario',
-                userId: d.userId,
-                userName: d.User?.name || 'Usuario Registrado',
-                userEmail: d.User?.email || '',
-                userCode: d.User?.uniqueCode || '',
-                createdAt: d.createdAt
-            })),
-            ...signedDocs.map(d => ({
-                id: d.id,
-                filename: d.filename,
-                type: 'SignedDocument',
-                signatureStatus: d.signatureStatus || 'Firmado',
-                userId: d.userId,
-                userName: d.User?.name || 'Usuario Registrado',
-                userEmail: d.User?.email || '',
-                userCode: d.User?.uniqueCode || '',
-                createdAt: d.createdAt
-            }))
-        ];
+            matchingDocuments = [
+                ...userDocs.map(d => ({
+                    id: d.id,
+                    filename: d.filename,
+                    type: 'UserDocument',
+                    signatureStatus: 'Adjunto Usuario',
+                    userId: d.userId,
+                    userName: d.User?.name || 'Usuario Registrado',
+                    userEmail: d.User?.email || '',
+                    userCode: d.User?.uniqueCode || '',
+                    createdAt: d.createdAt
+                })),
+                ...signedDocs.map(d => ({
+                    id: d.id,
+                    filename: d.filename,
+                    type: 'SignedDocument',
+                    signatureStatus: d.signatureStatus || 'Firmado',
+                    userId: d.userId,
+                    userName: d.User?.name || 'Usuario Registrado',
+                    userEmail: d.User?.email || '',
+                    userCode: d.User?.uniqueCode || '',
+                    createdAt: d.createdAt
+                }))
+            ];
+        }
     } catch (docErr) {
         console.error('Error fetching matching docs:', docErr.message);
     }
