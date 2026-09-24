@@ -21,8 +21,8 @@ function App() {
   const timerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
 
-  // 1. LÓGICA DE INACTIVIDAD (1 MINUTO DE INACTIVIDAD COMPLETA DE LA PANTALLA)
-  const TIMEOUT_DURATION = 60000; // 1 minuto (60,000 ms)
+  // 1. LÓGICA DE INACTIVIDAD (15 MINUTOS DE INACTIVIDAD COMPLETA DE LA PANTALLA)
+  const TIMEOUT_DURATION = 15 * 60 * 1000; // 15 minutos (900,000 ms)
 
   const lastUpdateRef = useRef(0);
 
