@@ -5,7 +5,8 @@ const { Op } = require('sequelize');
 const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocument, DocumentTemplate, TemplateFieldSchema } = require('../models');
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
-const { sendTemporaryPassword, sendNewUserNotificationToAdmins } = require('../services/emailService');
+const emailService = require('../services/emailService');
+const { sendTemporaryPassword, sendNewUserNotificationToAdmins } = emailService;
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -1642,14 +1643,13 @@ router.put('/user-documents/:id', [auth, isAdmin], async (req, res) => {
 // @desc    Prueba de diagnóstico para envío de correos electrónicos a administradores (Admin Only)
 router.get('/test-email-send', [auth, isAdmin], async (req, res) => {
     try {
-        const { sendHtmlEmail } = require('../services/emailService');
         const targetEmail = req.query.to || 'pymesedw@gmail.com';
         global.lastSmtpError = null;
 
         const html = `<div style="font-family:sans-serif; padding:20px;"><h2>NexusDoc DMS - Diagnóstico de Correo</h2><p>Este es un correo de prueba enviado a <strong>${targetEmail}</strong> desde la plataforma en Railway.</p><p>Fecha/Hora: ${new Date().toISOString()}</p></div>`;
         const text = `NexusDoc DMS - Diagnóstico de Correo enviado a ${targetEmail} en ${new Date().toISOString()}`;
 
-        const success = await sendHtmlEmail(targetEmail, `🧪 Correo de Prueba NexusDoc DMS - ${Date.now()}`, html, text);
+        const success = await emailService.sendHtmlEmail(targetEmail, `🧪 Correo de Prueba NexusDoc DMS - ${Date.now()}`, html, text);
 
         res.json({
             success,
