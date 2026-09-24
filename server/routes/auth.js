@@ -670,15 +670,14 @@ const verifyForgotPasswordHandler = async (req, res) => {
             return res.status(400).json({ msg: `Código incorrecto o expirado. Le quedan ${3 - user.codeAttempts} intentos.` });
         }
 
-        // PROTOCOLO DE RECUPERACIÓN TOTAL (Unblock + Reset)
-        console.log('🔓 Iniciando Desbloqueo y Reseteo por validación de identidad...');
-        const tempPassword = crypto.randomBytes(5).toString('hex').toUpperCase() + '@RECOV';
+        // PROTOCOLO DE RECUPERACIÓN / CAMBIO DE CLAVE POR EL USUARIO
+        console.log('🔓 Código de 6 dígitos validado correctamente. Habilitando actualización de clave...');
         
-        user.password = tempPassword;
         user.securityCode = null; // Limpiar código usado
+        user.codeExpiresAt = null;
         user.status = 'authorized'; // DESBLOQUEO AUTOMÁTICO
         user.loginAttempts = 0; // RESET DE CONTADOR
-        user.mustChangePassword = true;
+        user.mustChangePassword = true; // Habilitar formulario de asignación de clave propia en /reset-password
 
         // Sign a JWT token so user can proceed directly to /reset-password
         const payload = { user: { id: user.id, role: user.role } };
@@ -686,9 +685,6 @@ const verifyForgotPasswordHandler = async (req, res) => {
         user.activeToken = token;
         
         await user.save();
-
-        // Enviar la clave temporal por correo como respaldo
-        await sendTemporaryPassword(cleanEmail, tempPassword);
         
         res.json({ 
             msg: 'Código validado exitosamente. Ahora puedes establecer tu nueva contraseña.',
