@@ -1638,4 +1638,34 @@ router.put('/user-documents/:id', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   GET api/admin/test-email-send
+// @desc    Prueba de diagnóstico para envío de correos electrónicos a administradores (Admin Only)
+router.get('/test-email-send', [auth, isAdmin], async (req, res) => {
+    try {
+        const { sendHtmlEmail } = require('../services/emailService');
+        const targetEmail = req.query.to || 'pymesedw@gmail.com';
+        global.lastSmtpError = null;
+
+        const html = `<div style="font-family:sans-serif; padding:20px;"><h2>NexusDoc DMS - Diagnóstico de Correo</h2><p>Este es un correo de prueba enviado a <strong>${targetEmail}</strong> desde la plataforma en Railway.</p><p>Fecha/Hora: ${new Date().toISOString()}</p></div>`;
+        const text = `NexusDoc DMS - Diagnóstico de Correo enviado a ${targetEmail} en ${new Date().toISOString()}`;
+
+        const success = await sendHtmlEmail(targetEmail, `🧪 Correo de Prueba NexusDoc DMS - ${Date.now()}`, html, text);
+
+        res.json({
+            success,
+            targetEmail,
+            lastError: global.lastSmtpError || null,
+            config: {
+                hasResendKey: Boolean(process.env.RESEND_API_KEY),
+                senderEmail: process.env.SENDER_EMAIL || 'soporte@nexusdoc.it.com',
+                smtpHost: process.env.SMTP_HOST || 'Ninguno',
+                smtpUser: process.env.SMTP_USER || 'Ninguno'
+            }
+        });
+    } catch (err) {
+        console.error('Error testing email send:', err);
+        res.status(500).json({ msg: 'Error al probar envío de correo: ' + err.message });
+    }
+});
+
 module.exports = router;
