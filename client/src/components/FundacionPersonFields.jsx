@@ -57,18 +57,14 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
 
   return (
     <div className="expert-grid person-fields-grid" ref={dropdownRef}>
-      {/* Selector Tipo Integrante: Persona Natural vs Empresa */}
+      {/* Selector Tipo Integrante: Empresa / Persona Jurídica */}
       <div className="expert-field full-width" style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', marginBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
           </span>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: person?.entityType !== 'company' ? 700 : 400, color: person?.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
-            <input type="radio" name={`entityType-${person?._id || Math.random()}`} checked={person?.entityType !== 'company'} onChange={() => handleFieldChange('entityType', 'individual')} />
-            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: person?.entityType === 'company' ? 700 : 400, color: person?.entityType === 'company' ? '#0f766e' : '#64748b' }}>
-            <input type="radio" name={`entityType-${person?._id || Math.random()}`} checked={person?.entityType === 'company'} onChange={() => handleFieldChange('entityType', 'company')} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
+            <input type="radio" name={`entityType-${person?._id || Math.random()}`} checked={true} readOnly />
             🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
           </label>
         </div>

@@ -514,17 +514,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">DIRECTOR #{i+1}</div>
                     {formData.directors.length > 3 && <button onClick={() => removeDirector(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     
-                    {/* Toggle Selector Tipo: Persona vs Empresa */}
+                    {/* Toggle Selector Tipo: Empresa / Persona Jurídica */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
                         </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: d.entityType !== 'company' ? 700 : 400, color: d.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
-                            <input type="radio" name={`entityType-dir-${i}`} checked={d.entityType !== 'company'} onChange={() => updateDirector(i, 'entityType', 'individual')} />
-                            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: d.entityType === 'company' ? 700 : 400, color: d.entityType === 'company' ? '#0f766e' : '#64748b' }}>
-                            <input type="radio" name={`entityType-dir-${i}`} checked={d.entityType === 'company'} onChange={() => updateDirector(i, 'entityType', 'company')} />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
+                            <input type="radio" name={`entityType-dir-${i}`} checked={true} readOnly />
                             🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
                         </label>
                     </div>
@@ -654,17 +650,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">{lang === 'en' ? 'DIGNITARY' : 'DIGNATARIO'} #{i+1}</div>
                     {formData.dignitaries.length > 3 && <button onClick={() => removeDignitary(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     
-                    {/* Toggle Selector Tipo: Persona vs Empresa */}
+                    {/* Toggle Selector Tipo: Empresa / Persona Jurídica */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
                         </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: dig.entityType !== 'company' ? 700 : 400, color: dig.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
-                            <input type="radio" name={`entityType-dig-${i}`} checked={dig.entityType !== 'company'} onChange={() => updateDignitary(i, 'entityType', 'individual')} />
-                            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: dig.entityType === 'company' ? 700 : 400, color: dig.entityType === 'company' ? '#0f766e' : '#64748b' }}>
-                            <input type="radio" name={`entityType-dig-${i}`} checked={dig.entityType === 'company'} onChange={() => updateDignitary(i, 'entityType', 'company')} />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
+                            <input type="radio" name={`entityType-dig-${i}`} checked={true} readOnly />
                             🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
                         </label>
                     </div>
@@ -781,17 +773,13 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <div className="corp-card-label">{lang === 'en' ? 'SHAREHOLDER' : 'ACCIONISTA'} #{i+1}</div>
                     {formData.shareholders.length > 1 && <button onClick={() => removeShareholder(i)} className="corp-btn-remove"><Trash2 size={14} /></button>}
                     
-                    {/* Toggle Selector Tipo: Persona vs Empresa */}
+                    {/* Toggle Selector Tipo: Empresa / Persona Jurídica */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                             {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
                         </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: s.entityType !== 'company' ? 700 : 400, color: s.entityType !== 'company' ? '#0f766e' : '#64748b' }}>
-                            <input type="radio" name={`entityType-sh-${i}`} checked={s.entityType !== 'company'} onChange={() => updateShareholder(i, 'entityType', 'individual')} />
-                            👤 {lang === 'en' ? 'Individual (Person)' : 'Persona Natural'}
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: s.entityType === 'company' ? 700 : 400, color: s.entityType === 'company' ? '#0f766e' : '#64748b' }}>
-                            <input type="radio" name={`entityType-sh-${i}`} checked={s.entityType === 'company'} onChange={() => updateShareholder(i, 'entityType', 'company')} />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
+                            <input type="radio" name={`entityType-sh-${i}`} checked={true} readOnly />
                             🏢 {lang === 'en' ? 'Company / Corporation' : 'Empresa / Persona Jurídica'}
                         </label>
                     </div>
