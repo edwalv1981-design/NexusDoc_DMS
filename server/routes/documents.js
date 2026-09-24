@@ -126,23 +126,50 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+function isStaff(req) {
+    return (
+        req.user?.role === 'admin' ||
+        req.user?.role === 'manager' ||
+        req.dbUser?.role === 'admin' ||
+        req.dbUser?.role === 'manager' ||
+        req.user?.roleOverride === 'manager' ||
+        req.dbUser?.roleOverride === 'manager' ||
+        req.user?.roleOverride === 'master' ||
+        req.dbUser?.roleOverride === 'master'
+    );
+}
+
 // @route   GET api/documents/download/:id
-// @desc    Download a document (Strict Security: only owner can download)
+// @desc    Download/view a document (Owner or Staff)
 router.get('/download/:id', auth, async (req, res) => {
     try {
-        const doc = await UserDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        let doc;
+        if (isStaff(req)) {
+            doc = await UserDocument.findByPk(req.params.id);
+        } else {
+            doc = await UserDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        }
         
-        if (!doc) {
+        if (!doc || !doc.fileData) {
             return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
         }
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'USER_DOC_DOWNLOAD',
-            description: `El usuario descargó su documento adjunto: ${doc.filename}`
-        });
+            description: `El usuario (${req.user.email}) descargó/visualizó documento adjunto: ${doc.filename}`
+        }).catch(e => console.error('AuditLog error:', e.message));
 
-        res.setHeader('Content-Type', 'application/pdf');
+        const path = require('path');
+        const ext = path.extname(doc.filename || '').toLowerCase();
+        let contentType = 'application/pdf';
+        if (ext === '.png') contentType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+        else if (ext === '.doc') contentType = 'application/msword';
+        else if (ext === '.docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="${sanitizeDownloadFilename(doc.filename)}"`);
         res.send(doc.fileData);
     } catch (err) {
         console.error(err);

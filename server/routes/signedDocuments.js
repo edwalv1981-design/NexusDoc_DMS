@@ -164,19 +164,43 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+function isStaff(req) {
+    return (
+        req.user?.role === 'admin' ||
+        req.user?.role === 'manager' ||
+        req.dbUser?.role === 'admin' ||
+        req.dbUser?.role === 'manager' ||
+        req.user?.roleOverride === 'manager' ||
+        req.dbUser?.roleOverride === 'manager' ||
+        req.user?.roleOverride === 'master' ||
+        req.dbUser?.roleOverride === 'master'
+    );
+}
+
 // @route   GET api/signed-docs/download/:id
 router.get('/download/:id', auth, async (req, res) => {
     try {
-        const doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
-        if (!doc) return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
+        let doc;
+        if (isStaff(req)) {
+            doc = await SignedDocument.findByPk(req.params.id);
+        } else {
+            doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        }
+        if (!doc || !doc.fileData) return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'SIGNED_DOC_DOWNLOAD',
-            description: `Usuario descargó su documento firmado: ${doc.filename}`
-        });
+            description: `El usuario (${req.user.email}) descargó/visualizó documento firmado: ${doc.filename}`
+        }).catch(e => console.error('AuditLog error:', e.message));
 
-        res.setHeader('Content-Type', 'application/pdf');
+        const ext = path.extname(doc.filename || '').toLowerCase();
+        let contentType = 'application/pdf';
+        if (ext === '.png') contentType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="${sanitizeDownloadFilename(doc.filename)}"`);
         res.send(doc.fileData);
     } catch (err) {
         console.error(err);

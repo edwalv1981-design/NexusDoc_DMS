@@ -18,7 +18,16 @@ const { resolvePythonCommand } = require('../utils/pythonCommand');
 const personCatalogService = require('../services/personCatalogService');
 
 function isDbAdmin(req) {
-    return req.dbUser?.role === 'admin' || req.user?.role === 'admin';
+    return (
+        req.dbUser?.role === 'admin' ||
+        req.user?.role === 'admin' ||
+        req.user?.role === 'manager' ||
+        req.dbUser?.role === 'manager' ||
+        req.user?.roleOverride === 'manager' ||
+        req.dbUser?.roleOverride === 'manager' ||
+        req.user?.roleOverride === 'master' ||
+        req.dbUser?.roleOverride === 'master'
+    );
 }
 
 async function queryFormDataScoped(sequelize, sqlTemplate, replacements, req) {
@@ -492,8 +501,8 @@ router.get('/my-forms', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
-        res.json({ id: form.id, type: form.formType, data: form.data });
+        if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
+        res.json({ id: form.id, type: form.formType, data: form.data, userId: form.userId });
     } catch (e) { res.status(500).json({ msg: 'Error' }); }
 });
 
@@ -501,7 +510,7 @@ router.get('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
+        if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
         await form.destroy();
         
         AuditLog.create({
@@ -518,7 +527,7 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/generate-pdf/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
+        if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
 
         const userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
 

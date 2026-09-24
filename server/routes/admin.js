@@ -30,12 +30,20 @@ const {
     normalizeTemplateRow,
 } = require('../utils/pgTable');
 
-// Middleware to verify Admin role (JWT o rol real en BD)
+// Middleware to verify Admin or Manager role (JWT o rol real en BD)
 const isAdmin = (req, res, next) => {
-    const jwtAdmin = req.user?.role === 'admin';
-    const dbAdmin = req.dbUser?.role === 'admin';
-    if (!jwtAdmin && !dbAdmin) {
-        return res.status(403).json({ msg: 'Acceso denegado: Se requiere rol de administrador' });
+    const isStaff = (
+        req.user?.role === 'admin' ||
+        req.user?.role === 'manager' ||
+        req.dbUser?.role === 'admin' ||
+        req.dbUser?.role === 'manager' ||
+        req.user?.roleOverride === 'manager' ||
+        req.dbUser?.roleOverride === 'manager' ||
+        req.user?.roleOverride === 'master' ||
+        req.dbUser?.roleOverride === 'master'
+    );
+    if (!isStaff) {
+        return res.status(403).json({ msg: 'Acceso denegado: Se requiere rol de administrador o gerente' });
     }
     next();
 };
@@ -1231,46 +1239,46 @@ async function performAdminSearch(queryParams) {
             userDocConds.push({ userId: { [Op.in]: userIdsFromForms } });
         }
 
-        if (userDocConds.length > 0) {
-            const userDocs = await UserDocument.findAll({
-                where: { [Op.or]: userDocConds },
-                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
-                order: [['createdAt', 'DESC']],
-                limit: 100
-            }).catch(() => []);
+        const whereClause = userDocConds.length > 0 ? { [Op.or]: userDocConds } : {};
 
-            const signedDocs = await SignedDocument.findAll({
-                where: { [Op.or]: userDocConds },
-                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
-                order: [['createdAt', 'DESC']],
-                limit: 100
-            }).catch(() => []);
+        const userDocs = await UserDocument.findAll({
+            where: whereClause,
+            include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+            order: [['createdAt', 'DESC']],
+            limit: 100
+        }).catch(() => []);
 
-            matchingDocuments = [
-                ...userDocs.map(d => ({
-                    id: d.id,
-                    filename: d.filename,
-                    type: 'UserDocument',
-                    signatureStatus: 'Adjunto Usuario',
-                    userId: d.userId,
-                    userName: d.User?.name || 'Usuario Registrado',
-                    userEmail: d.User?.email || '',
-                    userCode: d.User?.uniqueCode || '',
-                    createdAt: d.createdAt
-                })),
-                ...signedDocs.map(d => ({
-                    id: d.id,
-                    filename: d.filename,
-                    type: 'SignedDocument',
-                    signatureStatus: d.signatureStatus || 'Firmado',
-                    userId: d.userId,
-                    userName: d.User?.name || 'Usuario Registrado',
-                    userEmail: d.User?.email || '',
-                    userCode: d.User?.uniqueCode || '',
-                    createdAt: d.createdAt
-                }))
-            ];
-        }
+        const signedDocs = await SignedDocument.findAll({
+            where: whereClause,
+            include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+            order: [['createdAt', 'DESC']],
+            limit: 100
+        }).catch(() => []);
+
+        matchingDocuments = [
+            ...userDocs.map(d => ({
+                id: d.id,
+                filename: d.filename,
+                type: 'UserDocument',
+                signatureStatus: 'Adjunto Usuario',
+                userId: d.userId,
+                userName: d.User?.name || 'Usuario Registrado',
+                userEmail: d.User?.email || '',
+                userCode: d.User?.uniqueCode || '',
+                createdAt: d.createdAt
+            })),
+            ...signedDocs.map(d => ({
+                id: d.id,
+                filename: d.filename,
+                type: 'SignedDocument',
+                signatureStatus: d.signatureStatus || 'Firmado',
+                userId: d.userId,
+                userName: d.User?.name || 'Usuario Registrado',
+                userEmail: d.User?.email || '',
+                userCode: d.User?.uniqueCode || '',
+                createdAt: d.createdAt
+            }))
+        ];
     } catch (docErr) {
         console.error('Error fetching matching docs:', docErr.message);
     }
@@ -1322,6 +1330,75 @@ router.get('/export-search-pdf', [auth, isAdmin], async (req, res) => {
     } catch (err) {
         console.error('Error exporting search PDF:', err);
         res.status(500).json({ msg: 'Error al exportar reporte PDF: ' + err.message });
+    }
+});
+
+// @route   GET api/admin/user-forms/:userId
+// @desc    Obtiene los trámites y documentos asociados a un usuario específico (Admin/Manager Only)
+router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.userId, {
+            attributes: ['id', 'name', 'email', 'uniqueCode', 'idNumber', 'nationality', 'role', 'status']
+        });
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+
+        const forms = await FormData.findAll({
+            where: { userId: user.id },
+            order: [['updatedAt', 'DESC']]
+        });
+
+        const userDocs = await UserDocument.findAll({
+            where: { userId: user.id },
+            order: [['updatedAt', 'DESC']]
+        });
+
+        const signedDocs = await SignedDocument.findAll({
+            where: { userId: user.id },
+            order: [['updatedAt', 'DESC']]
+        });
+
+        const documents = [
+            ...userDocs.map(d => ({
+                id: d.id,
+                filename: d.filename,
+                type: 'UserDocument',
+                signatureStatus: 'Adjunto Usuario',
+                createdAt: d.createdAt,
+                updatedAt: d.updatedAt
+            })),
+            ...signedDocs.map(d => ({
+                id: d.id,
+                filename: d.filename,
+                type: 'SignedDocument',
+                signatureStatus: d.signatureStatus || 'Firmado',
+                createdAt: d.createdAt,
+                updatedAt: d.updatedAt
+            }))
+        ];
+
+        res.json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                uniqueCode: user.uniqueCode,
+                idNumber: user.idNumber,
+                nationality: user.nationality,
+                role: user.role,
+                status: user.status
+            },
+            forms: forms.map(f => ({
+                id: f.id,
+                formType: f.formType,
+                data: f.data,
+                updatedAt: f.updatedAt,
+                createdAt: f.createdAt
+            })),
+            documents
+        });
+    } catch (err) {
+        console.error('Error fetching user forms and docs:', err);
+        res.status(500).json({ msg: 'Error al recuperar formularios del usuario: ' + err.message });
     }
 });
 

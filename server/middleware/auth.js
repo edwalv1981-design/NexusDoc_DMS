@@ -33,7 +33,7 @@ module.exports = async function (req, res, next) {
       return res.status(401).json({ msg: 'Usuario inexistente' });
     }
 
-    const isDbAdmin = user.role === 'admin';
+    const isDbAdmin = user.role === 'admin' || user.role === 'manager' || req.user?.role === 'admin' || req.user?.role === 'manager';
 
     if (!isDbAdmin && user.status !== 'authorized') {
       return res.status(401).json({ msg: 'Cuenta no autorizada' });

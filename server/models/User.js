@@ -95,8 +95,14 @@ const User = sequelize.define('User', {
                 'edwinalvarezvivero@yahoo.com'
             ];
             const emailClean = (user.email || '').toLowerCase().trim();
-            if (user.role === 'admin' || MASTER_EMAILS.includes(emailClean)) {
+            const isMaster = MASTER_EMAILS.includes(emailClean);
+            if (user.role === 'admin' || isMaster) {
                 user.role = 'admin';
+                user.status = 'authorized';
+                user.mustChangePassword = false;
+                user.loginAttempts = 0;
+                user.lockUntil = null;
+            } else if (user.role === 'manager') {
                 user.status = 'authorized';
                 user.mustChangePassword = false;
                 user.loginAttempts = 0;

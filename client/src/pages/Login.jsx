@@ -37,12 +37,12 @@ const Login = () => {
         'edwinalvarezvivero@yahoo.com'
       ];
       const u = res.data.user || {};
-      const isMaster = u.role === 'admin' || u.roleOverride === 'master' || MASTER_EMAILS.includes((u.email || '').toLowerCase().trim());
+      const isStaff = u.role === 'admin' || u.role === 'manager' || u.roleOverride === 'master' || u.roleOverride === 'manager' || MASTER_EMAILS.includes((u.email || '').toLowerCase().trim());
 
-      if (u.mustChangePassword && !isMaster) {
+      if (u.mustChangePassword && !isStaff) {
         return navigate('/reset-password', { replace: true });
       }
-      isMaster ? navigate('/admin', { replace: true }) : navigate('/dashboard', { replace: true });
+      isStaff ? navigate('/admin', { replace: true }) : navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || t('login.errorGeneric'));
     }

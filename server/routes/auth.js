@@ -235,7 +235,7 @@ router.post('/verify', async (req, res) => {
                 uniqueCode,
                 password: tempPassword,
                 status: 'pending',
-                mustChangePassword: true
+                mustChangePassword: false
             });
         } catch (dbErr) {
             if (dbErr.name === 'SequelizeUniqueConstraintError') {
@@ -565,6 +565,15 @@ router.put('/update-profile', auth, async (req, res) => {
         }
 
         await user.save();
+
+        if (newPassword && newPassword.trim() !== '') {
+            try {
+                await sequelize.query(`UPDATE "Users" SET "mustChangePassword" = false, "must_change_password" = false WHERE id = :id`, { replacements: { id: user.id } }).catch(() => {});
+                await sequelize.query(`UPDATE "users" SET "mustChangePassword" = false, "must_change_password" = false WHERE id = :id`, { replacements: { id: user.id } }).catch(() => {});
+            } catch (sqlErr) {
+                // Ignore
+            }
+        }
 
         await AuditLog.create({
             userId: user.id,
