@@ -6,7 +6,7 @@ const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocum
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
 const emailService = require('../services/emailService');
-const { sendTemporaryPassword, sendNewUserNotificationToAdmins } = emailService;
+const { sendTemporaryPassword, sendNewUserNotificationToAdmins, sendAccountAuthorizedNotice } = emailService;
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -144,6 +144,8 @@ router.put('/users/:id/status', [auth, isAdmin], async (req, res) => {
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
+        const previousStatus = user.status;
+
         // If becoming authorized, just reset attempts and proceed
         if (status === 'authorized') {
             user.loginAttempts = 0; // Limpiar intentos fallidos al activar
@@ -153,6 +155,17 @@ router.put('/users/:id/status', [auth, isAdmin], async (req, res) => {
         user.status = status;
         await user.save();
         console.log(`💾 Estado de usuario ${user.email} actualizado a ${status}`);
+
+        // If status changed to authorized, notify the user by email asynchronously
+        if (status === 'authorized' && previousStatus !== 'authorized') {
+            (async () => {
+                try {
+                    await sendAccountAuthorizedNotice(user);
+                } catch (e) {
+                    console.warn(`⚠️ Error enviando correo de autorización a ${user.email}:`, e.message);
+                }
+            })();
+        }
 
         await AuditLog.create({
             userId: req.user.id,

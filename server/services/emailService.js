@@ -372,10 +372,86 @@ const sendNewUserNotificationToAdmins = async (newUser, adminEmails = []) => {
     return true;
 };
 
+const sendAccountAuthorizedNotice = async (user) => {
+    if (!hasEmailConfig() || !user || !user.email) return false;
+
+    const toEmail = user.email;
+    const name = user.name || 'Usuario';
+    const uniqueCode = user.uniqueCode || 'N/A';
+    const loginUrl = (process.env.APP_URL || 'https://nexusdocdms-production.up.railway.app').replace(/\/$/, '');
+
+    const html = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Cuenta Autorizada - NexusDoc DMS</title>
+        </head>
+        <body style="margin:0; padding:0; background-color:#f8fafc; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f8fafc; padding: 40px 10px;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                            <tr>
+                                <td style="background: linear-gradient(135deg, #0f172a 0%, #0f766e 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+                                    <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">NexusDoc DMS</h1>
+                                    <p style="margin: 6px 0 0 0; font-size: 13px; color: #ccfbf1;">Confirmación de Autorización de Cuenta</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 36px 32px; color: #1e293b;">
+                                    <div style="display:inline-block; background:#dcfce7; color:#15803d; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:14px;">
+                                        ✅ CUENTA AUTORIZADA
+                                    </div>
+                                    <h2 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #0f172a;">¡Tu Cuenta ha sido Autorizada!</h2>
+                                    <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                                        Estimado(a) <strong>${name}</strong>,
+                                    </p>
+                                    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                                        Nos complace informarte que tu cuenta ha sido revisada y <strong>autorizada por el Administrador Maestro</strong>. Ya puedes ingresar al sistema y continuar con la creación y gestión de tus trámites.
+                                    </p>
+                                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 24px;">
+                                        <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase;">Detalles de tu Cuenta:</p>
+                                        <p style="margin: 4px 0; font-size: 13.5px; color: #0f172a;"><strong>Correo:</strong> ${toEmail}</p>
+                                        <p style="margin: 4px 0; font-size: 13.5px; color: #0f172a;"><strong>Código Único:</strong> <span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:4px; font-family:monospace; font-weight:700;">${uniqueCode}</span></p>
+                                    </div>
+                                    <div style="text-align: center; margin: 28px 0 16px 0;">
+                                        <a href="${loginUrl}" target="_blank" style="display: inline-block; background-color: #0f766e; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);">
+                                            Ingresar al Sistema
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="background-color: #f8fafc; border-top: 1px solid #f1f5f9; padding: 20px 32px; text-align: center; font-size: 11.5px; color: #94a3b8;">
+                                    NexusDoc DMS &copy; 2026. Sistema de Gestión Documental de Alta Precisión.
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+    `;
+    const text = `NexusDoc DMS - Cuenta Autorizada\n\nEstimado(a) ${name},\n\nTu cuenta (${toEmail}) ha sido autorizada por el Administrador.\nCódigo Único: ${uniqueCode}\n\nYa puedes ingresar al sistema para continuar con la creación y gestión de tus trámites.\n\nAcceso: ${loginUrl}`;
+
+    try {
+        await sendHtmlEmail(toEmail, `✅ ¡Tu Cuenta ha sido Autorizada! - NexusDoc DMS`, html, text);
+        console.log(`✅ Notificación de autorización enviada exitosamente a ${toEmail}`);
+        return true;
+    } catch (err) {
+        console.error(`❌ Error enviando notificación de autorización a ${toEmail}:`, err.message);
+        return false;
+    }
+};
+
 module.exports = {
     sendHtmlEmail,
     sendSecurityCode,
     sendTemporaryPassword,
     sendAccountLockedNotice,
-    sendNewUserNotificationToAdmins
+    sendNewUserNotificationToAdmins,
+    sendAccountAuthorizedNotice
 };
