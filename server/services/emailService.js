@@ -85,7 +85,8 @@ const sendHtmlEmail = async (toEmail, subject, html, textFallback) => {
                 res.on('data', (chunk) => responseBody += chunk);
                 res.on('end', () => {
                     if (res.statusCode >= 200 && res.statusCode < 300) {
-                        console.log('✅ Correo enviado exitosamente con Resend.');
+                        console.log(`✅ Correo enviado a ${toEmail} con Resend. Res: ${responseBody}`);
+                        global.lastSmtpResult = responseBody;
                         resolve(true);
                     } else {
                         console.error('❌ Error en API de Resend HTTP', res.statusCode, responseBody);

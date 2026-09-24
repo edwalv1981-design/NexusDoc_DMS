@@ -1654,6 +1654,7 @@ router.get('/test-email-send', [auth, isAdmin], async (req, res) => {
         res.json({
             success,
             targetEmail,
+            lastResult: global.lastSmtpResult || null,
             lastError: global.lastSmtpError || null,
             config: {
                 hasResendKey: Boolean(process.env.RESEND_API_KEY),
