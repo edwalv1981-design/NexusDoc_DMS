@@ -281,8 +281,99 @@ const sendAccountLockedNotice = async (toEmail) => {
     return await sendHtmlEmail(toEmail, 'Aviso de Estado de Cuenta - NexusDoc DMS', html, text);
 };
 
+const sendNewUserNotificationToAdmins = async (newUser, adminEmails = []) => {
+    if (!hasEmailConfig() || !adminEmails || adminEmails.length === 0) return false;
+
+    const name = newUser.name || 'Nuevo Usuario';
+    const email = newUser.email || 'N/A';
+    const idNumber = newUser.idNumber || 'No especificada';
+    const uniqueCode = newUser.uniqueCode || 'N/A';
+    const createdAtStr = new Date().toLocaleString('es-ES', { timeZone: 'America/Guayaquil' });
+
+    const html = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Nuevo Usuario Pendiente de Autorización - NexusDoc DMS</title>
+        </head>
+        <body style="margin:0; padding:0; background-color:#f8fafc; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f8fafc; padding: 40px 10px;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                            <tr>
+                                <td style="background: linear-gradient(135deg, #0f172a 0%, #0d9488 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+                                    <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">NexusDoc DMS</h1>
+                                    <p style="margin: 6px 0 0 0; font-size: 13px; color: #ccfbf1;">Notificación de Registro de Usuario</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 36px 32px; color: #1e293b;">
+                                    <div style="display:inline-block; background:#fef3c7; color:#b45309; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:14px;">
+                                        ⚠️ PENDIENTE DE AUTORIZACIÓN
+                                    </div>
+                                    <h2 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #0f172a;">Nuevo Usuario Registrado en el Sistema</h2>
+                                    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                                        Se ha registrado una nueva cuenta de usuario en NexusDoc DMS que requiere su revisión y aprobación en el Panel de Administración:
+                                    </p>
+                                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                                        <table width="100%" border="0" cellspacing="0" cellpadding="6" style="font-size: 13.5px; color: #334155;">
+                                            <tr>
+                                                <td width="35%" style="font-weight:700; color:#0f172a;">Nombre:</td>
+                                                <td>${name}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight:700; color:#0f172a;">Correo Electrónico:</td>
+                                                <td><a href="mailto:${email}" style="color:#0d9488; text-decoration:none; font-weight:600;">${email}</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight:700; color:#0f172a;">Cédula / Pasaporte:</td>
+                                                <td>${idNumber}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight:700; color:#0f172a;">Código Único:</td>
+                                                <td><span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:4px; font-family:monospace; font-weight:700;">${uniqueCode}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight:700; color:#0f172a;">Fecha / Hora:</td>
+                                                <td>${createdAtStr}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+                                        Por favor ingrese al <strong>Panel Administrador &rarr; Gestión de Usuarios</strong> para autorizar o administrar el acceso de este nuevo usuario.
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="background-color: #f8fafc; border-top: 1px solid #f1f5f9; padding: 20px 32px; text-align: center; font-size: 11.5px; color: #94a3b8;">
+                                    NexusDoc DMS &copy; 2026. Alertas Administrativas Transaccionales.
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+    `;
+    const text = `NexusDoc DMS - Nuevo Usuario Registrado\n\nSe ha registrado el usuario ${name} (${email}, Cédula: ${idNumber}).\nCódigo Único: ${uniqueCode}\nFecha: ${createdAtStr}\n\nPor favor ingrese al Panel Administrador para autorizar su acceso.`;
+
+    for (const adminEmail of adminEmails) {
+        try {
+            await sendHtmlEmail(adminEmail, `🔔 Nuevo Usuario Pendiente de Autorización: ${name}`, html, text);
+        } catch (err) {
+            console.error(`Error enviando notificación a admin ${adminEmail}:`, err.message);
+        }
+    }
+    return true;
+};
+
 module.exports = {
     sendSecurityCode,
     sendTemporaryPassword,
-    sendAccountLockedNotice
+    sendAccountLockedNotice,
+    sendNewUserNotificationToAdmins
 };

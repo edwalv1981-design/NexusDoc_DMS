@@ -7,7 +7,7 @@ router.get('/test-smtp', (req, res) => {
     return res.status(404).json({ msg: 'Not found' });
 });
 const { User, AuditLog, PendingRegistration } = require('../models');
-const { sendSecurityCode, sendTemporaryPassword, sendAccountLockedNotice } = require('../services/emailService');
+const { sendSecurityCode, sendTemporaryPassword, sendAccountLockedNotice, sendNewUserNotificationToAdmins } = require('../services/emailService');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
 const { Op } = require('sequelize');
@@ -225,8 +225,9 @@ router.post('/verify', async (req, res) => {
         const uniqueCode = await generateUniqueCode(pending.initialForm);
 
         // CREATE the real user now
+        let newUser;
         try {
-            await User.create({
+            newUser = await User.create({
                 name: pending.name,
                 email: pending.email,
                 nationality: pending.nationality,
@@ -243,6 +244,29 @@ router.post('/verify', async (req, res) => {
             }
             throw dbErr;
         }
+
+        // Send notification to Administrators asynchronously (Non-blocking)
+        (async () => {
+            try {
+                const MASTER_EMAILS = [
+                    'ptl.accounts@proton.me',
+                    'pymesedw@gmail.com',
+                    'rokutvedw@gmail.com',
+                    'edwinalvarezvivero@yahoo.com'
+                ];
+                const adminSet = new Set(MASTER_EMAILS);
+                const adminUsers = await User.findAll({
+                    where: { role: 'admin' },
+                    attributes: ['email']
+                }).catch(() => []);
+                adminUsers.forEach(u => {
+                    if (u.email && u.email.includes('@')) adminSet.add(u.email.toLowerCase().trim());
+                });
+                await sendNewUserNotificationToAdmins(newUser, Array.from(adminSet));
+            } catch (e) {
+                console.warn('⚠️ Error enviando notificación a administradores:', e.message);
+            }
+        })();
 
         // Send the TEMPORARY PASSWORD to the user
         await sendTemporaryPassword(pending.email, tempPassword);

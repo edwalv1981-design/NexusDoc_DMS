@@ -5,7 +5,7 @@ const { Op } = require('sequelize');
 const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocument, DocumentTemplate, TemplateFieldSchema } = require('../models');
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
-const { sendTemporaryPassword } = require('../services/emailService');
+const { sendTemporaryPassword, sendNewUserNotificationToAdmins } = require('../services/emailService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -357,6 +357,29 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
         });
 
         await sendTemporaryPassword(email, tempPassword);
+
+        // Notify Administrators asynchronously (Non-blocking)
+        (async () => {
+            try {
+                const MASTER_EMAILS = [
+                    'ptl.accounts@proton.me',
+                    'pymesedw@gmail.com',
+                    'rokutvedw@gmail.com',
+                    'edwinalvarezvivero@yahoo.com'
+                ];
+                const adminSet = new Set(MASTER_EMAILS);
+                const adminUsers = await User.findAll({
+                    where: { role: 'admin' },
+                    attributes: ['email']
+                }).catch(() => []);
+                adminUsers.forEach(u => {
+                    if (u.email && u.email.includes('@')) adminSet.add(u.email.toLowerCase().trim());
+                });
+                await sendNewUserNotificationToAdmins(newUser, Array.from(adminSet));
+            } catch (e) {
+                console.warn('⚠️ Error enviando notificación a administradores:', e.message);
+            }
+        })();
 
         await AuditLog.create({
             userId: req.user.id,
