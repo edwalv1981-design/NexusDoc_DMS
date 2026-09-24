@@ -372,6 +372,7 @@ const sendNewUserNotificationToAdmins = async (newUser, adminEmails = []) => {
 };
 
 module.exports = {
+    sendHtmlEmail,
     sendSecurityCode,
     sendTemporaryPassword,
     sendAccountLockedNotice,
