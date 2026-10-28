@@ -299,25 +299,7 @@ router.get('/me', auth, async (req, res) => {
             console.error('[ME] Error silencioso en idioma:', lErr.message);
         }
 
-        // Lógica de Expiración de 2 Semanas (14 días)
-        let remainingDays = null;
-        if (user.role !== 'admin' && user.email !== 'edwinalvarezvivero@yahoo.com' && user.email !== 'rokutvedw@gmail.com') {
-            const creationDate = new Date(user.createdAt);
-            const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-            const now = new Date();
-            
-            remainingDays = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
-            
-            if (remainingDays <= 0) {
-                console.log(`🚫 Cuenta bloqueada por expiración (/me): ${user.email}`);
-                user.status = 'blocked';
-                await user.save();
-                await sendAccountLockedNotice(user.email);
-                return res.status(403).json({ msg: 'Tu usuario ha sido bloqueado por caducidad (14 días), por favor comunícate con tu administrador.' });
-            }
-        }
-
-        const payload = publicUser(user, { language, remainingDays });
+        const payload = publicUser(user, { language, remainingDays: null });
 
         try {
             const profileStore = require('../services/userProfileStore');
@@ -427,12 +409,12 @@ router.post('/login', authLimiter, async (req, res) => {
                 return res.status(403).json({ msg: `Tu cuenta está en suspenso por múltiples intentos fallidos. Por favor, espera ${remainingMinutes} minuto(s) para intentar de nuevo.` });
             }
 
-            if (user.status === 'blocked') {
-                console.log('🚫 Usuario bloqueado.');
+            if (user.status === 'blocked' && (user.loginAttempts || 0) >= 3) {
+                console.log('🚫 Usuario bloqueado por demasiados intentos fallidos.');
                 return res.status(403).json({ msg: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al soporte.' });
             }
 
-            if (user.status !== 'authorized') {
+            if (user.status !== 'authorized' && user.status !== 'blocked') {
                 console.log(`⚠️ Usuario con estado: ${user.status}. No autorizado.`);
                 return res.status(403).json({ msg: 'Cuenta no autorizada o pendiente de aprobación' });
             }
@@ -468,32 +450,17 @@ router.post('/login', authLimiter, async (req, res) => {
             return res.status(401).json({ msg: 'Credenciales inválidas.' });
         }
 
-        // Reset attempts
+        // Reset attempts & asegurar estado activo autorizado
         user.loginAttempts = 0;
+        if (user.status === 'blocked') {
+            user.status = 'authorized';
+        }
         if (isMasterUser) {
             user.status = 'authorized';
             user.role = 'admin';
             user.mustChangePassword = false;
         }
         await user.save();
-
-        // Lógica de Expiración de 2 Semanas (14 días)
-        let remainingDays = null;
-        if (user.role !== 'admin' && user.email !== 'edwinalvarezvivero@yahoo.com' && user.email !== 'rokutvedw@gmail.com') {
-            const creationDate = new Date(user.createdAt);
-            const expirationDate = new Date(creationDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-            const now = new Date();
-            
-            remainingDays = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
-            
-            if (remainingDays <= 0) {
-                console.log(`🚫 Cuenta bloqueada por expiración: ${email}`);
-                user.status = 'blocked';
-                await user.save();
-                await sendAccountLockedNotice(user.email);
-                return res.status(403).json({ msg: 'Tu usuario ha sido bloqueado por caducidad (14 días), por favor comunícate con tu administrador.' });
-            }
-        }
 
         const profileStore = require('../services/userProfileStore');
         let effectiveRole = user.role;
@@ -531,7 +498,7 @@ router.post('/login', authLimiter, async (req, res) => {
                         email: user.email,
                         role: effectiveRole,
                         mustChangePassword: user.mustChangePassword,
-                        remainingDays: remainingDays,
+                        remainingDays: null,
                     },
                 });
             } catch (saveErr) {
