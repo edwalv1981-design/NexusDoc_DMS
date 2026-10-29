@@ -102,6 +102,15 @@ const cors = require('cors');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
+// Railway / Fly ponen un proxy delante: confiar en 1 salto para que req.ip sea
+// la IP real del cliente. Sin esto, express-rate-limit agrupa a TODOS los
+// usuarios bajo la IP del proxy (un atacante podía agotar el límite global).
+// Configurable con TRUST_PROXY_HOPS (0 = desactivado). No cambia ninguna ruta.
+const TRUST_PROXY_HOPS = Number.parseInt(process.env.TRUST_PROXY_HOPS ?? '1', 10);
+if (Number.isInteger(TRUST_PROXY_HOPS) && TRUST_PROXY_HOPS > 0) {
+    app.set('trust proxy', TRUST_PROXY_HOPS);
+}
+
 app.use(compression());
 app.use(cors({
     origin: (origin, callback) => {

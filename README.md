@@ -25,6 +25,7 @@ Configura estas variables en Railway (servicio `NexusDoc_DMS`) o en `server/.env
 - `BOOTSTRAP_ADMIN_NAME` (opcional): nombre del admin bootstrap.
 - `RESEND_API_KEY` (obligatoria si hay envío de correos): API key activa de Resend.
 - `SENDER_EMAIL` (obligatoria si hay envío de correos): remitente verificado en Resend.
+- `TRUST_PROXY_HOPS` (opcional, por defecto `1`): saltos de proxy confiables (Railway/Fly) para que el límite de intentos use la IP real del cliente. `0` lo desactiva.
 
 Variables legacy presentes en Railway pero no usadas actualmente por el código:
 

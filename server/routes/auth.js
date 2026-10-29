@@ -236,7 +236,11 @@ router.post('/verify', async (req, res) => {
                 uniqueCode,
                 password: tempPassword,
                 status: 'pending',
-                mustChangePassword: false
+                // La clave temporal viaja por correo: obligar a cambiarla en el
+                // primer ingreso (mismo flujo /reset-password que ya usan los
+                // usuarios creados por admin/gerente y la recuperación de clave).
+                // Solo afecta a registros NUEVOS; los usuarios existentes no cambian.
+                mustChangePassword: true
             });
         } catch (dbErr) {
             if (dbErr.name === 'SequelizeUniqueConstraintError') {
