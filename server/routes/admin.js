@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { Op } = require('sequelize');
+const { escapeLike } = require('../utils/sqlLike');
 const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocument, DocumentTemplate, TemplateFieldSchema } = require('../models');
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
@@ -243,7 +244,7 @@ router.delete('/users/:id', [auth, isAdmin], async (req, res) => {
         // 7. Purge PendingRegistration by email
         if (cleanEmail && PendingRegistration) {
             await PendingRegistration.destroy({ 
-                where: { email: { [Op.iLike]: cleanEmail } } 
+                where: { email: { [Op.iLike]: escapeLike(cleanEmail) } } 
             }).catch(e => console.warn('Purge PendingRegistration warning:', e.message));
         }
 
@@ -288,7 +289,7 @@ router.post('/users/purge-inactive', [auth, isAdmin], async (req, res) => {
             await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :userId', { replacements: { userId } }).catch(() => {});
             await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :userId', { replacements: { userId } }).catch(() => {});
             if (cleanEmail && PendingRegistration) {
-                await PendingRegistration.destroy({ where: { email: { [Op.iLike]: cleanEmail } } }).catch(() => {});
+                await PendingRegistration.destroy({ where: { email: { [Op.iLike]: escapeLike(cleanEmail) } } }).catch(() => {});
             }
             await user.destroy({ force: true });
             purgedCount++;
@@ -318,11 +319,11 @@ router.delete('/users/by-email/:email', [auth, isAdmin], async (req, res) => {
         if (!targetEmail) return res.status(400).json({ msg: 'Correo inválido' });
 
         const users = await User.findAll({
-            where: { email: { [Op.iLike]: targetEmail } }
+            where: { email: { [Op.iLike]: escapeLike(targetEmail) } }
         });
 
         if (users.length === 0) {
-            await PendingRegistration.destroy({ where: { email: { [Op.iLike]: targetEmail } } }).catch(() => {});
+            await PendingRegistration.destroy({ where: { email: { [Op.iLike]: escapeLike(targetEmail) } } }).catch(() => {});
             return res.json({ msg: `No existía usuario en la tabla principal. Se purgaron registros pendientes para ${targetEmail}.` });
         }
 
@@ -340,7 +341,7 @@ router.delete('/users/by-email/:email', [auth, isAdmin], async (req, res) => {
             count++;
         }
 
-        await PendingRegistration.destroy({ where: { email: { [Op.iLike]: targetEmail } } }).catch(() => {});
+        await PendingRegistration.destroy({ where: { email: { [Op.iLike]: escapeLike(targetEmail) } } }).catch(() => {});
 
         res.json({ msg: `Depuración total por correo completada. Se eliminaron ${count} registro(s) para ${targetEmail}.` });
     } catch (err) {

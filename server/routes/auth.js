@@ -11,6 +11,7 @@ const { sendSecurityCode, sendTemporaryPassword, sendAccountLockedNotice, sendNe
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
 const { Op } = require('sequelize');
+const { escapeLike } = require('../utils/sqlLike');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const stablePdfForms = require('../config/stablePdfForms');
@@ -80,48 +81,37 @@ router.post('/register', async (req, res) => {
 
         // 1. Verificación Inteligente de Correo en la Base de Datos
         const existingEmailUser = await User.findOne({ 
-            where: { email: { [Op.iLike]: email } } 
+            where: { email: { [Op.iLike]: escapeLike(email) } } 
         });
 
-        if (existingEmailUser) {
-            if (existingEmailUser.status === 'authorized') {
-                return res.status(400).json({ msg: 'El correo electrónico ya está registrado en el sistema.' });
-            } else {
-                // Usuario no autorizado / inactivo -> Auto-purga defensiva para permitir registro libre
-                console.log(`🧹 Depurando cuenta inactiva antecedente (${email}) durante nuevo registro.`);
-                const uId = existingEmailUser.id;
-                await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
-                await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
-                await FormData.destroy({ where: { userId: uId } }).catch(() => {});
-                await existingEmailUser.destroy({ force: true }).catch(() => {});
-            }
+        // SEGURIDAD: aquí ya NO se borra nada. La depuración de una cuenta inactiva
+        // previa ocurre en /verify, solo cuando el solicitante demostró ser dueño
+        // del correo (código recibido). Antes, cualquiera sin autenticarse podía
+        // borrar usuarios no autorizados y sus formularios.
+        if (existingEmailUser && existingEmailUser.status === 'authorized') {
+            return res.status(400).json({ msg: 'El correo electrónico ya está registrado en el sistema.' });
         }
 
         // 2. Verificación Inteligente de Cédula / Pasaporte en la Base de Datos
         const existingIdUser = await User.findOne({ 
-            where: { idNumber: { [Op.iLike]: idNumber } } 
+            where: { idNumber: { [Op.iLike]: escapeLike(idNumber) } } 
         });
 
-        if (existingIdUser) {
-            if (existingIdUser.status === 'authorized') {
-                return res.status(400).json({ msg: 'La cédula de identidad ya está registrada en el sistema.' });
-            } else {
-                // Usuario no autorizado / inactivo -> Auto-purga defensiva para permitir registro libre
-                console.log(`🧹 Depurando cuenta inactiva antecedente por Cédula (${idNumber}) durante nuevo registro.`);
-                const uId = existingIdUser.id;
-                await sequelize.query('DELETE FROM "UserProfiles" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
-                await sequelize.query('DELETE FROM "UserLanguages" WHERE "userId" = :uId', { replacements: { uId } }).catch(() => {});
-                await FormData.destroy({ where: { userId: uId } }).catch(() => {});
-                await existingIdUser.destroy({ force: true }).catch(() => {});
-            }
+        if (existingIdUser && existingIdUser.status === 'authorized') {
+            return res.status(400).json({ msg: 'La cédula de identidad ya está registrada en el sistema.' });
+        }
+        // La cédula pertenece a una cuenta inactiva de OTRO correo: nunca se borra
+        // a otra persona por coincidir la cédula.
+        if (existingIdUser && String(existingIdUser.email || '').toLowerCase() !== email) {
+            return res.status(400).json({ msg: 'La cédula de identidad ya está asociada a otra cuenta. Contacte al soporte.' });
         }
 
         // Cleanup any old pending attempts for this email or idNumber
         await PendingRegistration.destroy({ 
             where: { 
                 [Op.or]: [
-                    { email: { [Op.iLike]: email } },
-                    { idNumber: { [Op.iLike]: idNumber } }
+                    { email: { [Op.iLike]: escapeLike(email) } },
+                    { idNumber: { [Op.iLike]: escapeLike(idNumber) } }
                 ] 
             } 
         }).catch(e => console.warn('PendingRegistration cleanup warning:', e.message));
@@ -225,6 +215,11 @@ router.post('/verify', async (req, res) => {
             return res.status(400).json({ msg: `Código de verificación incorrecto. Le quedan ${3 - pending.attempts} intentos.` });
         }
 
+        // Código correcto = el solicitante es dueño del correo.
+        const priorUser = await User.findOne({ where: { email: { [Op.iLike]: escapeLike(pending.email) } } });
+        if (priorUser && priorUser.status === 'authorized') {
+            return res.status(400).json({ msg: 'El correo electrónico ya está registrado en el sistema.' });
+        }
         // Generate a cryptographically secure temporary password
         const tempPassword = crypto.randomBytes(6).toString('hex').toUpperCase() + '!@';
 
@@ -234,6 +229,29 @@ router.post('/verify', async (req, res) => {
         // CREATE the real user now
         let newUser;
         try {
+          if (priorUser) {
+            // Re-registro de una cuenta inactiva propia (correo verificado): se
+            // reactiva el MISMO registro en vez de borrarlo, conservando su
+            // historial y formularios. No se elimina ningún dato.
+            priorUser.name = pending.name;
+            priorUser.nationality = pending.nationality;
+            priorUser.initialForm = pending.initialForm;
+            priorUser.idNumber = pending.idNumber;
+            if (!priorUser.uniqueCode) priorUser.uniqueCode = uniqueCode;
+            priorUser.password = tempPassword;
+            priorUser.status = 'pending';
+            priorUser.mustChangePassword = true;
+            priorUser.loginAttempts = 0;
+            priorUser.lockUntil = null;
+            priorUser.activeToken = null;
+            await priorUser.save();
+            newUser = priorUser;
+            await AuditLog.create({
+                userId: priorUser.id,
+                action: 'USER_REREGISTER',
+                description: `Cuenta inactiva de ${pending.email} reactivada tras re-registro verificado`
+            }).catch(() => {});
+          } else {
             newUser = await User.create({
                 name: pending.name,
                 email: pending.email,
@@ -249,6 +267,7 @@ router.post('/verify', async (req, res) => {
                 // Solo afecta a registros NUEVOS; los usuarios existentes no cambian.
                 mustChangePassword: true
             });
+          }
         } catch (dbErr) {
             if (dbErr.name === 'SequelizeUniqueConstraintError') {
                 return res.status(400).json({ msg: 'Esta cédula o correo electrónico ya ha sido registrado por otro usuario.' });
@@ -377,7 +396,7 @@ router.post('/login', authLimiter, async (req, res) => {
         let user;
         try {
             user = await User.findOne({
-                where: { email: { [Op.iLike]: email } },
+                where: { email: { [Op.iLike]: escapeLike(email) } },
             });
         } catch (dbErr) {
             const mapped = mapLoginInfrastructureError(dbErr);
@@ -637,7 +656,7 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
         console.log(`🔍 Solicitud de código de recuperación para: ${email}`);
         
         const user = await User.findOne({ 
-            where: { email: { [Op.iLike]: email } }
+            where: { email: { [Op.iLike]: escapeLike(email) } }
         });
         
         if (!user) {
@@ -677,7 +696,7 @@ const verifyForgotPasswordHandler = async (req, res) => {
         console.log(`🔐 Verificando código [${cleanCode}] para: ${cleanEmail}`);
         
         const user = await User.findOne({ 
-            where: { email: { [Op.iLike]: cleanEmail } } 
+            where: { email: { [Op.iLike]: escapeLike(cleanEmail) } } 
         });
         
         if (!user) {
