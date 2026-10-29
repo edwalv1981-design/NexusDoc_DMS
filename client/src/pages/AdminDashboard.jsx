@@ -87,6 +87,7 @@ const AdminDashboard = () => {
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [lastDetectedFields, setLastDetectedFields] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -400,11 +401,13 @@ const AdminDashboard = () => {
     setSavingSettings(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { newPassword }, { headers: { 'x-auth-token': token } });
+      await axios.put(`${API_BASE_URL}/api/auth/update-profile`, { newPassword, currentPassword }, { headers: { 'x-auth-token': token } });
       toast.success(t('admin.passwordUpdated'));
       setNewPassword('');
+      setCurrentPassword('');
     } catch (err) { 
-        if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
+        // Clave actual incorrecta: mostrar el error sin cerrar la sesión.
+        if (err.response?.status === 401 && !err.response?.data?.invalidCurrentPassword) { localStorage.clear(); navigate('/'); }
         toast.error(err.response?.data?.msg || t('admin.errUpdatePassword')); 
     } finally { setSavingSettings(false); }
   };
@@ -1145,6 +1148,17 @@ const AdminDashboard = () => {
               <div style={{ padding: '30px', maxWidth: '450px' }}>
                 <h3 style={{ marginBottom: '20px' }}>{t('admin.updatePasswordTitle')}</h3>
                 <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                  <div className="field-group-admin">
+                    <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.currentPassword')}</label>
+                    <input
+                      className="input-modern-admin"
+                      type={showPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={e => setCurrentPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
                   <div className="field-group-admin">
                     <label style={{ fontSize: '10px', fontWeight: 700 }}>{t('admin.newPassword')}</label>
                     <div style={{ position: 'relative' }}>

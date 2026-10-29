@@ -167,11 +167,18 @@ router.post('/resend-code', async (req, res) => {
             return res.status(400).json({ msg: 'No hay un registro pendiente para este correo.' });
         }
 
+        // Un reenvío ya no levanta un bloqueo activo por intentos fallidos:
+        // antes permitía saltarse el bloqueo de 3 minutos pidiendo otro código.
+        if (pending.lockUntil && pending.lockUntil > new Date()) {
+            const remainingMinutes = Math.ceil((pending.lockUntil - new Date()) / 60000);
+            return res.status(403).json({ msg: `Límite de intentos superado. Por seguridad, espere ${remainingMinutes} minuto(s) e intente nuevamente.` });
+        }
+
         const securityCode = crypto.randomInt(100000, 999999).toString();
         pending.code = securityCode;
         pending.codeExpiresAt = new Date(Date.now() + 3 * 60000);
-        pending.attempts = 0; // reset attempts
-        pending.lockUntil = null; // unlock
+        pending.attempts = 0; // código nuevo, intentos nuevos
+        pending.lockUntil = null;
         await pending.save();
 
         const sent = await sendSecurityCode(email, securityCode);
@@ -541,13 +548,16 @@ router.put('/update-profile', auth, async (req, res) => {
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado en la base de datos' });
 
-        const isDbAdmin = user.role === 'admin';
-        if (newPassword && newPassword.trim() !== '' && !user.mustChangePassword && !isDbAdmin) {
+        // Se exige la contraseña actual a todos (incluidos administradores), salvo:
+        //  - clave temporal pendiente de cambio (mustChangePassword), o
+        //  - sesión emitida por "Olvidé mi contraseña" tras validar el código (pwdReset).
+        const isRecoverySession = req.user?.pwdReset === true;
+        if (newPassword && newPassword.trim() !== '' && !user.mustChangePassword && !isRecoverySession) {
             if (!currentPassword) {
                 return res.status(400).json({ msg: 'Debe indicar su contraseña actual' });
             }
             const ok = await user.comparePassword(currentPassword);
-            if (!ok) return res.status(401).json({ msg: 'La contraseña actual no es correcta' });
+            if (!ok) return res.status(401).json({ msg: 'La contraseña actual no es correcta', invalidCurrentPassword: true });
         }
 
         // Update email if provided
@@ -706,7 +716,8 @@ const verifyForgotPasswordHandler = async (req, res) => {
         user.mustChangePassword = true; // Habilitar formulario de asignación de clave propia en /reset-password
 
         // Sign a JWT token so user can proceed directly to /reset-password
-        const payload = { user: { id: user.id, role: user.role } };
+        // pwdReset: permite fijar la nueva clave sin la actual (la olvidó y validó su código por correo).
+        const payload = { user: { id: user.id, role: user.role, pwdReset: true } };
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
         user.activeToken = token;
         

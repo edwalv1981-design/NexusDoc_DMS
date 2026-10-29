@@ -81,6 +81,7 @@ const en = {
     description: 'DESCRIPTION',
     profileSettings: 'Profile Settings',
     email: 'EMAIL',
+    currentPassword: 'CURRENT PASSWORD',
     newPassword: 'NEW PASSWORD',
     saveChanges: 'SAVE CHANGES',
     templatesStatus: 'Base Template Status',

@@ -81,6 +81,7 @@ const es = {
     description: 'DESCRIPCIÓN',
     profileSettings: 'Configuración del Perfil',
     email: 'CORREO ELECTRÓNICO',
+    currentPassword: 'CONTRASEÑA ACTUAL',
     newPassword: 'NUEVA CONTRASEÑA',
     saveChanges: 'GUARDAR CAMBIOS',
     templatesStatus: 'Estado de Plantillas Base',
