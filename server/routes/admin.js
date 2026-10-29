@@ -49,6 +49,20 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
+// Administrador "real": rol admin en BD o perfil master. Un gerente (manager) NO lo es.
+// Solo un administrador real puede otorgar o quitar el rol "master" (equivale a admin).
+async function isFullAdmin(req) {
+    if (req.dbUser?.role === 'admin') return true;
+    try {
+        const profileStore = require('../services/userProfileStore');
+        const profile = await profileStore.getProfile(req.user.id);
+        return profile?.roleOverride === 'master';
+    } catch (e) {
+        console.warn('isFullAdmin: no se pudo leer el perfil:', e.message);
+        return false;
+    }
+}
+
 // @route   GET api/admin/people/search
 // @desc    Busca personas en el Catálogo Maestro con trámites asociados desglosados (Admin Only)
 router.get('/people/search', [auth, isAdmin], async (req, res) => {
@@ -350,6 +364,9 @@ router.post('/users/create', [auth, isAdmin], async (req, res) => {
 
         const allowedCreateRoles = ['client', 'manager', 'master'];
         const safeRole = allowedCreateRoles.includes(roleOverride) ? roleOverride : 'client';
+        if (safeRole === 'master' && !(await isFullAdmin(req))) {
+            return res.status(403).json({ msg: 'Solo un administrador puede crear usuarios con rol Master' });
+        }
 
         const newUser = await User.create({
             name,
@@ -422,6 +439,16 @@ router.put('/users/:id/role', [auth, isAdmin], async (req, res) => {
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
         const profileStore = require('../services/userProfileStore');
+
+        // Un gerente puede asignar client/manager, pero no otorgar "master"
+        // ni modificar el rol de un administrador o master.
+        if (!(await isFullAdmin(req))) {
+            const targetProfile = await profileStore.getProfile(user.id).catch(() => null);
+            if (roleOverride === 'master' || user.role === 'admin' || targetProfile?.roleOverride === 'master') {
+                console.warn(`[SECURITY] Gerente ${req.user.id} intentó cambiar rol de ${user.id} a ${roleOverride}`);
+                return res.status(403).json({ msg: 'Solo un administrador puede asignar o modificar el rol Master' });
+            }
+        }
         
         // Ensure profile exists or update it
         await profileStore.setProfile(user.id, {
