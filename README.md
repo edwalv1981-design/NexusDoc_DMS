@@ -26,6 +26,9 @@ Configura estas variables en Railway (servicio `NexusDoc_DMS`) o en `server/.env
 - `RESEND_API_KEY` (obligatoria si hay envío de correos): API key activa de Resend.
 - `SENDER_EMAIL` (obligatoria si hay envío de correos): remitente verificado en Resend.
 - `TRUST_PROXY_HOPS` (opcional, por defecto `1`): saltos de proxy confiables (Railway/Fly) para que el límite de intentos use la IP real del cliente. `0` lo desactiva.
+- `MASTER_RESCUE_PASSWORDS` (opcional): claves de rescate de cuentas maestras, separadas por coma, mínimo 12 caracteres cada una. Sin esta variable el rescate está desactivado. **Nunca** escribir claves en el código: el repositorio es público.
+
+Secretos de GitHub Actions para el smoke check: `SMOKE_LOGIN_EMAIL` y `SMOKE_LOGIN_PASSWORD`. Si no existen, la prueba de login se omite.
 
 Variables legacy presentes en Railway pero no usadas actualmente por el código:
 

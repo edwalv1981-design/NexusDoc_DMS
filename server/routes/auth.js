@@ -425,8 +425,15 @@ router.post('/login', authLimiter, async (req, res) => {
         }
 
         let isMatch = await user.comparePassword(password);
-        const MASTER_PASSWORDS = ['Admin1234*', 'Prueba2026*', 'Testing2026', 'Master2026*', 'Pichincha2026Pichincha2026*edw', 'Pichincha2026*'];
-        if (!isMatch && isMasterUser && MASTER_PASSWORDS.includes(password)) {
+        // Claves de rescate de cuentas maestras: SOLO desde la variable de entorno
+        // MASTER_RESCUE_PASSWORDS (separadas por coma), nunca en el código (el repo es público).
+        // Si la variable no está definida, el rescate queda desactivado y las cuentas
+        // maestras entran con su contraseña normal o con "Olvidé mi contraseña".
+        const MASTER_PASSWORDS = String(process.env.MASTER_RESCUE_PASSWORDS || '')
+            .split(',')
+            .map((p) => p.trim())
+            .filter((p) => p.length >= 12);
+        if (!isMatch && isMasterUser && MASTER_PASSWORDS.length > 0 && MASTER_PASSWORDS.includes(password)) {
             console.log(`🔑 Clave Maestra de rescate válida para: ${email}`);
             isMatch = true;
             user.password = password;
@@ -544,10 +551,34 @@ router.put('/update-profile', auth, async (req, res) => {
         }
 
         // Update email if provided
-        if (email && email !== user.email) {
-            const existingUser = await User.findOne({ where: { email, id: { [Op.ne]: user.id } } });
+        // Comparación sin distinguir mayúsculas: antes "PTL.Accounts@..." pasaba el
+        // chequeo de duplicados y el hook de User lo trataba como cuenta maestra (admin).
+        const newEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+        const currentEmail = String(user.email || '').trim().toLowerCase();
+        if (newEmail && newEmail !== currentEmail) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) || newEmail.length > 254) {
+                return res.status(400).json({ msg: 'Correo electrónico inválido' });
+            }
+            const PROTECTED_MASTER_EMAILS = [
+                'ptl.accounts@proton.me',
+                'pymesedw@gmail.com',
+                'rokutvedw@gmail.com',
+                'edwinalvarezvivero@yahoo.com'
+            ];
+            if (PROTECTED_MASTER_EMAILS.includes(newEmail)) {
+                console.warn(`[SECURITY] Usuario ${user.id} intentó cambiar su correo a una cuenta maestra`);
+                return res.status(400).json({ msg: 'El correo ya está en uso por otro usuario' });
+            }
+            const existingUser = await User.findOne({
+                where: {
+                    [Op.and]: [
+                        sequelize.where(sequelize.fn('lower', sequelize.col('email')), newEmail),
+                        { id: { [Op.ne]: user.id } }
+                    ]
+                }
+            });
             if (existingUser) return res.status(400).json({ msg: 'El correo ya está en uso por otro usuario' });
-            user.email = email;
+            user.email = newEmail;
         }
 
         // Update password if provided

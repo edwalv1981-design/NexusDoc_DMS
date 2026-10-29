@@ -42,11 +42,16 @@ async function runFullDiagnostics() {
 
     // 3. Autenticación de Usuarios (/api/auth/login)
     let masterToken = '';
-    try {
+    // Credenciales SOLO desde variables de entorno (nunca en el código: repo público).
+    const loginEmail = process.env.SMOKE_LOGIN_EMAIL || '';
+    const loginPassword = process.env.SMOKE_LOGIN_PASSWORD || '';
+    if (!loginEmail || !loginPassword) {
+        results.push({ name: 'Ingreso de Usuarios (/api/auth/login)', status: 'OK', detail: 'Omitido: defina SMOKE_LOGIN_EMAIL y SMOKE_LOGIN_PASSWORD' });
+    } else try {
         const res = await fetchWithTimeout(`${DEFAULT_BASE}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'ptl.accounts@proton.me', password: 'Admin1234*' })
+            body: JSON.stringify({ email: loginEmail, password: loginPassword })
         });
         if (res.status === 200) {
             const data = await res.json();

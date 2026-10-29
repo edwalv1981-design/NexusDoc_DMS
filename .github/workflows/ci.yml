@@ -27,6 +27,13 @@ jobs:
           PUPPETEER_SKIP_DOWNLOAD: "true"
         run: npm ci
 
+      # spaStaticServing.test.js verifica client/dist (igual que el Dockerfile de Railway).
+      - name: Build frontend (client/dist)
+        working-directory: client
+        run: |
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm run build
+
       - name: Unit tests (layout PDF / i18n / stable forms)
         run: npm test
 

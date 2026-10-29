@@ -12,6 +12,10 @@ const baseUrl = (process.env.DEPLOY_URL || process.env.SMOKE_BASE_URL || DEFAULT
   ''
 );
 const smokeToken = process.env.SMOKE_TOKEN || '';
+// Credenciales del login de prueba: SOLO desde secretos (GitHub Actions / entorno local).
+// Nunca escribir contraseñas en este archivo: el repositorio es público.
+const smokeLoginEmail = process.env.SMOKE_LOGIN_EMAIL || '';
+const smokeLoginPassword = process.env.SMOKE_LOGIN_PASSWORD || '';
 
 const green = (s) => `\x1b[32m${s}\x1b[0m`;
 const red = (s) => `\x1b[31m${s}\x1b[0m`;
@@ -117,12 +121,16 @@ async function checkTemplatesStatus() {
 }
 
 async function checkMasterAdminLogin() {
-  const label = 'POST /api/auth/login → 200 y status maestro activo (ptl.accounts@proton.me)';
+  const label = 'POST /api/auth/login → 200 y status maestro activo';
+  if (!smokeLoginEmail || !smokeLoginPassword) {
+    console.log(`\x1b[33mOMITIDO\x1b[0m ${label}${dim(' — defina SMOKE_LOGIN_EMAIL y SMOKE_LOGIN_PASSWORD (secretos) para probar el login')}`);
+    return true;
+  }
   try {
     const res = await fetchWithTimeout(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'ptl.accounts@proton.me', password: 'Admin1234*' }),
+      body: JSON.stringify({ email: smokeLoginEmail, password: smokeLoginPassword }),
     });
     if (res.status === 200) {
       const data = await res.json();

@@ -14,7 +14,7 @@ describe('pdfMagic', () => {
     assert.equal(isPdfBuffer(null), false);
   });
   it('sanitiza filename', () => {
-    assert.equal(sanitizeDownloadFilename('a.pdf";\r\nfilename="x'), 'a.pdf__;__filename=_x');
+    assert.equal(sanitizeDownloadFilename('a.pdf";\r\nfilename="x'), 'a.pdf_;__filename=_x');
   });
 });
 

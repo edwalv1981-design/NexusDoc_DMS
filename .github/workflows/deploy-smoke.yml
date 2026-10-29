@@ -30,4 +30,7 @@ jobs:
         run: npm install --no-save cross-env
 
       - name: Smoke check producción Railway
+        env:
+          SMOKE_LOGIN_EMAIL: ${{ secrets.SMOKE_LOGIN_EMAIL }}
+          SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
         run: npm run check:deploy:prod
