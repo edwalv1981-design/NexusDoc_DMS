@@ -99,6 +99,8 @@ async function scanDomain(host) {
     add(maxAge >= 15552000 ? 'OK' : 'WARN', 'HSTS', hsts);
   }
   const csp = h.get('content-security-policy');
+  const inlineScripts = [...root.body.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].filter((m) => m[1].trim()).length;
+  if (inlineScripts && csp && !/script-src[^;]*'unsafe-inline'/.test(csp)) add('FAIL', 'Scripts en línea compatibles con la CSP', `${inlineScripts} <script> en línea serían bloqueados`);
   if (!csp) add('FAIL', 'Content-Security-Policy', 'ausente');
   else add(/script-src[^;]*'unsafe-inline'/.test(csp) ? 'WARN' : 'OK', 'Content-Security-Policy', /script-src[^;]*'unsafe-inline'/.test(csp) ? "presente, pero script-src permite 'unsafe-inline'" : 'presente');
   const xfo = h.get('x-frame-options');

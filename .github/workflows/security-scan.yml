@@ -29,3 +29,25 @@ jobs:
           SCAN_DOMAINS: ${{ github.event.inputs.domains }}
         # $SCAN_DOMAINS sin comillas a propósito: se separa por espacios en argumentos.
         run: node scripts/security-scan.mjs $SCAN_DOMAINS
+
+  browser-check:
+    # Abre el sitio en Chromium real: detecta pantalla en blanco o scripts
+    # bloqueados por la Content-Security-Policy.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar Playwright + Chromium
+        working-directory: ${{ runner.temp }}
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+      - name: Revisar sitio en navegador
+        working-directory: ${{ runner.temp }}
+        run: |
+          cp "$GITHUB_WORKSPACE/scripts/browser-csp-check.mjs" .
+          node browser-csp-check.mjs https://www.nexusdoc.online/ https://nexusdocdms-production.up.railway.app/
