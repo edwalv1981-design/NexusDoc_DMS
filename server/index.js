@@ -44,9 +44,10 @@ app.use(helmet({
             // Sin 'unsafe-inline': solo se ejecutan scripts servidos por el propio sitio.
             scriptSrc: ["'self'"],
             scriptSrcAttr: ["'none'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            // Google Fonts (index.css importa Plus Jakarta Sans e Inter); estaban bloqueadas.
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
             imgSrc: ["'self'", 'data:', 'blob:'],
-            fontSrc: ["'self'", 'data:'],
+            fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
             connectSrc: ["'self'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
