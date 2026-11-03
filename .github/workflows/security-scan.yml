@@ -1,0 +1,31 @@
+name: Security scan (sitio publicado)
+
+# Escaneo externo de solo lectura: TLS, cabeceras, archivos expuestos, API sin
+# token, CORS y login. Se lanza a mano o cada lunes. No modifica datos.
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: 'Dominios separados por espacio (vacío = todos los configurados)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '17 13 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Escanear sitio publicado
+        env:
+          SCAN_DOMAINS: ${{ github.event.inputs.domains }}
+        # $SCAN_DOMAINS sin comillas a propósito: se separa por espacios en argumentos.
+        run: node scripts/security-scan.mjs $SCAN_DOMAINS
