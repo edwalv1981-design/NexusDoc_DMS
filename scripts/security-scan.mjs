@@ -18,9 +18,6 @@ const DEFAULT_DOMAINS = [
   'nexusdocdms-production.up.railway.app',
   'nexusdoc.online',
   'www.nexusdoc.online',
-  'nexusdoc.it.com',
-  'www.nexusdoc.it.com',
-  'nexusdoc-dms.fly.dev',
 ];
 const domains = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_DOMAINS;
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 NexusDocSecurityScan';

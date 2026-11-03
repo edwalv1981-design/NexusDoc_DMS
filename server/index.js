@@ -10,15 +10,14 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const DEFAULT_CORS_ORIGINS = [
     'https://nexusdocdms-production.up.railway.app',
-    'https://nexusdoc-dms.fly.dev',
     'https://nexusdoc.online',
     'http://nexusdoc.online',
     'https://www.nexusdoc.online',
     'http://www.nexusdoc.online',
-    'https://nexusdoc.it.com',
-    'http://nexusdoc.it.com',
-    'https://www.nexusdoc.it.com',
-    'http://www.nexusdoc.it.com',
+    // Retirados (no sirven el sitio): nexusdoc-dms.fly.dev (despliegue antiguo) y
+    // nexusdoc.it.com / www.nexusdoc.it.com (dominio usado SOLO para correo; no
+    // borrar el dominio). Si alguno vuelve a servir la app, agregarlo con la
+    // variable CORS_ORIGINS en Railway, sin tocar código.
     'http://localhost:5173',
     'http://localhost:3000',
 ];
@@ -60,6 +59,16 @@ app.use(helmet({
     xssFilter: true,
     hidePoweredBy: true,
 }));
+
+// Permissions-Policy: desactiva APIs del navegador que el sitio no usa.
+// (Subir archivos o tomar fotos con <input type="file"> NO depende de esto.)
+app.use((req, res, next) => {
+    res.setHeader(
+        'Permissions-Policy',
+        'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=(), browsing-topics=()'
+    );
+    next();
+});
 
 let apiReady = false;
 let routesRegistered = false;
@@ -116,7 +125,10 @@ app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
         if (CORS_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(new Error('Origen no permitido por CORS'));
+        const corsErr = new Error('Origen no permitido por CORS');
+        corsErr.status = 403;
+        corsErr.isCorsRejection = true;
+        return callback(corsErr);
     },
     credentials: true,
 }));
@@ -144,6 +156,9 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
     if (err.type === 'entity.parse.failed') {
         return res.status(400).json({ msg: 'JSON malformado en el cuerpo de la solicitud.' });
+    }
+    if (err.isCorsRejection) {
+        return res.status(403).json({ msg: 'Origen no permitido.' });
     }
     next(err);
 });
