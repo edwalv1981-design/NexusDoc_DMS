@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { validateField } from '../utils/fieldValidators';
 import PersonSelector from './common/PersonSelector';
+import EntityTypeSelector from './common/EntityTypeSelector';
 
 export const FUNDACION_MARITAL_OPTIONS = [
   { value: 'Soltero', en: 'Single', es: 'Soltero(a)' },
@@ -57,19 +58,14 @@ const FundacionPersonFields = ({ person, onChange, lang, t, suggestions, showDro
 
   return (
     <div className="expert-grid person-fields-grid" ref={dropdownRef}>
-      {/* Enunciado Tipo de Integrante */}
-      <div className="expert-field full-width" style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', marginBottom: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
-            {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
-          </span>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', background: 'white', padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            {person?.entityType === 'company'
-              ? (lang === 'en' ? '🏢 COMPANY / LEGAL ENTITY' : '🏢 EMPRESA / PERSONA JURÍDICA')
-              : (lang === 'en' ? '👤 NATURAL PERSON' : '👤 PERSONA NATURAL')
-            }
-          </span>
-        </div>
+      {/* Tipo de Integrante: seleccionable (Persona natural / Empresa) */}
+      <div className="expert-field full-width">
+        <EntityTypeSelector
+          value={person?.entityType}
+          lang={lang}
+          onChange={(type) => set('entityType', type)}
+          style={{ marginBottom: 8, padding: '10px 14px' }}
+        />
       </div>
 
       {registeredPeople && registeredPeople.length > 0 && onSelectRegisteredPerson && (
