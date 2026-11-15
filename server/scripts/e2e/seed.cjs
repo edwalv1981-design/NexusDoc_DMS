@@ -26,4 +26,9 @@ const profileStore = require('../../services/userProfileStore');
   await mk('Cliente E2E', 'client.e2e@example.com', 'client', '0900000003', 'E2E-CLI');
   console.log('seed ok');
   process.exit(0);
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch((e) => {
+  console.error(e);
+  const detail = [e.message, ...(e.errors || []).map((x) => x.message)].join(' | ');
+  console.log(`::error title=seed::${String(detail).replace(/\r?\n/g, ' ')}`);
+  process.exit(1);
+});

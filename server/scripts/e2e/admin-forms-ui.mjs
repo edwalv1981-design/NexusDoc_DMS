@@ -13,7 +13,7 @@ fs.mkdirSync(SHOTS, { recursive: true });
 
 let n = 0;
 const ok = (m) => console.log(`✅ UI ${++n}. ${m}`);
-const fail = (m) => { console.error(`❌ ${m}`); process.exitCode = 1; };
+const fail = (m) => { console.error(`❌ ${m}`); console.log(`::error title=E2E UI::${String(m).replace(/\r?\n/g, ' ').slice(0, 900)}`); process.exitCode = 1; };
 const expect = (cond, m) => (cond ? ok(m) : fail(m));
 
 const browser = await chromium.launch();

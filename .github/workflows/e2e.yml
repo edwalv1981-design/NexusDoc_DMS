@@ -93,7 +93,12 @@ jobs:
 
       - name: Log del servidor (si falla)
         if: failure()
-        run: tail -n 150 server.log
+        run: |
+          tail -n 150 server.log
+          # Anotación legible por la API (resumen de errores del servidor)
+          msg=$(grep -iE "error|warn|❌|⚠️" server.log | tail -n 25 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::warning title=server log::${msg}"
+
 
       - name: Capturas
         if: always()

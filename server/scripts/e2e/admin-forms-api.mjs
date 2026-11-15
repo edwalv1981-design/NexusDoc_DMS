@@ -3,6 +3,7 @@
  * y compatibilidad con el flujo actual del usuario. Base de datos temporal de CI.
  */
 import assert from 'node:assert/strict';
+process.on('uncaughtException', (e) => { console.log(`::error title=E2E API::${String(e.message).replace(/\r?\n/g, ' ').slice(0, 900)}`); process.exit(1); });
 import fs from 'node:fs';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5055';
