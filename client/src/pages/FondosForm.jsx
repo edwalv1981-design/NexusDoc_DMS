@@ -9,6 +9,8 @@ import API_BASE_URL from '../config';
 import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
 import { validateField, validateFields } from '../utils/fieldValidators';
+import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
+import { withProgress } from '../utils/formProgress';
 
 const FIELD_LABELS = {
     companyName: 'Nombre de la Compañía',
@@ -29,7 +31,12 @@ const FIELD_LABELS = {
     date: 'Fecha de la Declaración'
 };
 
-const FondosForm = () => {
+/**
+ * Uso normal: página /forms/fondos (sin props).
+ * Uso embebido (editor del administrador): embedded + initialData + onSave
+ * [+ readOnly para solo lectura, startStep para abrir en el paso guardado].
+ */
+const FondosForm = ({ embedded = false, initialData, onSave, saving = false, readOnly = false, startStep } = {}) => {
     const navigate = useNavigate();
     const location = useLocation();
     const t = useT();
@@ -101,7 +108,7 @@ const FondosForm = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(() => (startStep >= 1 && startStep <= 3 ? startStep : 1));
     const [formData, setFormData] = useState({
         companyName: '',
         activities: '',
@@ -146,9 +153,21 @@ const FondosForm = () => {
         }
     };
 
+    const [latestIdAtOpen, setLatestIdAtOpen] = useState(null);
+
     useEffect(() => {
+        if (embedded) {
+            if (initialData && Object.keys(initialData).length > 0) {
+                setFormData(prev => ({
+                    ...prev,
+                    ...initialData,
+                    fundsSource: Array.isArray(initialData.fundsSource) ? initialData.fundsSource : prev.fundsSource,
+                }));
+            }
+            return;
+        }
         if (editId) fetchExistingData();
-    }, [editId]);
+    }, [editId, embedded, initialData]);
 
     const validateStep = () => {
         let errors = [];
@@ -185,6 +204,7 @@ const FondosForm = () => {
             if (response.ok) {
                 const result = await response.json();
                 setFormData(result.data);
+                if (result.latestId) setLatestIdAtOpen(result.latestId);
             }
         } catch (error) {
             console.error(error);
@@ -192,7 +212,7 @@ const FondosForm = () => {
     };
 
     const handleNext = () => {
-        if (!validateStep()) {
+        if (!readOnly && !validateStep()) {
             setTimeout(() => {
                 const firstErr = document.querySelector('.corporate-input[style*="dc2626"], .corporate-input[style*="ef4444"], input[style*="dc2626"]');
                 if (firstErr) {
@@ -240,6 +260,10 @@ const FondosForm = () => {
             return;
         }
 
+        if (embedded) {
+            if (onSave) onSave(withProgress(formData, 3, 3, true), true);
+            return;
+        }
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
@@ -251,10 +275,15 @@ const FondosForm = () => {
                 body: JSON.stringify({
                     id: editId,
                     type: 'Fondos Registros contables',
-                    data: formData
+                    data: withProgress(formData, 3, 3, true),
+                    ...(editId && latestIdAtOpen ? { expectedLatestId: latestIdAtOpen } : {})
                 })
             });
             const result = await response.json();
+            if (response.status === 409) {
+                alert(result.msg || 'Este trámite fue modificado mientras lo editabas. Recarga la página.');
+                return;
+            }
             if (response.ok) {
                 setSubmittedId(result.id);
                 setStep(4);
@@ -536,8 +565,8 @@ const FondosForm = () => {
 
                         <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
                             <button onClick={handleBack} className="corporate-btn-secondary"><ChevronLeft size={16} /> {t('common.back')}</button>
-                            <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '9px 18px' }} disabled={loading}>
-                                <Save size={18} /> {loading ? t('common.saving') : t('fondos.finish')}
+                            <button onClick={handleFinish} className="corporate-btn-finish" style={{ background: PRIMARY_COLOR, padding: '9px 18px' }} disabled={loading || saving}>
+                                <Save size={18} /> {(loading || saving) ? t('common.saving') : t('fondos.finish')}
                             </button>
                         </div>
                     </div>
@@ -567,7 +596,7 @@ const FondosForm = () => {
             <div className="corporate-card">
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{t('fondos.management')}</div>
-                    <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }}><X size={24} /></button>
+                    {!embedded && <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }}><X size={24} /></button>}
                 </div>
                 
                 <div className="standard-step-header">
@@ -588,7 +617,16 @@ const FondosForm = () => {
                     ))}
                 </div>
 
+                <ReadOnlyFieldset readOnly={readOnly}>
                 {renderStep()}
+                </ReadOnlyFieldset>
+                {readOnly && (
+                    // En solo lectura los botones internos quedan bloqueados: navegación propia.
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '18px' }}>
+                        <button type="button" onClick={handleBack} disabled={step <= 1} className="nx-ro-nav"><ChevronLeft size={16} /> {t('common.back')}</button>
+                        <button type="button" onClick={handleNext} disabled={step >= 3} className="nx-ro-nav">{t('common.next')} <ChevronRight size={16} /></button>
+                    </div>
+                )}
             </div>
 
             <style>{`

@@ -1,0 +1,140 @@
+/**
+ * Avance de un trámite: en qué paso se quedó el usuario y qué pasos tienen datos.
+ *
+ * - Desde esta versión los formularios guardan data.__progress
+ *   { step, totalSteps, finished, savedAt } (lo normaliza el servidor).
+ * - Para trámites guardados antes, el paso se estima por los datos presentes.
+ */
+
+const has = (v) => v !== undefined && v !== null && String(v).trim() !== '';
+const arr = (v) => (Array.isArray(v) ? v : []);
+const anyName = (list, keys = ['fullName', 'companyName', 'name', 'shareholder']) =>
+  arr(list).filter((p) => p && keys.some((k) => has(p[k]))).length;
+
+// complete(d): el paso cumple lo mínimo; started(d): el usuario escribió algo.
+const DEFS = {
+  corporacion: [
+    { es: 'Información de la Sociedad', en: 'Company Information',
+      complete: (d) => (has(d.corpNameSA) || has(d.corpNameCorp) || has(d.corpNameInc)) && has(d.companyActivities),
+      started: (d) => has(d.corpNameSA) || has(d.corpNameCorp) || has(d.corpNameInc) || has(d.companyActivities) },
+    { es: 'Junta Directiva', en: 'Board of Directors',
+      complete: (d) => anyName(d.directors) >= 3, started: (d) => anyName(d.directors) > 0 },
+    { es: 'Dignatarios', en: 'Officers',
+      complete: (d) => arr(d.dignitaries).length > 0 && anyName(d.dignitaries) === arr(d.dignitaries).length,
+      started: (d) => anyName(d.dignitaries) > 0 },
+    { es: 'Accionistas', en: 'Shareholders',
+      complete: (d) => anyName(d.shareholders) > 0, started: (d) => anyName(d.shareholders) > 0 },
+    { es: 'Declaración Jurada', en: 'Sworn Declaration',
+      complete: (d) => arr(d.signers).some((s) => has(s?.name)), started: (d) => arr(d.signers).some((s) => has(s?.name) || has(s?.signature)) },
+  ],
+  fundacion: [
+    { es: 'Nombre de la Fundación', en: 'Foundation Name',
+      complete: (d) => has(d.foundationNameOption1), started: (d) => has(d.foundationNameOption1) || has(d.foundationNameOption2) || has(d.foundationNameOption3) },
+    { es: 'Capital Social', en: 'Initial Endowment', complete: (d) => has(d.initialPatrimony), started: (d) => has(d.initialPatrimony) },
+    { es: 'Fundadores', en: 'Founders', complete: (d) => anyName(d.founders) > 0, started: (d) => anyName(d.founders) > 0 },
+    { es: 'Protectores', en: 'Protectors', complete: (d) => anyName(d.protectors) > 0, started: (d) => anyName(d.protectors) > 0 },
+    { es: 'Directores (Consejo)', en: 'Directors (Council)', complete: (d) => anyName(d.councilMembers) >= 3, started: (d) => anyName(d.councilMembers) > 0 },
+    { es: 'Dignatarios', en: 'Dignitaries',
+      complete: (d) => arr(d.dignitaries).length > 0 && anyName(d.dignitaries) === arr(d.dignitaries).length, started: (d) => anyName(d.dignitaries) > 0 },
+    { es: 'Beneficiarios', en: 'Beneficiaries', complete: (d) => anyName(d.beneficiaries) > 0, started: (d) => anyName(d.beneficiaries) > 0 },
+    { es: 'Poder (POA)', en: 'Power of Attorney',
+      complete: (d) => d.poaIssue === 'NO' || (d.poaIssue === 'YES' && has(d.poaFullName)), started: (d) => d.poaIssue === 'YES' || has(d.poaFullName) },
+    { es: 'Actividades de la Fundación', en: 'Foundation Activities', complete: (d) => has(d.foundationObjects), started: (d) => has(d.foundationObjects) },
+    { es: 'Declaración y Firmas', en: 'Declaration & Signatures',
+      complete: (d) => arr(d.signers).some((s) => has(s?.name)), started: (d) => arr(d.signers).some((s) => has(s?.name) || has(s?.signature)) },
+  ],
+  kyci: [
+    { es: 'Datos personales', en: 'Personal data',
+      complete: (d) => ['fullName', 'birthDate', 'birthPlace', 'nationality', 'passport'].every((k) => has(d[k])),
+      started: (d) => ['fullName', 'birthDate', 'birthPlace', 'nationality', 'passport', 'idCard'].some((k) => has(d[k])) },
+    { es: 'Contacto y ocupación', en: 'Contact & occupation',
+      complete: (d) => ['phone', 'email', 'address', 'city', 'country', 'occupation'].every((k) => has(d[k])),
+      started: (d) => ['phone', 'email', 'address', 'city', 'country', 'occupation', 'employer'].some((k) => has(d[k])) },
+    { es: 'PEP y origen de fondos', en: 'PEP & source of funds',
+      complete: (d) => arr(d.fundsSource).length > 0 && (d.pep !== 'Sí' || has(d.pepDetails)),
+      started: (d) => arr(d.fundsSource).length > 0 || has(d.fundsOther) || d.pep === 'Sí' },
+    { es: 'Declaración', en: 'Declaration', complete: (d) => has(d.declarationName), started: (d) => has(d.declarationName) },
+  ],
+  kyce: [
+    { es: 'Datos de la entidad', en: 'Entity data',
+      complete: (d) => ['legalName', 'entityType', 'incorporationDate', 'jurisdiction', 'taxId', 'registeredAddress'].every((k) => has(d[k])),
+      started: (d) => ['legalName', 'tradeName', 'entityType', 'incorporationDate', 'jurisdiction', 'taxId', 'registrationNumber', 'registeredAddress'].some((k) => has(d[k])) },
+    { es: 'Contacto y actividad', en: 'Contact & activity',
+      complete: (d) => ['phone', 'email', 'city', 'country', 'businessActivity'].every((k) => has(d[k])),
+      started: (d) => ['phone', 'email', 'city', 'country', 'businessActivity', 'website'].some((k) => has(d[k])) },
+    { es: 'Representante, PEP y declaración', en: 'Representative, PEP & declaration',
+      complete: (d) => ['legalRepName', 'legalRepId', 'beneficialOwners', 'declarationName'].every((k) => has(d[k])) && arr(d.fundsSource).length > 0 && (d.pep !== 'Sí' || has(d.pepDetails)),
+      started: (d) => ['legalRepName', 'legalRepId', 'legalRepNationality', 'beneficialOwners', 'declarationName'].some((k) => has(d[k])) || arr(d.fundsSource).length > 0 },
+  ],
+  fondos: [
+    { es: 'Identificación Corporativa', en: 'Corporate Identification',
+      complete: (d) => ['companyName', 'country', 'activities', 'beneficiaryName', 'birthDate', 'birthPlace', 'address'].every((k) => has(d[k])),
+      started: (d) => ['companyName', 'country', 'activities', 'beneficiaryName', 'birthDate', 'birthPlace', 'address'].some((k) => has(d[k])) },
+    { es: 'Origen de Fondos', en: 'Source of Funds', complete: (d) => arr(d.fundsSource).length > 0, started: (d) => arr(d.fundsSource).length > 0 || has(d.fundsOther) },
+    { es: 'Registro y Responsabilidades', en: 'Registry & Responsibilities',
+      complete: (d) => ['custodyName', 'custodyPhone', 'custodyEmail', 'custodyAddress', 'signerName', 'date'].every((k) => has(d[k])),
+      started: (d) => ['custodyName', 'custodyPhone', 'custodyEmail', 'custodyAddress', 'signerName'].some((k) => has(d[k])) },
+  ],
+};
+
+/** Clave interna del tipo de formulario a partir del nombre guardado en formType. */
+export function formKind(formType = '') {
+  const t = String(formType).toLowerCase();
+  if (t.startsWith('corporaci') || t.includes('incorporaci')) return 'corporacion';
+  if (t.startsWith('fundaci')) return 'fundacion';
+  if (t.includes('cumplimiento individual') || t.includes('kyci') || t.includes('individual')) return 'kyci';
+  if (t.includes('cumplimiento entidades') || t.includes('kyce') || t.includes('entidad')) return 'kyce';
+  if (t.includes('fondos')) return 'fondos';
+  return null;
+}
+
+export const TOTAL_STEPS = { corporacion: 5, fundacion: 10, kyci: 4, kyce: 3, fondos: 3 };
+
+/** Agrega el progreso al guardar (lo usan los formularios). */
+export function withProgress(data, step, totalSteps, finished = false) {
+  return { ...data, __progress: { step, totalSteps, finished: Boolean(finished) } };
+}
+
+/**
+ * @returns {{ kind, totalSteps, steps: {n,label,status}[], completeCount, savedStep, savedStepLabel,
+ *            finished: true|false|null, tracked: boolean, savedAt, lastStepWithData }}
+ *  status: 'complete' | 'partial' | 'empty'.  finished === null => no registrado (trámite anterior).
+ */
+export function getFormProgress(formType, data = {}, lang = 'es') {
+  const kind = formKind(formType);
+  const defs = DEFS[kind];
+  const d = data || {};
+  if (!defs) return { kind: null, totalSteps: 0, steps: [], completeCount: 0, savedStep: null, finished: null, tracked: false };
+
+  const steps = defs.map((def, i) => {
+    let status = 'empty';
+    try {
+      if (def.complete(d)) status = 'complete';
+      else if (def.started(d)) status = 'partial';
+    } catch { status = 'empty'; }
+    return { n: i + 1, label: lang === 'en' ? def.en : def.es, status };
+  });
+  const lastStepWithData = steps.reduce((acc, s) => (s.status !== 'empty' ? s.n : acc), 0);
+  const p = d.__progress && typeof d.__progress === 'object' ? d.__progress : null;
+  const tracked = Boolean(p && p.step);
+  const savedStep = tracked ? Math.min(Number(p.step) || 1, steps.length) : (lastStepWithData || 1);
+
+  return {
+    kind,
+    totalSteps: steps.length,
+    steps,
+    completeCount: steps.filter((s) => s.status === 'complete').length,
+    savedStep,
+    savedStepLabel: steps[savedStep - 1]?.label || '',
+    finished: tracked ? Boolean(p.finished) : null,
+    tracked,
+    savedAt: tracked ? p.savedAt || null : null,
+    lastStepWithData,
+  };
+}
+
+/** Última edición del administrador registrada en el trámite (o null). */
+export function lastAdminEdit(data) {
+  const log = data && Array.isArray(data.__adminEditLog) ? data.__adminEditLog : [];
+  return log.length ? log[log.length - 1] : null;
+}

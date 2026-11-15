@@ -19,6 +19,8 @@ import {
   kycFormSharedStyles,
 } from '../components/KycFormShared';
 import { validateField } from '../utils/fieldValidators';
+import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
+import { withProgress } from '../utils/formProgress';
 
 const ENTITY_TYPE_OPTIONS = ['S.A.', 'S. de R.L.', 'LLC', 'Fundación', 'Trust', 'Otra'];
 
@@ -57,10 +59,10 @@ const emptyKyceState = () => ({
   declarationDate: new Date().toISOString().split('T')[0],
 });
 
-const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
+const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = false, startStep }) => {
   const t = useT();
   const L = (key) => t(`kyce.fields.${key}`);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => (startStep >= 1 && startStep <= 3 ? startStep : 1));
   const [formData, setFormData] = useState(emptyKyceState);
   const [fieldErrors, setFieldErrors] = useState({});
   const registeredPeople = extractRegisteredPeople(formData);
@@ -138,7 +140,8 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
   };
 
   const nextStep = () => {
-    if (!validateStep(step)) {
+    // En modo lectura (vista del administrador) se navega sin validar.
+    if (!readOnly && !validateStep(step)) {
       window.alert(t('kyce.validationIncomplete'));
       return;
     }
@@ -267,9 +270,11 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
     <div style={{ width: '100%', padding: '12px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h1 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY }}>{t('formType.Cumplimiento Entidades')}</h1>
-        <button type="button" onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save">
+        {!readOnly && (
+        <button type="button" onClick={() => onSave(withProgress(formData, step, 3))} disabled={saving} className="expert-btn-save">
           <Save size={18} /> {saving ? t('common.saving') : t('kyce.saveDraft')}
         </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 4, marginBottom: '20px' }}>
@@ -284,9 +289,11 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
       </div>
 
       <div style={{ background: 'white', padding: '24px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <ReadOnlyFieldset readOnly={readOnly}>
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
+        </ReadOnlyFieldset>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e8edf2' }}>
           <button type="button" onClick={() => setStep((prev) => prev - 1)} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}>
@@ -296,8 +303,8 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving }) => {
             <button type="button" onClick={nextStep} className="expert-btn-primary">
               {t('common.continue')} <ChevronRight size={18} />
             </button>
-          ) : (
-            <button type="button" onClick={() => validateStep(3) && onSave(formData, true)} disabled={saving} className="expert-btn-finish">
+          ) : readOnly ? <span /> : (
+            <button type="button" onClick={() => validateStep(3) && onSave(withProgress(formData, step, 3, true), true)} disabled={saving} className="expert-btn-finish">
               <CheckCircle2 size={18} /> {saving ? t('common.saving') : t('common.finishSave')}
             </button>
           )}

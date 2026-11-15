@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const formVersions = require('../services/formVersionService');
 const { FormData, User, DocumentTemplate, AuditLog, TemplateFieldSchema } = require('../models');
 const auth = require('../middleware/auth');
 const path = require('path');
@@ -384,7 +385,12 @@ router.post('/schema/:formType/validate', auth, async (req, res) => {
 // @route   POST api/forms/save
 router.post('/save', auth, async (req, res) => {
   try {
-    const { id, type, data } = req.body;
+    const { id, type, expectedLatestId } = req.body;
+    // Claves que solo controla el servidor (__metadata, __adminEditLog, __progress):
+    // nunca se aceptan tal cual desde el cliente.
+    const rawData = req.body.data;
+    const data = formVersions.stripServerKeys(rawData);
+    const clientProgress = rawData && typeof rawData === 'object' ? rawData.__progress : undefined;
     const formTypeLabel = type || 'Documento General';
 
     const userObj = await User.findByPk(req.user.id, { attributes: ['uniqueCode'] });
@@ -394,6 +400,24 @@ router.post('/save', auth, async (req, res) => {
       const form = await FormData.findByPk(id);
       if (!form) return res.status(404).json({ msg: 'Formulario no encontrado' });
       if (form.userId !== req.user.id) return res.status(401).json({ msg: 'No autorizado' });
+
+      // Versión más reciente del trámite. Si el cliente indica qué versión era la
+      // más reciente cuando abrió el formulario y ya no lo es (p. ej. el
+      // administrador lo editó), no se sobrescribe: se avisa con 409.
+      // Sin expectedLatestId (restaurar desde el historial o clientes antiguos)
+      // se mantiene el comportamiento anterior.
+      const latest = await formVersions.getLatest(form);
+      if (expectedLatestId && latest.id !== expectedLatestId) {
+        const latestMeta = formVersions.getMeta(latest);
+        return res.status(409).json({
+          code: 'FORM_CONFLICT',
+          msg: latestMeta.editedBy?.role === 'admin'
+            ? 'El administrador modificó este trámite mientras lo editabas. Recarga para ver la versión actual; tus cambios no se guardaron.'
+            : 'Este trámite se modificó en otra sesión mientras lo editabas. Recarga para ver la versión actual; tus cambios no se guardaron.',
+          latestId: latest.id,
+          latestVersion: latestMeta.version,
+        });
+      }
 
       // Calculate diff
       const oldData = form.data || {};
@@ -411,11 +435,18 @@ router.post('/save', auth, async (req, res) => {
           : ' (Sin cambios detectados)';
 
       const parentId = (form.data && form.data.__metadata && form.data.__metadata.parentId) ? form.data.__metadata.parentId : form.id;
-      const nextVersion = ((form.data && form.data.__metadata && form.data.__metadata.version) || 1) + 1;
+      // Siguiente número tras la versión MÁS RECIENTE (antes se calculaba sobre la
+      // versión abierta y al restaurar una antigua se repetían números).
+      const nextVersion = formVersions.getMeta(latest).version + 1;
+      const adminEditLog = formVersions.getAdminEditLog(latest);
+      const progress = formVersions.sanitizeProgress(clientProgress, latest.data && latest.data.__progress);
 
       // Add metadata to new data
       const dataWithMeta = {
           ...data,
+          ...(progress ? { __progress: progress } : {}),
+          // El rastro de ediciones del administrador se conserva siempre.
+          ...(adminEditLog.length ? { __adminEditLog: adminEditLog } : {}),
           __metadata: { parentId, version: nextVersion }
       };
 
@@ -440,8 +471,10 @@ router.post('/save', auth, async (req, res) => {
     }
 
     // Add metadata for new form
+    const newProgress = formVersions.sanitizeProgress(clientProgress, null);
     const dataWithMeta = {
         ...data,
+        ...(newProgress ? { __progress: newProgress } : {}),
         __metadata: { parentId: null, version: 1 }
     };
 
@@ -502,7 +535,12 @@ router.get('/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
         if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
-        res.json({ id: form.id, type: form.formType, data: form.data, userId: form.userId });
+        // latestId / latestVersion: campos ADITIVOS para detectar ediciones simultáneas.
+        const latest = await formVersions.getLatest(form).catch(() => form);
+        res.json({
+            id: form.id, type: form.formType, data: form.data, userId: form.userId,
+            latestId: latest.id, latestVersion: formVersions.getMeta(latest).version
+        });
     } catch (e) { res.status(500).json({ msg: 'Error' }); }
 });
 

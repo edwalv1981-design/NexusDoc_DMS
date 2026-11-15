@@ -194,12 +194,15 @@ app.use(['/api/auth/register', '/admin/api/auth/register'], authLimiter);
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const adminFormEditorRoutes = require('./routes/adminFormEditor');
 const managerRoutes = require('./routes/manager');
 const formRoutes = require('./routes/formRoutes');
 const documentRoutes = require('./routes/documents');
 const signedDocRoutes = require('./routes/signedDocuments');
 
 app.use(['/api/auth', '/admin/api/auth'], authRoutes);
+// Ver/editar trámites (solo administrador). Antes de adminRoutes.
+app.use(['/api/admin/form-editor', '/admin/api/admin/form-editor'], adminFormEditorRoutes);
 app.use(['/api/admin', '/admin/api/admin', '/admin/api'], adminRoutes);
 app.use(['/api/manager', '/admin/api/manager'], managerRoutes);
 app.use(['/api/forms', '/admin/api/forms'], formRoutes);

@@ -1,0 +1,104 @@
+name: E2E (ver/editar trámites del administrador)
+
+# Levanta la app completa contra un PostgreSQL TEMPORAL (nunca producción),
+# crea usuarios de prueba y verifica por API y en Chromium el flujo de
+# ver/editar del administrador, la bitácora y la edición simultánea.
+on:
+  push:
+    branches: [main, 'feat/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: e2e_Pass_9137
+          POSTGRES_DB: nexusdoc_e2e
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:e2e_Pass_9137@localhost:5432/nexusdoc_e2e
+      DB_SSL: 'false'
+      NODE_ENV: test
+      PORT: '5055'
+      JWT_SECRET: e2e-only-secret-not-used-anywhere-else-7f3a9c
+      E2E_PASSWORD: E2e-Password-2026!
+      E2E_BASE_URL: http://localhost:5055
+      CORS_ORIGINS: http://localhost:5055
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Dependencias del servidor
+        working-directory: server
+        run: npm ci --no-audit --no-fund
+
+      - name: Compilar frontend
+        working-directory: client
+        run: |
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm run build
+
+      - name: Migraciones
+        working-directory: server
+        run: node scripts/migrate-with-url.mjs
+
+      - name: Iniciar servidor
+        working-directory: server
+        run: |
+          nohup node index.js > ../server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:5055/ready 2>/dev/null | grep -q ready; then echo "API lista"; break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:5055/health
+
+      - name: Datos de prueba
+        working-directory: server
+        run: node scripts/e2e/seed.cjs
+
+      - name: E2E API
+        working-directory: server
+        env:
+          E2E_OUT: ${{ runner.temp }}/e2e-ids.json
+        run: node scripts/e2e/admin-forms-api.mjs
+
+      - name: Playwright + Chromium
+        working-directory: ${{ runner.temp }}
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+
+      - name: E2E navegador
+        working-directory: ${{ runner.temp }}
+        env:
+          SHOTS_DIR: ${{ runner.temp }}/e2e-shots
+        run: |
+          cp "$GITHUB_WORKSPACE/server/scripts/e2e/admin-forms-ui.mjs" .
+          node admin-forms-ui.mjs "${{ runner.temp }}/e2e-ids.json"
+
+      - name: Log del servidor (si falla)
+        if: failure()
+        run: tail -n 150 server.log
+
+      - name: Capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-capturas
+          path: ${{ runner.temp }}/e2e-shots
+          if-no-files-found: ignore

@@ -15,6 +15,8 @@ import PersonSelector from '../components/common/PersonSelector';
 import EntityTypeSelector from '../components/common/EntityTypeSelector';
 import { validateField } from '../utils/fieldValidators';
 import { normalizeLoadedCorporacionData } from '../utils/corporacionPersonRegistry';
+import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
+import { withProgress } from '../utils/formProgress';
 
 const TEXT_PRIMARY = '#1e293b';
 const TEXT_SECONDARY = '#475569';
@@ -27,9 +29,9 @@ const ACCENT = '#0f766e';
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
 
-const CorporacionForm = ({ initialData, onSave, saving }) => {
+const CorporacionForm = ({ initialData, onSave, saving, readOnly = false, startStep }) => {
     const { lang, t } = useLang();
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(() => (startStep >= 1 && startStep <= 5 ? startStep : 1));
     const [fieldErrors, setFieldErrors] = useState({});
     const [formData, setFormData] = useState({
         corpNameSA: '', corpNameCorp: '', corpNameInc: '',
@@ -431,7 +433,7 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             );
             return;
         }
-        onSave(formData, true);
+        onSave(withProgress(formData, step, 5, true), true);
     };
 
     /* ── Step renderers ── */
@@ -926,9 +928,11 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
                     <h1 className="corp-title">{t('corporacion.title')}</h1>
                     <p className="corp-subtitle">{t('corporacion.subtitle')}</p>
                 </div>
-                <button onClick={() => onSave(formData)} disabled={saving} className="corp-btn-save">
+                {!readOnly && (
+                <button onClick={() => onSave(withProgress(formData, step, 5))} disabled={saving} className="corp-btn-save">
                     <Save size={16} /> {saving ? t('corporacion.syncing') : t('corporacion.saveProgress')}
                 </button>
+                )}
             </div>
 
             <div className="standard-step-header">
@@ -951,17 +955,19 @@ const CorporacionForm = ({ initialData, onSave, saving }) => {
             </div>
 
             <div className="corp-main-panel">
+                <ReadOnlyFieldset readOnly={readOnly}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStep2()}
                 {step === 3 && renderStep3()}
                 {step === 4 && renderStep4()}
                 {step === 5 && renderStep5()}
+                </ReadOnlyFieldset>
 
                 <div className="corp-nav-footer">
                     <button onClick={() => setStep(prev => prev - 1)} disabled={step === 1} className="corp-btn-nav-prev"><ChevronLeft size={16} /> {t('corporacion.previous')}</button>
                     {step < 5 ? (
                         <button onClick={() => setStep(prev => prev + 1)} className="corp-btn-nav-next">{t('corporacion.nextStep')} <ChevronRight size={16} /></button>
-                    ) : (
+                    ) : readOnly ? <span /> : (
                         <button onClick={handleFinalSave} disabled={saving} className="corp-btn-nav-finish"><CheckCircle2 size={16} /> {saving ? t('corporacion.finalizing') : t('corporacion.registerCorp')}</button>
                     )}
                 </div>

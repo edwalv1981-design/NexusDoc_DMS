@@ -24,6 +24,7 @@ import {
   isKyceFormType,
 } from '../utils/formWizardRouting';
 import { validateField, validateFields } from '../utils/fieldValidators';
+import { withProgress, lastAdminEdit } from '../utils/formProgress';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -69,6 +70,9 @@ const ClientDashboard = () => {
         custodyAddress: '', signerName: '', date: new Date().toISOString().split('T')[0]
     };
     const [formData, setFormData] = useState(EMPTY_FORM);
+    // Versión más reciente del trámite al abrirlo: detecta si el administrador
+    // (u otra sesión) lo modificó mientras el usuario lo editaba.
+    const [latestIdAtOpen, setLatestIdAtOpen] = useState(null);
     const [fieldErrors, setFieldErrors] = useState({});
 
     const handleFieldBlur = (fieldName) => {
@@ -247,6 +251,9 @@ const ClientDashboard = () => {
                 const result = await response.json();
                 if (result.data) setFormData(result.data);
                 if (result.type) setCurrentFormType(resolveCanonicalFormType(result.type));
+                // Solo se exige que siga siendo la más reciente si se abrió la versión actual
+                // (abrir una versión antigua del historial para restaurarla sigue permitido).
+                setLatestIdAtOpen(result.latestId && result.latestId === result.id ? result.latestId : null);
             }
         } catch (e) { console.error(e); }
     };
@@ -293,7 +300,12 @@ const ClientDashboard = () => {
             const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify({ id: cleanId, type: currentFormType || user?.initialForm || 'Documento', data: formData })
+                body: JSON.stringify({
+                    id: cleanId,
+                    type: currentFormType || user?.initialForm || 'Documento',
+                    data: withProgress(formData, 3, 3, true),
+                    ...(cleanId && latestIdAtOpen ? { expectedLatestId: latestIdAtOpen } : {})
+                })
             });
             if (response.status === 401) { localStorage.clear(); return navigate('/'); }
             if (response.ok) { 
@@ -314,7 +326,12 @@ const ClientDashboard = () => {
             const response = await fetch(`${API_BASE_URL}/api/forms/save`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify({ id: cleanId, type: currentFormType || user?.initialForm || 'Documento', data: dataToSave })
+                body: JSON.stringify({
+                    id: cleanId,
+                    type: currentFormType || user?.initialForm || 'Documento',
+                    data: dataToSave,
+                    ...(cleanId && latestIdAtOpen ? { expectedLatestId: latestIdAtOpen } : {})
+                })
             });
             if (response.status === 401) { localStorage.clear(); return navigate('/'); }
             if (response.ok) { 
@@ -478,6 +495,17 @@ const ClientDashboard = () => {
 
             <main style={{ flex: 1, padding: '35px 45px', overflowY: 'auto' }}>
               <div className="form-content-frame">
+                {showForm && editId && lastAdminEdit(formData) && (() => {
+                    const ed = lastAdminEdit(formData);
+                    return (
+                        <div role="status" style={{ background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', borderRadius: RADIUS, padding: '10px 14px', marginBottom: 16, fontSize: 12.5, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span aria-hidden="true">🛡️</span>
+                            {lang === 'en'
+                                ? `This form was edited by the administrator on ${new Date(ed.at).toLocaleString('en-US')} (version ${ed.version}). Review the data before continuing.`
+                                : `Este trámite fue editado por el administrador el ${new Date(ed.at).toLocaleString('es-EC')} (versión ${ed.version}). Revisa los datos antes de continuar.`}
+                        </div>
+                    );
+                })()}
                 {queryParams.get('view') === 'sub-users' && user?.role === 'manager' ? (
                     <SubUsers />
                 ) : showSignedDocs ? (
@@ -547,6 +575,7 @@ const ClientDashboard = () => {
                                             <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 {getFormTypeLabel(mainDoc.type, lang)}
                                                 {hasHistory && <span style={{ fontSize: '10px', background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px' }}>v{mainDoc.version || 1} (Actual)</span>}
+                                                {lastAdminEdit(mainDoc.data) && <span title={new Date(lastAdminEdit(mainDoc.data).at).toLocaleString(lang === 'en' ? 'en-US' : 'es-EC')} style={{ fontSize: '10px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>{lang === 'en' ? 'Edited by administrator' : 'Editado por el administrador'}</span>}
                                             </div>
                                             
                                             <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 4 }}>

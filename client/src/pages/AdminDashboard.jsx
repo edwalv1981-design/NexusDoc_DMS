@@ -886,7 +886,11 @@ const AdminDashboard = () => {
                                   </div>
                               </div>
                               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <button onClick={() => handleOpenEditForm(r)} title={t('admin.editForm')} style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {/* Ver (solo lectura + avance) y Editar: se abren en otra pestaña para conservar la búsqueda. */}
+                                <button onClick={() => window.open(`/admin/form/${r.formId}?mode=view`, '_blank', 'noopener')} title={lang === 'en' ? 'View form and user progress (read only)' : 'Ver el trámite y el avance del usuario (solo lectura)'} style={{ background: '#0369a1', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Eye size={12} /> {lang === 'en' ? 'View' : 'Ver'}
+                                </button>
+                                <button onClick={() => window.open(`/admin/form/${r.formId}?mode=edit`, '_blank', 'noopener')} title={t('admin.editForm')} style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <Edit2 size={12} /> {t('common.edit')}
                                 </button>
                                 <button onClick={() => setDeletingForm(r)} title={t('admin.deleteForm')} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>

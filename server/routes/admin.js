@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { escapeLike } = require('../utils/sqlLike');
+const requireFullAdmin = require('../middleware/requireFullAdmin');
 const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocument, DocumentTemplate, TemplateFieldSchema } = require('../models');
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
@@ -1504,7 +1505,9 @@ router.get('/user-forms/:userId', [auth, isAdmin], async (req, res) => {
 
 // @route   PUT api/admin/forms/:id
 // @desc    Actualiza los datos o tipo de un formulario específico (Admin Only)
-router.put('/forms/:id', [auth, isAdmin], async (req, res) => {
+// Edición directa (JSON) restringida al administrador real. La edición
+// habitual se hace con /api/admin/form-editor (versiones + bitácora detallada).
+router.put('/forms/:id', [auth, isAdmin, requireFullAdmin], async (req, res) => {
     try {
         const { formType, data } = req.body;
         const form = await FormData.findByPk(req.params.id);

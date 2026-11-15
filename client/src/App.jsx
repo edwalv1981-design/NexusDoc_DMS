@@ -10,6 +10,7 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Register = lazy(() => import('./pages/Register'));
 const Verify = lazy(() => import('./pages/Verify'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminFormEditor = lazy(() => import('./pages/AdminFormEditor'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const FondosForm = lazy(() => import('./pages/FondosForm'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -126,6 +127,14 @@ function App() {
                 <AdminDashboard />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/admin/form/:id"
+            element={
+              <ProtectedRoute roleRequired="admin">
+                <AdminFormEditor />
+              </ProtectedRoute>
+            }
           />
           <Route 
             path="/dashboard" 

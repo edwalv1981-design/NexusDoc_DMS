@@ -22,6 +22,8 @@ import PersonSelector from '../components/common/PersonSelector';
 import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
 
 import { validateField } from '../utils/fieldValidators';
+import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
+import { withProgress } from '../utils/formProgress';
 
 import {
 
@@ -41,13 +43,13 @@ import {
 
 
 
-const FundacionForm = ({ initialData, onSave, saving }) => {
+const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startStep }) => {
 
     const { lang, t } = useLang();
 
     const L = (key) => (t?.(`fundacion.person.${key}`) ?? key);
 
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(() => (startStep >= 1 && startStep <= 10 ? startStep : 1));
 
     const [formData, setFormData] = useState({
 
@@ -1632,11 +1634,13 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                 </div>
 
-                <button type="button" onClick={() => onSave(formData)} disabled={saving} className="expert-btn-save-master">
+                {!readOnly && (
+                <button type="button" onClick={() => onSave(withProgress(formData, step, 10))} disabled={saving} className="expert-btn-save-master">
 
                     <Save size={18} /> {saving ? t('fundacion.syncing') : t('fundacion.saveProgress')}
 
                 </button>
+                )}
 
             </div>
 
@@ -1692,6 +1696,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
             <div className="expert-main-panel">
 
+                <ReadOnlyFieldset readOnly={readOnly}>
                 {step === 1 && renderStep1()}
 
                 {step === 2 && renderStep2()}
@@ -1711,6 +1716,7 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
                 {step === 9 && renderStep9()}
 
                 {step === 10 && renderStep10()}
+                </ReadOnlyFieldset>
 
 
 
@@ -1722,9 +1728,9 @@ const FundacionForm = ({ initialData, onSave, saving }) => {
 
                         <button type="button" onClick={() => setStep(prev => prev + 1)} className="expert-btn-nav-next">{t('fundacion.nextStep')} <ChevronRight size={18} /></button>
 
-                    ) : (
+                    ) : readOnly ? <span /> : (
 
-                        <button type="button" onClick={() => onSave(formData, true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? t('fundacion.finalizing') : t('fundacion.registerFoundation')}</button>
+                        <button type="button" onClick={() => onSave(withProgress(formData, step, 10, true), true)} disabled={saving} className="expert-btn-nav-finish"><CheckCircle2 size={18} /> {saving ? t('fundacion.finalizing') : t('fundacion.registerFoundation')}</button>
 
                     )}
 
