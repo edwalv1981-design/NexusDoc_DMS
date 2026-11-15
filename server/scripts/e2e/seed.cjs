@@ -28,6 +28,9 @@ const profileStore = require('../../services/userProfileStore');
   const manager = await mk('Gerente E2E', 'manager.e2e@example.com', 'client', '0900000002', 'E2E-MGR');
   await profileStore.setProfile(manager.id, { roleOverride: 'manager' });
   await mk('Cliente E2E', 'client.e2e@example.com', 'client', '0900000003', 'E2E-CLI');
+  // Subusuario creado por el "Administrador Usuarios" (igual que /api/manager/sub-users).
+  const sub = await mk('Subusuario E2E', 'sub.e2e@example.com', 'client', '0900000004', 'E2E-SUB');
+  await profileStore.setProfile(sub.id, { roleOverride: 'client', createdBy: manager.id });
   console.log('seed ok');
   process.exit(0);
 })().catch((e) => {

@@ -33,23 +33,11 @@ const {
     normalizeTemplateRow,
 } = require('../utils/pgTable');
 
-// Middleware to verify Admin or Manager role (JWT o rol real en BD)
-const isAdmin = (req, res, next) => {
-    const isStaff = (
-        req.user?.role === 'admin' ||
-        req.user?.role === 'manager' ||
-        req.dbUser?.role === 'admin' ||
-        req.dbUser?.role === 'manager' ||
-        req.user?.roleOverride === 'manager' ||
-        req.dbUser?.roleOverride === 'manager' ||
-        req.user?.roleOverride === 'master' ||
-        req.dbUser?.roleOverride === 'master'
-    );
-    if (!isStaff) {
-        return res.status(403).json({ msg: 'Acceso denegado: Se requiere rol de administrador o gerente' });
-    }
-    next();
-};
+// Rutas del panel de administrador: SOLO administrador (admin / master).
+// Antes también dejaba pasar al rol "Administrador Usuarios" (manager), que así
+// podía listar/eliminar usuarios, ver la bitácora o borrar trámites de todo el
+// sistema. Su pantalla solo usa /api/manager (subusuarios), que no cambia.
+const isAdmin = (req, res, next) => requireFullAdmin(req, res, next);
 
 // Administrador "real": rol admin en BD o perfil master. Un gerente (manager) NO lo es.
 // Solo un administrador real puede otorgar o quitar el rol "master" (equivale a admin).

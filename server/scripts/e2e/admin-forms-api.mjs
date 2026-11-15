@@ -161,5 +161,40 @@ assert.equal(r.status, 200);
 assert.equal(r.body.form.type, 'Cumplimiento Individual');
 ok('Editor del administrador funciona con KYC Individual');
 
+// 14) Opción A: "Administrador Usuarios" (manager) limitado a él y sus subusuarios
+for (const path of ['/api/admin/users', '/api/admin/logs', '/api/admin/search-person?nombres=Ana', `/api/admin/user-forms/${admin.user.id}`]) {
+  r = await api('GET', path, manager.token);
+  assert.equal(r.status, 403, `manager ${path}: ${r.status}`);
+}
+r = await api('DELETE', `/api/admin/forms/${v1.id}`, manager.token);
+assert.equal(r.status, 403);
+r = await api('GET', '/api/admin/users', admin.token);
+assert.equal(r.status, 200, 'el administrador conserva el acceso');
+ok('Administrador Usuarios: 403 en todo el API del panel de administrador; el administrador sigue con acceso');
+
+const sub = await login('sub.e2e@example.com');
+r = await api('POST', '/api/forms/save', sub.token, { type: 'Cumplimiento Individual', data: { fullName: 'Sub Uno', passport: 'S1', pep: 'No', fundsSource: [] } });
+assert.equal(r.status, 200);
+const subForm = r.body.data;
+r = await api('POST', '/api/forms/save', sub.token, { type: 'Cumplimiento Individual', data: { fullName: 'Sub Dos', passport: 'S2', pep: 'No', fundsSource: [] } });
+const subForm2 = r.body.data;
+r = await api('GET', `/api/forms/${subForm.id}`, manager.token);
+assert.equal(r.status, 200, 'manager ve el trámite de su subusuario');
+r = await api('GET', `/api/forms/${v1.id}`, manager.token);
+assert.equal(r.status, 404, 'manager NO ve trámites de otros clientes');
+r = await api('GET', `/api/forms/generate-pdf/${v1.id}`, manager.token);
+assert.equal(r.status, 404, 'manager NO descarga PDF de otros clientes');
+r = await api('DELETE', `/api/forms/${v1.id}`, manager.token);
+assert.equal(r.status, 404, 'manager NO elimina trámites de otros clientes');
+r = await api('GET', `/api/forms/${v1.id}`, client.token);
+assert.equal(r.status, 200, 'el trámite del cliente sigue existiendo');
+r = await api('DELETE', `/api/forms/${subForm2.id}`, manager.token);
+assert.equal(r.status, 200, 'manager puede eliminar trámites de su subusuario');
+r = await api('GET', `/api/forms/${subForm.id}`, client.token);
+assert.equal(r.status, 404, 'un cliente no ve trámites de otro usuario');
+r = await api('GET', `/api/forms/${subForm.id}`, admin.token);
+assert.equal(r.status, 200, 'el administrador ve todo');
+ok('Administrador Usuarios: ve/elimina solo lo suyo y de sus subusuarios; no toca trámites de otros clientes');
+
 fs.writeFileSync(process.env.E2E_OUT || 'e2e-ids.json', JSON.stringify({ corpLatestId, v3id, kycId: kyc.id, adminToken: admin.token, clientToken: client.token, admin: admin.user, client: client.user }));
 console.log(`\nE2E API: ${step} verificaciones OK`);
