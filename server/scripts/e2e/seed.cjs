@@ -26,11 +26,15 @@ const profileStore = require('../../services/userProfileStore');
   });
   await mk('Admin E2E', 'admin.e2e@example.com', 'admin', '0900000001', 'E2E-ADMIN');
   const manager = await mk('Gerente E2E', 'manager.e2e@example.com', 'client', '0900000002', 'E2E-MGR');
-  await profileStore.setProfile(manager.id, { roleOverride: 'manager' });
+  await profileStore.setProfile(manager.id, { roleOverride: 'manager', phone: '', address: '', createdBy: null });
   await mk('Cliente E2E', 'client.e2e@example.com', 'client', '0900000003', 'E2E-CLI');
   // Subusuario creado por el "Administrador Usuarios" (igual que /api/manager/sub-users).
   const sub = await mk('Subusuario E2E', 'sub.e2e@example.com', 'client', '0900000004', 'E2E-SUB');
-  await profileStore.setProfile(sub.id, { roleOverride: 'client', createdBy: manager.id });
+  await profileStore.setProfile(sub.id, { roleOverride: 'client', phone: '', address: '', createdBy: manager.id });
+  // setProfile() ignora errores: verificar que los perfiles quedaron guardados.
+  const mp = await profileStore.getProfile(manager.id);
+  const sp = await profileStore.getProfile(sub.id);
+  if (mp?.roleOverride !== 'manager' || sp?.createdBy !== manager.id) throw new Error('perfiles de prueba no guardados');
   console.log('seed ok');
   process.exit(0);
 })().catch((e) => {
