@@ -15,6 +15,10 @@ const profileStore = require('../../services/userProfileStore');
 
 (async () => {
   await connectDB();
+  // Igual que ensureUserProfilesTable() del servidor (en la BD temporal el bootstrap
+  // puede no llegar a crearla).
+  const { sequelize } = require('../../config/db');
+  await sequelize.query(`CREATE TABLE IF NOT EXISTS "UserProfiles" ("userId" UUID PRIMARY KEY, "roleOverride" VARCHAR(50), "phone" VARCHAR(50), "address" TEXT, "createdBy" UUID)`);
   const pass = process.env.E2E_PASSWORD;
   const mk = (name, email, role, idNumber, uniqueCode) => User.create({
     name, email, password: pass, role, status: 'authorized', nationality: 'Ecuador',
