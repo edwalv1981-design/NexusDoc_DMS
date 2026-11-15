@@ -75,7 +75,10 @@ try {
   await page.goto(`${BASE}/dashboard?view=form&id=${newId}`, { waitUntil: 'networkidle' });
   await page.getByText(/fue editado por el administrador|was edited by the administrator/).first().waitFor({ timeout: 20000 });
   ok('Usuario: al abrir el trámite ve el aviso de edición del administrador');
-  expect(await page.locator('input[value="A777"]').count() > 0, 'Usuario: ve el dato corregido por el administrador (A777)');
+  // El usuario abre en el paso 1 (como siempre); el pasaporte está en el paso 2.
+  await page.locator('.corp-btn-nav-next').click();
+  await page.locator('input[value="A777"]').first().waitFor({ timeout: 10000 }).catch(() => {});
+  expect(await page.locator('input[value="A777"]').count() > 0, 'Usuario: ve el dato corregido por el administrador (A777) en Junta Directiva');
   await shot('04-usuario-aviso');
 
   expect(problems.length === 0, `Sin errores de JavaScript ni violaciones CSP ${problems.length ? problems.join(' | ') : ''}`);
