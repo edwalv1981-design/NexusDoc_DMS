@@ -440,18 +440,23 @@ router.put('/users/:id/role', [auth, isAdmin], async (req, res) => {
             }
         }
         
-        // Ensure profile exists or update it
+        // Conserva teléfono, dirección y el vínculo con el "Administrador Usuarios"
+        // que creó al usuario (antes se borraban y el subusuario quedaba suelto).
+        // Excepción: una cuenta ascendida a Administrador (master) no queda bajo
+        // un Administrador Usuarios.
+        const currentProfile = await profileStore.getProfile(user.id).catch(() => null);
+        const keepCreator = Boolean(currentProfile?.createdBy) && roleOverride !== 'master';
         await profileStore.setProfile(user.id, {
             roleOverride,
-            phone: '',
-            address: '',
-            createdBy: req.user.id
+            phone: currentProfile?.phone || '',
+            address: currentProfile?.address || '',
+            createdBy: keepCreator ? currentProfile.createdBy : req.user.id
         });
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'USER_ROLE_CHANGE',
-            description: `Admin cambió el rol de ${user.email} a ${roleOverride}`
+            description: `Admin cambió el rol de ${user.email} a ${roleOverride}${keepCreator && currentProfile.createdBy !== req.user.id ? ' (se conserva su vínculo con el Administrador Usuarios que lo creó)' : ''}`
         });
 
         res.json({ msg: `Rol de usuario actualizado a ${roleOverride}` });

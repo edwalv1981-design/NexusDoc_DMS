@@ -196,5 +196,14 @@ r = await api('GET', `/api/forms/${subForm.id}`, admin.token);
 assert.equal(r.status, 200, 'el administrador ve todo');
 ok('Administrador Usuarios: ve/elimina solo lo suyo y de sus subusuarios; no toca trámites de otros clientes');
 
+// 15) Cambio de rol por el administrador conserva el vínculo con el Administrador Usuarios
+r = await api('PUT', `/api/admin/users/${sub.user.id}/role`, admin.token, { roleOverride: 'client' });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await api('GET', `/api/forms/${subForm.id}`, manager.token);
+assert.equal(r.status, 200, 'tras el cambio de rol el Administrador Usuarios sigue viendo a su subusuario');
+r = await api('PUT', `/api/admin/users/${sub.user.id}/role`, manager.token, { roleOverride: 'client' });
+assert.equal(r.status, 403, 'solo el administrador cambia roles');
+ok('Cambio de rol por el administrador conserva el vínculo del subusuario; el Administrador Usuarios no puede cambiar roles');
+
 fs.writeFileSync(process.env.E2E_OUT || 'e2e-ids.json', JSON.stringify({ corpLatestId, v3id, kycId: kyc.id, adminToken: admin.token, clientToken: client.token, admin: admin.user, client: client.user }));
 console.log(`\nE2E API: ${step} verificaciones OK`);
