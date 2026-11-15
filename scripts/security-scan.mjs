@@ -152,7 +152,7 @@ async function scanDomain(host) {
   add(secretHits.length ? 'FAIL' : 'OK', 'Sin secretos en el JavaScript público', secretHits.join('; ') || 'ningún patrón encontrado');
 
   // 7) API protegida sin token
-  const protectedEndpoints = ['/api/auth/me', '/api/admin/users', '/api/admin/logs', '/api/forms/my-forms', '/api/documents', '/api/signed-docs', '/api/admin/templates', '/api/manager/sub-users'];
+  const protectedEndpoints = ['/api/auth/me', '/api/admin/users', '/api/admin/logs', '/api/forms/my-forms', '/api/documents', '/api/signed-docs', '/api/admin/templates', '/api/manager/sub-users', '/api/admin/form-editor/00000000-0000-4000-8000-000000000000'];
   const open = [];
   for (const p of protectedEndpoints) {
     const r = await req(`${base}${p}`);
