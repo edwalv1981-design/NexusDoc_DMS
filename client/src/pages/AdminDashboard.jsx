@@ -896,9 +896,6 @@ const AdminDashboard = () => {
                                 <button onClick={() => setDeletingForm(r)} title={t('admin.deleteForm')} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <Trash2 size={12} /> {t('common.delete')}
                                 </button>
-                                <button onClick={() => setExpandedPerson(isExpanded ? null : idx)} className="btn-primary" style={{ padding: '6px 16px', fontSize: 11 }}>
-                                  {isExpanded ? t('admin.seeLess') : t('admin.seeMore')}
-                                </button>
                               </div>
                             </div>
                             
