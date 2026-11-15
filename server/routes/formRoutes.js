@@ -18,25 +18,20 @@ const templateAvailability = require('../utils/templateAvailability');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
 const personCatalogService = require('../services/personCatalogService');
 
-function isDbAdmin(req) {
-    return (
-        req.dbUser?.role === 'admin' ||
-        req.user?.role === 'admin' ||
-        req.user?.role === 'manager' ||
-        req.dbUser?.role === 'manager' ||
-        req.user?.roleOverride === 'manager' ||
-        req.dbUser?.roleOverride === 'manager' ||
-        req.user?.roleOverride === 'master' ||
-        req.dbUser?.roleOverride === 'master'
-    );
-}
+// Alcance por tipo de cuenta (admin: todo; Administrador Usuarios: él y sus
+// subusuarios; usuario: solo lo suyo). La función anterior daba a los
+// "Administrador Usuarios" acceso a los trámites de TODO el sistema.
+const { accessibleUserIds, canAccessForm } = require('../utils/formAccess');
 
 async function queryFormDataScoped(sequelize, sqlTemplate, replacements, req) {
     const uid = req.user && req.user.id;
-    const ownerClauses = isDbAdmin(req)
+    const scope = await accessibleUserIds(req);
+    const ownerClauses = scope === null
         ? ['']
-        : [' AND user_id = :uid', ' AND "userId" = :uid'];
-    const params = { ...replacements, uid };
+        : scope.length > 1
+            ? [' AND user_id IN (:uids)', ' AND "userId" IN (:uids)']
+            : [' AND user_id = :uid', ' AND "userId" = :uid'];
+    const params = { ...replacements, uid, uids: scope && scope.length ? scope : [uid] };
     for (const owner of ownerClauses) {
         const sql = sqlTemplate.replace('/*OWNER*/', owner);
         try {
@@ -149,16 +144,19 @@ router.get('/corporacion/search-person', auth, async (req, res) => {
             console.error('Catalog search error:', catErr);
         }
 
-        // 2. Secondary: Fallback to Users table (solo admin; clientes usan su catálogo)
-        if (isDbAdmin(req)) {
+        // 2. Secondary: Fallback to Users table (administrador: todos; Administrador
+        // Usuarios: solo sus subusuarios; usuarios normales usan su catálogo)
+        const usersScope = await accessibleUserIds(req);
+        if (usersScope === null || usersScope.length > 1) {
         try {
             const { sequelize } = require('../config/db');
             const [userRows] = await sequelize.query(
                 `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
                  FROM "Users"
-                 WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
+                 WHERE (name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern)
+                 ${usersScope ? 'AND id IN (:uids)' : ''}
                  LIMIT 20`,
-                { replacements: { pattern: `%${q}%` } }
+                { replacements: { pattern: `%${q}%`, uids: usersScope || [] } }
             );
             userRows.forEach(u => {
                 const key = (u.passport || u.fullName || u.email || '').trim();
@@ -253,16 +251,19 @@ router.get('/fundacion/search-person', auth, async (req, res) => {
             console.error('Catalog search error:', catErr);
         }
 
-        // 2. Secondary: Fallback to Users table (solo admin; clientes usan su catálogo)
-        if (isDbAdmin(req)) {
+        // 2. Secondary: Fallback to Users table (administrador: todos; Administrador
+        // Usuarios: solo sus subusuarios; usuarios normales usan su catálogo)
+        const usersScope = await accessibleUserIds(req);
+        if (usersScope === null || usersScope.length > 1) {
         try {
             const { sequelize } = require('../config/db');
             const [userRows] = await sequelize.query(
                 `SELECT name AS "fullName", "idNumber" AS "passport", email, nationality
                  FROM "Users"
-                 WHERE name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern
+                 WHERE (name ILIKE :pattern OR "idNumber" ILIKE :pattern OR email ILIKE :pattern)
+                 ${usersScope ? 'AND id IN (:uids)' : ''}
                  LIMIT 20`,
-                { replacements: { pattern: `%${q}%` } }
+                { replacements: { pattern: `%${q}%`, uids: usersScope || [] } }
             );
 
             userRows.forEach(u => {
@@ -534,7 +535,7 @@ router.get('/my-forms', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
+        if (!form || !(await canAccessForm(req, form))) return res.status(404).json({ msg: 'No encontrado' });
         // latestId / latestVersion: campos ADITIVOS para detectar ediciones simultáneas.
         const latest = await formVersions.getLatest(form).catch(() => form);
         res.json({
@@ -548,7 +549,7 @@ router.get('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
+        if (!form || !(await canAccessForm(req, form))) return res.status(404).json({ msg: 'No encontrado' });
         await form.destroy();
         
         AuditLog.create({
@@ -565,7 +566,7 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/generate-pdf/:id', auth, async (req, res) => {
     try {
         const form = await FormData.findByPk(req.params.id);
-        if (!form || (form.userId !== req.user.id && !isDbAdmin(req))) return res.status(404).json({ msg: 'No encontrado' });
+        if (!form || !(await canAccessForm(req, form))) return res.status(404).json({ msg: 'No encontrado' });
 
         const userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
 
