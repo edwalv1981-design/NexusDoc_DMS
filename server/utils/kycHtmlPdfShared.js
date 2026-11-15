@@ -23,11 +23,20 @@ function kvRow(label, value) {
   return `<tr><td class="kv-label">${esc(label)}</td><td>${esc(value || '\u2014')}</td></tr>`;
 }
 
+/**
+ * Fila con valor HTML ya construido y escapado (p. ej. formatYesNoChecks).
+ * kvRow() escapa el valor: con HTML mostraba el código literal en el PDF
+ * ("<span class="chk">[X] Sí</span>...") en lugar de las casillas.
+ */
+function kvRowHtml(label, html) {
+  return `<tr><td class="kv-label">${esc(label)}</td><td>${html || '\u2014'}</td></tr>`;
+}
+
 /** Yes/No como casillas [X] / [ ] (mismo patron que fundacion / incorporacion). */
 function formatYesNoChecks(yesSelected, noSelected, t) {
   const yesMark = yesSelected ? 'X' : ' ';
   const noMark = noSelected ? 'X' : ' ';
-  return `<span class="chk">[${yesMark}] ${esc(t.yes)}</span> <span class="chk">[${noMark}] ${esc(t.no)}</span>`;
+  return `<span class="chk">[${yesMark}] ${esc(t.yes)}</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="chk">[${noMark}] ${esc(t.no)}</span>`;
 }
 
 function buildFundsChecksHtml(fundsSourceKeys, data, t) {
@@ -57,6 +66,7 @@ module.exports = {
   fmtDate,
   kvRow,
   formatYesNoChecks,
+  kvRowHtml,
   buildFundsChecksHtml,
   isPepYes,
   sectionGuideHtml,

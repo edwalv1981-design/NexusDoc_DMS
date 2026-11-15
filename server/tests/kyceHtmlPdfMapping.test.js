@@ -62,6 +62,9 @@ describe('kyceHtmlPdfMapping', () => {
     );
     assert.match(htmlYes, new RegExp(`\\[X\\] ${escRegex(t.yes)}`));
     assert.match(htmlYes, /Director estatal/);
+    // Las casillas deben ser HTML real, no texto escapado.
+    assert.match(htmlYes, /<span class="chk">\[X\]/);
+    assert.doesNotMatch(htmlYes, /&lt;span class=&quot;chk/);
   });
 
   it('genera etiquetas en inglés', () => {

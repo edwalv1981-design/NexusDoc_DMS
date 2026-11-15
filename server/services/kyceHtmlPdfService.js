@@ -11,6 +11,7 @@ const {
   fmtDate,
   kvRow,
   formatYesNoChecks,
+  kvRowHtml,
   buildFundsChecksHtml,
   isPepYes,
   sectionGuideHtml,
@@ -79,7 +80,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
   ].join('');
 
   const complianceRows = [
-    kvRow(t.pep, formatYesNoChecks(pepYes, !pepYes, t)),
+    kvRowHtml(t.pep, formatYesNoChecks(pepYes, !pepYes, t)),
     pepYes ? kvRow(t.pepDetails, data.pepDetails) : '',
     kvRow(t.fundsOther, data.fundsOther),
   ].join('');
