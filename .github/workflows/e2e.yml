@@ -36,6 +36,9 @@ jobs:
       E2E_BASE_URL: http://localhost:5055
       CORS_ORIGINS: http://localhost:5055
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      # BD temporal: las migraciones crean tablas "Users"/"FormData" pero los modelos usan
+      # underscored (users/form_data), igual que el esquema real de producción; se sincroniza.
+      DB_SYNC_ALTER: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
