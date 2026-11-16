@@ -160,7 +160,19 @@ def main(path):
                 RESULT["status"] = "DIGITAL_UNTRUSTED"
             return emit(RESULT)
     except Exception as exc:
-        RESULT.update(status="ERROR", error=str(exc)[:300])
+        # Si el PDF declara una firma digital pero no se puede leer, la firma es
+        # inválida (corrupta o falsificada), no un error del verificador.
+        try:
+            with open(path, "rb") as fh:
+                raw = fh.read()
+            declares_sig = b"/ByteRange" in raw and (b"/Type /Sig" in raw or b"/Type/Sig" in raw or b"/FT /Sig" in raw or b"/FT/Sig" in raw)
+        except Exception:
+            declares_sig = False
+        if declares_sig:
+            RESULT.update(status="DIGITAL_INVALID", error="Firma digital ilegible o falsificada: " + str(exc)[:200])
+            RESULT["signatures"].append({"intact": False, "valid": False, "trusted": False, "error": "Firma ilegible"})
+        else:
+            RESULT.update(status="ERROR", error=str(exc)[:300])
         return emit(RESULT)
 
 
