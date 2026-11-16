@@ -1,0 +1,30 @@
+name: Prueba del validador de firmas
+
+# Solo diagnóstico: genera PDF de prueba y los pasa por server/scripts/signature_agent.py
+on:
+  push:
+    branches: ['probe/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencias (misma versión de PyMuPDF que producción)
+        run: pip install -r server/requirements.txt pyhanko pyhanko-certvalidator
+      - name: Certificado de prueba
+        run: |
+          mkdir -p "$RUNNER_TEMP/sig"
+          openssl req -x509 -newkey rsa:2048 -keyout "$RUNNER_TEMP/sig/key.pem" -out "$RUNNER_TEMP/sig/cert.pem" -days 30 -nodes -subj "/CN=Firma de Prueba NexusDoc"
+      - name: Generar PDF de prueba
+        run: python server/scripts/sigtest/make_samples.py "$RUNNER_TEMP/sig"
+      - name: Evaluar
+        run: python server/scripts/sigtest/run_probe.py "$RUNNER_TEMP/sig"
