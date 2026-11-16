@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail, ShieldCheck } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail, ShieldCheck, FileSpreadsheet } from 'lucide-react';
 import AdminSignatureReview from '../components/AdminSignatureReview';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -553,6 +553,32 @@ const AdminDashboard = () => {
     }
   };
 
+  const [exportingXlsx, setExportingXlsx] = useState(false);
+  const handleExportSearchXlsx = async () => {
+    const token = localStorage.getItem('token');
+    const { nombres, ruc, codigoUnico, usuario, empresa, formType } = searchFilters;
+    setExportingXlsx(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/export-search-xlsx`, {
+        headers: { 'x-auth-token': token },
+        params: { nombres, ruc, codigoUnico, usuario, empresa, formType },
+        responseType: 'blob'
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `consulta_nexusdoc_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+    } catch (err) {
+      toast.error(t('admin.errExportXlsx'));
+    } finally {
+      setExportingXlsx(false);
+    }
+  };
+
   const handleViewUserForms = async (userId) => {
     const token = localStorage.getItem('token');
     try {
@@ -820,6 +846,11 @@ const AdminDashboard = () => {
                       {consultaResults && (
                         <button type="button" onClick={handleExportSearchPdf} style={{ padding: '12px 24px', fontWeight: 800, background: '#0f766e', color: 'white', border: 'none', borderRadius: RADIUS, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <FileText size={16} /> {t('admin.downloadPdfReport')}
+                        </button>
+                      )}
+                      {consultaResults && (
+                        <button type="button" onClick={handleExportSearchXlsx} disabled={exportingXlsx} className="admin-export-xlsx" style={{ padding: '12px 24px', fontWeight: 800, background: '#15803d', color: 'white', border: 'none', borderRadius: RADIUS, cursor: exportingXlsx ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: exportingXlsx ? 0.7 : 1 }}>
+                          <FileSpreadsheet size={16} /> {exportingXlsx ? t('admin.exportingXlsx') : t('admin.downloadXlsx')}
                         </button>
                       )}
                       <button type="submit" disabled={consultaLoading} className="btn-primary" style={{ padding: '12px 40px', fontWeight: 800, letterSpacing: '0.5px' }}>

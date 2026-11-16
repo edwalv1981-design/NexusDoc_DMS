@@ -154,6 +154,8 @@ const en = {
     formKyci: 'Compliance (individual)',
     formFunds: 'Funds declaration',
     downloadPdfReport: 'DOWNLOAD PDF REPORT',
+    downloadXlsx: 'DOWNLOAD EXCEL',
+    exportingXlsx: 'GENERATING EXCEL…',
     searching: 'SEARCHING...',
     runSearch: 'RUN SEARCH',
     noSearchResults: 'No results for the filters entered.',
@@ -281,6 +283,7 @@ const en = {
     selectReplacePdf: 'Select a new PDF file to replace this template',
     errSearch: 'Search failed',
     errExportPdf: 'Could not export the PDF',
+    errExportXlsx: 'Could not export the Excel file',
     errLoadForms: 'Could not load forms',
   },
   userDocs: {

@@ -154,6 +154,8 @@ const es = {
     formKyci: 'Cumplimiento (Individual)',
     formFunds: 'Declaración de Fondos',
     downloadPdfReport: 'DESCARGAR REPORTE EN PDF',
+    downloadXlsx: 'DESCARGAR EXCEL',
+    exportingXlsx: 'GENERANDO EXCEL…',
     searching: 'BUSCANDO...',
     runSearch: 'EJECUTAR BÚSQUEDA',
     noSearchResults: 'No se encontraron resultados para los filtros ingresados.',
@@ -281,6 +283,7 @@ const es = {
     selectReplacePdf: 'Seleccione un nuevo archivo PDF para reemplazar esta plantilla',
     errSearch: 'Error en la búsqueda',
     errExportPdf: 'Error al exportar el PDF',
+    errExportXlsx: 'Error al exportar el Excel',
     errLoadForms: 'Error al cargar formularios',
   },
   userDocs: {

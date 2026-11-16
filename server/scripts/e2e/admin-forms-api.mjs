@@ -202,8 +202,22 @@ for (const [label, id, lang] of [['plantilla ES', kyceNew.id, 'es'], ['plantilla
 }
 ok('KYC Entities: PDF de la plantilla (español e inglés) y de trámites antiguos se generan');
 
+// 13d) Consultas → Excel (mismos permisos que el reporte PDF)
+{
+  const res = await fetch(`${BASE}/api/admin/export-search-xlsx?nombres=Ana`, { headers: { 'x-auth-token': admin.token } });
+  const buf = Buffer.from(await res.arrayBuffer());
+  assert.equal(res.status, 200, `Excel: ${res.status} ${buf.toString().slice(0, 200)}`);
+  assert.match(res.headers.get('content-type') || '', /spreadsheetml/);
+  assert.equal(buf.subarray(0, 2).toString(), 'PK', 'Excel es un .xlsx (ZIP)');
+  assert.ok(buf.includes(Buffer.from('xl/worksheets/sheet1.xml')), 'Excel con hojas');
+  const denied = await fetch(`${BASE}/api/admin/export-search-xlsx?nombres=Ana`, { headers: { 'x-auth-token': client.token } });
+  assert.equal(denied.status, 403, 'cliente NO descarga el Excel');
+  assert.ok((await logs(admin.token, 'ADMIN_EXPORT_XLSX')).length > 0, 'la descarga queda en la bitácora');
+}
+ok('Consultas: el administrador descarga el Excel, el cliente no, y queda en la bitácora');
+
 // 14) Opción A: "Administrador Usuarios" (manager) limitado a él y sus subusuarios
-for (const path of ['/api/admin/users', '/api/admin/logs', '/api/admin/search-person?nombres=Ana', `/api/admin/user-forms/${admin.user.id}`]) {
+for (const path of ['/api/admin/users', '/api/admin/logs', '/api/admin/search-person?nombres=Ana', '/api/admin/export-search-xlsx?nombres=Ana', `/api/admin/user-forms/${admin.user.id}`]) {
   r = await api('GET', path, manager.token);
   assert.equal(r.status, 403, `manager ${path}: ${r.status}`);
 }

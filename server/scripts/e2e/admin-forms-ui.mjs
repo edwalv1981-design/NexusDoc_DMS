@@ -158,6 +158,21 @@ try {
   expect(await page.getByRole('button', { name: /Ver PDF|View PDF/ }).count() > 0, 'Administrador: pestaña Firmas con documentos pendientes y botón Ver PDF');
   await shot('06-admin-firmas');
 
+  stage = 'consultas excel';
+  // ── 5. Consultas: botón Excel junto al reporte PDF ────────────────────────
+  await page.getByRole('button', { name: /^\s*CONSULTAS\s*$|^\s*QUERIES\s*$|Consultas/i }).first().click();
+  const nameInput = page.locator('form input[type="text"]').first();
+  await nameInput.waitFor({ timeout: 20000 });
+  await nameInput.fill('Ana');
+  await page.locator('form button[type="submit"]').first().click();
+  await page.locator('.admin-export-xlsx').first().waitFor({ timeout: 30000 });
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 30000 }),
+    page.locator('.admin-export-xlsx').first().click(),
+  ]);
+  expect(/\.xlsx$/.test(download.suggestedFilename()), `Consultas: descarga el Excel (${download.suggestedFilename()})`);
+  await shot('08-admin-consultas-excel');
+
   expect(problems.length === 0, `Sin errores de JavaScript ni violaciones CSP ${problems.length ? problems.join(' | ') : ''}`);
 } catch (e) {
   await shot('zz-error').catch(() => {});

@@ -24,6 +24,7 @@ const auth = require('../middleware/auth');
 const templateAvailability = require('../utils/templateAvailability');
 const personCatalogService = require('../services/personCatalogService');
 const adminSearchPdfService = require('../services/adminSearchPdfService');
+const { buildAdminSearchXlsx } = require('../services/adminSearchXlsxService');
 const { publicUser } = require('../utils/publicUser');
 const { isPdfBuffer, sanitizeDownloadFilename } = require('../utils/pdfMagic');
 const {
@@ -1424,6 +1425,42 @@ router.get('/export-search-pdf', [auth, isAdmin], async (req, res) => {
     } catch (err) {
         console.error('Error exporting search PDF:', err);
         res.status(500).json({ msg: 'Error al exportar reporte PDF: ' + err.message });
+    }
+});
+
+// @route   GET api/admin/export-search-xlsx
+// @desc    Exporta a Excel los resultados de Consultas (mismos filtros y permisos que el PDF):
+//          hoja Resumen + datos completos por tipo de formulario + documentos + filtros.
+router.get('/export-search-xlsx', [auth, isAdmin], async (req, res) => {
+    try {
+        const { results, matchingDocuments } = await performAdminSearch(req.query);
+        const admin = await User.findByPk(req.user.id, { attributes: ['email'] }).catch(() => null);
+        const buffer = buildAdminSearchXlsx({
+            results,
+            matchingDocuments,
+            searchFilters: req.query,
+            exportedBy: admin?.email || '',
+        });
+
+        // Exportación de datos personales: queda en la bitácora.
+        const filters = ['nombres', 'ruc', 'codigoUnico', 'usuario', 'empresa', 'formType']
+            .filter((k) => String(req.query[k] || '').trim())
+            .map((k) => `${k}="${String(req.query[k]).trim().slice(0, 60)}"`)
+            .join(', ');
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'ADMIN_EXPORT_XLSX',
+            description: `Admin descargó Excel de Consultas (${results.length} resultados, ${matchingDocuments.length} documentos)${filters ? ` — filtros: ${filters}` : ''}`,
+        }).catch((e) => console.warn('No se pudo registrar ADMIN_EXPORT_XLSX:', e.message));
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="consulta_nexusdoc_${stamp}.xlsx"`);
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(buffer);
+    } catch (err) {
+        console.error('Error exporting search XLSX:', err);
+        res.status(500).json({ msg: 'Error al exportar Excel: ' + err.message });
     }
 });
 
