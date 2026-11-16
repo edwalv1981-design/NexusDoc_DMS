@@ -76,7 +76,12 @@ describe('pdfFormSchemas', () => {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const kyce = config.cumplimiento_entidades;
     assert.ok(kyce?.anchors?.length);
-    const schemaKeys = new Set(schemas.listSchemaFieldKeys(schemas.CUMPLIMIENTO_ENTIDADES_SCHEMA));
+    // KYCE se genera con el motor HTML de la plantilla oficial; los anchors del motor
+    // antiguo usan claves del formato anterior, que se conservan como legado.
+    const schemaKeys = new Set([
+      ...schemas.listSchemaFieldKeys(schemas.CUMPLIMIENTO_ENTIDADES_SCHEMA),
+      ...require('../../lib/kyceMasterSpec.cjs').LEGACY_FIELD_KEYS,
+    ]);
     for (const anchor of kyce.anchors) {
       assert.ok(
         schemaKeys.has(anchor.data_key),

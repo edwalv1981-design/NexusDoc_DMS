@@ -121,6 +121,26 @@ try {
     await loginAs(ids.clientToken, ids.client);
   }
 
+  stage = 'kyc entities';
+  // ── 3c. KYC Entities según la plantilla oficial ───────────────────────────
+  if (ids.kyceOldId) {
+    const dialogs = [];
+    const onDialog = (d) => { dialogs.push(d.message()); d.accept().catch(() => {}); };
+    page.on('dialog', onDialog);
+    await page.goto(`${BASE}/dashboard?view=form&id=${ids.kyceOldId}`, { waitUntil: 'networkidle' });
+    await page.getByText(/entidad paname|Panama entity/i).first().waitFor({ timeout: 20000 });
+    ok('KYCE: el formulario sigue la plantilla (entidad panameña, delitos y sanciones)');
+    expect(await page.locator('input[value="Vieja S.A."]').count() > 0, 'KYCE: trámite antiguo carga sus datos');
+    expect(await page.locator('.kyc-guide').count() >= 5, 'KYCE: los campos muestran su texto guía');
+    expect(await page.getByText(/Sitio web|Website|Representante legal|Legal representative|Origen de fondos|Source of funds/).count() === 0,
+      'KYCE: ya no muestra campos que la plantilla no tiene');
+    await page.locator('.expert-btn-primary').first().click();
+    await page.waitForTimeout(500);
+    expect(dialogs.length > 0, 'KYCE: no deja avanzar sin los datos obligatorios de la plantilla');
+    await shot('07-kyce-plantilla');
+    page.off('dialog', onDialog);
+  }
+
   stage = 'firmas usuario';
   // ── 4. Firmas: lista del usuario y bandeja del administrador ─────────────
   await page.goto(`${BASE}/dashboard?view=signed-docs`, { waitUntil: 'networkidle' });

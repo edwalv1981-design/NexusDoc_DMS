@@ -6,75 +6,90 @@ const { buildKycePdfInnerHtml } = require('../services/kyceHtmlPdfService');
 const { getKycePdfDict } = require('../services/kycePdfI18n');
 
 const sampleData = {
-  legalName: 'Inversiones Globales S.A.',
-  tradeName: 'Globales Corp',
-  entityType: 'S.A.',
-  incorporationDate: '2010-06-01',
-  jurisdiction: 'Panamá',
-  taxId: '155612345-2-2020',
-  registrationNumber: '12345',
-  registeredAddress: 'Calle 50, Torre Global',
-  phone: '+507 300-0000',
-  email: 'kyc@globales.test',
-  city: 'Panamá',
-  country: 'Panamá',
-  businessActivity: 'Inversiones y gestión de activos',
-  website: 'https://globales.test',
-  legalRepName: 'Carlos Méndez',
-  legalRepId: '8-888-999',
-  legalRepNationality: 'Panamá',
-  beneficialOwners: 'Carlos Méndez 60%; Ana López 40%',
-  pep: 'No',
-  fundsSource: ['Bienes de la entidad', 'Ingresos por negocios'],
-  fundsOther: '',
-  declarationName: 'Carlos Méndez',
-  declarationDate: '2026-05-19',
+  panamaEntityName: 'Inversiones Atlántico S.A.',
+  legalName: 'Atlantic Holdings Ltd.',
+  incorporationDate: '2015-06-01',
+  jurisdiction: 'BVI',
+  registrationNumber: 'BVI-123',
+  registeredAddress: 'Road Town',
+  mailingAddress: 'PO Box 1',
+  phone: '+1 284 000',
+  businessActivity: 'Tenedora de inversiones',
+  offenceConvicted: 'No',
+  offenceInvestigation: 'Sí',
+  offenceInvestigationDetails: 'Consulta archivada',
+  applicantType: 'trustFoundation',
+  trustDocs: ['trustDeed', 'dueDiligence'],
+  settlorNameAddress: 'Juan Pérez, Quito',
+  trusteesNameAddress: 'Trust Co.',
+  beneficiary1: 'María Pérez',
+  stockExchange: 'NO DEBE SALIR',
+  fatcaClassification: 'registeredFFI',
+  fatcaGiin: 'GIIN-998877',
+  usEntity: 'No',
+  otherTaxResidence: 'Sí',
+  otherTaxResidenceDetails: 'Ecuador',
+  taxIdNumber: '1790000000001',
+  declarationDate: '2026-11-15',
 };
 
-describe('kyceHtmlPdfMapping', () => {
-  it('incluye secciones y datos de entidad en HTML', () => {
-    const t = getKycePdfDict('es');
-    const html = buildKycePdfInnerHtml(sampleData, { language: 'es' });
-    assert.match(html, /PTL_KYC/);
-    assert.match(html, new RegExp(escRegex(t.sectionEntity)));
-    assert.match(html, new RegExp(escRegex(t.sectionCompliance)));
-    assert.match(html, new RegExp(escRegex(t.sectionContact)));
-    assert.match(html, new RegExp(escRegex(t.sectionRepresentatives)));
-    assert.match(html, /Inversiones Globales/);
-    assert.match(html, /kyc@globales\.test/);
+const BOX_ON = '<span class="box on">X</span>';
+const BOX_OFF = '<span class="box">&nbsp;</span>';
+const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
+  for (const lang of ['en', 'es']) it(`bloques en el orden de la plantilla (${lang})`, () => {
+    const t = getKycePdfDict(lang);
+    const html = buildKycePdfInnerHtml(sampleData, { language: lang });
+    const order = [
+      t.docTitle.split('\n')[0], t.docSubtitle, t.panamaEntityName, t.intro, t.legalName, t.incorporationDate,
+      t.jurisdiction, t.registrationNumber, t.registeredAddress, t.mailingAddress, t.phone, t.businessActivity,
+      t.offencesLabel, t.applicantIsA, t.stockExchange, t.regulatorName, t.governmentEntityType, t.privateNote,
+      t.settlorNameAddress, t.trustNote, t.partnershipNote, t.fatcaLabel, t.taxResidencyLabel, t.selfCertNote,
+      t.declaration, t.signature, t.notesTitle,
+    ];
+    let pos = -1;
+    for (const label of order) {
+      const idx = html.indexOf(label, pos + 1);
+      assert.ok(idx > pos, `"${label.slice(0, 40)}" fuera de orden o ausente`);
+      pos = idx;
+    }
+    assert.equal(html.split(t.signature).length - 1, 2, 'dos recuadros de firma');
   });
 
-  it('marca origen de fondos seleccionados', () => {
-    const html = buildKycePdfInnerHtml(sampleData, { language: 'es' });
-    assert.match(html, /\[X\].*Bienes de la entidad/s);
-    assert.match(html, /\[X\].*Ingresos por negocios/s);
-    assert.match(html, /\[ \].*Pr.stamos/s);
-  });
-
-  it('PEP se renderiza como casillas Sí/No', () => {
-    const t = getKycePdfDict('es');
-    const htmlNo = buildKycePdfInnerHtml({ ...sampleData, pep: 'No' }, { language: 'es' });
-    assert.match(htmlNo, new RegExp(`\\[ \\] ${escRegex(t.yes)}`));
-    assert.match(htmlNo, new RegExp(`\\[X\\] ${escRegex(t.no)}`));
-    const htmlYes = buildKycePdfInnerHtml(
-      { ...sampleData, pep: 'Sí', pepDetails: 'Director estatal' },
-      { language: 'es' }
-    );
-    assert.match(htmlYes, new RegExp(`\\[X\\] ${escRegex(t.yes)}`));
-    assert.match(htmlYes, /Director estatal/);
-    // Las casillas deben ser HTML real, no texto escapado.
-    assert.match(htmlYes, /<span class="chk">\[X\]/);
-    assert.doesNotMatch(htmlYes, /&lt;span class=&quot;chk/);
-  });
-
-  it('genera etiquetas en inglés', () => {
-    const t = getKycePdfDict('en');
+  it('imprime los datos y marca casillas', () => {
     const html = buildKycePdfInnerHtml(sampleData, { language: 'en' });
-    assert.match(html, new RegExp(escRegex(t.sectionEntity)));
-    assert.match(html, /Entity assets/);
+    for (const v of ['Inversiones Atlántico S.A.', 'Atlantic Holdings Ltd.', '01/06/2015', 'Consulta archivada', 'Juan Pérez, Quito', 'María Pérez', 'GIIN-998877', '1790000000001', '15/11/2026']) {
+      assert.ok(html.includes(v), `falta ${v}`);
+    }
+    assert.match(html, new RegExp(`${esc(BOX_ON)} Certified copy of Trust Deed`));
+    assert.match(html, new RegExp(`${esc(BOX_OFF)} Certified copy of Certificate of Registration \\(If Applicable\\)`));
+    assert.match(html, new RegExp(`Registered FFI:</span> ${esc(BOX_ON)}`));
+    assert.match(html, new RegExp(`Passive NFFE:</span> ${esc(BOX_OFF)}`));
+  });
+
+  it('solo imprime los datos del tipo de solicitante elegido', () => {
+    const html = buildKycePdfInnerHtml(sampleData, { language: 'en' });
+    assert.doesNotMatch(html, /NO DEBE SALIR/);
+  });
+
+  it('PDF en español cuando se pide en español', () => {
+    const html = buildKycePdfInnerHtml(sampleData, { language: 'es' });
+    for (const txt of ['FORMULARIO DE CUMPLIMIENTO', 'Procedimiento Conozca a su Cliente', 'Si el Solicitante es:', 'Delitos y sanciones',
+      'Copia certificada de la Escritura o Declaración de Fideicomiso', 'Clasificación FATCA/CRS', 'Residencia fiscal', 'NOTAS']) {
+      assert.ok(html.includes(txt), `falta "${txt}"`);
+    }
+    assert.match(html, new RegExp(`Sí ${esc(BOX_ON)}</span><span class="yn">No ${esc(BOX_OFF)}`));
+    assert.doesNotMatch(html, /COMPLIANCE FORM|Signature of person/);
+  });
+
+  it('trámites antiguos siguen generando PDF', () => {
+    const html = buildKycePdfInnerHtml({ legalName: 'Vieja S.A.', entityType: 'S.A.', pep: 'No', fundsSource: ['Negocios'], declarationName: 'X' }, { language: 'es' });
+    assert.ok(html.includes('Vieja S.A.'));
+  });
+
+  it('escapa HTML de los datos del usuario', () => {
+    const html = buildKycePdfInnerHtml({ ...sampleData, legalName: '<script>x</script>' }, { language: 'es' });
+    assert.doesNotMatch(html, /<script>/);
   });
 });
-
-function escRegex(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

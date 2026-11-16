@@ -62,31 +62,6 @@ const kyciSample = {
   declarationDate: '2026-05-19',
 };
 
-const kyceSample = {
-  legalName: 'Inversiones Globales S.A.',
-  tradeName: 'Globales Corp',
-  entityType: 'S.A.',
-  incorporationDate: '2010-06-01',
-  jurisdiction: 'Panamá',
-  taxId: '155612345-2-2020',
-  registrationNumber: '12345',
-  registeredAddress: 'Calle 50, Torre Global',
-  phone: '+507 300-0000',
-  email: 'kyc@globales.test',
-  city: 'Panamá',
-  country: 'Panamá',
-  businessActivity: 'Inversiones y gestión de activos',
-  website: 'https://globales.test',
-  legalRepName: 'Carlos Méndez',
-  legalRepId: '8-888-999',
-  legalRepNationality: 'Panamá',
-  beneficialOwners: 'Carlos Méndez 60%; Ana López 40%',
-  pep: 'No',
-  fundsSource: ['Bienes de la entidad', 'Ingresos por negocios'],
-  fundsOther: '',
-  declarationName: 'Carlos Méndez',
-  declarationDate: '2026-05-19',
-};
 
 describe('kycPdfFieldRegistry', () => {
   it('registry alineado con pdfFormSchemas', () => {
@@ -117,21 +92,18 @@ describe('kyciHtmlPdf field parity', () => {
 });
 
 describe('kyceHtmlPdf field parity', () => {
-  it('incluye título PTL_KYC y secciones entidad / representantes / cumplimiento', () => {
-    const t = getKycePdfDict('es');
-    const html = buildKycePdfInnerHtml(kyceSample, { language: 'es' });
-    assert.match(html, /PTL_KYC/);
+  for (const lang of ['es', 'en']) it(`cada bloque de la plantilla KYCE aparece en el PDF (${lang})`, () => {
+    const t = getKycePdfDict(lang);
+    const html = buildKycePdfInnerHtml({ legalName: 'Inversiones Globales S.A.' }, { language: lang });
     assert.match(html, /Inversiones Globales/);
-    assert.match(html, new RegExp(escRegex(t.sectionEntity)));
-    assert.match(html, new RegExp(escRegex(t.sectionRepresentatives)));
-    assert.match(html, new RegExp(escRegex(t.sectionCompliance)));
-    for (const section of KYCE_PDF_SECTIONS) {
-      const labels = section.fields
-        .filter((key) => key !== 'pepDetails' || String(kyceSample.pep || '').trim().toLowerCase().startsWith('s'))
-        .map((key) => t[key])
-        .filter(Boolean);
-      if (section.fundsSource) labels.push(t.fundsSource);
-      assertLabelsInSection(extractSection(html, t[section.sectionKey]), labels, t[section.sectionKey]);
+    for (const key of ['docTitle', 'panamaEntityName', 'intro', 'legalName', 'incorporationDate', 'jurisdiction', 'registrationNumber',
+      'registeredAddress', 'mailingAddress', 'phone', 'businessActivity', 'offencesLabel', 'offenceConvicted', 'offenceInvestigation',
+      'applicantIsA', 'stockExchange', 'tickerSymbol', 'regulatorName', 'governmentEntityType', 'privateNote', 'settlorNameAddress',
+      'trusteesNameAddress', 'enforcerNameAddress', 'protectorNameAddress', 'beneficiary', 'trustNote', 'partnershipNote',
+      'fatcaLabel', 'taxResidencyLabel', 'usEntity', 'einNumber', 'otherTaxResidence', 'taxIdNumber', 'selfCertNote',
+      'declaration', 'signature', 'declarationDate', 'notesTitle']) {
+      const text = String(t[key]).split('\n')[0];
+      assert.ok(html.includes(text.replace(/&/g, '&amp;')), `${lang}: PDF debe incluir "${key}"`);
     }
   });
 });

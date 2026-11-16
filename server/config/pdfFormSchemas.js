@@ -46,60 +46,29 @@ const KYCE_FUNDS_SOURCE_OPTIONS = Object.freeze([
   { key: 'Aportes de socios / capital', labelKey: 'capital' },
 ]);
 
+const kyceMasterSpec = require('../../lib/kyceMasterSpec.cjs');
+
+/** KYCE: pasos y campos derivados de la plantilla oficial (lib/kyceMasterSpec.cjs). */
 const CUMPLIMIENTO_ENTIDADES_SCHEMA = Object.freeze({
   templateId: 'cumplimiento_entidades',
   formType: 'Cumplimiento Entidades',
   i18nPrefix: 'kyce',
-  steps: Object.freeze([
-    {
-      id: 'entity',
-      titleKey: 'steps.entity',
-      fields: Object.freeze([
-        { key: 'legalName', type: 'text', required: true, col: 'full' },
-        { key: 'tradeName', type: 'text', col: 'half' },
-        { key: 'entityType', type: 'text', required: true, col: 'half' },
-        { key: 'incorporationDate', type: 'date', required: true, col: 'half' },
-        { key: 'jurisdiction', type: 'text', required: true, col: 'half' },
-        { key: 'taxId', type: 'text', required: true, col: 'half' },
-        { key: 'registrationNumber', type: 'text', col: 'half' },
-        { key: 'registeredAddress', type: 'text', required: true, col: 'full' },
-      ]),
-    },
-    {
-      id: 'contact',
-      titleKey: 'steps.contact',
-      fields: Object.freeze([
-        { key: 'phone', type: 'text', required: true, col: 'half' },
-        { key: 'email', type: 'email', required: true, col: 'half' },
-        { key: 'city', type: 'text', required: true, col: 'half' },
-        { key: 'country', type: 'text', required: true, col: 'half' },
-        { key: 'businessActivity', type: 'textarea', required: true, col: 'full' },
-        { key: 'website', type: 'text', col: 'half' },
-      ]),
-    },
-    {
-      id: 'compliance',
-      titleKey: 'steps.compliance',
-      fields: Object.freeze([
-        { key: 'legalRepName', type: 'text', required: true, col: 'half' },
-        { key: 'legalRepId', type: 'text', required: true, col: 'half' },
-        { key: 'legalRepNationality', type: 'text', col: 'half' },
-        { key: 'beneficialOwners', type: 'textarea', required: true, col: 'full' },
-        { key: 'pep', type: 'radio', options: ['No', 'Sí'], required: true, col: 'full' },
-        { key: 'pepDetails', type: 'textarea', col: 'full', showIf: { field: 'pep', value: 'Sí' } },
-        {
-          key: 'fundsSource',
-          type: 'checkboxGroup',
-          required: true,
-          options: KYCE_FUNDS_SOURCE_OPTIONS,
-          col: 'full',
-        },
-        { key: 'fundsOther', type: 'text', col: 'full' },
-        { key: 'declarationName', type: 'text', required: true, col: 'half' },
-        { key: 'declarationDate', type: 'date', required: true, col: 'half' },
-      ]),
-    },
-  ]),
+  steps: Object.freeze(
+    kyceMasterSpec.SECTIONS.map((section) => ({
+      id: section.stepId,
+      titleKey: `steps.${section.stepId}`,
+      fields: Object.freeze(
+        section.fieldKeys.map((key) => {
+          const def = kyceMasterSpec.FIELDS[key];
+          const field = { key, type: def.type, col: ['textarea', 'radio', 'checkboxGroup'].includes(def.type) ? 'full' : 'half' };
+          if (def.required) field.required = true;
+          if (def.options) field.options = def.options;
+          if (def.showIf) field.showIf = def.showIf;
+          return field;
+        })
+      ),
+    }))
+  ),
 });
 
 const SCHEMA_BY_TEMPLATE_ID = Object.freeze({

@@ -179,6 +179,29 @@ for (const [label, id] of [['plantilla oficial', kycNew.id], ['formato anterior'
 }
 ok('KYC Individual: PDF de la plantilla oficial y de trámites antiguos se generan');
 
+// 13c) KYC Entities: formato de la plantilla oficial y formato anterior → PDF (ES y EN)
+r = await api('POST', '/api/forms/save', client.token, { type: 'Cumplimiento Entidades', data: {
+  panamaEntityName: 'Atlántico S.A.', legalName: 'Atlantic Holdings Ltd.', incorporationDate: '2015-06-01', jurisdiction: 'BVI',
+  registrationNumber: 'BVI-1', registeredAddress: 'Road Town', phone: '+1 284', businessActivity: 'Holding',
+  offenceConvicted: 'No', offenceInvestigation: 'No', applicantType: 'trustFoundation', trustDocs: ['trustDeed', 'dueDiligence'],
+  settlorNameAddress: 'Juan Pérez, Quito', trusteesNameAddress: 'Trust Co.', beneficiary1: 'María Pérez',
+  fatcaClassification: 'passiveNFFE', usEntity: 'No', otherTaxResidence: 'No', declarationDate: '2026-11-15',
+  __progress: { step: 4, totalSteps: 4, finished: true } } });
+assert.equal(r.status, 200);
+const kyceNew = r.body.data;
+r = await api('POST', '/api/forms/save', client.token, { type: 'Cumplimiento Entidades', data: {
+  legalName: 'Vieja S.A.', entityType: 'S.A.', email: 'vieja@test.com', pep: 'No', fundsSource: ['Negocios'], declarationName: 'Ana',
+  __progress: { step: 1, totalSteps: 3 } } });
+assert.equal(r.status, 200);
+const kyceOld = r.body.data;
+for (const [label, id, lang] of [['plantilla ES', kyceNew.id, 'es'], ['plantilla EN', kyceNew.id, 'en'], ['formato anterior', kyceOld.id, 'es']]) {
+  const res = await fetch(`${BASE}/api/forms/generate-pdf/${id}?lang=${lang}`, { headers: { 'x-auth-token': client.token } });
+  const buf = Buffer.from(await res.arrayBuffer());
+  assert.equal(res.status, 200, `PDF KYCE (${label}): ${res.status} ${buf.toString().slice(0, 200)}`);
+  assert.equal(buf.subarray(0, 4).toString(), '%PDF', `PDF KYCE (${label}) válido`);
+}
+ok('KYC Entities: PDF de la plantilla (español e inglés) y de trámites antiguos se generan');
+
 // 14) Opción A: "Administrador Usuarios" (manager) limitado a él y sus subusuarios
 for (const path of ['/api/admin/users', '/api/admin/logs', '/api/admin/search-person?nombres=Ana', `/api/admin/user-forms/${admin.user.id}`]) {
   r = await api('GET', path, manager.token);
@@ -223,5 +246,5 @@ r = await api('PUT', `/api/admin/users/${sub.user.id}/role`, manager.token, { ro
 assert.equal(r.status, 403, 'solo el administrador cambia roles');
 ok('Cambio de rol por el administrador conserva el vínculo del subusuario; el Administrador Usuarios no puede cambiar roles');
 
-fs.writeFileSync(process.env.E2E_OUT || 'e2e-ids.json', JSON.stringify({ corpLatestId, v3id, kycId: kyc.id, kycNewId: kycNew.id, adminToken: admin.token, clientToken: client.token, admin: admin.user, client: client.user }));
+fs.writeFileSync(process.env.E2E_OUT || 'e2e-ids.json', JSON.stringify({ corpLatestId, v3id, kycId: kyc.id, kycNewId: kycNew.id, kyceNewId: kyceNew.id, kyceOldId: kyceOld.id, adminToken: admin.token, clientToken: client.token, admin: admin.user, client: client.user }));
 console.log(`\nE2E API: ${step} verificaciones OK`);

@@ -15,38 +15,11 @@ const KYCI_PDF_SECTIONS = Object.freeze(
   }))
 );
 
-const KYCE_PDF_SECTIONS = Object.freeze([
-  {
-    sectionKey: 'sectionEntity',
-    fields: Object.freeze([
-      'legalName',
-      'tradeName',
-      'entityType',
-      'incorporationDate',
-      'jurisdiction',
-      'taxId',
-      'registrationNumber',
-      'registeredAddress',
-    ]),
-  },
-  {
-    sectionKey: 'sectionContact',
-    fields: Object.freeze(['phone', 'email', 'city', 'country', 'businessActivity', 'website']),
-  },
-  {
-    sectionKey: 'sectionRepresentatives',
-    fields: Object.freeze(['legalRepName', 'legalRepId', 'legalRepNationality', 'beneficialOwners']),
-  },
-  {
-    sectionKey: 'sectionCompliance',
-    fields: Object.freeze(['pep', 'pepDetails', 'fundsOther']),
-    fundsSource: true,
-  },
-  {
-    sectionKey: 'sectionDeclaration',
-    fields: Object.freeze(['declarationName', 'declarationDate']),
-  },
-]);
+const kyceMaster = require('../../lib/kyceMasterSpec.cjs');
+
+const KYCE_PDF_SECTIONS = Object.freeze(
+  kyceMaster.SECTIONS.map((s) => ({ sectionKey: s.sectionKey, fields: s.fieldKeys }))
+);
 
 function flattenSectionFields(sections) {
   const keys = [];

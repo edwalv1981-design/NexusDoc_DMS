@@ -58,15 +58,18 @@ const DEFS = {
       started: (d) => arr(d.certifiedDocs).length > 0 || has(d.declarationName) },
   ],
   kyce: [
-    { es: 'Datos de la entidad', en: 'Entity data',
-      complete: (d) => ['legalName', 'entityType', 'incorporationDate', 'jurisdiction', 'taxId', 'registeredAddress'].every((k) => has(d[k])),
-      started: (d) => ['legalName', 'tradeName', 'entityType', 'incorporationDate', 'jurisdiction', 'taxId', 'registrationNumber', 'registeredAddress'].some((k) => has(d[k])) },
-    { es: 'Contacto y actividad', en: 'Contact & activity',
-      complete: (d) => ['phone', 'email', 'city', 'country', 'businessActivity'].every((k) => has(d[k])),
-      started: (d) => ['phone', 'email', 'city', 'country', 'businessActivity', 'website'].some((k) => has(d[k])) },
-    { es: 'Representante, PEP y declaración', en: 'Representative, PEP & declaration',
-      complete: (d) => ['legalRepName', 'legalRepId', 'beneficialOwners', 'declarationName'].every((k) => has(d[k])) && arr(d.fundsSource).length > 0 && (d.pep !== 'Sí' || has(d.pepDetails)),
-      started: (d) => ['legalRepName', 'legalRepId', 'legalRepNationality', 'beneficialOwners', 'declarationName'].some((k) => has(d[k])) || arr(d.fundsSource).length > 0 },
+    { es: 'Solicitante', en: 'Applicant',
+      complete: (d) => ['legalName', 'incorporationDate', 'jurisdiction', 'registrationNumber', 'registeredAddress', 'phone', 'businessActivity'].every((k) => has(d[k])) && has(d.offenceConvicted) && has(d.offenceInvestigation),
+      started: (d) => ['panamaEntityName', 'legalName', 'incorporationDate', 'jurisdiction', 'taxId', 'registeredAddress'].some((k) => has(d[k])) },
+    { es: 'Tipo de solicitante y documentos', en: 'Applicant type & documents',
+      complete: (d) => has(d.applicantType),
+      started: (d) => has(d.applicantType) || has(d.entityType) || has(d.legalRepName) },
+    { es: 'FATCA/CRS y residencia fiscal', en: 'FATCA/CRS & tax residency',
+      complete: (d) => has(d.fatcaClassification) && has(d.usEntity) && has(d.otherTaxResidence),
+      started: (d) => has(d.fatcaClassification) || has(d.usEntity) || has(d.otherTaxResidence) || has(d.pep) || arr(d.fundsSource).length > 0 },
+    { es: 'Declaración y firmas', en: 'Declaration & signatures',
+      complete: (d) => has(d.declarationDate) && (has(d.fatcaClassification) || has(d.declarationName)),
+      started: (d) => has(d.declarationName) || has(d.fatcaClassification) },
   ],
   fondos: [
     { es: 'Identificación Corporativa', en: 'Corporate Identification',
@@ -90,7 +93,7 @@ export function formKind(formType = '') {
   return null;
 }
 
-export const TOTAL_STEPS = { corporacion: 5, fundacion: 10, kyci: 4, kyce: 3, fondos: 3 };
+export const TOTAL_STEPS = { corporacion: 5, fundacion: 10, kyci: 4, kyce: 4, fondos: 3 };
 
 /** Agrega el progreso al guardar (lo usan los formularios). */
 export function withProgress(data, step, totalSteps, finished = false) {
