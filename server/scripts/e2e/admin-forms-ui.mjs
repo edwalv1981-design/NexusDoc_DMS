@@ -153,6 +153,8 @@ try {
   stage = 'firmas administrador';
   await page.getByRole('button', { name: /Firmas|Signatures/ }).first().click();
   await page.getByText(/Revisión de firmas|Signature review/).first().waitFor({ timeout: 20000 });
+  // La lista se carga después del encabezado: esperar a los botones antes de contarlos.
+  await page.getByRole('button', { name: /Ver PDF|View PDF/ }).first().waitFor({ timeout: 20000 }).catch(() => {});
   expect(await page.getByRole('button', { name: /Ver PDF|View PDF/ }).count() > 0, 'Administrador: pestaña Firmas con documentos pendientes y botón Ver PDF');
   await shot('06-admin-firmas');
 
