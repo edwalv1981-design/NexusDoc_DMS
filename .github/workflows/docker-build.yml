@@ -21,4 +21,6 @@ jobs:
       - name: Librerías del verificador de firmas
         run: |
           docker run --rm nexusdoc:test python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi; print('ok')"
-          docker run --rm nexusdoc:test python3 server/scripts/signature_verifier.py server/package.json
+          # WORKDIR de la imagen: /app/server
+          docker run --rm nexusdoc:test python3 scripts/signature_verifier.py package.json | tee out.json
+          grep -q '"status"' out.json

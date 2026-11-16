@@ -12,6 +12,7 @@ const SHOTS = process.env.SHOTS_DIR || 'e2e-shots';
 fs.mkdirSync(SHOTS, { recursive: true });
 
 let n = 0;
+let stage = 'inicio';
 const ok = (m) => console.log(`✅ UI ${++n}. ${m}`);
 const fail = (m) => { console.error(`❌ ${m}`); console.log(`::error title=E2E UI::${String(m).replace(/\r?\n/g, ' ').slice(0, 900)}`); process.exitCode = 1; };
 const expect = (cond, m) => (cond ? ok(m) : fail(m));
@@ -35,6 +36,7 @@ async function loginAs(token, user) {
 const shot = (name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
 
 try {
+  stage = 'admin ver';
   // ── 1. Administrador: VER ────────────────────────────────────────────────
   await loginAs(ids.adminToken, ids.admin);
   await page.goto(`${BASE}/admin/form/${ids.corpLatestId}?mode=view`, { waitUntil: 'networkidle' });
@@ -50,6 +52,7 @@ try {
   await page.locator('.corp-btn-nav-next').click();
   expect(/III\./.test(await page.locator('.standard-step-title').innerText()), 'Vista: se puede navegar entre pasos');
 
+  stage = 'admin editar';
   // ── 2. Administrador: EDITAR ─────────────────────────────────────────────
   await page.getByRole('button', { name: /^Editar$|^Edit$/ }).click();
   await page.getByText(/EDICIÓN DEL ADMINISTRADOR|ADMINISTRATOR EDIT/).waitFor({ timeout: 20000 });
@@ -66,6 +69,7 @@ try {
   expect(newId && newId !== ids.corpLatestId, 'Edición: la URL apunta a la nueva versión');
   await shot('02-admin-editar');
 
+  stage = 'usuario rastro';
   // ── 3. Usuario: ve el rastro de la edición ──────────────────────────────
   await loginAs(ids.clientToken, ids.client);
   await page.goto(`${BASE}/dashboard`, { waitUntil: 'networkidle' });
@@ -81,6 +85,7 @@ try {
   expect(await page.locator('input[value="A777"]').count() > 0, 'Usuario: ve el dato corregido por el administrador (A777) en Junta Directiva');
   await shot('04-usuario-aviso');
 
+  stage = 'firmas usuario';
   // ── 4. Firmas: lista del usuario y bandeja del administrador ─────────────
   await page.goto(`${BASE}/dashboard?view=signed-docs`, { waitUntil: 'networkidle' });
   await page.getByText('Firma Digital Válida').first().waitFor({ timeout: 20000 });
@@ -89,7 +94,8 @@ try {
   await shot('05-usuario-firmas');
   await loginAs(ids.adminToken, ids.admin);
   await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
-  await page.getByText(/^Firmas$|^Signatures$/).first().click();
+  stage = 'firmas administrador';
+  await page.getByRole('button', { name: /Firmas|Signatures/ }).first().click();
   await page.getByText(/Revisión de firmas|Signature review/).first().waitFor({ timeout: 20000 });
   expect(await page.getByRole('button', { name: /Ver PDF|View PDF/ }).count() > 0, 'Administrador: pestaña Firmas con documentos pendientes y botón Ver PDF');
   await shot('06-admin-firmas');
@@ -97,7 +103,7 @@ try {
   expect(problems.length === 0, `Sin errores de JavaScript ni violaciones CSP ${problems.length ? problems.join(' | ') : ''}`);
 } catch (e) {
   await shot('zz-error').catch(() => {});
-  fail(`${e.message.split('\n')[0]}${problems.length ? ` | ${problems.join(' | ')}` : ''}`);
+  fail(`[etapa: ${stage}] ${e.message.split('\n')[0]}${problems.length ? ` | ${problems.join(' | ')}` : ''}`);
 }
 await browser.close();
 console.log(process.exitCode ? '\nE2E UI: FALLÓ' : `\nE2E UI: ${n} verificaciones OK`);
