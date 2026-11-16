@@ -1,12 +1,17 @@
 /**
- * Cumplimiento Individual (KYCI / PTL_KYC Individuals).
- * Campos y pasos: lib/kyciMasterSpec.cjs — 4 secciones del PDF maestro.
- * I Datos personales | II Contacto | III PEP y fondos | IV Declaración
+ * Cumplimiento Individual (KYCI) — plantilla oficial
+ * "PTL_KYC – Compliance Form – Individuals".
+ * Campos, obligatorios y orden: lib/kyciMasterSpec.cjs (misma fuente que el PDF).
+ *
+ *  Paso 1  Solicitante (entidad panameña, calidad del solicitante, identidad, contacto)
+ *  Paso 2  Residencia fiscal y FATCA
+ *  Paso 3  Origen del patrimonio, PEP y sanciones
+ *  Paso 4  Documentos certificados, declaración y fecha
  */
 import React, { useState, useEffect } from 'react';
 import {
   User,
-  Phone,
+  Landmark,
   ShieldCheck,
   FileCheck,
   ChevronRight,
@@ -17,268 +22,433 @@ import {
 import { useT, useLang } from '../i18n';
 import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
+import { KYC_PRIMARY, KycHintBox, kycFormSharedStyles } from '../components/KycFormShared';
 import {
-  KYC_PRIMARY,
-  KycHintBox,
-  KycPepQuestion,
-  KycFundsSourceGroup,
-  kycFormSharedStyles,
-} from '../components/KycFormShared';
-import { FUNDS_SOURCE_OPTIONS, MARITAL_STATUS_OPTIONS } from '../utils/kyciMasterSpec';
+  YES,
+  NO,
+  MARITAL_STATUS_OPTIONS,
+  APPLICANT_ROLE_OPTIONS,
+  CERTIFIED_DOC_OPTIONS,
+  YES_NO_DETAILS,
+  FIELDS,
+  FORM_LABELS,
+  missingFieldsForStep,
+  missingFields,
+  computeFullName,
+  splitLegacyFullName,
+  legacySourceOfWealth,
+} from '../utils/kyciMasterSpec';
 import { validateField } from '../utils/fieldValidators';
 import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
 import { withProgress } from '../utils/formProgress';
 
-const FUNDS_OPTIONS = FUNDS_SOURCE_OPTIONS;
+const TOTAL_STEPS = 4;
 
 const emptyKyciState = () => ({
-  fullName: '',
+  panamaEntityName: '',
+  applicantRoles: [],
+  firstName: '',
+  secondName: '',
+  lastName: '',
   birthDate: '',
-  birthPlace: '',
-  maritalStatus: '',
   nationality: '',
+  birthPlace: '',
   passport: '',
-  idCard: '',
+  address: '',
+  maritalStatus: '',
   phone: '',
   email: '',
-  address: '',
-  city: '',
-  country: '',
-  occupation: '',
-  employer: '',
-  pep: 'No',
+  taxResidenceCountries: '',
+  otherTaxResidence: '',
+  otherTaxResidenceDetails: '',
+  usPerson: '',
+  usTin: '',
+  usDetails: '',
+  sourceOfWealth: '',
+  pep: '',
   pepDetails: '',
-  fundsSource: [],
-  fundsOther: '',
-  declarationName: '',
+  offenceConvicted: '',
+  offenceConvictedDetails: '',
+  offenceBankrupt: '',
+  offenceBankruptDetails: '',
+  offenceInvestigation: '',
+  offenceInvestigationDetails: '',
+  certifiedDocs: [],
   declarationDate: new Date().toISOString().split('T')[0],
 });
+
+/** Trámites guardados con el formato anterior: se adaptan sin borrar sus datos. */
+function adaptLoadedData(initialData) {
+  const loaded = { ...initialData };
+  if (!loaded.firstName && !loaded.lastName && loaded.fullName) {
+    Object.assign(loaded, splitLegacyFullName(loaded.fullName));
+  }
+  if (!String(loaded.sourceOfWealth || '').trim()) {
+    const legacy = legacySourceOfWealth(loaded);
+    if (legacy) loaded.sourceOfWealth = legacy;
+  }
+  if (!Array.isArray(loaded.applicantRoles)) loaded.applicantRoles = [];
+  if (!Array.isArray(loaded.certifiedDocs)) loaded.certifiedDocs = [];
+  return loaded;
+}
+
+const STEP_META = [
+  { icon: User, es: 'I. Solicitante', en: 'I. Applicant' },
+  { icon: Landmark, es: 'II. Residencia fiscal y FATCA', en: 'II. Tax residency and FATCA' },
+  { icon: ShieldCheck, es: 'III. Origen del patrimonio, PEP y sanciones', en: 'III. Source of wealth, PEP and offences' },
+  { icon: FileCheck, es: 'IV. Documentos certificados y declaración', en: 'IV. Certified documents and declaration' },
+];
+
+const STEP_HINTS = {
+  es: [
+    'Este formulario lo completa cada persona (el “Solicitante”) que sea accionista con 10% o más del capital, beneficiario final, director, socio general, firmante autorizado, apoderado, fundador/fideicomitente, ejecutor o protector. Los campos marcados con * son obligatorios.',
+    'Indique su residencia fiscal. Si es persona o residente fiscal de EE. UU., debe completar un formulario W9 e indicar su número de identificación tributaria (TIN).',
+    'Detalle el origen de su patrimonio y responda todas las preguntas de Sí/No. Si alguna respuesta es “Sí”, el detalle es obligatorio.',
+    'Marque los documentos certificados que adjunta. Pasaporte, comprobante de domicilio y hoja de vida son obligatorios; el W9 también lo es si es persona de EE. UU. El PDF incluye el recuadro “Signature of Applicant” para la firma.',
+  ],
+  en: [
+    'This form is completed by each individual (the “Applicant”) who is a 10%+ shareholder, beneficial owner, director, general partner, authorised signatory, power of attorney holder, founder/settlor, enforcer or protector. Fields marked * are required.',
+    'State your tax residency. If you are a U.S. Person or U.S. tax resident, please complete a W9 and provide your tax identification number (TIN).',
+    'Describe your source of wealth and answer every Yes/No question. If any answer is “Yes”, details are required.',
+    'Tick the certified documents you are attaching. Passport, proof of address and CV are required; W9 is also required for U.S. Persons. The PDF includes the “Signature of Applicant” box.',
+  ],
+};
 
 const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = false, startStep }) => {
   const t = useT();
   const { lang } = useLang();
-  const L = (key) => t(`kyci.fields.${key}`);
-  const [step, setStep] = useState(() => (startStep >= 1 && startStep <= 4 ? startStep : 1));
+  const labels = FORM_LABELS[lang === 'en' ? 'en' : 'es'];
+  const [step, setStep] = useState(() => (startStep >= 1 && startStep <= TOTAL_STEPS ? startStep : 1));
   const [formData, setFormData] = useState(emptyKyciState);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [missing, setMissing] = useState([]);
   const registeredPeople = extractRegisteredPeople(formData);
-
-  const handleFieldBlur = (fieldName) => {
-    const error = validateField(fieldName, formData[fieldName]);
-    setFieldErrors(prev => {
-      const next = { ...prev };
-      if (error) next[fieldName] = error;
-      else delete next[fieldName];
-      return next;
-    });
-  };
-  const clearErrorIfValid = (fieldName, newValue) => {
-    if (fieldErrors[fieldName]) {
-      const err = validateField(fieldName, newValue);
-      if (!err) setFieldErrors(prev => { const n = { ...prev }; delete n[fieldName]; return n; });
-    }
-  };
-  const getErrorStyle = (name) => fieldErrors[name] ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
-  const FieldError = ({ name }) => fieldErrors[name] ? <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600, display: 'block', marginTop: '1px' }}>{fieldErrors[name]}</span> : null;
 
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      const loaded = { ...initialData };
-      if (!loaded.fullName && (loaded.firstName || loaded.secondName || loaded.lastName)) {
-        loaded.fullName = [loaded.firstName, loaded.secondName, loaded.lastName].filter(Boolean).join(' ');
-      }
-      setFormData((prev) => ({
-        ...prev,
-        ...loaded,
-        fundsSource: Array.isArray(loaded.fundsSource) ? loaded.fundsSource : prev.fundsSource,
-        pep: loaded.pep || prev.pep,
-      }));
+      setFormData((prev) => ({ ...prev, ...adaptLoadedData(initialData) }));
     }
   }, [initialData]);
 
   const PRIMARY = KYC_PRIMARY;
   const SECONDARY = '#1e293b';
-  const TOTAL_STEPS = 4;
+  const yesLabel = lang === 'en' ? 'Yes' : 'Sí';
+  const noLabel = 'No';
 
-  const validateStep = (s) => {
-    const req = (v) => v !== undefined && v !== null && String(v).trim() !== '';
-    if (s === 1) {
-      return (
-        req(formData.fullName) &&
-        req(formData.birthDate) &&
-        req(formData.birthPlace) &&
-        req(formData.nationality) &&
-        req(formData.passport)
-      );
-    }
-    if (s === 2) {
-      return (
-        req(formData.phone) &&
-        req(formData.email) &&
-        req(formData.address) &&
-        req(formData.city) &&
-        req(formData.country) &&
-        req(formData.occupation)
-      );
-    }
-    if (s === 3) {
-      const pepOk =
-        formData.pep === 'No' ||
-        (formData.pep === 'Sí' && req(formData.pepDetails));
-      return req(formData.pep) && pepOk && formData.fundsSource.length > 0;
-    }
-    if (s === 4) {
-      return req(formData.declarationName) && req(formData.declarationDate);
-    }
-    return true;
-  };
+  const isMissing = (key) => missing.includes(key);
+  const errorStyle = (key) =>
+    fieldErrors[key] || isMissing(key) ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
+  const FieldError = ({ name }) =>
+    fieldErrors[name] ? (
+      <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600, display: 'block', marginTop: '1px' }}>{fieldErrors[name]}</span>
+    ) : null;
 
-  const nextStep = () => {
-    // En modo lectura (vista del administrador) se navega sin validar.
-    if (!readOnly && !validateStep(step)) {
-      window.alert(t('kyci.validationIncomplete'));
-      return;
-    }
-    setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
-  };
-
-  const toggleFunds = (key) => {
+  const setValue = (key, value) => {
     setFormData((prev) => {
-      const has = prev.fundsSource.includes(key);
-      return {
-        ...prev,
-        fundsSource: has
-          ? prev.fundsSource.filter((x) => x !== key)
-          : [...prev.fundsSource, key],
-      };
+      const next = { ...prev, [key]: value };
+      // Al responder "No", el detalle asociado se limpia.
+      if (YES_NO_DETAILS[key] && value === NO) next[YES_NO_DETAILS[key]] = '';
+      if (key === 'usPerson' && value === NO) { next.usTin = ''; next.usDetails = ''; }
+      return next;
+    });
+    if (missing.includes(key)) setMissing((m) => m.filter((k) => k !== key));
+    if (fieldErrors[key] && !validateField(key, value)) {
+      setFieldErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    }
+  };
+
+  const handleBlur = (key) => {
+    const error = validateField(key, formData[key]);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (error) next[key] = error;
+      else delete next[key];
+      return next;
     });
   };
 
-  const setPep = (value) => {
-    setFormData((prev) => ({
-      ...prev,
-      pep: value,
-      pepDetails: value === 'No' ? '' : prev.pepDetails,
-    }));
+  const toggleInList = (key, optionKey) => {
+    const list = Array.isArray(formData[key]) ? formData[key] : [];
+    const next = list.includes(optionKey) ? list.filter((x) => x !== optionKey) : [...list, optionKey];
+    setValue(key, next);
+    setMissing((m) => m.filter((k) => k !== key && k !== `${key}.${optionKey}`));
+  };
+
+  const shown = (key) => {
+    const cond = FIELDS[key]?.showIf;
+    return !cond || formData[cond.field] === cond.value;
+  };
+  const isRequired = (key) => {
+    const def = FIELDS[key];
+    return Boolean(def?.required || (def?.requiredIf && formData[def.requiredIf.field] === def.requiredIf.value));
+  };
+  const Label = ({ k }) => (
+    <label>
+      {labels[k]}
+      {isRequired(k) ? <span style={{ color: '#ef4444' }}> *</span> : null}
+    </label>
+  );
+
+  const textInput = (key, { type = 'text', placeholder, full } = {}) =>
+    shown(key) ? (
+      <div className="expert-group" style={full ? { gridColumn: '1 / -1' } : undefined} key={key}>
+        <Label k={key} />
+        <input
+          type={type}
+          className="expert-input"
+          style={errorStyle(key)}
+          value={formData[key] || ''}
+          onChange={(e) => setValue(key, e.target.value)}
+          onBlur={() => handleBlur(key)}
+          placeholder={placeholder}
+        />
+        <FieldError name={key} />
+      </div>
+    ) : null;
+
+  const textArea = (key, { placeholder } = {}) =>
+    shown(key) ? (
+      <div className="expert-group" style={{ gridColumn: '1 / -1' }} key={key}>
+        <Label k={key} />
+        <textarea
+          className="expert-input"
+          rows={3}
+          style={{ ...errorStyle(key), resize: 'vertical' }}
+          value={formData[key] || ''}
+          onChange={(e) => setValue(key, e.target.value)}
+          placeholder={placeholder}
+        />
+      </div>
+    ) : null;
+
+  const yesNo = (key) => (
+    <div className="expert-group kyci-yesno" style={{ gridColumn: '1 / -1', ...(isMissing(key) ? { outline: '1px solid #ef4444', borderRadius: 4, padding: 4 } : {}) }} key={key}>
+      <Label k={key} />
+      <div style={{ display: 'flex', gap: 18, marginTop: 4 }}>
+        {[[YES, yesLabel], [NO, noLabel]].map(([value, text]) => (
+          <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: formData[key] === value ? 700 : 500, color: '#1e293b', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name={`kyci-${key}`}
+              checked={formData[key] === value}
+              onChange={() => setValue(key, value)}
+              style={{ width: 15, height: 15, accentColor: PRIMARY }}
+            />
+            {text}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
+  const checkboxGroup = (key, options, columns) => (
+    <div className="expert-group" style={{ gridColumn: '1 / -1' }} key={key}>
+      <Label k={key} />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: columns,
+          gap: 6,
+          marginTop: 4,
+          padding: 8,
+          borderRadius: 6,
+          border: isMissing(key) ? '1px solid #ef4444' : '1px solid #e2e8f0',
+          background: '#f8fafc',
+        }}
+      >
+        {options.map((opt) => {
+          const selected = (formData[key] || []).includes(opt.key);
+          const optRequired = opt.required || (opt.requiredIf && formData[opt.requiredIf.field] === opt.requiredIf.value);
+          const optMissing = isMissing(`${key}.${opt.key}`);
+          return (
+            <label
+              key={opt.key}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
+                fontSize: 12,
+                fontWeight: selected ? 700 : 500,
+                color: optMissing ? '#b91c1c' : '#1e293b',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => toggleInList(key, opt.key)}
+                style={{ width: 15, height: 15, marginTop: 1, accentColor: PRIMARY, flexShrink: 0 }}
+              />
+              <span>
+                {lang === 'en' ? opt.en : opt.es}
+                {optRequired ? <span style={{ color: '#ef4444' }}> *</span> : null}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const grid = (children) => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>{children}</div>
+  );
+
+  const header = (s) => {
+    const meta = STEP_META[s - 1];
+    const Icon = meta.icon;
+    return (
+      <>
+        <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon size={22} color={PRIMARY} /> {lang === 'en' ? meta.en : meta.es}
+        </h2>
+        <KycHintBox>{STEP_HINTS[lang === 'en' ? 'en' : 'es'][s - 1]}</KycHintBox>
+      </>
+    );
   };
 
   const renderStep1 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <User size={22} color={PRIMARY} /> {t('kyci.steps.personal')}
-      </h2>
-      <KycHintBox>{t('kyci.hints.personal')}</KycHintBox>
+      {header(1)}
       <PersonSelector
         people={registeredPeople}
         onSelectPerson={(person) => {
+          const names = person.firstName || person.lastName
+            ? { firstName: person.firstName || '', secondName: person.secondName || '', lastName: person.lastName || '' }
+            : splitLegacyFullName(person.fullName || person.name || '');
           setFormData((prev) => ({
             ...prev,
-            fullName: person.fullName || person.name || prev.fullName,
+            firstName: names.firstName || prev.firstName,
+            secondName: names.secondName || prev.secondName,
+            lastName: names.lastName || prev.lastName,
             birthDate: person.birthDate || prev.birthDate,
             birthPlace: person.birthPlace || prev.birthPlace,
             maritalStatus: person.maritalStatus || prev.maritalStatus,
             nationality: person.nationality || prev.nationality,
             passport: person.passport || person.idNumber || prev.passport,
-            idCard: person.idCard || prev.idCard,
             phone: person.phone || prev.phone,
             email: person.email || prev.email,
             address: person.address || prev.address,
-            city: person.city || prev.city,
-            country: person.country || prev.country
           }));
         }}
-        currentName={formData.fullName}
+        currentName={computeFullName(formData)}
       />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('fullName') || (lang === 'en' ? 'Full name' : 'Nombre completo')}</label><input className="expert-input" style={getErrorStyle('fullName')} value={formData.fullName} onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); clearErrorIfValid('fullName', e.target.value); }} onBlur={() => handleFieldBlur('fullName')} placeholder={lang === 'en' ? 'Full name as on Passport/ID' : 'Nombre completo como aparece en pasaporte/cédula'} required /><FieldError name="fullName" /></div>
-        <div className="expert-group"><label>{L('birthDate')}</label><input type="date" className="expert-input" style={getErrorStyle('birthDate')} value={formData.birthDate} onChange={(e) => { setFormData({ ...formData, birthDate: e.target.value }); clearErrorIfValid('birthDate', e.target.value); }} onBlur={() => handleFieldBlur('birthDate')} required /><FieldError name="birthDate" /></div>
-        <div className="expert-group"><label>{L('birthPlace')}</label><input className="expert-input" style={getErrorStyle('birthPlace')} value={formData.birthPlace} onChange={(e) => { setFormData({ ...formData, birthPlace: e.target.value }); clearErrorIfValid('birthPlace', e.target.value); }} onBlur={() => handleFieldBlur('birthPlace')} placeholder={lang === 'en' ? 'e.g. Madrid, Spain' : 'Ej: Madrid, España'} required /><FieldError name="birthPlace" /></div>
-        <div className="expert-group"><label>{L('maritalStatus')}</label>
-          <select className="expert-input" value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}>
-            <option value="">—</option>
-            {MARITAL_STATUS_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-        </div>
-        <div className="expert-group"><label>{L('nationality')}</label><input className="expert-input" style={getErrorStyle('nationality')} value={formData.nationality} onChange={(e) => { setFormData({ ...formData, nationality: e.target.value }); clearErrorIfValid('nationality', e.target.value); }} onBlur={() => handleFieldBlur('nationality')} placeholder={lang === 'en' ? 'e.g. Spanish' : 'Ej: Española'} required /><FieldError name="nationality" /></div>
-        <div className="expert-group"><label>{L('passport')}</label><input className="expert-input" style={getErrorStyle('passport')} value={formData.passport} onChange={(e) => { setFormData({ ...formData, passport: e.target.value }); clearErrorIfValid('passport', e.target.value); }} onBlur={() => handleFieldBlur('passport')} placeholder={lang === 'en' ? 'Passport number' : 'Número de pasaporte'} required /><FieldError name="passport" /></div>
-        <div className="expert-group"><label>{L('idCard')}</label><input className="expert-input" style={getErrorStyle('idCard')} value={formData.idCard} onChange={(e) => { setFormData({ ...formData, idCard: e.target.value }); clearErrorIfValid('idCard', e.target.value); }} onBlur={() => handleFieldBlur('idCard')} placeholder={lang === 'en' ? 'National ID' : 'Cédula de identidad'} /><FieldError name="idCard" /></div>
-      </div>
+      {grid(
+        <>
+          {textInput('panamaEntityName', { full: true, placeholder: lang === 'en' ? 'e.g. Atlantic Investments S.A.' : 'Ej: Inversiones Atlántico S.A.' })}
+          {checkboxGroup('applicantRoles', APPLICANT_ROLE_OPTIONS, 'repeat(auto-fit, minmax(150px, 1fr))')}
+          {textInput('firstName')}
+          {textInput('secondName')}
+          {textInput('lastName')}
+          {textInput('birthDate', { type: 'date' })}
+          {textInput('nationality', { placeholder: lang === 'en' ? 'e.g. Panamanian' : 'Ej: Panameña' })}
+          {textInput('birthPlace', { placeholder: lang === 'en' ? 'e.g. Panama City, Panama' : 'Ej: Ciudad de Panamá, Panamá' })}
+          {textInput('passport')}
+          {textInput('address', { full: true })}
+          <div className="expert-group" key="maritalStatus">
+            <Label k="maritalStatus" />
+            <select className="expert-input" style={errorStyle('maritalStatus')} value={formData.maritalStatus} onChange={(e) => setValue('maritalStatus', e.target.value)}>
+              <option value="">—</option>
+              {MARITAL_STATUS_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          {textInput('phone', { placeholder: '+507 6000-0000' })}
+          {textInput('email', { type: 'email', placeholder: 'correo@ejemplo.com' })}
+        </>
+      )}
     </div>
   );
 
   const renderStep2 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Phone size={22} color={PRIMARY} /> {t('kyci.steps.contact')}
-      </h2>
-      <KycHintBox>{t('kyci.hints.contact')}</KycHintBox>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <div className="expert-group"><label>{L('phone')}</label><input className="expert-input" style={getErrorStyle('phone')} value={formData.phone} onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); clearErrorIfValid('phone', e.target.value); }} onBlur={() => handleFieldBlur('phone')} placeholder={lang === 'en' ? '+1 234 567 890' : '+34 600 000 000'} required /><FieldError name="phone" /></div>
-        <div className="expert-group"><label>{L('email')}</label><input type="email" className="expert-input" style={getErrorStyle('email')} value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); clearErrorIfValid('email', e.target.value); }} onBlur={() => handleFieldBlur('email')} placeholder="correo@ejemplo.com" required /><FieldError name="email" /></div>
-        <div className="expert-group" style={{ gridColumn: '1 / -1' }}><label>{L('address')}</label><input className="expert-input" style={getErrorStyle('address')} value={formData.address} onChange={(e) => { setFormData({ ...formData, address: e.target.value }); clearErrorIfValid('address', e.target.value); }} onBlur={() => handleFieldBlur('address')} placeholder={lang === 'en' ? 'Complete residential address' : 'Dirección residencial completa'} required /><FieldError name="address" /></div>
-        <div className="expert-group"><label>{L('city')}</label><input className="expert-input" style={getErrorStyle('city')} value={formData.city} onChange={(e) => { setFormData({ ...formData, city: e.target.value }); clearErrorIfValid('city', e.target.value); }} onBlur={() => handleFieldBlur('city')} placeholder={lang === 'en' ? 'City' : 'Ciudad'} required /><FieldError name="city" /></div>
-        <div className="expert-group"><label>{L('country')}</label><input className="expert-input" style={getErrorStyle('country')} value={formData.country} onChange={(e) => { setFormData({ ...formData, country: e.target.value }); clearErrorIfValid('country', e.target.value); }} onBlur={() => handleFieldBlur('country')} placeholder={lang === 'en' ? 'Country' : 'País'} required /><FieldError name="country" /></div>
-        <div className="expert-group"><label>{L('occupation')}</label><input className="expert-input" style={getErrorStyle('occupation')} value={formData.occupation} onChange={(e) => { setFormData({ ...formData, occupation: e.target.value }); clearErrorIfValid('occupation', e.target.value); }} onBlur={() => handleFieldBlur('occupation')} placeholder={lang === 'en' ? 'Profession / Occupation' : 'Profesión u oficio'} required /><FieldError name="occupation" /></div>
-        <div className="expert-group"><label>{L('employer')}</label><input className="expert-input" style={getErrorStyle('employer')} value={formData.employer} onChange={(e) => { setFormData({ ...formData, employer: e.target.value }); clearErrorIfValid('employer', e.target.value); }} onBlur={() => handleFieldBlur('employer')} placeholder={lang === 'en' ? 'Company name' : 'Nombre de la empresa'} /><FieldError name="employer" /></div>
-      </div>
+      {header(2)}
+      {grid(
+        <>
+          {textInput('taxResidenceCountries', { full: true, placeholder: lang === 'en' ? 'e.g. Panama' : 'Ej: Panamá' })}
+          {yesNo('otherTaxResidence')}
+          {textArea('otherTaxResidenceDetails')}
+          {yesNo('usPerson')}
+          {textInput('usTin')}
+          {textArea('usDetails')}
+        </>
+      )}
     </div>
   );
 
   const renderStep3 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <ShieldCheck size={22} color={PRIMARY} /> {t('kyci.steps.compliance')}
-      </h2>
-      <KycHintBox>{t('kyci.hints.compliance')}</KycHintBox>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <KycPepQuestion
-          label={L('pep')}
-          hint={t('kyci.hints.pep')}
-          pep={formData.pep}
-          pepDetails={formData.pepDetails}
-          onPepChange={setPep}
-          onDetailsChange={(value) => setFormData({ ...formData, pepDetails: value })}
-          detailsLabel={L('pepDetails')}
-          pepNoLabel={t('kyci.pepNo')}
-          pepYesLabel={t('kyci.pepYes')}
-        />
-        <KycFundsSourceGroup
-          label={L('fundsSource')}
-          instructions={t('kyci.hints.fundsSource')}
-          options={FUNDS_OPTIONS}
-          fundsSource={formData.fundsSource}
-          onToggle={toggleFunds}
-          getOptionLabel={(opt) => t(`kyci.sources.${opt.labelKey}`)}
-          primary={PRIMARY}
-        />
-        <div className="expert-group"><label>{L('fundsOther')}</label><input className="expert-input" style={getErrorStyle('fundsOther')} value={formData.fundsOther} onChange={(e) => { setFormData({ ...formData, fundsOther: e.target.value }); clearErrorIfValid('fundsOther', e.target.value); }} onBlur={() => handleFieldBlur('fundsOther')} placeholder={lang === 'en' ? 'Required if applicable...' : 'Obligatorio si aplica...'} /><FieldError name="fundsOther" /></div>
-      </div>
+      {header(3)}
+      {grid(
+        <>
+          {textArea('sourceOfWealth')}
+          {yesNo('pep')}
+          {textArea('pepDetails')}
+          {yesNo('offenceConvicted')}
+          {textArea('offenceConvictedDetails')}
+          {yesNo('offenceBankrupt')}
+          {textArea('offenceBankruptDetails')}
+          {yesNo('offenceInvestigation')}
+          {textArea('offenceInvestigationDetails')}
+        </>
+      )}
     </div>
   );
 
   const renderStep4 = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <FileCheck size={22} color={PRIMARY} /> {t('kyci.steps.declaration')}
-      </h2>
-      <KycHintBox>{t('kyci.hints.declaration')}</KycHintBox>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <div className="expert-group"><label>{L('declarationName')}</label><input className="expert-input" style={getErrorStyle('declarationName')} value={formData.declarationName} onChange={(e) => { setFormData({ ...formData, declarationName: e.target.value }); clearErrorIfValid('declarationName', e.target.value); }} onBlur={() => handleFieldBlur('declarationName')} placeholder={lang === 'en' ? 'e.g. John Doe' : 'Ej: Juan Pérez'} required /><FieldError name="declarationName" /></div>
-        <div className="expert-group"><label>{L('declarationDate')}</label><input type="date" className="expert-input" style={getErrorStyle('declarationDate')} value={formData.declarationDate} onChange={(e) => { setFormData({ ...formData, declarationDate: e.target.value }); clearErrorIfValid('declarationDate', e.target.value); }} onBlur={() => handleFieldBlur('declarationDate')} required /><FieldError name="declarationDate" /></div>
-      </div>
+      {header(4)}
+      {grid(
+        <>
+          {checkboxGroup('certifiedDocs', CERTIFIED_DOC_OPTIONS, '1fr')}
+          <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: 10 }}>
+            {lang === 'en'
+              ? 'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of my circumstances change within 14 days of those changes occurring.'
+              : 'Confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles si alguna de mis circunstancias cambia, dentro de los 14 días siguientes a dicho cambio.'}
+          </div>
+          {textInput('declarationDate', { type: 'date' })}
+        </>
+      )}
     </div>
   );
+
+  const withCompat = (data) => ({ ...data, fullName: computeFullName(data) });
+
+  const nextStep = () => {
+    // En modo lectura (vista del administrador) se navega sin validar.
+    if (!readOnly) {
+      const miss = missingFieldsForStep(step, formData);
+      if (miss.length) {
+        setMissing(miss);
+        window.alert(t('kyci.validationIncomplete'));
+        return;
+      }
+    }
+    setMissing([]);
+    setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
+  };
+
+  const finish = () => {
+    const miss = missingFields(formData);
+    if (miss.length) {
+      setMissing(miss);
+      const firstStep = [1, 2, 3, 4].find((s) => missingFieldsForStep(s, formData).length > 0) || step;
+      setStep(firstStep);
+      window.alert(t('kyci.validationIncomplete'));
+      return;
+    }
+    onSave(withProgress(withCompat(formData), step, TOTAL_STEPS, true), true);
+  };
 
   return (
     <div style={{ width: '100%', padding: '12px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h1 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY }}>{t('formType.Cumplimiento Individual')}</h1>
         {!readOnly && (
-        <button type="button" onClick={() => onSave(withProgress(formData, step, 4))} disabled={saving} className="expert-btn-save">
-          <Save size={18} /> {saving ? t('common.saving') : t('kyci.saveDraft')}
-        </button>
+          <button type="button" onClick={() => onSave(withProgress(withCompat(formData), step, TOTAL_STEPS))} disabled={saving} className="expert-btn-save">
+            <Save size={18} /> {saving ? t('common.saving') : t('kyci.saveDraft')}
+          </button>
         )}
       </div>
 
@@ -295,14 +465,14 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
 
       <div style={{ background: 'white', padding: '24px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
         <ReadOnlyFieldset readOnly={readOnly}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
-        {step === 4 && renderStep4()}
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderStep4()}
         </ReadOnlyFieldset>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e8edf2' }}>
-          <button type="button" onClick={() => setStep((prev) => prev - 1)} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}>
+          <button type="button" onClick={() => { setMissing([]); setStep((prev) => prev - 1); }} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}>
             <ChevronLeft size={18} /> {t('common.back')}
           </button>
           {step < TOTAL_STEPS ? (
@@ -310,7 +480,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
               {t('common.continue')} <ChevronRight size={18} />
             </button>
           ) : readOnly ? <span /> : (
-            <button type="button" onClick={() => validateStep(4) && onSave(withProgress(formData, step, 4, true), true)} disabled={saving} className="expert-btn-finish">
+            <button type="button" onClick={finish} disabled={saving} className="expert-btn-finish">
               <CheckCircle2 size={18} /> {saving ? t('common.saving') : t('common.finishSave')}
             </button>
           )}

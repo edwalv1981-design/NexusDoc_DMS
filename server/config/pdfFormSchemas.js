@@ -10,62 +10,32 @@ const {
   FUNDS_SOURCE_OPTIONS,
 } = require('../../lib/kyciMasterSpec.cjs');
 
+const kyciMasterSpec = require('../../lib/kyciMasterSpec.cjs');
+
+const KYCI_FULL_WIDTH = new Set(['panamaEntityName', 'applicantRoles', 'address', 'sourceOfWealth', 'certifiedDocs']);
+
+/** KYCI: pasos y campos derivados de la plantilla oficial (lib/kyciMasterSpec.cjs). */
 const CUMPLIMIENTO_INDIVIDUAL_SCHEMA = Object.freeze({
   templateId: 'cumplimiento_individual',
   formType: 'Cumplimiento Individual',
   i18nPrefix: 'kyci',
-  steps: Object.freeze([
-    {
-      id: 'personal',
-      titleKey: 'steps.personal',
-      fields: Object.freeze([
-        { key: 'fullName', type: 'text', required: true, col: 'full' },
-        { key: 'birthDate', type: 'date', required: true, col: 'half' },
-        { key: 'birthPlace', type: 'text', required: true, col: 'half' },
-        { key: 'maritalStatus', type: 'select', options: MARITAL_OPTIONS, col: 'half' },
-        { key: 'nationality', type: 'text', required: true, col: 'half' },
-        { key: 'passport', type: 'text', required: true, col: 'half' },
-        { key: 'idCard', type: 'text', col: 'half' },
-      ]),
-    },
-    {
-      id: 'contact',
-      titleKey: 'steps.contact',
-      fields: Object.freeze([
-        { key: 'phone', type: 'text', required: true, col: 'half' },
-        { key: 'email', type: 'email', required: true, col: 'half' },
-        { key: 'address', type: 'text', required: true, col: 'full' },
-        { key: 'city', type: 'text', required: true, col: 'half' },
-        { key: 'country', type: 'text', required: true, col: 'half' },
-        { key: 'occupation', type: 'text', required: true, col: 'half' },
-        { key: 'employer', type: 'text', col: 'half' },
-      ]),
-    },
-    {
-      id: 'compliance',
-      titleKey: 'steps.compliance',
-      fields: Object.freeze([
-        { key: 'pep', type: 'radio', options: ['No', 'Sí'], required: true, col: 'full' },
-        { key: 'pepDetails', type: 'textarea', col: 'full', showIf: { field: 'pep', value: 'Sí' } },
-        {
-          key: 'fundsSource',
-          type: 'checkboxGroup',
-          required: true,
-          options: FUNDS_SOURCE_OPTIONS,
-          col: 'full',
-        },
-        { key: 'fundsOther', type: 'text', col: 'full' },
-      ]),
-    },
-    {
-      id: 'declaration',
-      titleKey: 'steps.declaration',
-      fields: Object.freeze([
-        { key: 'declarationName', type: 'text', required: true, col: 'half' },
-        { key: 'declarationDate', type: 'date', required: true, col: 'half' },
-      ]),
-    },
-  ]),
+  steps: Object.freeze(
+    kyciMasterSpec.SECTIONS.map((section) => ({
+      id: section.stepId,
+      titleKey: `steps.${section.stepId}`,
+      fields: Object.freeze(
+        section.fieldKeys.map((key) => {
+          const def = kyciMasterSpec.FIELDS[key];
+          const field = { key, type: def.type, col: KYCI_FULL_WIDTH.has(key) || def.type === 'textarea' || def.type === 'radio' ? 'full' : 'half' };
+          if (def.required) field.required = true;
+          if (def.options) field.options = def.options;
+          if (def.showIf) field.showIf = def.showIf;
+          if (def.requiredIf) field.requiredIf = def.requiredIf;
+          return field;
+        })
+      ),
+    }))
+  ),
 });
 
 const KYCE_FUNDS_SOURCE_OPTIONS = Object.freeze([
@@ -179,7 +149,8 @@ function validateStep(schema, stepIndex, data) {
       if (actual !== field.showIf.value) continue;
     }
     const value = data?.[field.key];
-    if (!field.required) continue;
+    const conditional = field.requiredIf && data?.[field.requiredIf.field] === field.requiredIf.value;
+    if (!field.required && !conditional) continue;
     if (field.type === 'checkboxGroup') {
       if (!Array.isArray(value) || value.length === 0) {
         errors.push(field.key);

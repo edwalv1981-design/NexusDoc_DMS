@@ -52,6 +52,10 @@ jobs:
         working-directory: server
         run: npm ci --no-audit --no-fund
 
+      - name: Chrome para generar PDF (puppeteer)
+        working-directory: server
+        run: npx --no-install puppeteer browsers install chrome
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

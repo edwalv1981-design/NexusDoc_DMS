@@ -21,17 +21,21 @@ describe('pdfFormSchemas', () => {
     const empty = schemas.emptyStateForSchema(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA);
     assert.equal(empty.companyName, undefined);
     assert.equal(empty.beneficiaryName, undefined);
-    assert.ok(empty.fullName !== undefined);
-    assert.ok(Array.isArray(empty.fundsSource));
-    assert.equal(empty.pep, 'No');
+    assert.ok(empty.firstName !== undefined);
+    assert.ok(empty.lastName !== undefined);
+    assert.ok(Array.isArray(empty.applicantRoles));
+    assert.ok(Array.isArray(empty.certifiedDocs));
   });
 
   it('valida paso 1 exige nombre y documento', () => {
     const partial = schemas.emptyStateForSchema(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA);
-    partial.fullName = 'Ana';
+    partial.firstName = 'Ana';
     const r = schemas.validateStep(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA, 1, partial);
     assert.equal(r.ok, false);
     assert.ok(r.errors.includes('passport'));
+    assert.ok(r.errors.includes('lastName'));
+    const pepYes = schemas.validateStep(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA, 3, { pep: 'Sí' });
+    assert.ok(pepYes.errors.includes('pepDetails'), 'PEP Sí exige detalle');
   });
 
   it('resuelve esquema KYCE por formType y templateId', () => {
@@ -50,7 +54,13 @@ describe('pdfFormSchemas', () => {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const kyci = config.cumplimiento_individual;
     assert.ok(kyci?.anchors?.length);
-    const schemaKeys = new Set(schemas.listSchemaFieldKeys(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA));
+    // KYCI se genera con el motor HTML de la plantilla oficial; los anchors del motor
+    // antiguo usan claves del formato anterior, que se conservan como legado.
+    const { LEGACY_FIELD_KEYS } = require('../../lib/kyciMasterSpec.cjs');
+    const schemaKeys = new Set([
+      ...schemas.listSchemaFieldKeys(schemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA),
+      ...LEGACY_FIELD_KEYS,
+    ]);
     for (const anchor of kyci.anchors) {
       assert.ok(
         schemaKeys.has(anchor.data_key),

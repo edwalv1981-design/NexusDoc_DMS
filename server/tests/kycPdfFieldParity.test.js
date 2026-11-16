@@ -101,19 +101,18 @@ describe('kycPdfFieldRegistry', () => {
 });
 
 describe('kyciHtmlPdf field parity', () => {
-  it('incluye título PTL_KYC y todas las etiquetas por sección', () => {
+  it('cada campo de la plantilla tiene etiqueta y aparece en el PDF', () => {
     const t = getKyciPdfDict('es');
     const html = buildKyciPdfInnerHtml(kyciSample, { language: 'es' });
-    assert.match(html, /PTL_KYC/);
-    assert.match(html, /María/);
-    for (const section of KYCI_PDF_SECTIONS) {
-      const labels = section.fields
-        .filter((key) => key !== 'pepDetails' || String(kyciSample.pep || '').trim().toLowerCase().startsWith('s'))
-        .map((key) => t[key])
-        .filter(Boolean);
-      if (section.fundsSource) labels.push(t.fundsSource);
-      assertLabelsInSection(extractSection(html, t[section.sectionKey]), labels, t[section.sectionKey]);
+    assert.match(html, /COMPLIANCE FORM/);
+    // Campos que el PDF muestra con su propia etiqueta de la plantilla.
+    const labelled = KYCI_ALL_FIELD_KEYS.filter((k) => !['applicantRoles', 'certifiedDocs'].includes(k) && !/Details$/.test(k));
+    for (const key of labelled) {
+      assert.ok(t[key], `falta etiqueta PDF para ${key}`);
+      assert.ok(html.includes(t[key].replace(/&/g, '&amp;')), `PDF debe incluir etiqueta de ${key}`);
     }
+    assert.ok(html.includes(t.applicantRolesTitle));
+    assert.ok(html.includes(t.docsTitle));
   });
 });
 

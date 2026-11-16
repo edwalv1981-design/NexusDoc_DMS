@@ -85,6 +85,35 @@ try {
   expect(await page.locator('input[value="A777"]').count() > 0, 'Usuario: ve el dato corregido por el administrador (A777) en Junta Directiva');
   await shot('04-usuario-aviso');
 
+  stage = 'kyc individual';
+  // ── 3b. KYC Individual según la plantilla oficial ─────────────────────────
+  if (ids.kycId) {
+    const dialogs = [];
+    const onDialog = (d) => { dialogs.push(d.message()); d.accept().catch(() => {}); };
+    page.on('dialog', onDialog);
+    await page.goto(`${BASE}/dashboard?view=form&id=${ids.kycId}`, { waitUntil: 'networkidle' });
+    await page.getByText(/entidad paname|Panama entity/i).first().waitFor({ timeout: 20000 });
+    ok('KYCI: el formulario pide la entidad panameña y la calidad del solicitante (plantilla)');
+    expect(await page.locator('input[value="Ana"]').count() > 0 && await page.locator('input[value="Pérez"]').count() > 0,
+      'KYCI: trámite antiguo carga el nombre partido en nombre / apellidos');
+    expect(await page.getByText(/Cédula|ID Card|Ocupaci|Occupation|Empleador|Employer/).count() === 0,
+      'KYCI: ya no muestra campos que la plantilla no tiene');
+    await page.locator('.expert-btn-primary').first().click();
+    await page.waitForTimeout(500);
+    expect(dialogs.length > 0, 'KYCI: no deja avanzar sin los datos obligatorios de la plantilla');
+    expect(await page.getByText(/I\. Solicitante|I\. Applicant/).count() > 0, 'KYCI: se queda en el paso I');
+    await shot('05-kyci-plantilla');
+    page.off('dialog', onDialog);
+  }
+  if (ids.kycNewId) {
+    await loginAs(ids.adminToken, ids.admin);
+    await page.goto(`${BASE}/admin/form/${ids.kycNewId}?mode=view`, { waitUntil: 'networkidle' });
+    await page.locator('input[value="Atlántico S.A."]').first().waitFor({ timeout: 20000 }).catch(() => {});
+    expect(await page.locator('input[value="Atlántico S.A."]').count() > 0, 'KYCI: el administrador ve el trámite con el formato de la plantilla');
+    await shot('06-kyci-admin');
+    await loginAs(ids.clientToken, ids.client);
+  }
+
   stage = 'firmas usuario';
   // ── 4. Firmas: lista del usuario y bandeja del administrador ─────────────
   await page.goto(`${BASE}/dashboard?view=signed-docs`, { waitUntil: 'networkidle' });

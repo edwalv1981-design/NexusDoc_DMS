@@ -5,55 +5,99 @@ const assert = require('node:assert/strict');
 const kyciMaster = require('../../lib/kyciMasterSpec.cjs');
 const pdfFormSchemas = require('../config/pdfFormSchemas');
 const {
-  KYCI_PDF_SECTIONS,
-  KYCI_ALL_FIELD_KEYS,
   assertKycPdfFieldRegistryParity,
   assertKyciMasterSpecParity,
 } = require('../config/kycPdfFieldRegistry');
-const { getKyciPdfDict } = require('../services/kyciPdfI18n');
 
-describe('kyciMasterSpec', () => {
-  it('define 4 secciones en orden del PDF PTL_KYC Individuals', () => {
+/** Plantilla oficial PTL_KYC – Compliance Form – Individuals. */
+describe('kyciMasterSpec (plantilla oficial)', () => {
+  it('define 4 secciones en el orden de la plantilla', () => {
     assert.equal(kyciMaster.SECTIONS.length, 4);
-    assert.equal(kyciMaster.SECTIONS[0].sectionKey, 'sectionPersonal');
-    assert.equal(kyciMaster.SECTIONS[3].sectionKey, 'sectionDeclaration');
+    assert.deepEqual(kyciMaster.SECTIONS.map((s) => s.stepId), ['personal', 'contact', 'compliance', 'declaration']);
     assert.match(kyciMaster.SECTIONS[0].titleEs, /^I\./);
     assert.match(kyciMaster.SECTIONS[3].titleEs, /^IV\./);
+  });
+
+  it('incluye todos los campos de la plantilla', () => {
+    const keys = kyciMaster.KYCI_ALL_FIELD_KEYS;
+    for (const k of [
+      'panamaEntityName', 'applicantRoles', 'firstName', 'secondName', 'lastName', 'birthDate',
+      'nationality', 'birthPlace', 'passport', 'address', 'maritalStatus', 'phone', 'email',
+      'taxResidenceCountries', 'otherTaxResidence', 'otherTaxResidenceDetails', 'usPerson', 'usTin', 'usDetails',
+      'sourceOfWealth', 'pep', 'pepDetails',
+      'offenceConvicted', 'offenceConvictedDetails', 'offenceBankrupt', 'offenceBankruptDetails',
+      'offenceInvestigation', 'offenceInvestigationDetails', 'certifiedDocs', 'declarationDate',
+    ]) {
+      assert.ok(keys.includes(k), `falta ${k}`);
+    }
+  });
+
+  it('no pide campos que la plantilla no tiene', () => {
+    for (const k of kyciMaster.LEGACY_FIELD_KEYS) {
+      assert.ok(!kyciMaster.KYCI_ALL_FIELD_KEYS.includes(k), `${k} no está en la plantilla`);
+    }
+  });
+
+  it('tiene las 10 calidades del solicitante y los 6 documentos', () => {
+    assert.deepEqual(kyciMaster.APPLICANT_ROLE_OPTIONS.map((o) => o.en), [
+      'Shareholder', 'Director', 'General Partner', 'Beneficial Owner', 'Authorised Signatory',
+      'Power of Attorney', 'Founder/Settlor', 'Enforcer', 'Protector', 'Member',
+    ]);
+    assert.equal(kyciMaster.CERTIFIED_DOC_OPTIONS.length, 6);
   });
 
   it('registry y pdfFormSchemas alineados con master spec', () => {
     assert.doesNotThrow(() => assertKycPdfFieldRegistryParity());
     assert.doesNotThrow(() => assertKyciMasterSpecParity());
-    const schemaKeys = pdfFormSchemas.listSchemaFieldKeys(
-      pdfFormSchemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA
-    );
+    const schemaKeys = pdfFormSchemas.listSchemaFieldKeys(pdfFormSchemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA);
     assert.deepEqual([...schemaKeys].sort(), [...kyciMaster.KYCI_ALL_FIELD_KEYS].sort());
     assert.equal(pdfFormSchemas.CUMPLIMIENTO_INDIVIDUAL_SCHEMA.steps.length, 4);
   });
 
-  it('etiquetas PDF i18n cubren todos los campos del master', () => {
-    const t = getKyciPdfDict('es');
-    for (const key of KYCI_ALL_FIELD_KEYS) {
-      if (key === 'fundsSource') {
-        assert.ok(t.fundsSource, `falta label fundsSource`);
-        continue;
-      }
-      assert.ok(t[key], `falta label i18n PDF para ${key}`);
+  it('formulario vacío no se puede enviar', () => {
+    const miss = kyciMaster.missingFields({});
+    for (const k of ['panamaEntityName', 'applicantRoles', 'firstName', 'lastName', 'passport', 'sourceOfWealth', 'pep', 'usPerson', 'declarationDate']) {
+      assert.ok(miss.includes(k), `debe exigir ${k}`);
     }
-    for (const section of KYCI_PDF_SECTIONS) {
-      assert.ok(t[section.sectionKey], `falta título sección ${section.sectionKey}`);
-    }
+    assert.ok(!miss.includes('secondName'), 'segundo nombre es opcional');
+    assert.ok(!miss.includes('pepDetails'), 'detalle PEP solo si responde Sí');
   });
 
-  it('opciones de origen de fondos coinciden con templates_config', () => {
-    const keys = kyciMaster.FUNDS_SOURCE_OPTIONS.map((o) => o.key);
-    assert.deepEqual(keys, [
-      'Bienes personales',
-      'Inversiones Financieras',
-      'Negocios',
-      'Prestamos',
-      'Herencia o Fondo Fiduciario',
-      'Otras formas de ingresos',
-    ]);
+  it('respuestas "Sí" exigen su detalle; persona de EE. UU. exige TIN y W9', () => {
+    const data = { pep: 'Sí', offenceBankrupt: 'Sí', otherTaxResidence: 'Sí', usPerson: 'Sí', certifiedDocs: ['passport', 'proofOfAddress', 'cv'] };
+    const miss = kyciMaster.missingFields(data);
+    for (const k of ['pepDetails', 'offenceBankruptDetails', 'otherTaxResidenceDetails', 'usTin', 'certifiedDocs.w9']) {
+      assert.ok(miss.includes(k), `debe exigir ${k}`);
+    }
+    assert.ok(!kyciMaster.missingFields({ ...data, usPerson: 'No' }).includes('certifiedDocs.w9'));
+  });
+
+  it('documentos obligatorios: pasaporte, domicilio y hoja de vida', () => {
+    const miss = kyciMaster.missingFieldsForStep(4, { certifiedDocs: ['bankReference'], declarationDate: '2026-11-15' });
+    assert.deepEqual(miss, ['certifiedDocs.passport', 'certifiedDocs.proofOfAddress', 'certifiedDocs.cv']);
+  });
+
+  it('formulario completo pasa la validación', () => {
+    assert.deepEqual(kyciMaster.missingFields(completeKyci()), []);
+  });
+
+  it('compatibilidad: nombre completo y origen del patrimonio de trámites antiguos', () => {
+    assert.equal(kyciMaster.computeFullName({ firstName: 'Ana', secondName: 'María', lastName: 'Pérez Gil' }), 'Ana María Pérez Gil');
+    assert.equal(kyciMaster.computeFullName({ fullName: 'Juan Torres' }), 'Juan Torres');
+    assert.deepEqual(kyciMaster.splitLegacyFullName('María Elena González Pérez'), { firstName: 'María', secondName: 'Elena', lastName: 'González Pérez' });
+    assert.match(kyciMaster.legacySourceOfWealth({ fundsSource: ['Negocios'], occupation: 'Abogada' }), /Negocios.*Abogada/);
   });
 });
+
+function completeKyci() {
+  return {
+    panamaEntityName: 'Atlántico S.A.', applicantRoles: ['director'], firstName: 'Ana', lastName: 'Pérez',
+    birthDate: '1990-01-01', nationality: 'Panameña', birthPlace: 'Panamá', passport: 'P1', address: 'Calle 1',
+    maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'a@b.com', taxResidenceCountries: 'Panamá',
+    otherTaxResidence: 'No', usPerson: 'No', sourceOfWealth: 'Salario', pep: 'No', offenceConvicted: 'No',
+    offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'proofOfAddress', 'cv'],
+    declarationDate: '2026-11-15',
+  };
+}
+
+module.exports = { completeKyci };

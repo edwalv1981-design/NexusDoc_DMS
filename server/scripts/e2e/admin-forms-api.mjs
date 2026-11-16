@@ -161,6 +161,24 @@ assert.equal(r.status, 200);
 assert.equal(r.body.form.type, 'Cumplimiento Individual');
 ok('Editor del administrador funciona con KYC Individual');
 
+// 13b) KYC Individual con el formato de la plantilla oficial → PDF
+r = await api('POST', '/api/forms/save', client.token, { type: 'Cumplimiento Individual', data: {
+  panamaEntityName: 'Atlántico S.A.', applicantRoles: ['director', 'shareholder'], firstName: 'Ana', secondName: 'María', lastName: 'Pérez Gil',
+  fullName: 'Ana María Pérez Gil', birthDate: '1990-01-01', nationality: 'Panameña', birthPlace: 'Panamá', passport: 'A222',
+  address: 'Calle 1', maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'ana@test.com', taxResidenceCountries: 'Panamá',
+  otherTaxResidence: 'No', usPerson: 'Sí', usTin: '123-45-6789', sourceOfWealth: 'Salario', pep: 'No', offenceConvicted: 'No',
+  offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'proofOfAddress', 'cv', 'w9'], declarationDate: '2026-11-15',
+  __progress: { step: 4, totalSteps: 4, finished: true } } });
+assert.equal(r.status, 200);
+const kycNew = r.body.data;
+for (const [label, id] of [['plantilla oficial', kycNew.id], ['formato anterior', kyc.id]]) {
+  const res = await fetch(`${BASE}/api/forms/generate-pdf/${id}`, { headers: { 'x-auth-token': client.token } });
+  const buf = Buffer.from(await res.arrayBuffer());
+  assert.equal(res.status, 200, `PDF KYCI (${label}): ${res.status} ${buf.toString().slice(0, 200)}`);
+  assert.equal(buf.subarray(0, 4).toString(), '%PDF', `PDF KYCI (${label}) válido`);
+}
+ok('KYC Individual: PDF de la plantilla oficial y de trámites antiguos se generan');
+
 // 14) Opción A: "Administrador Usuarios" (manager) limitado a él y sus subusuarios
 for (const path of ['/api/admin/users', '/api/admin/logs', '/api/admin/search-person?nombres=Ana', `/api/admin/user-forms/${admin.user.id}`]) {
   r = await api('GET', path, manager.token);
@@ -205,5 +223,5 @@ r = await api('PUT', `/api/admin/users/${sub.user.id}/role`, manager.token, { ro
 assert.equal(r.status, 403, 'solo el administrador cambia roles');
 ok('Cambio de rol por el administrador conserva el vínculo del subusuario; el Administrador Usuarios no puede cambiar roles');
 
-fs.writeFileSync(process.env.E2E_OUT || 'e2e-ids.json', JSON.stringify({ corpLatestId, v3id, kycId: kyc.id, adminToken: admin.token, clientToken: client.token, admin: admin.user, client: client.user }));
+fs.writeFileSync(process.env.E2E_OUT || 'e2e-ids.json', JSON.stringify({ corpLatestId, v3id, kycId: kyc.id, kycNewId: kycNew.id, adminToken: admin.token, clientToken: client.token, admin: admin.user, client: client.user }));
 console.log(`\nE2E API: ${step} verificaciones OK`);
