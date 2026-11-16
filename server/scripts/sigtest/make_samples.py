@@ -4,6 +4,12 @@ import fitz
 from pyhanko.sign import signers
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 
+def _report(exc_type, exc, tb):
+    import traceback
+    msg = "".join(traceback.format_exception(exc_type, exc, tb))[-900:]
+    print("::error title=make_samples::" + msg.replace("%", "%25").replace("\n", "%0A"))
+sys.excepthook = _report
+
 out = sys.argv[1]
 os.makedirs(out, exist_ok=True)
 
@@ -26,9 +32,9 @@ with open(f"{out}/1_sin_firma.pdf", "rb") as inf:
 
 raw = open(f"{out}/2_firma_digital.pdf", "rb").read()
 
-# 3) alterado después de firmar (cambia el monto dentro del contenido firmado)
-assert b"MONTO 100" in raw
-open(f"{out}/3_alterado_despues_de_firmar.pdf", "wb").write(raw.replace(b"MONTO 100", b"MONTO 900", 1))
+# 3) alterado después de firmar: cambia un dato DENTRO de lo firmado (tamaño de página)
+assert b"595 842" in raw, "no se encontró MediaBox"
+open(f"{out}/3_alterado_despues_de_firmar.pdf", "wb").write(raw.replace(b"595 842", b"595 843", 1))
 
 # 4) firma falsa: /Contents reemplazado por bytes aleatorios
 i = raw.index(b"/Contents <") + len(b"/Contents <"); j = raw.index(b">", i)
