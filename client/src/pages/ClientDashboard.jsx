@@ -522,10 +522,6 @@ const ClientDashboard = () => {
                                 <span style={{ fontSize: '11px', fontWeight: 800, color: '#2dd4bf', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('dashboard.clientPortal')}</span>
                                 <h1 style={{ color: 'white', marginTop: '6px', marginBottom: '18px', fontSize: '26px', fontWeight: 800, letterSpacing: '-0.5px' }}>{t('dashboard.welcome', { name: user?.name || '' })}</h1>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                                    <div style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', borderRadius: RADIUS, padding: '12px 20px', border: '1px solid rgba(255,255,255,0.15)', display: 'inline-block' }}>
-                                        <div style={{ fontSize: '9.5px', fontWeight: 800, color: '#94a3b8', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('dashboard.assignedProcess')}</div>
-                                        <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#ffffff' }}>{user?.initialForm ? getFormTypeLabel(user.initialForm, lang) : t('dashboard.notAssigned')}</div>
-                                    </div>
                                     {user?.initialForm && (
                                         <button 
                                             onClick={() => { setCurrentFormType(user.initialForm); navigate(`/dashboard?view=form&type=${user.initialForm}`); }} 
