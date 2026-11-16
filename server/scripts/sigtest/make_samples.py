@@ -51,4 +51,12 @@ def scribble(page):
     pix = pg.get_pixmap(dpi=150); pm_doc.close()
     page.insert_image(fitz.Rect(190, 640, 410, 706), stream=pix.tobytes("png"))
 base(f"{out}/5_firma_manuscrita_escaneada.pdf", scribble)
+
+# 6) firma de una autoridad de CONFIANZA (CA de prueba cuya raíz se agrega a la carpeta de confianza)
+if os.path.exists(f"{out}/trusted_key.pem"):
+    tsigner = signers.SimpleSigner.load(f"{out}/trusted_key.pem", f"{out}/trusted_cert.pem", ca_chain_files=(f"{out}/ca_cert.pem",))
+    with open(f"{out}/1_sin_firma.pdf", "rb") as inf:
+        w = IncrementalPdfFileWriter(inf)
+        res = signers.sign_pdf(w, signers.PdfSignatureMetadata(field_name="Firma1"), signer=tsigner)
+        open(f"{out}/6_firma_ca_confianza.pdf", "wb").write(res.getbuffer())
 print("muestras ok")

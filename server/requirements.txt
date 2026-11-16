@@ -1,1 +1,5 @@
 pymupdf==1.25.3
+# Verificación de firmas digitales PDF (integridad, certificado, cadena de confianza)
+pyhanko>=0.25,<0.30
+pyhanko-certvalidator>=0.26,<0.30
+certifi
