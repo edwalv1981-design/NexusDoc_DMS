@@ -59,7 +59,10 @@ RUN cd server && npm install --legacy-peer-deps
 RUN cd client && npm install --legacy-peer-deps
 
 # 6. Instalar dependencias de Python
-RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt || true
+# Sin "|| true": si fallan, el build falla (antes el verificador de firmas quedaba
+# sin librerías y todo documento salía "pendiente" sin aviso).
+RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt \
+    && python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi"
 
 # 7. Copiar el resto del código
 COPY . .

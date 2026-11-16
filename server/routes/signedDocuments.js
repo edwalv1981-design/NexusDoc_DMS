@@ -3,9 +3,6 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const { SignedDocument, AuditLog } = require('../models');
-const path = require('path');
-const fs = require('fs');
-const { execFile } = require('child_process');
 const { isPdfBuffer, sanitizeDownloadFilename } = require('../utils/pdfMagic');
 
 const storage = multer.memoryStorage();
@@ -21,47 +18,30 @@ const upload = multer({
     }
 });
 
-// Helper function to run the Python Signature Agent
-const checkSignatureAgent = (fileBuffer) => {
-    return new Promise((resolve, reject) => {
-        // We must write the buffer to a temp file because PyMuPDF needs a file path
-        const tempPath = path.join(__dirname, `../../tmp/temp_sig_${Date.now()}_${Math.random().toString(36).substring(7)}.pdf`);
-        
-        try {
-            if (!fs.existsSync(path.join(__dirname, '../../tmp'))) {
-                fs.mkdirSync(path.join(__dirname, '../../tmp'), { recursive: true });
-            }
-            fs.writeFileSync(tempPath, fileBuffer);
-            
-            const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
-            const scriptPath = path.join(__dirname, '../scripts/signature_agent.py');
-            
-            execFile(pythonCommand, [scriptPath, tempPath], (error, stdout, stderr) => {
-                try { fs.unlinkSync(tempPath); } catch (e) {} // Clean up immediately
-                
-                if (error) {
-                    console.error('Python Agent Error:', error);
-                    return resolve('Firma Pendiente'); // Fallback on error
-                }
-                
-                try {
-                    const result = JSON.parse(stdout.trim());
-                    if (result.isSigned) {
-                        resolve('Firma Detectada');
-                    } else {
-                        resolve('Firma Pendiente');
-                    }
-                } catch (parseErr) {
-                    console.error('Parse Error:', parseErr, stdout);
-                    resolve('Firma Pendiente');
-                }
-            });
-        } catch (e) {
-            try { fs.unlinkSync(tempPath); } catch (err) {}
-            resolve('Firma Pendiente');
-        }
-    });
-};
+// Verificación real de firmas (pyHanko) + huella SHA-256: services/signatureService.js
+const signatureService = require('../services/signatureService');
+const { accessibleUserIds } = require('../utils/formAccess');
+
+function describeUpload(verb, filename, v) {
+    const s = v.verification.signatures && v.verification.signatures[0];
+    const signer = s && s.signer ? ` Firmante: ${s.signer.commonName || '-'}${s.signer.serialNumber ? ` (${s.signer.serialNumber})` : ''}; emisor: ${(s.issuer && s.issuer.commonName) || '-'}.` : '';
+    return `Usuario ${verb} documento firmado: ${filename}. Estado: ${v.signatureStatus}.${signer} SHA-256: ${v.fileHash}`;
+}
+
+/** Datos de la verificación que se muestran al usuario (sin trazas internas). */
+function publicVerification(ver) {
+    if (!ver) return null;
+    const s = (ver.signatures || [])[0] || {};
+    return {
+        result: ver.result,
+        signer: s.signer || null,
+        issuer: s.issuer || null,
+        trusted: s.trusted ?? null,
+        identityMatch: ver.identity ? ver.identity.match : 'unknown',
+        review: ver.review ? { status: ver.review.status, note: ver.review.note || null, at: ver.review.at || null } : null,
+        checkedAt: ver.checkedAt,
+    };
+}
 
 // @route   GET api/signed-docs
 // @desc    Get all signed documents for the user
@@ -69,10 +49,13 @@ router.get('/', auth, async (req, res) => {
     try {
         const documents = await SignedDocument.findAll({
             where: { userId: req.user.id },
-            attributes: ['id', 'filename', 'signatureStatus', 'updatedAt'],
+            attributes: ['id', 'filename', 'signatureStatus', 'updatedAt', 'verification', 'fileHash'],
             order: [['updatedAt', 'DESC']]
         });
-        res.json(documents);
+        res.json(documents.map((d) => {
+            const { verification, ...rest } = d.toJSON();
+            return { ...rest, verification: publicVerification(verification) };
+        }));
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: 'Error al obtener documentos firmados' });
@@ -86,24 +69,27 @@ router.post('/upload', [auth, upload.single('document')], async (req, res) => {
         if (!req.file) return res.status(400).json({ msg: 'Seleccione un archivo PDF.' });
         if (!isPdfBuffer(req.file.buffer)) return res.status(400).json({ msg: 'El archivo no es un PDF válido.' });
 
-        // 1. Run the Internal Agent to check for signatures
-        const status = await checkSignatureAgent(req.file.buffer);
+        // 1. Verificación (firma digital real o pendiente de revisión) + huella
+        const v = await signatureService.verifyDocument(req.file.buffer, req.dbUser);
+        const filename = sanitizeDownloadFilename(req.file.originalname);
 
         // 2. Save to DB
         const newDoc = await SignedDocument.create({
             userId: req.user.id,
-            filename: sanitizeDownloadFilename(req.file.originalname),
+            filename,
             fileData: req.file.buffer,
-            signatureStatus: status
+            signatureStatus: v.signatureStatus,
+            verification: v.verification,
+            fileHash: v.fileHash
         });
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'SIGNED_DOC_UPLOAD',
-            description: `Usuario subió un PDF para validación de firma: ${req.file.originalname}. Estado: ${status}`
+            description: describeUpload('subió', filename, v)
         });
 
-        res.json({ msg: 'Documento procesado', status: status, docId: newDoc.id });
+        res.json({ msg: 'Documento procesado', status: v.signatureStatus, docId: newDoc.id, verification: publicVerification(v.verification) });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: 'Error al subir el documento firmado' });
@@ -120,22 +106,25 @@ router.put('/update/:id', [auth, upload.single('document')], async (req, res) =>
         const doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!doc) return res.status(404).json({ msg: 'Documento no encontrado o no autorizado.' });
 
-        // 1. Run Agent again
-        const status = await checkSignatureAgent(req.file.buffer);
+        // 1. Verificar de nuevo (el documento nuevo reinicia la revisión)
+        const v = await signatureService.verifyDocument(req.file.buffer, req.dbUser);
+        const filename = sanitizeDownloadFilename(req.file.originalname);
 
         // 2. Update DB
-        doc.filename = req.file.originalname;
+        doc.filename = filename;
         doc.fileData = req.file.buffer;
-        doc.signatureStatus = status;
+        doc.signatureStatus = v.signatureStatus;
+        doc.verification = v.verification;
+        doc.fileHash = v.fileHash;
         await doc.save();
 
         await AuditLog.create({
             userId: req.user.id,
             action: 'SIGNED_DOC_UPDATE',
-            description: `Usuario actualizó documento firmado: ${req.file.originalname}. Nuevo estado: ${status}`
+            description: describeUpload('reemplazó', filename, v)
         });
 
-        res.json({ msg: 'Documento actualizado', status: status });
+        res.json({ msg: 'Documento actualizado', status: v.signatureStatus, verification: publicVerification(v.verification) });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: 'Error al actualizar el documento' });
@@ -164,27 +153,16 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-function isStaff(req) {
-    return (
-        req.user?.role === 'admin' ||
-        req.user?.role === 'manager' ||
-        req.dbUser?.role === 'admin' ||
-        req.dbUser?.role === 'manager' ||
-        req.user?.roleOverride === 'manager' ||
-        req.dbUser?.roleOverride === 'manager' ||
-        req.user?.roleOverride === 'master' ||
-        req.dbUser?.roleOverride === 'master'
-    );
-}
 
 // @route   GET api/signed-docs/download/:id
 router.get('/download/:id', auth, async (req, res) => {
     try {
-        let doc;
-        if (isStaff(req)) {
-            doc = await SignedDocument.findByPk(req.params.id);
-        } else {
-            doc = await SignedDocument.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        // Alcance (Opción A): administrador todo; Administrador Usuarios: él y sus
+        // subusuarios; usuario: solo los suyos. Antes cualquier "staff" veía todo.
+        const doc = await SignedDocument.findByPk(req.params.id);
+        const scope = doc ? await accessibleUserIds(req) : null;
+        if (doc && scope !== null && !scope.includes(doc.userId)) {
+            return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
         }
         if (!doc || !doc.fileData) return res.status(404).json({ msg: 'Documento no encontrado o acceso denegado.' });
 
@@ -194,12 +172,9 @@ router.get('/download/:id', auth, async (req, res) => {
             description: `El usuario (${req.user.email}) descargó/visualizó documento firmado: ${doc.filename}`
         }).catch(e => console.error('AuditLog error:', e.message));
 
-        const ext = path.extname(doc.filename || '').toLowerCase();
-        let contentType = 'application/pdf';
-        if (ext === '.png') contentType = 'image/png';
-        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-
-        res.setHeader('Content-Type', contentType);
+        // Solo se aceptan PDF (validado al subir): el tipo no depende del nombre.
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Content-Disposition', `inline; filename="${sanitizeDownloadFilename(doc.filename)}"`);
         res.send(doc.fileData);
     } catch (err) {

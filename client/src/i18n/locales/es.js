@@ -309,7 +309,7 @@ const es = {
   signedDocs: {
     title: 'Formularios',
     validationTitle: 'Validación de firmas digitales',
-    validationBody: 'Suba formularios firmados en PDF. El sistema verificará automáticamente si el documento contiene una firma electrónica válida.',
+    validationBody: 'Suba formularios firmados en PDF. Si tienen firma electrónica (de cualquier país), el sistema verifica que sea auténtica y que el documento no se haya modificado después de firmarlo. Las firmas manuscritas (escaneadas) las revisa el administrador.',
     uploadNewPdf: 'Subir nuevo formulario PDF',
     replacePdf: 'Reemplazar formulario',
     pdfLabel: 'ARCHIVO PDF FIRMADO',

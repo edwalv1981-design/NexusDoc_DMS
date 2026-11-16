@@ -309,7 +309,7 @@ const en = {
   signedDocs: {
     title: 'Forms',
     validationTitle: 'Digital signature validation',
-    validationBody: 'Upload signed PDF forms. The system will automatically verify whether the document contains a valid electronic signature.',
+    validationBody: 'Upload signed PDF forms. If they carry an electronic signature (from any country), the system checks that it is authentic and that the document was not modified after signing. Handwritten (scanned) signatures are reviewed by the administrator.',
     uploadNewPdf: 'Upload new signed PDF form',
     replacePdf: 'Replace form',
     pdfLabel: 'SIGNED PDF FILE',

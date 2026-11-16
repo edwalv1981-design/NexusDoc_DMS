@@ -81,6 +81,19 @@ try {
   expect(await page.locator('input[value="A777"]').count() > 0, 'Usuario: ve el dato corregido por el administrador (A777) en Junta Directiva');
   await shot('04-usuario-aviso');
 
+  // ── 4. Firmas: lista del usuario y bandeja del administrador ─────────────
+  await page.goto(`${BASE}/dashboard?view=signed-docs`, { waitUntil: 'networkidle' });
+  await page.getByText('Firma Digital Válida').first().waitFor({ timeout: 20000 });
+  expect(await page.getByText(/Firma Inválida o Documento Alterado/).count() > 0, 'Usuario: ve los estados nuevos de firma (válida / alterada)');
+  expect(await page.getByText(/Motivo: El documento no tiene firma/).count() > 0, 'Usuario: ve el motivo del rechazo del administrador');
+  await shot('05-usuario-firmas');
+  await loginAs(ids.adminToken, ids.admin);
+  await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
+  await page.getByText(/^Firmas$|^Signatures$/).first().click();
+  await page.getByText(/Revisión de firmas|Signature review/).first().waitFor({ timeout: 20000 });
+  expect(await page.getByRole('button', { name: /Ver PDF|View PDF/ }).count() > 0, 'Administrador: pestaña Firmas con documentos pendientes y botón Ver PDF');
+  await shot('06-admin-firmas');
+
   expect(problems.length === 0, `Sin errores de JavaScript ni violaciones CSP ${problems.length ? problems.join(' | ') : ''}`);
 } catch (e) {
   await shot('zz-error').catch(() => {});

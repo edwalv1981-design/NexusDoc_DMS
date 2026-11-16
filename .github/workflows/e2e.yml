@@ -37,6 +37,8 @@ jobs:
       E2E_BASE_URL: http://localhost:5000
       CORS_ORIGINS: http://localhost:5000
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      # Raíz de la CA de prueba (firmas "de confianza" en la prueba)
+      SIGNATURE_TRUST_DIR: ${{ github.workspace }}/sigsamples/trust
       # BD temporal: las migraciones crean tablas "Users"/"FormData" pero los modelos usan
       # underscored (users/form_data), igual que el esquema real de producción; se sincroniza.
       DB_SYNC_ALTER: 'true'
@@ -49,6 +51,16 @@ jobs:
       - name: Dependencias del servidor
         working-directory: server
         run: npm ci --no-audit --no-fund
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencias Python (verificador de firmas)
+        run: pip install -r server/requirements.txt
+      - name: PDF de prueba firmados
+        run: |
+          bash server/scripts/sigtest/make_certs.sh "$GITHUB_WORKSPACE/sigsamples"
+          python server/scripts/sigtest/make_samples.py "$GITHUB_WORKSPACE/sigsamples"
 
       - name: Compilar frontend
         working-directory: client
@@ -73,6 +85,10 @@ jobs:
       - name: Datos de prueba
         working-directory: server
         run: node scripts/e2e/seed.cjs
+
+      - name: E2E firmas
+        working-directory: server
+        run: node scripts/e2e/signatures-api.mjs "$GITHUB_WORKSPACE/sigsamples"
 
       - name: E2E API
         working-directory: server

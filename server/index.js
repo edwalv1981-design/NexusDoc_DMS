@@ -195,6 +195,7 @@ app.use(['/api/auth/register', '/admin/api/auth/register'], authLimiter);
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const adminFormEditorRoutes = require('./routes/adminFormEditor');
+const adminSignaturesRoutes = require('./routes/adminSignatures');
 const managerRoutes = require('./routes/manager');
 const formRoutes = require('./routes/formRoutes');
 const documentRoutes = require('./routes/documents');
@@ -203,6 +204,7 @@ const signedDocRoutes = require('./routes/signedDocuments');
 app.use(['/api/auth', '/admin/api/auth'], authRoutes);
 // Ver/editar trámites (solo administrador). Antes de adminRoutes.
 app.use(['/api/admin/form-editor', '/admin/api/admin/form-editor'], adminFormEditorRoutes);
+app.use(['/api/admin/signatures', '/admin/api/admin/signatures'], adminSignaturesRoutes);
 app.use(['/api/admin', '/admin/api/admin', '/admin/api'], adminRoutes);
 app.use(['/api/manager', '/admin/api/manager'], managerRoutes);
 app.use(['/api/forms', '/admin/api/forms'], formRoutes);
@@ -280,6 +282,27 @@ async function ensureUserLanguageColumn(sequelize) {
     }
 }
 
+async function ensureSignedDocumentColumns(sequelize) {
+    try {
+        const SignedDocument = require('./models/SignedDocument');
+        const table = SignedDocument.getTableName();
+        const tableName = typeof table === 'string' ? table : table.tableName;
+        const [rows] = await sequelize.query(
+            `SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = :t`,
+            { replacements: { t: tableName } }
+        );
+        if (!rows.length) {
+            await SignedDocument.sync(); // crea la tabla solo si no existe (no altera)
+        }
+        const quoted = `"${tableName.replace(/"/g, '""')}"`;
+        await sequelize.query(`ALTER TABLE ${quoted} ADD COLUMN IF NOT EXISTS "verification" JSONB`);
+        await sequelize.query(`ALTER TABLE ${quoted} ADD COLUMN IF NOT EXISTS "file_hash" VARCHAR(64)`);
+        console.log(`🖋️ Columnas ${tableName}.verification / file_hash aseguradas.`);
+    } catch (err) {
+        console.warn('⚠️ ensureSignedDocumentColumns falló:', err.message);
+    }
+}
+
 async function ensureUserProfilesTable(sequelize) {
     try {
         await sequelize.query(`
@@ -346,6 +369,7 @@ async function bootstrap() {
     }
 
     await ensureUserLanguageColumn(sequelize);
+    await ensureSignedDocumentColumns(sequelize);
     await ensureUserProfilesTable(sequelize);
     await ensurePeopleTable(sequelize);
 

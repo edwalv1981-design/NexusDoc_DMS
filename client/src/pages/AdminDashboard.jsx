@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail } from 'lucide-react';
+import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail, ShieldCheck } from 'lucide-react';
+import AdminSignatureReview from '../components/AdminSignatureReview';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -579,7 +580,7 @@ const AdminDashboard = () => {
           <span style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '-0.3px', color: '#ffffff' }}>{t('admin.brand')}</span>
         </div>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: t('admin.consultas') }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'change-password', icon: Key, label: t('admin.changePassword') }, { id: 'change-email', icon: Mail, label: t('admin.changeEmail') }].map(item => (
+          {[{ id: 'users', icon: Users, label: t('admin.users') }, { id: 'consultas', icon: SearchCheck, label: t('admin.consultas') }, { id: 'firmas', icon: ShieldCheck, label: lang === 'en' ? 'Signatures' : 'Firmas' }, { id: 'logs', icon: Clock, label: t('admin.audit') }, { id: 'templates', icon: FileText, label: t('admin.templates') }, { id: 'change-password', icon: Key, label: t('admin.changePassword') }, { id: 'change-email', icon: Mail, label: t('admin.changeEmail') }].map(item => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setCurrentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 15px', border: 'none', background: activeTab === item.id ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(15, 118, 110, 0.4) 100%)' : 'transparent', color: activeTab === item.id ? '#ffffff' : '#cbd5e1', cursor: 'pointer', fontWeight: 600, fontSize: '12.5px', borderRadius: RADIUS, borderLeft: activeTab === item.id ? '4px solid #2dd4bf' : '4px solid transparent', transition: 'all 0.2s ease' }}>
               <item.icon size={16} color={activeTab === item.id ? '#2dd4bf' : '#94a3b8'} /> {item.label}
             </button>
@@ -740,6 +741,8 @@ const AdminDashboard = () => {
                 </div>
               </>
             )}
+
+            {activeTab === 'firmas' && <AdminSignatureReview />}
 
             {activeTab === 'consultas' && (
               <div style={{ padding: '30px' }}>

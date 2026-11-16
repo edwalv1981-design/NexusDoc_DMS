@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UploadCloud, FileText, Trash2, Download, RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { useT } from '../i18n';
+import { UploadCloud, FileText, Trash2, Download, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ShieldCheck } from 'lucide-react';
+import { useT, useLang } from '../i18n';
 import axios from 'axios';
 import { useToast } from '../components/Toast';
 import API_BASE_URL from '../config';
@@ -9,8 +9,31 @@ const PRIMARY = '#0f766e';
 const RADIUS = '8px';
 const BORDER = '#e2e8f0';
 
+/** Estilo e icono del estado de firma (incluye los estados anteriores). */
+export function signatureBadge(status = '') {
+  const s = String(status);
+  if (/Válida|Verificada|Detectada/i.test(s)) return { bg: '#dcfce7', color: '#15803d', Icon: CheckCircle };
+  if (/Inválida|Alterado|Rechazada/i.test(s)) return { bg: '#fee2e2', color: '#b91c1c', Icon: XCircle };
+  if (/Error/i.test(s)) return { bg: '#fee2e2', color: '#b45309', Icon: AlertCircle };
+  return { bg: '#fef3c7', color: '#b45309', Icon: Clock };
+}
+
+const STATUS_EN = {
+  'Firma Digital Válida': 'Valid digital signature',
+  'Firma Digital – Pendiente de Revisión': 'Digital signature – pending review',
+  'Firma Inválida o Documento Alterado': 'Invalid signature or altered document',
+  'Firma Manuscrita – Pendiente de Revisión': 'Handwritten signature – pending review',
+  'Error de Verificación – Pendiente de Revisión': 'Verification error – pending review',
+  'Firma Verificada por el Administrador': 'Signature verified by the administrator',
+  'Firma Rechazada': 'Signature rejected',
+  'Firma Detectada': 'Signature detected',
+  'Firma Pendiente': 'Signature pending',
+};
+export const signatureStatusLabel = (status, lang) => (lang === 'en' ? STATUS_EN[status] || status : status);
+
 const SignedDocuments = () => {
   const t = useT();
+  const { lang } = useLang();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -188,15 +211,29 @@ const SignedDocuments = () => {
                             </div>
                         </td>
                         <td style={{ padding: '12px 15px' }}>
-                            {doc.signatureStatus === 'Firma Detectada' ? (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
-                                    <CheckCircle size={12} /> {t('signedDocs.signatureDetected')}
-                                </span>
-                            ) : (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
-                                    <Clock size={12} /> {t('signedDocs.signaturePending')}
-                                </span>
-                            )}
+                            {(() => {
+                                const b = signatureBadge(doc.signatureStatus);
+                                const v = doc.verification;
+                                return (
+                                    <div>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: b.bg, color: b.color, padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
+                                            <b.Icon size={12} /> {signatureStatusLabel(doc.signatureStatus, lang)}
+                                        </span>
+                                        {v?.signer?.commonName && (
+                                            <div style={{ fontSize: '10.5px', color: '#475569', marginTop: 5 }}>
+                                                {lang === 'en' ? 'Signer' : 'Firmante'}: <strong>{v.signer.commonName}</strong>
+                                                {v.issuer?.commonName ? <span style={{ color: '#94a3b8' }}> · {lang === 'en' ? 'issued by' : 'emitido por'} {v.issuer.commonName}</span> : null}
+                                            </div>
+                                        )}
+                                        {v?.identityMatch === 'no_match' && (
+                                            <div style={{ fontSize: '10.5px', color: '#b45309', marginTop: 3 }}>{lang === 'en' ? 'The signer does not match your account.' : 'El firmante no coincide con su cuenta.'}</div>
+                                        )}
+                                        {v?.review?.status === 'rejected' && v.review.note && (
+                                            <div style={{ fontSize: '10.5px', color: '#b91c1c', marginTop: 3 }}>{lang === 'en' ? 'Reason' : 'Motivo'}: {v.review.note}</div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </td>
                         <td style={{ padding: '12px 15px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                             <button onClick={() => handleDownload(doc.id, doc.filename)} style={{ background: '#dcfce7', color: '#16a34a', border: 'none', width: '30px', height: '30px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('common.downloadShort')}>

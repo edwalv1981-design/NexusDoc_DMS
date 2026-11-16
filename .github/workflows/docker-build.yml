@@ -1,0 +1,24 @@
+name: Build Docker (igual que Railway)
+
+# Construye la imagen de producción y comprueba que el verificador de firmas
+# tiene sus librerías. Corre en ramas de trabajo antes de integrar a main.
+on:
+  push:
+    branches: ['feat/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker build
+        run: docker build -t nexusdoc:test .
+      - name: Librerías del verificador de firmas
+        run: |
+          docker run --rm nexusdoc:test python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi; print('ok')"
+          docker run --rm nexusdoc:test python3 server/scripts/signature_verifier.py server/package.json

@@ -20,18 +20,8 @@ jobs:
           python-version: '3.11'  # igual que la imagen node:20-slim (Debian bookworm)
       - name: Dependencias (misma versión de PyMuPDF que producción)
         run: pip install -r server/requirements.txt
-      - name: Certificado de prueba
-        run: |
-          mkdir -p "$RUNNER_TEMP/sig"
-          D="$RUNNER_TEMP/sig"
-          # Certificado autofirmado (cualquiera puede crearlo): debe quedar "no reconocido"
-          openssl req -x509 -newkey rsa:2048 -keyout "$D/key.pem" -out "$D/cert.pem" -days 30 -nodes -subj "/CN=Firma de Prueba NexusDoc"
-          # CA de prueba de confianza + certificado del firmante con su cédula (serialNumber)
-          openssl req -x509 -newkey rsa:2048 -keyout "$D/ca_key.pem" -out "$D/ca_cert.pem" -days 30 -nodes -subj "/CN=CA de Prueba/O=NexusDoc QA" -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign"
-          openssl req -newkey rsa:2048 -keyout "$D/trusted_key.pem" -out "$D/trusted.csr" -nodes -subj "/CN=Ana Perez/serialNumber=0900000003/C=EC"
-          printf "basicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature,nonRepudiation\n" > "$D/ext.cnf"
-          openssl x509 -req -in "$D/trusted.csr" -CA "$D/ca_cert.pem" -CAkey "$D/ca_key.pem" -CAcreateserial -out "$D/trusted_cert.pem" -days 30 -extfile "$D/ext.cnf"
-          mkdir -p "$D/trust" && cp "$D/ca_cert.pem" "$D/trust/"
+      - name: Certificados de prueba
+        run: bash server/scripts/sigtest/make_certs.sh "$RUNNER_TEMP/sig"
       - name: Generar PDF de prueba
         run: python server/scripts/sigtest/make_samples.py "$RUNNER_TEMP/sig"
       - name: Evaluar
