@@ -96,6 +96,8 @@ try {
     ok('KYCI: el formulario pide la entidad panameña y la calidad del solicitante (plantilla)');
     expect(await page.locator('input[value="Ana"]').count() > 0 && await page.locator('input[value="Pérez"]').count() > 0,
       'KYCI: trámite antiguo carga el nombre partido en nombre / apellidos');
+    expect(await page.locator('.kyci-guide').count() >= 8 && await page.getByText(/Tal como aparece en su pasaporte|As shown in your passport/).count() > 0,
+      'KYCI: cada campo muestra su texto guía de la plantilla');
     expect(await page.getByText(/Cédula|ID Card|Ocupaci|Occupation|Empleador|Employer/).count() === 0,
       'KYCI: ya no muestra campos que la plantilla no tiene');
     await page.locator('.expert-btn-primary').first().click();
@@ -109,7 +111,8 @@ try {
     await loginAs(ids.adminToken, ids.admin);
     await page.goto(`${BASE}/admin/form/${ids.kycNewId}?mode=view`, { waitUntil: 'networkidle' });
     // Abre en el paso donde quedó el usuario (IV): documentos marcados; luego vuelve al paso I.
-    await page.getByText(/Pasaporte a color|Colour Picture Passport/).first().waitFor({ timeout: 20000 });
+    await page.getByText(/Pasaporte con fotografía a color|Colour Picture Passport/).first().waitFor({ timeout: 20000 });
+    expect(await page.getByText(/^NOTAS$|^NOTES$/).count() > 0, 'KYCI: el paso IV muestra las notas de certificación');
     expect(await page.locator('input[type="checkbox"]:checked').count() >= 4, 'KYCI: el administrador ve los documentos marcados (paso IV)');
     for (let i = 0; i < 3; i += 1) await page.locator('.expert-btn-nav').first().click();
     await page.locator('input[value="Atlántico S.A."]').first().waitFor({ timeout: 10000 }).catch(() => {});

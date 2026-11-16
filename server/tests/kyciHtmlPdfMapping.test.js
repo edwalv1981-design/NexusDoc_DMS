@@ -36,14 +36,14 @@ const BOX_OFF = '<span class="box">&nbsp;</span>';
 const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
-  it('reproduce los bloques de la plantilla en orden', () => {
-    const t = getKyciPdfDict('es');
-    const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
+  for (const lang of ['en', 'es']) it(`reproduce los bloques de la plantilla en orden (${lang})`, () => {
+    const t = getKyciPdfDict(lang);
+    const html = buildKyciPdfInnerHtml(sampleData, { language: lang });
     const order = [
-      'COMPLIANCE FORM', t.docSubtitle, t.panamaEntityName, t.introTitle, t.applicantRolesTitle,
+      t.docTitle.split('\n')[0], t.docSubtitle, t.panamaEntityName, t.introTitle, t.applicantRolesTitle,
       t.fullNameLabel, t.birthDate, t.birthPlace, t.address, t.maritalStatus, t.phone, t.email,
       t.taxResidenceCountries, t.fatcaLabel, t.sourceOfWealthLabel, t.pepLabel, t.offencesLabel,
-      t.docsTitle, 'I hereby confirm', t.signature, t.declarationDate, t.notesTitle,
+      t.docsTitle, t.declaration.slice(0, 30), t.signature, t.declarationDate, t.notesTitle,
     ];
     let pos = -1;
     for (const label of order) {
@@ -61,7 +61,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
   });
 
   it('marca las calidades del solicitante y los documentos', () => {
-    const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
+    const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
     assert.match(html, new RegExp(`${esc(BOX_ON)} Shareholder`));
     assert.match(html, new RegExp(`${esc(BOX_ON)} Beneficial Owner`));
     assert.match(html, new RegExp(`${esc(BOX_OFF)} Director`));
@@ -70,10 +70,10 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
   });
 
   it('preguntas Sí/No como casillas y detalle cuando es Sí', () => {
-    const htmlNo = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
+    const htmlNo = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
     assert.match(htmlNo, new RegExp(`Yes: ${esc(BOX_OFF)}</span><span class="yn">No: ${esc(BOX_ON)}`));
     assert.doesNotMatch(htmlNo, /&lt;span/);
-    const htmlYes = buildKyciPdfInnerHtml({ ...sampleData, pep: 'Sí', pepDetails: 'Ex ministro', usPerson: 'Sí', usTin: '123-45' }, { language: 'es' });
+    const htmlYes = buildKyciPdfInnerHtml({ ...sampleData, pep: 'Sí', pepDetails: 'Ex ministro', usPerson: 'Sí', usTin: '123-45' }, { language: 'en' });
     assert.match(htmlYes, new RegExp(`Yes: ${esc(BOX_ON)}`));
     assert.match(htmlYes, /Ex ministro/);
     assert.match(htmlYes, /123-45/);
@@ -90,10 +90,31 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
       fullName: 'Juan Carlos Torres Vega', birthDate: '1980-01-01', passport: 'X1', pep: 'No',
       fundsSource: ['Negocios'], occupation: 'Ingeniero', declarationName: 'Juan Carlos Torres Vega',
     };
-    const html = buildKyciPdfInnerHtml(legacy, { language: 'es' });
+    const html = buildKyciPdfInnerHtml(legacy, { language: 'en' });
     assert.match(html, /First Name <span class="val">Juan<\/span>/);
     assert.match(html, /Torres Vega/);
     assert.match(html, /Negocios\. Ingeniero/);
+  });
+
+  it('PDF en español cuando el solicitante lo pide en español', () => {
+    const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
+    for (const txt of ['FORMULARIO DE CUMPLIMIENTO', 'Procedimiento de Debida Diligencia del Cliente', 'El Solicitante es uno o más de los siguientes:',
+      'Primer nombre', 'Vínculos políticos', 'Delitos/Sanciones', 'DOCUMENTOS DE IDENTIDAD CERTIFICADOS QUE DEBEN ADJUNTARSE',
+      'Firma del Solicitante:', 'Fecha (dd/mm/aaaa):', 'NOTAS', 'Casado(a)']) {
+      assert.ok(html.includes(txt), `falta "${txt}"`);
+    }
+    assert.match(html, new RegExp(`${esc(BOX_ON)} Accionista`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)} Pasaporte con fotografía a color; <b>Y</b>`));
+    assert.match(html, new RegExp(`Sí: ${esc(BOX_OFF)}</span><span class="yn">No: ${esc(BOX_ON)}`));
+    assert.doesNotMatch(html, /COMPLIANCE FORM|Signature of Applicant|Shareholder/);
+  });
+
+  it('PDF en inglés cuando el solicitante lo pide en inglés (texto literal de la plantilla)', () => {
+    const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
+    for (const txt of ['COMPLIANCE FORM', 'Customer Due Diligence Procedure', 'Signature of Applicant:', 'Married', 'NOTES']) {
+      assert.ok(html.includes(txt), `falta "${txt}"`);
+    }
+    assert.doesNotMatch(html, /FORMULARIO DE CUMPLIMIENTO|Firma del Solicitante/);
   });
 
   it('escapa HTML de los datos del usuario', () => {

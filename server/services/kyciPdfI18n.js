@@ -1,15 +1,17 @@
 'use strict';
 
 /**
- * Textos del PDF KYCI. Reproducen literalmente la plantilla oficial
- * "PTL_KYC – Compliance Form – Individuals" (redactada en inglés), por eso
- * el PDF sale con el mismo texto sea cual sea el idioma de la interfaz.
- * Se conservan ES/EN y getKyciPdfDict para no cambiar la API del módulo.
+ * Textos del PDF KYCI según la plantilla oficial
+ * "PTL_KYC – Compliance Form – Individuals".
+ *  - EN: texto literal de la plantilla.
+ *  - ES: traducción fiel, misma estructura y orden.
+ * El idioma lo decide quien solicita el PDF (no el idioma en que se llenó).
  */
 
 const kyciMaster = require('../../lib/kyciMasterSpec.cjs');
 
-const TEMPLATE = Object.freeze({
+const EN = Object.freeze({
+  lang: 'en',
   docTitle: 'COMPLIANCE FORM\nINDIVIDUALS',
   docSubtitle: 'Customer Due Diligence Procedure',
   panamaEntityName: 'Name/proposed name of the Panama entity:',
@@ -75,12 +77,82 @@ const TEMPLATE = Object.freeze({
   declarationDate: 'Date (dd/mm/yyyy):',
   notesTitle: 'NOTES',
   notes: kyciMaster.NOTES_EN,
+  roleLabel: 'en',
   yes: 'Yes',
   no: 'No',
 });
 
-const ES = TEMPLATE;
-const EN = TEMPLATE;
+const ES = Object.freeze({
+  lang: 'es',
+  docTitle: 'FORMULARIO DE CUMPLIMIENTO\nPERSONAS NATURALES',
+  docSubtitle: 'Procedimiento de Debida Diligencia del Cliente',
+  panamaEntityName: 'Nombre o nombre propuesto de la entidad panameña:',
+  introTitle: 'Este formulario debe ser completado por cada persona (el “Solicitante”) que:',
+  introItems: Object.freeze([
+    ['posee o propone poseer, directa o indirectamente, el 10% o más del capital social de la Sociedad', 'Accionista'],
+    ['es Beneficiario Final de la entidad panameña (o de la entidad panameña propuesta)', 'Beneficiario Final'],
+    ['es uno de los directores extranjeros de la sociedad', 'Director'],
+    ['es el socio general de una sociedad de personas', 'Socio General'],
+    ['es firmante autorizado de la cuenta bancaria', 'Firmante Autorizado'],
+    ['es titular de un poder', 'Apoderado'],
+    ['es fundador/fideicomitente de una Fundación/fideicomiso', 'Fideicomitente'],
+    ['es ejecutor de un fideicomiso', 'Ejecutor'],
+    ['es protector de una Fundación/fideicomiso', 'Protector'],
+  ]),
+  introNote:
+    'Tenga en cuenta que se nos debe enviar una copia original del Formulario de Cumplimiento firmado junto con los documentos de debida diligencia.',
+  applicantRolesTitle: 'El Solicitante es uno o más de los siguientes:',
+  fullNameLabel: 'Nombre completo del Solicitante',
+  firstName: 'Primer nombre',
+  secondName: 'Segundo nombre',
+  lastName: 'Apellido(s)',
+  birthDate: 'Fecha de nacimiento',
+  datePlaceholder: '[dd/mm/aaaa]',
+  nationality: 'Nacionalidad(es)',
+  birthPlace: 'Lugar de nacimiento',
+  passport: 'Pasaporte No.',
+  address: 'Dirección residencial permanente',
+  maritalStatus: 'Estado civil',
+  phone: 'Teléfono (incluya código de área)',
+  email: 'Correo electrónico',
+  taxResidenceCountries: '¿En qué país(es) es usted residente para fines tributarios?',
+  otherTaxResidence: '¿Es usted residente o está domiciliado en algún otro país?',
+  otherTaxResidenceDetails: 'En caso afirmativo, proporcione detalles:',
+  taxNote: 'Nota: Por favor complete la Declaración Tributaria de Autocertificación Individual (si aplica)',
+  fatcaLabel: 'Ley de Cumplimiento Tributario de Cuentas Extranjeras (FATCA) – Estatus y vínculos con EE. UU.',
+  usPerson: '¿Es usted una Persona de EE. UU. o residente en EE. UU. para fines tributarios? (p. ej. titular de Green Card)',
+  usAffirmative:
+    'En caso afirmativo, por favor complete un formulario W9 e indique el número de identificación tributaria correspondiente ‘TIN’:',
+  usTin: 'TIN:',
+  usDetails: 'Detalles:',
+  sourceOfWealthLabel: 'Origen del patrimonio',
+  sourceOfWealth:
+    'Proporcione detalles sobre el origen del patrimonio (p. ej. salarios, propiedad de negocios, etc.), incluyendo detalles del empleo y/o nombres y actividades de los negocios.',
+  pepLabel: 'Vínculos políticos',
+  pep: '¿Usted o algún miembro de su familia inmediata ocupa u ocupó un cargo de “Persona Expuesta Políticamente” (PEP)? p. ej. político, alto funcionario de gobierno o militar, etc.',
+  pepDetails: 'Por favor proporcione detalles, incluyendo cargo, responsabilidad y períodos.',
+  offencesLabel: 'Delitos/Sanciones',
+  offenceConvicted:
+    '¿Ha sido usted condenado en algún momento por algún delito penal o ha sido objeto de sanciones por parte de un organismo judicial, gubernamental, profesional o regulador?',
+  offenceBankrupt: '¿Está o ha estado usted en quiebra no rehabilitada?',
+  offenceInvestigation: '¿Ha sido usted objeto de una investigación judicial u oficial?',
+  offenceDetails: 'En caso afirmativo, por favor proporcione detalles:',
+  docsTitle: 'DOCUMENTOS DE IDENTIDAD CERTIFICADOS QUE DEBEN ADJUNTARSE',
+  docsIntroBefore: 'Adjunto copias ',
+  docsIntroBold: 'certificadas',
+  docsIntroAfter: ' de los siguientes documentos:',
+  docsFooter:
+    'Estos documentos deben estar certificados como copias fieles y exactas de los documentos originales por un profesional independiente (ver las Notas a continuación sobre la certificación adecuada).',
+  declaration:
+    'Por la presente confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles en caso de que alguna de mis circunstancias cambie, dentro de los 14 días siguientes a dicho cambio.',
+  signature: 'Firma del Solicitante:',
+  declarationDate: 'Fecha (dd/mm/aaaa):',
+  notesTitle: 'NOTAS',
+  notes: kyciMaster.NOTES_ES,
+  roleLabel: 'es',
+  yes: 'Sí',
+  no: 'No',
+});
 
 function normalizeLanguage(lang) {
   const s = String(lang || 'es').toLowerCase();

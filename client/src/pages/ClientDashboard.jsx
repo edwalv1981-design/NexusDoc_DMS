@@ -372,7 +372,7 @@ const ClientDashboard = () => {
         showToast(t('toast.generatingFile'), 'success');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/forms/generate-pdf/${id}?lang=${lang === 'en' ? 'en' : 'es'}`, {
                 headers: { 'x-auth-token': token }
             });
             if (response.ok) {

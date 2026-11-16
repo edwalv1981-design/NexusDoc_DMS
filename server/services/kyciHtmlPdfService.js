@@ -46,6 +46,14 @@ function multiline(v) {
 }
 
 /** Nombres: campos nuevos o, para trámites antiguos, partidos desde fullName. */
+const MARITAL_EN = Object.freeze({
+  'Soltero(a)': 'Single',
+  'Casado(a)': 'Married',
+  'Divorciado(a)': 'Divorced',
+  'Viudo(a)': 'Widowed',
+  'Unión libre': 'Common-law union',
+});
+
 function resolveNames(data) {
   if (data.firstName || data.lastName || data.secondName) {
     return { firstName: data.firstName || '', secondName: data.secondName || '', lastName: data.lastName || '' };
@@ -69,12 +77,12 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
     .join('');
 
   const roleCells = kyciMaster.APPLICANT_ROLE_OPTIONS.map(
-    (opt) => `<td>${box(roles.includes(opt.key))} ${esc(opt.en)}</td>`
+    (opt) => `<td>${box(roles.includes(opt.key))} ${esc(opt[t.roleLabel])}</td>`
   );
   const roleRows = `<tr>${roleCells.slice(0, 5).join('')}</tr><tr>${roleCells.slice(5).join('')}</tr>`;
 
   const docLines = kyciMaster.CERTIFIED_DOC_OPTIONS.map((opt) => {
-    const label = esc(opt.en).replace(/AND$/, '<b>AND</b>');
+    const label = esc(opt[t.roleLabel]).replace(/ (AND|Y)$/, ' <b>$1</b>');
     return `<div class="doc-line">${box(docs.includes(opt.key))} ${label}</div>`;
   }).join('');
 
@@ -122,7 +130,7 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
         <td class="w30">${esc(t.passport)} ${val(data.passport)}</td>
       </tr>
       <tr><td class="lbl">${esc(t.address)}</td><td colspan="2">${val(data.address)}</td></tr>
-      <tr><td class="lbl">${esc(t.maritalStatus)}</td><td colspan="2">${val(data.maritalStatus)}</td></tr>
+      <tr><td class="lbl">${esc(t.maritalStatus)}</td><td colspan="2">${val(t.lang === 'en' ? MARITAL_EN[data.maritalStatus] || data.maritalStatus : data.maritalStatus)}</td></tr>
       <tr><td class="lbl">${esc(t.phone)}</td><td colspan="2">${val(data.phone)}</td></tr>
       <tr><td class="lbl">${esc(t.email)}</td><td colspan="2">${val(data.email)}</td></tr>
       <tr>
@@ -231,7 +239,7 @@ class KyciHtmlPdfService {
     .intro li { margin: 1px 0; }
     .tick { display: inline-block; width: 14px; }
     .roles-grid { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
-    .roles-grid td { border: 1px solid #000; padding: 4px 6px; width: 20%; }
+    .roles-grid td { border: 1px solid #000; padding: 4px 6px 4px 22px; text-indent: -17px; width: 20%; }
     .box { display: inline-block; width: 10px; height: 10px; line-height: 10px; border: 1px solid #000; font-size: 9px; font-weight: 700; text-align: center; vertical-align: middle; margin: 0 3px; }
     .yn { margin-right: 16px; white-space: nowrap; }
     .line { margin: 3px 0; }

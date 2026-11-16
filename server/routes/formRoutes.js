@@ -568,7 +568,11 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
         const form = await FormData.findByPk(req.params.id);
         if (!form || !(await canAccessForm(req, form))) return res.status(404).json({ msg: 'No encontrado' });
 
-        const userLanguage = await userLanguageStore.getUserLanguage(req.user.id);
+        // Idioma del PDF: el que indica quien lo solicita (?lang=es|en); si no, su idioma guardado.
+        const requestedLang = String(req.query.lang || '').toLowerCase();
+        const userLanguage = ['es', 'en'].includes(requestedLang)
+            ? requestedLang
+            : await userLanguageStore.getUserLanguage(req.user.id);
 
         const templateName = stablePdfForms.getPdfTemplateNameForForm(form.formType);
 

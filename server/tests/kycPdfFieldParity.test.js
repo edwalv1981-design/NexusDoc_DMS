@@ -101,10 +101,10 @@ describe('kycPdfFieldRegistry', () => {
 });
 
 describe('kyciHtmlPdf field parity', () => {
-  it('cada campo de la plantilla tiene etiqueta y aparece en el PDF', () => {
-    const t = getKyciPdfDict('es');
-    const html = buildKyciPdfInnerHtml(kyciSample, { language: 'es' });
-    assert.match(html, /COMPLIANCE FORM/);
+  for (const lang of ['es', 'en']) it(`cada campo de la plantilla tiene etiqueta y aparece en el PDF (${lang})`, () => {
+    const t = getKyciPdfDict(lang);
+    const html = buildKyciPdfInnerHtml(kyciSample, { language: lang });
+    assert.ok(html.includes(t.docTitle.split('\n')[0]));
     // Campos que el PDF muestra con su propia etiqueta de la plantilla.
     const labelled = KYCI_ALL_FIELD_KEYS.filter((k) => !['applicantRoles', 'certifiedDocs'].includes(k) && !/Details$/.test(k));
     for (const key of labelled) {
