@@ -75,6 +75,7 @@ const emptyKyciState = () => ({
   offenceInvestigation: '',
   offenceInvestigationDetails: '',
   certifiedDocs: [],
+  declarationName: '',
   declarationDate: new Date().toISOString().split('T')[0],
 });
 
@@ -413,6 +414,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
               ? 'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of my circumstances change within 14 days of those changes occurring.'
               : 'Confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles si alguna de mis circunstancias cambia, dentro de los 14 días siguientes a dicho cambio.'}
           </div>
+          {textInput('declarationName', { placeholder: computeFullName(formData) || undefined })}
           {textInput('declarationDate', { type: 'date' })}
         </>
       )}
@@ -432,6 +434,11 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
       }
     }
     setMissing([]);
+    // Al llegar a la firma se propone el nombre del solicitante (editable).
+    if (!readOnly && step + 1 === TOTAL_STEPS && !String(formData.declarationName || '').trim()) {
+      const name = computeFullName(formData);
+      if (name) setFormData((prev) => ({ ...prev, declarationName: name }));
+    }
     setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
   };
 

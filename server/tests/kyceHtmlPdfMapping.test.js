@@ -30,7 +30,10 @@ const sampleData = {
   otherTaxResidence: 'Sí',
   otherTaxResidenceDetails: 'Ecuador',
   taxIdNumber: '1790000000001',
+  declarationName: 'Pedro Ruiz',
   declarationDate: '2026-11-15',
+  declarationName2: 'Laura Mena',
+  declarationDate2: '2026-11-16',
 };
 
 const BOX_ON = '<span class="box on">X</span>';
@@ -73,6 +76,12 @@ describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
   it('solo imprime los datos del tipo de solicitante elegido', () => {
     const html = buildKycePdfInnerHtml(sampleData, { language: 'en' });
     assert.doesNotMatch(html, /NO DEBE SALIR/);
+  });
+
+  it('nombre de cada firmante dentro de su recuadro y su fecha al lado', () => {
+    const html = buildKycePdfInnerHtml(sampleData, { language: 'en' });
+    assert.match(html, /<td class="sig-box"><span class="sig-name">Pedro Ruiz<\/span><\/td>\s*<td class="date-lbl">[^<]*<\/td>\s*<td class="date-val"><span class="val">15\/11\/2026/);
+    assert.match(html, /<td class="sig-box"><span class="sig-name">Laura Mena<\/span><\/td>\s*<td class="date-lbl">[^<]*<\/td>\s*<td class="date-val"><span class="val">16\/11\/2026/);
   });
 
   it('PDF en español cuando se pide en español', () => {

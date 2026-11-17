@@ -82,10 +82,10 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       extraLabel ? ` <span class="fatca-extra">${esc(extraLabel)} ${val(fatca === key ? extraValue : '')}</span>` : ''
     }</div>`;
   };
-  const sigRow = (date) => `
+  const sigRow = (name, date) => `
       <tr>
         <td class="lbl">${esc(t.signature)}</td>
-        <td class="sig-box">&nbsp;</td>
+        <td class="sig-box">${name ? `<span class="sig-name">${esc(name)}</span>` : '&nbsp;'}</td>
         <td class="date-lbl">${esc(t.declarationDate)}</td>
         <td class="date-val">${date ? val(fmtDate(date)) : '<b>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</b>'}</td>
       </tr>`;
@@ -215,8 +215,8 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       <tr><td colspan="2">${esc(t.declaration)}</td></tr>
     </tbody></table>
     <table class="frm sign"><colgroup><col style="width:32%"/><col style="width:28%"/><col style="width:15%"/><col style="width:25%"/></colgroup><tbody>
-      ${sigRow(data.declarationDate)}
-      ${sigRow(data.declarationDate2)}
+      ${sigRow(data.declarationName, data.declarationDate)}
+      ${sigRow(data.declarationName2, data.declarationDate2)}
     </tbody></table>
   `;
 }
@@ -276,6 +276,7 @@ class KyceHtmlPdfService {
     .page2 { page-break-before: always; }
     .sign td { border-top: none; vertical-align: middle; }
     .sign .sig-box { height: 46px; }
+    .sign .sig-name { font-weight: 700; font-size: 11px; color: #0f172a; }
     tr { page-break-inside: avoid; }
 ` +
         '</style></head><body>' +

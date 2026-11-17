@@ -12,7 +12,7 @@ function complete(extra = {}) {
     registrationNumber: '1', registeredAddress: 'Road Town', phone: '+1', businessActivity: 'Holding',
     offenceConvicted: 'No', offenceInvestigation: 'No', applicantType: 'privateCompany',
     privateDocs: kyce.PRIVATE_DOC_OPTIONS.map((o) => o.key), fatcaClassification: 'activeNFFE',
-    usEntity: 'No', otherTaxResidence: 'No', declarationDate: '2026-11-15', ...extra,
+    usEntity: 'No', otherTaxResidence: 'No', declarationName: 'Ana Pérez', declarationDate: '2026-11-15', ...extra,
   };
 }
 
@@ -38,7 +38,7 @@ describe('kyceMasterSpec (plantilla oficial Entities)', () => {
 
   it('formulario vacío exige los datos de la plantilla', () => {
     const miss = kyce.missingFields({});
-    for (const k of ['panamaEntityName', 'legalName', 'registrationNumber', 'offenceConvicted', 'applicantType', 'fatcaClassification', 'usEntity', 'declarationDate']) {
+    for (const k of ['panamaEntityName', 'legalName', 'registrationNumber', 'offenceConvicted', 'applicantType', 'fatcaClassification', 'usEntity', 'declarationName', 'declarationDate']) {
       assert.ok(miss.includes(k), k);
     }
     assert.ok(!miss.includes('mailingAddress'));

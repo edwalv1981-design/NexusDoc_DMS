@@ -361,7 +361,9 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
               ? 'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of the circumstances change within 14 days of those changes occurring.'
               : 'Por la presente confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles en caso de que alguna de las circunstancias cambie, dentro de los 14 días siguientes a dicho cambio.'}
           </div>
+          {textInput('declarationName')}
           {textInput('declarationDate', { type: 'date' })}
+          {textInput('declarationName2')}
           {textInput('declarationDate2', { type: 'date' })}
         </>
       )}

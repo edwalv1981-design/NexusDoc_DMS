@@ -81,7 +81,7 @@ describe('kyciHtmlPdf field parity', () => {
     const html = buildKyciPdfInnerHtml(kyciSample, { language: lang });
     assert.ok(html.includes(t.docTitle.split('\n')[0]));
     // Campos que el PDF muestra con su propia etiqueta de la plantilla.
-    const labelled = KYCI_ALL_FIELD_KEYS.filter((k) => !['applicantRoles', 'certifiedDocs'].includes(k) && !/Details$/.test(k));
+    const labelled = KYCI_ALL_FIELD_KEYS.filter((k) => !['applicantRoles', 'certifiedDocs', 'declarationName'].includes(k) && !/Details$/.test(k));
     for (const key of labelled) {
       assert.ok(t[key], `falta etiqueta PDF para ${key}`);
       assert.ok(html.includes(t[key].replace(/&/g, '&amp;')), `PDF debe incluir etiqueta de ${key}`);

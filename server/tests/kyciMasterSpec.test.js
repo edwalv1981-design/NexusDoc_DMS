@@ -61,7 +61,7 @@ describe('kyciMasterSpec (plantilla oficial)', () => {
 
   it('formulario vacío no se puede enviar', () => {
     const miss = kyciMaster.missingFields({});
-    for (const k of ['panamaEntityName', 'applicantRoles', 'firstName', 'lastName', 'passport', 'sourceOfWealth', 'pep', 'usPerson', 'declarationDate']) {
+    for (const k of ['panamaEntityName', 'applicantRoles', 'firstName', 'lastName', 'passport', 'sourceOfWealth', 'pep', 'usPerson', 'declarationName', 'declarationDate']) {
       assert.ok(miss.includes(k), `debe exigir ${k}`);
     }
     assert.ok(!miss.includes('secondName'), 'segundo nombre es opcional');
@@ -78,7 +78,7 @@ describe('kyciMasterSpec (plantilla oficial)', () => {
   });
 
   it('documentos obligatorios: pasaporte, domicilio y hoja de vida', () => {
-    const miss = kyciMaster.missingFieldsForStep(4, { certifiedDocs: ['bankReference'], declarationDate: '2026-11-15' });
+    const miss = kyciMaster.missingFieldsForStep(4, { certifiedDocs: ['bankReference'], declarationName: 'Ana', declarationDate: '2026-11-15' });
     assert.deepEqual(miss, ['certifiedDocs.passport', 'certifiedDocs.proofOfAddress', 'certifiedDocs.cv']);
   });
 
@@ -101,7 +101,7 @@ function completeKyci() {
     maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'a@b.com', taxResidenceCountries: 'Panamá',
     otherTaxResidence: 'No', usPerson: 'No', sourceOfWealth: 'Salario', pep: 'No', offenceConvicted: 'No',
     offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'proofOfAddress', 'cv'],
-    declarationDate: '2026-11-15',
+    declarationName: 'Ana Pérez', declarationDate: '2026-11-15',
   };
 }
 

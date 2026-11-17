@@ -188,7 +188,7 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
     <table class="frm sign"><tbody>
       <tr>
         <td class="lbl">${esc(t.signature)}</td>
-        <td class="sig-box">&nbsp;</td>
+        <td class="sig-box">${data.declarationName ? `<span class="sig-name">${esc(data.declarationName)}</span>` : '&nbsp;'}</td>
         <td class="lbl date-lbl">${esc(t.declarationDate)}</td>
         <td class="date-val">${data.declarationDate ? val(fmtDate(data.declarationDate)) : '&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/'}</td>
       </tr>
@@ -247,7 +247,9 @@ class KyciHtmlPdfService {
     .docs-footer { margin-top: 8px; }
     .sign { page-break-inside: avoid; }
     .sign td { border-top: none; }
-    .sign .sig-box { height: 42px; width: 40%; }
+    .sign .sig-box { height: 42px; width: 40%; vertical-align: middle; }
+    .sign .sig-name { font-weight: 700; font-size: 11px; color: #0f172a; }
+    .sign td { vertical-align: middle; }
     .sign .date-lbl { width: 14%; }
     .page2 { page-break-before: always; }
     .page2 td:nth-child(2) { width: 77%; }

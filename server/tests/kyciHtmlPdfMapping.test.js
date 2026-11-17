@@ -28,6 +28,7 @@ const sampleData = {
   offenceBankrupt: 'No',
   offenceInvestigation: 'No',
   certifiedDocs: ['passport', 'proofOfAddress', 'cv'],
+  declarationName: 'María Elena González',
   declarationDate: '2026-05-19',
 };
 
@@ -81,7 +82,8 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
 
   it('incluye el recuadro de firma del solicitante y ya no las notas del final', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
-    assert.match(html, /Signature of Applicant:<\/td>\s*<td class="sig-box">/);
+    assert.match(html, /Signature of Applicant:<\/td>\s*<td class="sig-box"><span class="sig-name">María Elena González<\/span><\/td>/);
+    assert.match(html, /Date \(dd\/mm\/yyyy\):<\/td>\s*<td class="date-val"><span class="val">19\/05\/2026<\/span>/);
     assert.doesNotMatch(html, /I certify this to be a true copy|class="notes"/);
     assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: 'es' }), /Certifico que esta es una copia fiel|class="notes"/);
     for (const lang of ['es', 'en']) {
