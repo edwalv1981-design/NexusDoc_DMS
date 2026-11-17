@@ -33,8 +33,6 @@ import {
   FIELDS,
   FORM_LABELS,
   FORM_GUIDES,
-  NOTES_ES,
-  NOTES_EN,
   missingFieldsForStep,
   missingFields,
   computeFullName,
@@ -416,12 +414,6 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
               : 'Confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles si alguna de mis circunstancias cambia, dentro de los 14 días siguientes a dicho cambio.'}
           </div>
           {textInput('declarationDate', { type: 'date' })}
-          <div style={{ gridColumn: '1 / -1', fontSize: 11, color: '#475569', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '8px 12px' }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{lang === 'en' ? 'NOTES' : 'NOTAS'}</div>
-            <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {(lang === 'en' ? NOTES_EN : NOTES_ES).map((n) => <li key={n}>{n}</li>)}
-            </ol>
-          </div>
         </>
       )}
     </div>

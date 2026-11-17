@@ -218,11 +218,6 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       ${sigRow(data.declarationDate)}
       ${sigRow(data.declarationDate2)}
     </tbody></table>
-
-    <section class="notes">
-      <div class="notes-title">${esc(t.notesTitle)}</div>
-      <ol>${t.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ol>
-    </section>
   `;
 }
 
@@ -281,10 +276,6 @@ class KyceHtmlPdfService {
     .page2 { page-break-before: always; }
     .sign td { border-top: none; vertical-align: middle; }
     .sign .sig-box { height: 46px; }
-    .notes { page-break-before: always; }
-    .notes-title { text-align: center; font-weight: 700; text-decoration: underline; margin: 6px 0 14px; }
-    .notes ol { padding-left: 22px; }
-    .notes li { margin-bottom: 10px; text-align: justify; }
     tr { page-break-inside: avoid; }
 ` +
         '</style></head><body>' +

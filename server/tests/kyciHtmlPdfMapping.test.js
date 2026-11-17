@@ -43,7 +43,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
       t.docTitle.split('\n')[0], t.docSubtitle, t.panamaEntityName, t.introTitle, t.applicantRolesTitle,
       t.fullNameLabel, t.birthDate, t.birthPlace, t.address, t.maritalStatus, t.phone, t.email,
       t.taxResidenceCountries, t.fatcaLabel, t.sourceOfWealthLabel, t.pepLabel, t.offencesLabel,
-      t.docsTitle, t.declaration.slice(0, 30), t.signature, t.declarationDate, t.notesTitle,
+      t.docsTitle, t.declaration.slice(0, 30), t.signature, t.declarationDate,
     ];
     let pos = -1;
     for (const label of order) {
@@ -79,10 +79,11 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
     assert.match(htmlYes, /123-45/);
   });
 
-  it('incluye el recuadro de firma del solicitante y las notas', () => {
+  it('incluye el recuadro de firma del solicitante y ya no las notas del final', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
     assert.match(html, /Signature of Applicant:<\/td>\s*<td class="sig-box">/);
-    assert.match(html, /I certify this to be a true copy/);
+    assert.doesNotMatch(html, /I certify this to be a true copy|class="notes"/);
+    assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: 'es' }), /Certifico que esta es una copia fiel|class="notes"/);
   });
 
   it('trámites antiguos (fullName, fondos, ocupación) siguen generando PDF', () => {
@@ -100,7 +101,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
     for (const txt of ['FORMULARIO DE CUMPLIMIENTO', 'Procedimiento de Debida Diligencia del Cliente', 'El Solicitante es uno o más de los siguientes:',
       'Primer nombre', 'Vínculos políticos', 'Delitos/Sanciones', 'DOCUMENTOS DE IDENTIDAD CERTIFICADOS QUE DEBEN ADJUNTARSE',
-      'Firma del Solicitante:', 'Fecha (dd/mm/aaaa):', 'NOTAS', 'Casado(a)']) {
+      'Firma del Solicitante:', 'Fecha (dd/mm/aaaa):', 'Casado(a)']) {
       assert.ok(html.includes(txt), `falta "${txt}"`);
     }
     assert.match(html, new RegExp(`${esc(BOX_ON)} Accionista`));
@@ -111,7 +112,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
 
   it('PDF en inglés cuando el solicitante lo pide en inglés (texto literal de la plantilla)', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
-    for (const txt of ['COMPLIANCE FORM', 'Customer Due Diligence Procedure', 'Signature of Applicant:', 'Married', 'NOTES']) {
+    for (const txt of ['COMPLIANCE FORM', 'Customer Due Diligence Procedure', 'Signature of Applicant:', 'Married']) {
       assert.ok(html.includes(txt), `falta "${txt}"`);
     }
     assert.doesNotMatch(html, /FORMULARIO DE CUMPLIMIENTO|Firma del Solicitante/);

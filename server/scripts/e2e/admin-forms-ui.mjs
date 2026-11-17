@@ -112,7 +112,7 @@ try {
     await page.goto(`${BASE}/admin/form/${ids.kycNewId}?mode=view`, { waitUntil: 'networkidle' });
     // Abre en el paso donde quedó el usuario (IV): documentos marcados; luego vuelve al paso I.
     await page.getByText(/Pasaporte con fotografía a color|Colour Picture Passport/).first().waitFor({ timeout: 20000 });
-    expect(await page.getByText(/^NOTAS$|^NOTES$/).count() > 0, 'KYCI: el paso IV muestra las notas de certificación');
+    expect(await page.getByText(/^NOTAS$|^NOTES$/).count() === 0, 'KYCI: el paso IV ya no muestra las notas del final');
     expect(await page.locator('input[type="checkbox"]:checked').count() >= 4, 'KYCI: el administrador ve los documentos marcados (paso IV)');
     for (let i = 0; i < 3; i += 1) await page.locator('.expert-btn-nav').first().click();
     await page.locator('input[value="Atlántico S.A."]').first().waitFor({ timeout: 10000 }).catch(() => {});

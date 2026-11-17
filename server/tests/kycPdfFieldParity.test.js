@@ -101,7 +101,7 @@ describe('kyceHtmlPdf field parity', () => {
       'applicantIsA', 'stockExchange', 'tickerSymbol', 'regulatorName', 'governmentEntityType', 'privateNote', 'settlorNameAddress',
       'trusteesNameAddress', 'enforcerNameAddress', 'protectorNameAddress', 'beneficiary', 'trustNote', 'partnershipNote',
       'fatcaLabel', 'taxResidencyLabel', 'usEntity', 'einNumber', 'otherTaxResidence', 'taxIdNumber', 'selfCertNote',
-      'declaration', 'signature', 'declarationDate', 'notesTitle']) {
+      'declaration', 'signature', 'declarationDate']) {
       const text = String(t[key]).split('\n')[0];
       assert.ok(html.includes(text.replace(/&/g, '&amp;')), `${lang}: PDF debe incluir "${key}"`);
     }

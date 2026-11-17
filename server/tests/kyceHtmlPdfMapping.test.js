@@ -46,7 +46,7 @@ describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
       t.jurisdiction, t.registrationNumber, t.registeredAddress, t.mailingAddress, t.phone, t.businessActivity,
       t.offencesLabel, t.applicantIsA, t.stockExchange, t.regulatorName, t.governmentEntityType, t.privateNote,
       t.settlorNameAddress, t.trustNote, t.partnershipNote, t.fatcaLabel, t.taxResidencyLabel, t.selfCertNote,
-      t.declaration, t.signature, t.notesTitle,
+      t.declaration, t.signature,
     ];
     let pos = -1;
     for (const label of order) {
@@ -55,6 +55,8 @@ describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
       pos = idx;
     }
     assert.equal(html.split(t.signature).length - 1, 2, 'dos recuadros de firma');
+    assert.doesNotMatch(html, /class="notes"/, 'sin notas al final');
+    assert.ok(!html.includes(t.notes[0]), 'sin notas al final');
   });
 
   it('imprime los datos y marca casillas', () => {
@@ -76,7 +78,7 @@ describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
   it('PDF en español cuando se pide en español', () => {
     const html = buildKycePdfInnerHtml(sampleData, { language: 'es' });
     for (const txt of ['FORMULARIO DE CUMPLIMIENTO', 'Procedimiento Conozca a su Cliente', 'Si el Solicitante es:', 'Delitos y sanciones',
-      'Copia certificada de la Escritura o Declaración de Fideicomiso', 'Clasificación FATCA/CRS', 'Residencia fiscal', 'NOTAS']) {
+      'Copia certificada de la Escritura o Declaración de Fideicomiso', 'Clasificación FATCA/CRS', 'Residencia fiscal']) {
       assert.ok(html.includes(txt), `falta "${txt}"`);
     }
     assert.match(html, new RegExp(`Sí ${esc(BOX_ON)}</span><span class="yn">No ${esc(BOX_OFF)}`));

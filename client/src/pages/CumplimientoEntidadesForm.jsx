@@ -33,8 +33,6 @@ import {
   FORM_LABELS,
   FORM_GUIDES,
   YES_NO_DETAILS,
-  NOTES_EN,
-  NOTES_ES,
   isShown,
   missingFieldsForStep,
   missingFields,
@@ -365,12 +363,6 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
           </div>
           {textInput('declarationDate', { type: 'date' })}
           {textInput('declarationDate2', { type: 'date' })}
-          <div style={{ gridColumn: '1 / -1', fontSize: 11, color: '#475569', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '8px 12px' }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{L === 'en' ? 'NOTES' : 'NOTAS'}</div>
-            <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {(L === 'en' ? NOTES_EN : NOTES_ES).map((n) => <li key={n}>{n}</li>)}
-            </ol>
-          </div>
         </>
       )}
     </div>
