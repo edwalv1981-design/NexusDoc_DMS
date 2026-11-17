@@ -78,6 +78,13 @@ describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
     assert.doesNotMatch(html, /NO DEBE SALIR/);
   });
 
+  it('firma: "Representante legal o firma autorizada" (ES) / "Legal representative or authorised signatory" (EN)', () => {
+    const es = buildKycePdfInnerHtml(sampleData, { language: 'es' });
+    const en = buildKycePdfInnerHtml(sampleData, { language: 'en' });
+    assert.equal(es.split('<td class="lbl">Representante legal o firma autorizada</td>').length - 1, 2);
+    assert.equal(en.split('<td class="lbl">Legal representative or authorised signatory</td>').length - 1, 2);
+  });
+
   it('nombre de cada firmante dentro de su recuadro y su fecha al lado', () => {
     const html = buildKycePdfInnerHtml(sampleData, { language: 'en' });
     assert.match(html, /<td class="sig-box"><span class="sig-name">Pedro Ruiz<\/span><\/td>\s*<td class="date-lbl">[^<]*<\/td>\s*<td class="date-val"><span class="val">15\/11\/2026/);

@@ -68,7 +68,7 @@ const EN = Object.freeze({
   selfCertNote: 'Please complete and submit the Entity Self Certification Declaration Form',
   declaration:
     'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of the circumstances change within 14 days of those changes occurring.',
-  signature: 'Signature of person authorised to sign for and on behalf of the Applicant',
+  signature: 'Legal representative or authorised signatory',
   declarationDate: 'Date (dd/mm/yyyy)',
   notesTitle: 'NOTES',
   notes: kyceMaster.NOTES_EN,
@@ -134,7 +134,7 @@ const ES = Object.freeze({
   selfCertNote: 'Por favor complete y presente el Formulario de Declaración de Autocertificación de la Entidad',
   declaration:
     'Por la presente confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles en caso de que alguna de las circunstancias cambie, dentro de los 14 días siguientes a dicho cambio.',
-  signature: 'Firma de la persona autorizada para firmar por y en nombre del Solicitante',
+  signature: 'Representante legal o firma autorizada',
   declarationDate: 'Fecha (dd/mm/aaaa)',
   notesTitle: 'NOTAS',
   notes: kyceMaster.NOTES_ES,
