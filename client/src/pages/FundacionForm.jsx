@@ -1622,7 +1622,7 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
     return (
 
-        <div className="expert-container">
+        <div className="expert-container nx-form">
 
             <div className="expert-header">
 

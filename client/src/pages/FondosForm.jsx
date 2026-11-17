@@ -592,7 +592,7 @@ const FondosForm = ({ embedded = false, initialData, onSave, saving = false, rea
     };
 
     return (
-        <div className="corporate-page">
+        <div className="corporate-page nx-form">
             <div className="corporate-card">
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{t('fondos.management')}</div>

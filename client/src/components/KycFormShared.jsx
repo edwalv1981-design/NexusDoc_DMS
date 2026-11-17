@@ -11,7 +11,7 @@ export function KycHintBox({ children }) {
   return (
     <div className="expert-hint-box" style={{ marginBottom: 10 }}>
       <Info size={14} color="#475569" style={{ flexShrink: 0, marginTop: 1 }} />
-      <div style={{ fontSize: 12, lineHeight: 1.4, color: '#475569' }}>{children}</div>
+      <div className="nx-hint-text" style={{ fontSize: 12, lineHeight: 1.4, color: '#475569' }}>{children}</div>
     </div>
   );
 }

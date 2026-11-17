@@ -499,7 +499,7 @@ const CorporacionForm = ({ initialData, onSave, saving, readOnly = false, startS
                     <button onClick={() => addDirector('individual')} className="corp-btn-add">
                         <Plus size={14} /> {lang === 'en' ? '+ Add Director (Individual)' : '+ Añadir Director (Persona)'}
                     </button>
-                    <button onClick={() => addDirector('company')} className="corp-btn-add" style={{ background: '#0284c7' }}>
+                    <button onClick={() => addDirector('company')} className="corp-btn-add">
                         <Plus size={14} /> {lang === 'en' ? '+ Add Director (Company)' : '+ Añadir Director (Empresa)'}
                     </button>
                 </div>
@@ -627,7 +627,7 @@ const CorporacionForm = ({ initialData, onSave, saving, readOnly = false, startS
                     <button onClick={() => addDignitary('individual')} className="corp-btn-add">
                         <Plus size={14} /> {lang === 'en' ? '+ Add Dignitary (Individual)' : '+ Añadir Dignatario (Persona)'}
                     </button>
-                    <button onClick={() => addDignitary('company')} className="corp-btn-add" style={{ background: '#0284c7' }}>
+                    <button onClick={() => addDignitary('company')} className="corp-btn-add">
                         <Plus size={14} /> {lang === 'en' ? '+ Add Dignitary (Company)' : '+ Añadir Dignatario (Empresa)'}
                     </button>
                 </div>
@@ -742,7 +742,7 @@ const CorporacionForm = ({ initialData, onSave, saving, readOnly = false, startS
                     <button onClick={() => addShareholder('individual')} className="corp-btn-add">
                         <Plus size={14} /> {lang === 'en' ? '+ Add Shareholder (Individual)' : '+ Añadir Accionista (Persona)'}
                     </button>
-                    <button onClick={() => addShareholder('company')} className="corp-btn-add" style={{ background: '#0284c7' }}>
+                    <button onClick={() => addShareholder('company')} className="corp-btn-add">
                         <Plus size={14} /> {lang === 'en' ? '+ Add Shareholder (Company)' : '+ Añadir Accionista (Empresa)'}
                     </button>
                 </div>
@@ -922,7 +922,7 @@ const CorporacionForm = ({ initialData, onSave, saving, readOnly = false, startS
     );
 
     return (
-        <div className="corp-container">
+        <div className="corp-container nx-form">
             <div className="corp-header">
                 <div>
                     <h1 className="corp-title">{t('corporacion.title')}</h1>

@@ -556,6 +556,12 @@ const en = {
     },
   },
   fondos: {
+    management: 'Source of funds declaration',
+    step1: 'Corporate identification',
+    step2: 'Source of funds declaration',
+    step3: 'Registration and responsibilities',
+    companyPlaceholder: 'Legal name of the company',
+    editing: '(editing)',
     title: 'Funds Declaration',
     companyName: 'COMPANY NAME',
     country: 'COUNTRY / JURISDICTION',

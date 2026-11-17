@@ -229,17 +229,16 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
     ) : null;
 
   const yesNo = (key) => (
-    <div className="expert-group kyci-yesno" style={{ gridColumn: '1 / -1', ...(isMissing(key) ? { outline: '1px solid #ef4444', borderRadius: 4, padding: 4 } : {}) }} key={key}>
+    <div className="expert-group kyci-yesno" style={{ gridColumn: '1 / -1' }} key={key}>
       <Label k={key} />
-      <div style={{ display: 'flex', gap: 18, marginTop: 4 }}>
+      <div className={`nx-choices nx-inline${isMissing(key) ? ' nx-missing' : ''}`} style={{ marginTop: 4 }}>
         {[[YES, yesLabel], [NO, noLabel]].map(([value, text]) => (
-          <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: formData[key] === value ? 700 : 500, color: '#1e293b', cursor: 'pointer' }}>
+          <label key={value} className="nx-choice">
             <input
               type="radio"
               name={`kyci-${key}`}
               checked={formData[key] === value}
               onChange={() => setValue(key, value)}
-              style={{ width: 15, height: 15, accentColor: PRIMARY }}
             />
             {text}
           </label>
@@ -251,40 +250,17 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
   const checkboxGroup = (key, options, columns) => (
     <div className="expert-group" style={{ gridColumn: '1 / -1' }} key={key}>
       <Label k={key} />
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: columns,
-          gap: 6,
-          marginTop: 4,
-          padding: 8,
-          borderRadius: 6,
-          border: isMissing(key) ? '1px solid #ef4444' : '1px solid #e2e8f0',
-          background: '#f8fafc',
-        }}
-      >
+      <div className={`nx-choices${isMissing(key) ? ' nx-missing' : ''}`} style={{ gridTemplateColumns: columns, marginTop: 4 }}>
         {options.map((opt) => {
           const selected = (formData[key] || []).includes(opt.key);
           const optRequired = opt.required || (opt.requiredIf && formData[opt.requiredIf.field] === opt.requiredIf.value);
           const optMissing = isMissing(`${key}.${opt.key}`);
           return (
-            <label
-              key={opt.key}
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 8,
-                fontSize: 12,
-                fontWeight: selected ? 700 : 500,
-                color: optMissing ? '#b91c1c' : '#1e293b',
-                cursor: 'pointer',
-              }}
-            >
+            <label key={opt.key} className="nx-choice" style={optMissing ? { borderColor: '#f87171', color: '#b91c1c' } : undefined}>
               <input
                 type="checkbox"
                 checked={selected}
                 onChange={() => toggleInList(key, opt.key)}
-                style={{ width: 15, height: 15, marginTop: 1, accentColor: PRIMARY, flexShrink: 0 }}
               />
               <span>
                 {lang === 'en' ? opt.en : opt.es}
@@ -298,7 +274,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
   );
 
   const grid = (children) => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>{children}</div>
+    <div className="expert-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>{children}</div>
   );
 
   const header = (s) => {
@@ -306,7 +282,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
     const Icon = meta.icon;
     return (
       <>
-        <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: SECONDARY, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h2 className="nx-section-title">
           <Icon size={22} color={PRIMARY} /> {lang === 'en' ? meta.en : meta.es}
         </h2>
         <KycHintBox>{STEP_HINTS[lang === 'en' ? 'en' : 'es'][s - 1]}</KycHintBox>
@@ -455,9 +431,16 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
   };
 
   return (
-    <div style={{ width: '100%', padding: '12px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '18px', fontWeight: 800, color: SECONDARY }}>{t('formType.Cumplimiento Individual')}</h1>
+    <div className="nx-form">
+      <div className="nx-header">
+        <div>
+          <h1 className="nx-title">{t('formType.Cumplimiento Individual')}</h1>
+          <p className="nx-subtitle">
+            {lang === 'en'
+              ? 'Compliance form — Individuals · Customer due diligence procedure'
+              : 'Formulario de cumplimiento — Personas naturales · Procedimiento de debida diligencia'}
+          </p>
+        </div>
         {!readOnly && (
           <button type="button" onClick={() => onSave(withProgress(withCompat(formData), step, TOTAL_STEPS))} disabled={saving} className="expert-btn-save">
             <Save size={18} /> {saving ? t('common.saving') : t('kyci.saveDraft')}
@@ -465,18 +448,17 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: '20px' }}>
+      <div className="standard-step-header">
+        <span className="standard-step-title">{lang === 'en' ? STEP_META[step - 1].en : STEP_META[step - 1].es}</span>
+        <span className="standard-step-badge">{t('dashboard.stepOf', { step, total: TOTAL_STEPS })}</span>
+      </div>
+      <div className="standard-progress-stepper">
         {[1, 2, 3, 4].map((s) => (
-          <div key={s} style={{ flex: 1, position: 'relative' }}>
-            <div style={{ height: '3px', background: step >= s ? PRIMARY : '#e2e8f0', borderRadius: '3px', transition: 'all 0.3s' }} />
-            <div style={{ position: 'absolute', top: '-18px', left: 0, fontSize: '9px', fontWeight: 700, color: step >= s ? PRIMARY : '#94a3b8' }}>
-              {t('kyci.stepLabel', { step: s })}
-            </div>
-          </div>
+          <div key={s} className={`standard-progress-bar ${step >= s ? 'active' : ''}`} />
         ))}
       </div>
 
-      <div style={{ background: 'white', padding: '24px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div className="nx-panel">
         <ReadOnlyFieldset readOnly={readOnly}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
@@ -484,8 +466,8 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
           {step === 4 && renderStep4()}
         </ReadOnlyFieldset>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e8edf2' }}>
-          <button type="button" onClick={() => { setMissing([]); setStep((prev) => prev - 1); }} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.3 : 1 }}>
+        <div className="nx-footer">
+          <button type="button" onClick={() => { setMissing([]); setStep((prev) => prev - 1); }} disabled={step === 1} className="expert-btn-nav" style={{ opacity: step === 1 ? 0.4 : 1 }}>
             <ChevronLeft size={18} /> {t('common.back')}
           </button>
           {step < TOTAL_STEPS ? (
@@ -500,7 +482,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
         </div>
       </div>
 
-      <style>{kycFormSharedStyles(PRIMARY) + ' .kyci-guide { display: block; font-size: 10.5px; font-weight: 500; color: #64748b; line-height: 1.35; margin: 1px 0 3px; }'}</style>
+      <style>{kycFormSharedStyles(PRIMARY) + ' .kyci-guide { display: block; font-size: 12px; color: #64748b; line-height: 1.45; }'}</style>
     </div>
   );
 };

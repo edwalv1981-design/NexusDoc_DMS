@@ -18,8 +18,8 @@ const EntityTypeSelector = ({ value, onChange, lang, style }) => {
         { key: 'company', icon: '🏢', label: lang === 'en' ? 'COMPANY / LEGAL ENTITY' : 'EMPRESA / PERSONA JURÍDICA' },
     ];
     return (
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px', ...style }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
+        <div className="nx-entity-type" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14, background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px', ...style }}>
+            <span className="nx-entity-type-label" style={{ fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>
                 {lang === 'en' ? 'Type of Entity:' : 'Tipo de Integrante:'}
             </span>
             <div role="radiogroup" aria-label={lang === 'en' ? 'Type of Entity' : 'Tipo de Integrante'} style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
@@ -27,6 +27,7 @@ const EntityTypeSelector = ({ value, onChange, lang, style }) => {
                     const selected = opt.key === 'company' ? isCompany : !isCompany;
                     return (
                         <button
+                            className="nx-entity-type-option"
                             key={opt.key}
                             type="button"
                             role="radio"

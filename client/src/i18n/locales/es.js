@@ -559,6 +559,12 @@ const es = {
     },
   },
   fondos: {
+    management: 'Declaración de origen de fondos',
+    step1: 'Identificación corporativa',
+    step2: 'Declaración de origen de fondos',
+    step3: 'Registro y responsabilidades',
+    companyPlaceholder: 'Nombre legal de la compañía',
+    editing: '(editando)',
     title: 'Declaración de Fondos',
     companyName: 'NOMBRE COMPAÑÍA',
     country: 'PAÍS / JURISDICCIÓN',
