@@ -70,7 +70,7 @@ const EN = Object.freeze({
   docsIntroBold: 'certified',
   docsIntroAfter: ' copies of the following documents:',
   docsFooter:
-    'These documents must be certified as true and correct copies of the original documents by a third party professional (see Notes below for appropriate certification).',
+    'These documents must be certified as true and correct copies of the original documents by a third party professional.',
   declaration:
     'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of my circumstances change within 14 days of those changes occurring.',
   signature: 'Signature of Applicant:',
@@ -142,7 +142,7 @@ const ES = Object.freeze({
   docsIntroBold: 'certificadas',
   docsIntroAfter: ' de los siguientes documentos:',
   docsFooter:
-    'Estos documentos deben estar certificados como copias fieles y exactas de los documentos originales por un profesional independiente (ver las Notas a continuación sobre la certificación adecuada).',
+    'Estos documentos deben estar certificados como copias fieles y exactas de los documentos originales por un profesional independiente.',
   declaration:
     'Por la presente confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles en caso de que alguna de mis circunstancias cambie, dentro de los 14 días siguientes a dicho cambio.',
   signature: 'Firma del Solicitante:',

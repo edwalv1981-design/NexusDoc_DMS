@@ -84,6 +84,9 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
     assert.match(html, /Signature of Applicant:<\/td>\s*<td class="sig-box">/);
     assert.doesNotMatch(html, /I certify this to be a true copy|class="notes"/);
     assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: 'es' }), /Certifico que esta es una copia fiel|class="notes"/);
+    for (const lang of ['es', 'en']) {
+      assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: lang }), /see Note|ver Nota|see Notes|ver las Notas/, `${lang}: sin referencias a notas`);
+    }
   });
 
   it('trámites antiguos (fullName, fondos, ocupación) siguen generando PDF', () => {

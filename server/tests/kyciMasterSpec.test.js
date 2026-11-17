@@ -38,6 +38,11 @@ describe('kyciMasterSpec (plantilla oficial)', () => {
     }
   });
 
+  it('textos sin referencias a las notas eliminadas', () => {
+    const all = JSON.stringify([kyciMaster.CERTIFIED_DOC_OPTIONS, kyciMaster.FORM_GUIDES]);
+    assert.doesNotMatch(all, /see Note|ver Nota|see Notes|ver las Notas/);
+  });
+
   it('tiene las 10 calidades del solicitante y los 6 documentos', () => {
     assert.deepEqual(kyciMaster.APPLICANT_ROLE_OPTIONS.map((o) => o.en), [
       'Shareholder', 'Director', 'General Partner', 'Beneficial Owner', 'Authorised Signatory',
