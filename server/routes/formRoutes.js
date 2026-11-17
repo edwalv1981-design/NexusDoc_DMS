@@ -448,6 +448,8 @@ router.post('/save', auth, async (req, res) => {
           ...(progress ? { __progress: progress } : {}),
           // El rastro de ediciones del administrador se conserva siempre.
           ...(adminEditLog.length ? { __adminEditLog: adminEditLog } : {}),
+          // El nombre personalizado del trámite pasa a la nueva versión.
+          ...(formVersions.getLabel(latest) ? { __label: formVersions.getLabel(latest) } : {}),
           __metadata: { parentId, version: nextVersion }
       };
 
@@ -543,6 +545,34 @@ router.get('/:id', auth, async (req, res) => {
             latestId: latest.id, latestVersion: formVersions.getMeta(latest).version
         });
     } catch (e) { res.status(500).json({ msg: 'Error' }); }
+});
+
+// @route   PATCH api/forms/:id/label
+// @desc    Nombre personalizado del trámite (solo su dueño). Se guarda en la versión
+//          más reciente sin crear una versión nueva; vacío = quitar el nombre.
+router.patch('/:id/label', auth, async (req, res) => {
+    try {
+        const form = await FormData.findByPk(req.params.id);
+        if (!form || form.userId !== req.user.id) return res.status(404).json({ msg: 'No encontrado' });
+        const label = formVersions.sanitizeLabel(req.body && req.body.label);
+        const latest = await formVersions.getLatest(form).catch(() => form);
+        const data = { ...(latest.data || {}) };
+        if (label) data.__label = label;
+        else delete data.__label;
+        latest.data = data;
+        latest.changed('data', true);
+        await latest.save();
+        AuditLog.create({
+            userId: req.user.id,
+            action: 'FORM_LABEL',
+            description: label
+                ? `Usuario nombró el trámite ${latest.formType} (${formVersions.getRootId(latest)}) como "${label}"`
+                : `Usuario quitó el nombre del trámite ${latest.formType} (${formVersions.getRootId(latest)})`,
+        }).catch(() => {});
+        res.json({ id: latest.id, label });
+    } catch (e) {
+        res.status(500).json({ msg: 'No se pudo guardar el nombre' });
+    }
 });
 
 // @route   DELETE api/forms/:id

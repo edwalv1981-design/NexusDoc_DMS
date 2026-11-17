@@ -336,7 +336,7 @@ const en = {
     assignedProcess: 'ASSIGNED PROCESS:',
     notAssigned: 'Not assigned',
     continueProcess: 'CONTINUE PROCESS',
-    search: 'Search by document type...',
+    search: 'Search by name, reference code or type...',
     registeredProcesses: 'REGISTERED PROCESSES',
     resultsCount: '{n} RESULTS',
     noResults: 'No records match the current filters.',

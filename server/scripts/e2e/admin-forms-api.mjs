@@ -202,6 +202,32 @@ for (const [label, id, lang] of [['plantilla ES', kyceNew.id, 'es'], ['plantilla
 }
 ok('KYC Entities: PDF de la plantilla (español e inglés) y de trámites antiguos se generan');
 
+// 13e) Nombre personalizado del trámite: lo pone el dueño, no crea versión y pasa a la siguiente
+{
+  let lr = await api('PATCH', `/api/forms/${kyceNew.id}/label`, client.token, { label: '  Atlántico – <b>banco</b>  ' });
+  assert.equal(lr.status, 200, `label: ${lr.status}`);
+  assert.equal(lr.body.label, 'Atlántico – bbanco/b');
+  let mine = await api('GET', '/api/forms/my-forms', client.token);
+  const before = mine.body.filter((f) => (f.parentId || f.id) === (kyceNew.parentId || kyceNew.id) || f.id === kyceNew.id);
+  assert.ok(before.some((f) => f.data.__label === 'Atlántico – bbanco/b'), 'el nombre aparece en mis trámites');
+  const versionsBefore = mine.body.length;
+  // otro usuario no puede renombrarlo
+  lr = await api('PATCH', `/api/forms/${kyceNew.id}/label`, admin.token, { label: 'X' });
+  assert.equal(lr.status, 404, 'solo el dueño pone el nombre');
+  // guardar una nueva versión conserva el nombre aunque el cliente no lo envíe (o intente cambiarlo)
+  const sv = await api('POST', '/api/forms/save', client.token, { id: kyceNew.id, type: 'Cumplimiento Entidades', data: { ...kyceNew.data, __label: 'INYECTADO', phone: '+1 999' } });
+  assert.equal(sv.status, 200);
+  mine = await api('GET', '/api/forms/my-forms', client.token);
+  assert.equal(mine.body.length, versionsBefore + 1, 'renombrar no creó versión; guardar sí');
+  const latestKyce = mine.body.find((f) => f.id === sv.body.data.id);
+  assert.equal(latestKyce.data.__label, 'Atlántico – bbanco/b', 'el nombre pasa a la nueva versión y no se puede inyectar');
+  // quitar el nombre
+  lr = await api('PATCH', `/api/forms/${sv.body.data.id}/label`, client.token, { label: '' });
+  assert.equal(lr.status, 200);
+  assert.equal(lr.body.label, '');
+}
+ok('Trámites: nombre personalizado (dueño, sin versión nueva, se conserva, no se inyecta)');
+
 // 13d) Consultas → Excel (mismos permisos que el reporte PDF)
 {
   const res = await fetch(`${BASE}/api/admin/export-search-xlsx?nombres=Ana`, { headers: { 'x-auth-token': admin.token } });

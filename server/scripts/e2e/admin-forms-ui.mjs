@@ -141,6 +141,20 @@ try {
     page.off('dialog', onDialog);
   }
 
+  stage = 'mis tramites';
+  // ── 3d. Mis trámites: cada uno se reconoce (nombre, estado, referencia) y se busca ─
+  await page.goto(`${BASE}/dashboard`, { waitUntil: 'networkidle' });
+  await page.locator('.nx-form-title').first().waitFor({ timeout: 20000 });
+  expect(await page.locator('.nx-form-title').count() > 1, 'Mis trámites: cada trámite muestra su nombre');
+  expect(await page.locator('.nx-ref').count() > 1 && await page.locator('[class*="nx-status-"]').count() > 1, 'Mis trámites: referencia y estado en cada fila');
+  const totalRows = await page.locator('.nx-form-title, .nx-label-edit').count();
+  await page.locator('.nx-forms-toolbar input').first().fill('atlantico');
+  await page.waitForTimeout(400);
+  const filtered = await page.locator('.nx-form-title').count();
+  expect(filtered > 0 && filtered < totalRows, `Mis trámites: el buscador filtra por nombre (${filtered} de ${totalRows})`);
+  await page.locator('.nx-forms-toolbar input').first().fill('');
+  await shot('09-mis-tramites');
+
   stage = 'firmas usuario';
   // ── 4. Firmas: lista del usuario y bandeja del administrador ─────────────
   await page.goto(`${BASE}/dashboard?view=signed-docs`, { waitUntil: 'networkidle' });

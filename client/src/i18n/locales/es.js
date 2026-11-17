@@ -336,7 +336,7 @@ const es = {
     assignedProcess: 'TRÁMITE ASIGNADO:',
     notAssigned: 'No asignado',
     continueProcess: 'CONTINUAR CON EL TRÁMITE',
-    search: 'Buscar por tipo de documento...',
+    search: 'Buscar por nombre, código de referencia o tipo...',
     registeredProcesses: 'TRÁMITES REGISTRADOS',
     resultsCount: '{n} RESULTADOS',
     noResults: 'No se encontraron registros que coincidan con los filtros.',

@@ -59,4 +59,13 @@ describe('formVersionService (funciones puras)', () => {
     assert.match(text, /y 5 cambio\(s\) más/);
     assert.equal(fv.describeChanges([]), 'Sin cambios');
   });
+
+  it('nombre del trámite: el cliente no lo puede inyectar al guardar y se limpia', () => {
+    assert.deepEqual(fv.stripServerKeys({ a: 1, __label: 'x' }), { a: 1 });
+    assert.equal(fv.sanitizeLabel('  Apertura <b>cuenta</b>\n Banco X  '), 'Apertura bcuenta/b Banco X');
+    assert.equal(fv.sanitizeLabel('x'.repeat(200)).length, fv.MAX_LABEL);
+    assert.equal(fv.sanitizeLabel(null), '');
+    assert.equal(fv.getLabel({ data: { __label: 'Mi trámite' } }), 'Mi trámite');
+    assert.equal(fv.getLabel({ data: {} }), '');
+  });
 });

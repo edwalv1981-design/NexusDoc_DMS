@@ -11,9 +11,11 @@
  *   __metadata      { parentId, version, editedBy? }
  *   __adminEditLog  [{ at, version, adminId, adminName, adminEmail, changes }]
  *   __progress      { step, totalSteps, finished, savedAt }   (lo envía el formulario)
+ *   __label         nombre personalizado que el usuario da al trámite (solo por /:id/label)
  */
 
-const SERVER_KEYS = ['__metadata', '__adminEditLog', '__progress'];
+const SERVER_KEYS = ['__metadata', '__adminEditLog', '__progress', '__label'];
+const MAX_LABEL = 80;
 const MAX_ADMIN_LOG = 50;
 
 function getMeta(form) {
@@ -119,6 +121,24 @@ function computeChanges(oldData, newData) {
     return out;
 }
 
+/** Nombre personalizado del trámite (o ''). */
+function getLabel(form) {
+    const v = form && form.data && form.data.__label;
+    return typeof v === 'string' ? v : '';
+}
+
+/** Limpia el nombre que escribe el usuario: texto plano, una línea, máx. 80 caracteres. */
+function sanitizeLabel(raw) {
+    if (raw === null || raw === undefined) return '';
+    return String(raw)
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u001F\u007F]/g, ' ')
+        .replace(/[<>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, MAX_LABEL);
+}
+
 function describeChanges(changes, max = 40) {
     if (!changes.length) return 'Sin cambios';
     const lines = changes.slice(0, max).map((c) => `${c.path}: ${c.before} → ${c.after}`);
@@ -136,6 +156,9 @@ module.exports = {
     stripServerKeys,
     sanitizeProgress,
     getAdminEditLog,
+    getLabel,
+    sanitizeLabel,
+    MAX_LABEL,
     computeChanges,
     describeChanges,
 };

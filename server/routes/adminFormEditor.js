@@ -152,6 +152,8 @@ router.post('/:id/save', auth, requireFullAdmin, async (req, res) => {
             ...cleanData,
             // El progreso del usuario no cambia porque el administrador edite.
             ...(latest.data?.__progress ? { __progress: latest.data.__progress } : {}),
+            // El nombre personalizado que puso el usuario se conserva.
+            ...(fv.getLabel(latest) ? { __label: fv.getLabel(latest) } : {}),
             __adminEditLog: [...fv.getAdminEditLog(latest), editEntry].slice(-fv.MAX_ADMIN_LOG),
             __metadata: {
                 parentId: fv.getRootId(latest),

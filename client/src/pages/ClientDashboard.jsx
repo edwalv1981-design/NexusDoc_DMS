@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FileText, Clock, User as UserIcon, LogOut, 
-    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, IdCard, FileStack, Users
+    Trash2, Plus, LayoutGrid, Shield, Check, AlertCircle, X, Info, Search, Calendar, Download, Building, Heart, ShieldAlert, ClipboardList, Construction, Edit, IdCard, FileStack, Users, Tag, Hash, Filter
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 import { getFormTypeLabel } from '../formTypes';
@@ -25,6 +25,7 @@ import {
 } from '../utils/formWizardRouting';
 import { validateField, validateFields } from '../utils/fieldValidators';
 import { withProgress, lastAdminEdit } from '../utils/formProgress';
+import { describeForm, matchesSearch } from '../utils/formIdentity';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -57,6 +58,10 @@ const ClientDashboard = () => {
     
     const [searchTerm, setSearchTerm] = useState('');
     const [dateFilter, setDateFilter] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [labelEdit, setLabelEdit] = useState({ id: null, value: '' });
+    const [savingLabel, setSavingLabel] = useState(false);
     const [toast, setToast] = useState({ show: false, msg: '', type: 'error' });
     const [modal, setModal] = useState({ show: false, msg: '', onConfirm: null });
 
@@ -407,16 +412,9 @@ const ClientDashboard = () => {
         }
     };
 
-    const filteredDocuments = documents.filter(doc => {
-        const matchesSearch = doc.type.toLowerCase().includes(searchTerm.toLowerCase());
-        const docDate = new Date(doc.date).toISOString().split('T')[0];
-        const matchesDate = !dateFilter || docDate === dateFilter;
-        return matchesSearch && matchesDate;
-    });
-
-    // Grouping logic for versions
+    // Agrupa las versiones de cada trámite; el filtro se aplica al trámite (versión actual).
     const groupedDocuments = {};
-    filteredDocuments.forEach(doc => {
+    documents.forEach(doc => {
         const key = doc.parentId || doc.id;
         if (!groupedDocuments[key]) groupedDocuments[key] = [];
         groupedDocuments[key].push(doc);
@@ -426,7 +424,53 @@ const ClientDashboard = () => {
         groupedDocuments[key].sort((a, b) => new Date(b.date) - new Date(a.date));
     });
 
-    const groupsArray = Object.values(groupedDocuments).sort((a, b) => new Date(b[0].date) - new Date(a[0].date));
+    const describeDoc = (doc) => describeForm(doc, getFormTypeLabel(doc.type, lang), lang);
+    const typeOptions = [...new Set(documents.map(d => d.type))]
+        .map(type => ({ value: type, label: getFormTypeLabel(type, lang) }))
+        .sort((x, y) => x.label.localeCompare(y.label));
+
+    const groupsArray = Object.values(groupedDocuments)
+        .filter(group => {
+            const mainDoc = group[0];
+            const info = describeDoc(mainDoc);
+            if (!matchesSearch(info.searchText, searchTerm)) return false;
+            if (typeFilter && mainDoc.type !== typeFilter) return false;
+            if (statusFilter && info.status.key !== statusFilter) return false;
+            if (dateFilter && !group.some(d => new Date(d.date).toISOString().split('T')[0] === dateFilter)) return false;
+            return true;
+        })
+        .sort((a, b) => new Date(b[0].date) - new Date(a[0].date));
+
+    const hasActiveFilters = Boolean(searchTerm || typeFilter || statusFilter || dateFilter);
+    const clearFilters = () => { setSearchTerm(''); setTypeFilter(''); setStatusFilter(''); setDateFilter(''); };
+
+    // Nombre personalizado del trámite (no crea versión nueva).
+    const saveLabel = async () => {
+        if (!labelEdit.id || savingLabel) return;
+        setSavingLabel(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/api/forms/${labelEdit.id}/label`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify({ label: labelEdit.value }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) { showToast(body.msg || (lang === 'en' ? 'Could not save the name' : 'No se pudo guardar el nombre')); return; }
+            setDocuments(prev => prev.map(d => {
+                if (d.id !== body.id) return d;
+                const data = { ...(d.data || {}) };
+                if (body.label) data.__label = body.label; else delete data.__label;
+                return { ...d, data };
+            }));
+            setLabelEdit({ id: null, value: '' });
+            showToast(lang === 'en' ? 'Name saved' : 'Nombre guardado', 'success');
+        } catch (e) {
+            showToast(lang === 'en' ? 'Could not save the name' : 'No se pudo guardar el nombre');
+        } finally {
+            setSavingLabel(false);
+        }
+    };
 
     const toggleExpand = (parentId) => {
         setExpandedDocs(prev => ({ ...prev, [parentId]: !prev[parentId] }));
@@ -542,15 +586,34 @@ const ClientDashboard = () => {
                         </div>
 
                         
-                        <div style={{ display: 'flex', gap: 15, marginBottom: '25px' }}>
-                            <div style={{ flex: 1, position: 'relative' }}>
+                        <div className="nx-forms-toolbar" style={{ display: 'flex', gap: 12, marginBottom: '25px', flexWrap: 'wrap' }}>
+                            <div style={{ flex: '1 1 280px', position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input placeholder={t('dashboard.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none' }} />
+                                <input aria-label={t('dashboard.search')} placeholder={t('dashboard.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none' }} />
                             </div>
-                            <div style={{ width: '200px', position: 'relative' }}>
+                            <div style={{ flex: '0 1 220px', position: 'relative' }}>
+                                <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                                <select aria-label={lang === 'en' ? 'Form type' : 'Tipo de formulario'} value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 38px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none', background: 'white' }}>
+                                    <option value="">{lang === 'en' ? 'All form types' : 'Todos los tipos'}</option>
+                                    {typeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                            </div>
+                            <div style={{ flex: '0 1 180px' }}>
+                                <select aria-label={lang === 'en' ? 'Status' : 'Estado'} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '12px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none', background: 'white' }}>
+                                    <option value="">{lang === 'en' ? 'All statuses' : 'Todos los estados'}</option>
+                                    <option value="draft">{lang === 'en' ? 'Drafts' : 'Borradores'}</option>
+                                    <option value="completed">{lang === 'en' ? 'Completed' : 'Completados'}</option>
+                                </select>
+                            </div>
+                            <div style={{ flex: '0 1 190px', position: 'relative' }}>
                                 <Calendar size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none' }} />
+                                <input aria-label={lang === 'en' ? 'Date' : 'Fecha'} type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none' }} />
                             </div>
+                            {hasActiveFilters && (
+                                <button type="button" onClick={clearFilters} style={{ padding: '0 16px', border: `1px solid ${BORDER}`, background: 'white', borderRadius: RADIUS, fontSize: '12px', fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
+                                    {lang === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+                                </button>
+                            )}
                         </div>
                         
                         <div style={{ background: 'white', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
@@ -562,32 +625,59 @@ const ClientDashboard = () => {
                                 const mainDoc = group[0];
                                 const hasHistory = group.length > 1;
                                 const isExpanded = expandedDocs[mainDoc.parentId || mainDoc.id];
+                                const info = describeDoc(mainDoc);
                                 
                                 return (
                                 <div key={mainDoc.parentId || mainDoc.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
                                     <div style={{ display: 'flex', alignItems: 'center', padding: '15px 25px', background: isExpanded ? '#f8fafc' : 'white' }}>
-                                        <FileText size={16} color={PRIMARY} style={{ marginRight: 15 }} />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                {getFormTypeLabel(mainDoc.type, lang)}
-                                                {hasHistory && <span style={{ fontSize: '10px', background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px' }}>v{mainDoc.version || 1} (Actual)</span>}
-                                                {lastAdminEdit(mainDoc.data) && <span title={new Date(lastAdminEdit(mainDoc.data).at).toLocaleString(lang === 'en' ? 'en-US' : 'es-EC')} style={{ fontSize: '10px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>{lang === 'en' ? 'Edited by administrator' : 'Editado por el administrador'}</span>}
+                                        <FileText size={16} color={PRIMARY} style={{ marginRight: 15, flexShrink: 0 }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            {labelEdit.id === mainDoc.id ? (
+                                                <div className="nx-label-edit" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                    <input
+                                                        autoFocus
+                                                        maxLength={80}
+                                                        value={labelEdit.value}
+                                                        onChange={e => setLabelEdit({ ...labelEdit, value: e.target.value })}
+                                                        onKeyDown={e => { if (e.key === 'Enter') saveLabel(); if (e.key === 'Escape') setLabelEdit({ id: null, value: '' }); }}
+                                                        placeholder={lang === 'en' ? 'e.g. Account opening – Bank X' : 'Ej: Apertura de cuenta – Banco X'}
+                                                        aria-label={lang === 'en' ? 'Process name' : 'Nombre del trámite'}
+                                                        style={{ flex: '1 1 260px', padding: '8px 12px', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, fontSize: '13px', outline: 'none' }}
+                                                    />
+                                                    <button type="button" onClick={saveLabel} disabled={savingLabel} style={{ padding: '8px 14px', background: PRIMARY, color: 'white', border: 'none', borderRadius: RADIUS, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{lang === 'en' ? 'Save' : 'Guardar'}</button>
+                                                    <button type="button" onClick={() => setLabelEdit({ id: null, value: '' })} style={{ padding: '8px 14px', background: 'white', color: '#475569', border: `1px solid ${BORDER}`, borderRadius: RADIUS, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{lang === 'en' ? 'Cancel' : 'Cancelar'}</button>
+                                                </div>
+                                            ) : (
+                                                <div className="nx-form-title" style={{ fontWeight: 800, fontSize: '14px', color: info.hasName ? '#0f172a' : '#94a3b8', fontStyle: info.hasName ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={info.title}>
+                                                    {info.title}
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                                                <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#eef6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '999px' }}>{getFormTypeLabel(mainDoc.type, lang)}</span>
+                                                <span className={`nx-status nx-status-${info.status.key}`} style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: info.status.key === 'completed' ? '#dcfce7' : '#fef3c7', color: info.status.key === 'completed' ? '#166534' : '#92400e' }}>{info.status.label}</span>
+                                                {hasHistory && <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>v{mainDoc.version || 1} ({lang === 'en' ? 'current' : 'actual'})</span>}
+                                                {lastAdminEdit(mainDoc.data) && <span title={new Date(lastAdminEdit(mainDoc.data).at).toLocaleString(lang === 'en' ? 'en-US' : 'es-EC')} style={{ fontSize: '10.5px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>{lang === 'en' ? 'Edited by administrator' : 'Editado por el administrador'}</span>}
                                             </div>
                                             
-                                            <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 10, marginTop: 4 }}>
+                                            <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                                {info.label && info.autoText && <span style={{ color: '#475569', fontWeight: 600 }}>{info.autoText}</span>}
+                                                <span className="nx-ref" style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: '#334155' }} title={lang === 'en' ? 'Reference code' : 'Código de referencia'}><Hash size={12} /> Ref. {info.ref}</span>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {new Date(mainDoc.date).toLocaleDateString()}</span>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(mainDoc.date).toLocaleTimeString()}</span>
                                                 {hasHistory && (
                                                     <span 
                                                         onClick={() => toggleExpand(mainDoc.parentId || mainDoc.id)}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: 4, color: PRIMARY, cursor: 'pointer', fontWeight: 600, marginLeft: 10 }}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: 4, color: PRIMARY, cursor: 'pointer', fontWeight: 600 }}
                                                     >
-                                                        {isExpanded ? 'Ocultar Historial' : `Ver Historial (${group.length - 1} versiones)`}
+                                                        {isExpanded ? (lang === 'en' ? 'Hide history' : 'Ocultar historial') : (lang === 'en' ? `View history (${group.length - 1} versions)` : `Ver historial (${group.length - 1} versiones)`)}
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: 8 }}>
+                                        <div style={{ display: 'flex', gap: 8, marginLeft: 12, flexShrink: 0 }}>
+                                            <button className="nx-rename" onClick={() => setLabelEdit({ id: mainDoc.id, value: info.label || info.autoText })} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #94a3b8', borderRadius: RADIUS, color: '#334155', cursor: 'pointer', transition: 'all 0.2s' }} title={lang === 'en' ? 'Name this process' : 'Ponerle nombre al trámite'} aria-label={lang === 'en' ? 'Name this process' : 'Ponerle nombre al trámite'}>
+                                                <Tag size={16} />
+                                            </button>
                                             <button onClick={() => handleDownloadPDF(mainDoc)} style={{ padding: '8px', background: '#eef6ff', border: `1px solid ${PRIMARY}`, borderRadius: RADIUS, color: PRIMARY, cursor: 'pointer', transition: 'all 0.2s' }} title={t('common.download')} onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background = '#eef6ff'}>
                                                 <Download size={16} />
                                             </button>
