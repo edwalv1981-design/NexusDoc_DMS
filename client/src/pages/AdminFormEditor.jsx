@@ -12,6 +12,7 @@ import FundacionForm from './FundacionForm';
 import CumplimientoIndividualForm from './CumplimientoIndividualForm';
 import CumplimientoEntidadesForm from './CumplimientoEntidadesForm';
 import FondosForm from './FondosForm';
+import TemplateFormRouter, { templateVersionOf } from '../components/TemplateFormRouter';
 
 const PRIMARY = '#0f766e';
 const BORDER = '#e2e8f0';
@@ -141,6 +142,13 @@ const AdminFormEditor = () => {
       readOnly: mode === 'view',
       startStep: progress?.savedStep,
     };
+    // Trámite llenado con una plantilla subida por el administrador: se edita con ESA plantilla.
+    if (templateVersionOf(form.data)) {
+      return (
+        <TemplateFormRouter key={k} formType={form.type} initialData={form.data} isNew={false}
+          title={getFormTypeLabel(form.type, lang)} renderLegacy={() => null} {...common} />
+      );
+    }
     switch (progress?.kind) {
       case 'corporacion': return <CorporacionForm key={k} {...common} />;
       case 'fundacion': return <FundacionForm key={k} {...common} />;

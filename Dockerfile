@@ -62,7 +62,7 @@ RUN cd client && npm install --legacy-peer-deps
 # Sin "|| true": si fallan, el build falla (antes el verificador de firmas quedaba
 # sin librerías y todo documento salía "pendiente" sin aviso).
 RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt \
-    && python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi"
+    && python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi, pdfplumber, pypdf, reportlab"
 
 # 7. Copiar el resto del código
 COPY . .

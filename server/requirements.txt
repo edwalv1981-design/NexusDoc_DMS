@@ -3,3 +3,7 @@ pymupdf==1.25.3
 pyhanko>=0.25,<0.30
 pyhanko-certvalidator>=0.26,<0.30
 certifi
+# Versiones de plantilla subidas por el administrador (server/scripts/template_engine.py)
+pdfplumber>=0.11,<0.12
+pypdf>=5.0,<7
+reportlab>=4.2,<6

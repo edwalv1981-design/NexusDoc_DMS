@@ -17,6 +17,7 @@ const templateFieldSchemaService = require('../services/templateFieldSchemaServi
 const templateAvailability = require('../utils/templateAvailability');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
 const personCatalogService = require('../services/personCatalogService');
+const templateVersionService = require('../services/templateVersionService');
 
 // Alcance por tipo de cuenta (admin: todo; Administrador Usuarios: él y sus
 // subusuarios; usuario: solo lo suyo). La función anterior daba a los
@@ -56,6 +57,34 @@ router.get('/templates/status', auth, async (req, res) => {
     } catch (err) {
         console.error('Error forms templates/status:', err);
         res.status(500).json({ msg: 'Error al verificar plantillas.' });
+    }
+});
+
+// @route   GET api/forms/template-version/active/:formType
+// @desc    Plantilla activa (subida por el administrador) para trámites NUEVOS; null = formulario estándar
+router.get('/template-version/active/:formType', auth, async (req, res) => {
+    try {
+        const { sequelize } = require('../config/db');
+        const v = await templateVersionService.getActiveVersion(sequelize, req.params.formType);
+        res.json({ version: templateVersionService.publicVersion(v) });
+    } catch (err) {
+        console.error('Error plantilla activa:', err);
+        // Ante cualquier error el cliente usa el formulario estándar (comportamiento anterior).
+        res.json({ version: null });
+    }
+});
+
+// @route   GET api/forms/template-version/:id
+// @desc    Esquema de la versión con la que se llenó un trámite
+router.get('/template-version/:id', auth, async (req, res) => {
+    try {
+        const { sequelize } = require('../config/db');
+        const v = await templateVersionService.getVersion(sequelize, req.params.id);
+        if (!v) return res.status(404).json({ msg: 'Versión de plantilla no encontrada' });
+        res.json({ version: templateVersionService.publicVersion(v) });
+    } catch (err) {
+        console.error('Error versión de plantilla:', err);
+        res.status(500).json({ msg: 'Error al obtener la plantilla' });
     }
 });
 
@@ -618,6 +647,22 @@ router.get('/generate-pdf/:id', auth, async (req, res) => {
             res.setHeader('Content-Type', 'application/pdf');
             return res.send(pdfBuffer);
         };
+
+        // Trámite llenado con una plantilla subida por el administrador: su PDF sigue ESA plantilla.
+        // Trámites sin esa marca continúan exactamente con el motor de siempre (abajo).
+        if (templateVersionService.versionRefOf(form.data)) {
+            try {
+                const { sequelize } = require('../config/db');
+                const out = await templateVersionService.generatePdfForForm(sequelize, form.data);
+                if (out) {
+                    return sendHtmlPdf(out.buffer, stablePdfForms.getPdfDownloadFilenamePrefix(form.formType) || 'DOC');
+                }
+                console.warn(`Versión de plantilla no encontrada para trámite ${form.id}; se usa el motor estándar.`);
+            } catch (tvErr) {
+                console.error('Error generando PDF con plantilla versionada:', tvErr);
+                return res.status(500).json({ msg: `ERROR PLANTILLA: ${tvErr.message}` });
+            }
+        }
 
         let dbTemplate = await DocumentTemplate.findOne({ where: { name: templateName } });
 

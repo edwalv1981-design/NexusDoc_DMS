@@ -372,6 +372,12 @@ async function bootstrap() {
     await ensureSignedDocumentColumns(sequelize);
     await ensureUserProfilesTable(sequelize);
     await ensurePeopleTable(sequelize);
+    try {
+        await require('./services/templateVersionService').ensureTable(sequelize);
+        console.log('🧩 Tabla FormTemplateVersions asegurada.');
+    } catch (tvErr) {
+        console.warn('⚠️ ensure FormTemplateVersions falló:', tvErr.message);
+    }
 
     const { User } = require('./models');
     const { Op } = require('sequelize');

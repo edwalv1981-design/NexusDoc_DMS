@@ -107,8 +107,33 @@ export function withProgress(data, step, totalSteps, finished = false) {
  */
 export function getFormProgress(formType, data = {}, lang = 'es') {
   const kind = formKind(formType);
-  const defs = DEFS[kind];
   const d = data || {};
+  // Trámite llenado con una plantilla subida: sus pasos salen de la plantilla, no del formato estándar.
+  if (d.__templateVersion && typeof d.__templateVersion === 'object' && d.__templateVersion.id) {
+    const p = d.__progress && typeof d.__progress === 'object' ? d.__progress : {};
+    const total = Math.max(Number(p.totalSteps) || 1, 1);
+    const saved = Math.min(Math.max(Number(p.step) || 1, 1), total);
+    const done = Boolean(p.finished);
+    const steps = Array.from({ length: total }, (_, i) => ({
+      n: i + 1,
+      label: (lang === 'en' ? 'Section ' : 'Sección ') + (i + 1),
+      status: done || i + 1 < saved ? 'complete' : i + 1 === saved ? 'partial' : 'empty',
+    }));
+    return {
+      kind: 'template',
+      totalSteps: total,
+      steps,
+      completeCount: steps.filter((s) => s.status === 'complete').length,
+      savedStep: saved,
+      savedStepLabel: steps[saved - 1].label,
+      finished: done,
+      tracked: true,
+      savedAt: p.savedAt || null,
+      lastStepWithData: saved,
+      templateVersion: d.__templateVersion.version,
+    };
+  }
+  const defs = DEFS[kind];
   if (!defs) return { kind: null, totalSteps: 0, steps: [], completeCount: 0, savedStep: null, finished: null, tracked: false };
 
   const steps = defs.map((def, i) => {

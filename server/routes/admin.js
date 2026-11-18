@@ -7,6 +7,7 @@ const requireFullAdmin = require('../middleware/requireFullAdmin');
 const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocument, DocumentTemplate, TemplateFieldSchema } = require('../models');
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
+const templateVersionService = require('../services/templateVersionService');
 const emailService = require('../services/emailService');
 const { sendTemporaryPassword, sendNewUserNotificationToAdmins, sendAccountAuthorizedNotice } = emailService;
 const multer = require('multer');
@@ -687,6 +688,38 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
 
         const processLabel = templateAvailability.adminTemplateIdToLabel(templateName);
 
+        // Versión de plantilla para los 5 formularios del sistema: el formulario y el PDF de los
+        // trámites NUEVOS pasan a seguir esta plantilla. Los trámites existentes no cambian.
+        let templateVersion = null;
+        const versionFormType = templateVersionService.formTypeForTemplateId(templateName);
+        if (versionFormType) {
+            try {
+                const created = await templateVersionService.createVersion(sequelize, {
+                    templateId: templateName,
+                    formType: versionFormType,
+                    pdfBuffer: req.file.buffer,
+                    fileName: req.file.originalname,
+                    uploadedBy: req.user.id,
+                });
+                templateVersion = {
+                    id: created.id,
+                    formType: created.formType,
+                    version: created.version,
+                    fieldCount: created.fieldCount,
+                    isActive: created.isActive,
+                };
+                await AuditLog.create({
+                    userId: req.user.id,
+                    action: 'TEMPLATE_VERSION_CREATE',
+                    description: `Plantilla ${created.formType} v${created.version}: ${created.fieldCount} campos detectados` +
+                        (created.isActive ? ' — ACTIVA para trámites nuevos' : ' — sin campos, NO se activó'),
+                }).catch(() => {});
+            } catch (verErr) {
+                console.error('⚠️ No se pudo crear la versión de plantilla:', verErr);
+                templateVersion = { error: verErr.message };
+            }
+        }
+
         res.json({
             msg: `Plantilla guardada para ${processLabel}. Archivo: ${fileName}`,
             processLabel,
@@ -694,10 +727,92 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
             fileName,
             path: filePath,
             detectedFields: fieldExtraction,
+            templateVersion,
         });
     } catch (err) {
         console.error('🔥 Error al subir plantilla:', err);
         res.status(500).send('Server error');
+    }
+});
+
+// ------------------------------------------------------------------------------------------------
+// Versiones de plantilla (formulario + PDF de trámites nuevos siguen la plantilla subida)
+// ------------------------------------------------------------------------------------------------
+
+// @route   GET api/admin/template-versions
+router.get('/template-versions', [auth, isAdmin], async (req, res) => {
+    try {
+        const rows = await templateVersionService.listVersions(sequelize, req.query.formType || null);
+        res.json({ versions: rows, formTypes: templateVersionService.FORM_TYPES });
+    } catch (err) {
+        console.error('Error listando versiones de plantilla:', err);
+        res.status(500).json({ msg: 'Error al obtener las versiones de plantilla', versions: [] });
+    }
+});
+
+// @route   POST api/admin/template-versions/:id/activate
+router.post('/template-versions/:id/activate', [auth, isAdmin], async (req, res) => {
+    try {
+        const v = await templateVersionService.setActive(sequelize, req.params.id);
+        if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_VERSION_ACTIVATE',
+            description: `Activó la plantilla ${v.formType} v${v.version} para trámites nuevos`,
+        }).catch(() => {});
+        res.json({ msg: 'Versión activada', version: v });
+    } catch (err) {
+        console.error('Error activando versión de plantilla:', err);
+        res.status(500).json({ msg: 'Error al activar la versión' });
+    }
+});
+
+// @route   POST api/admin/template-versions/use-standard  { formType }
+// @desc    Vuelve al formulario estándar del sistema (no borra versiones ni trámites)
+router.post('/template-versions/use-standard', [auth, isAdmin], async (req, res) => {
+    try {
+        const formType = templateVersionService.canonicalFormType(req.body && req.body.formType);
+        if (!formType) return res.status(400).json({ msg: 'Tipo de formulario no válido' });
+        await templateVersionService.deactivateAll(sequelize, formType);
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_VERSION_STANDARD',
+            description: `Volvió al formulario estándar del sistema para ${formType}`,
+        }).catch(() => {});
+        res.json({ msg: 'Formulario estándar activo', formType });
+    } catch (err) {
+        console.error('Error volviendo al formulario estándar:', err);
+        res.status(500).json({ msg: 'Error al volver al formulario estándar' });
+    }
+});
+
+// @route   GET api/admin/template-versions/:id/preview  -> PDF de prueba (etiquetas en cada campo y X en cada casilla)
+router.get('/template-versions/:id/preview', [auth, isAdmin], async (req, res) => {
+    try {
+        const v = await templateVersionService.getVersion(sequelize, req.params.id, { withFile: true });
+        if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
+        const buf = await templateVersionService.fillBuffer(Buffer.from(v.fileData), v.schema, {}, { preview: true });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="vista_previa_v${v.version}.pdf"`);
+        res.send(buf);
+    } catch (err) {
+        console.error('Error en vista previa de plantilla:', err);
+        res.status(500).json({ msg: `Error al generar la vista previa: ${err.message}` });
+    }
+});
+
+// @route   GET api/admin/template-versions/:id/file -> PDF original subido
+router.get('/template-versions/:id/file', [auth, isAdmin], async (req, res) => {
+    try {
+        const v = await templateVersionService.getVersion(sequelize, req.params.id, { withFile: true });
+        if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition',
+            `attachment; filename="${sanitizeDownloadFilename(v.fileName || `plantilla_v${v.version}.pdf`)}"`);
+        res.send(Buffer.from(v.fileData));
+    } catch (err) {
+        console.error('Error descargando plantilla:', err);
+        res.status(500).json({ msg: 'Error al descargar la plantilla' });
     }
 });
 

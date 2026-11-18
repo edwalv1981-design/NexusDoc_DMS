@@ -16,6 +16,7 @@ import FundacionForm from './FundacionForm';
 import CumplimientoIndividualForm from './CumplimientoIndividualForm';
 import CumplimientoEntidadesForm from './CumplimientoEntidadesForm';
 import PdfSchemaWizard from '../components/PdfSchemaWizard';
+import TemplateFormRouter from '../components/TemplateFormRouter';
 import {
   resolveCanonicalFormType,
   usesSchemaWizard,
@@ -34,6 +35,8 @@ const ClientDashboard = () => {
     const t = useT();
     const queryParams = new URLSearchParams(location.search);
     const editId = queryParams.get('id');
+    // Trámite existente (edición) vs. trámite nuevo: solo los nuevos toman la plantilla activa.
+    const isEditingForm = Boolean(editId && editId !== 'null');
     const showForm = queryParams.get('view') === 'form';
     const showDocuments = queryParams.get('view') === 'documents';
     const showSignedDocs = queryParams.get('view') === 'signed-docs';
@@ -762,6 +765,7 @@ const ClientDashboard = () => {
                         />
                     </div>
                 ) : usesFondosWizard(currentFormType) && isFormReady(currentFormType) ? (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <div>
                         <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
@@ -880,30 +884,39 @@ const ClientDashboard = () => {
                             )}
                         </form>
                     </div>
+                    )} />
                 ) : currentFormType.startsWith('Corporaci') ? (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <CorporacionForm 
                         initialData={formData} 
                         onSave={saveDynamicForm} 
                         saving={saving} 
                     />
+                    )} />
                 ) : currentFormType === 'Fundaciones' ? (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <FundacionForm
                         initialData={formData}
                         onSave={saveDynamicForm}
                         saving={saving}
                     />
+                    )} />
                 ) : isKyciFormType(currentFormType) ? (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <CumplimientoIndividualForm
                         initialData={formData}
                         onSave={saveDynamicForm}
                         saving={saving}
                     />
+                    )} />
                 ) : isKyceFormType(currentFormType) ? (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <CumplimientoEntidadesForm
                         initialData={formData}
                         onSave={saveDynamicForm}
                         saving={saving}
                     />
+                    )} />
                 ) : (
                     <div style={{ textAlign: 'center', padding: '50px' }}>
                         <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: PRIMARY }}>
