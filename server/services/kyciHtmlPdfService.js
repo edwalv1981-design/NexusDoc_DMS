@@ -235,7 +235,8 @@ class KyciHtmlPdfService {
     .tick { display: inline-block; width: 14px; }
     .roles-grid { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
     .roles-grid td { border: 1px solid #000; padding: 4px 6px 4px 22px; text-indent: -17px; width: 20%; }
-    .box { display: inline-block; width: 10px; height: 10px; line-height: 10px; border: 1px solid #000; font-size: 9px; font-weight: 700; text-align: center; vertical-align: middle; margin: 0 3px; }
+    .box { display: inline-block; position: relative; width: 10px; height: 10px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .box.on { background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><path d='M1 1L7 7M7 1L1 7' stroke='%23000' stroke-width='1.3' stroke-linecap='round'/></svg>") center / 100% 100% no-repeat; }
     .yn { margin-right: 16px; white-space: nowrap; }
     .line { margin: 3px 0; }
     .q { margin: 3px 0 3px 18px; }
