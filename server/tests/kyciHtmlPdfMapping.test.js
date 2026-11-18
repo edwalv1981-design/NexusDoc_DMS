@@ -105,7 +105,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
   it('PDF en español cuando el solicitante lo pide en español', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
     for (const txt of ['FORMULARIO DE CUMPLIMIENTO', 'Procedimiento de Debida Diligencia del Cliente', 'El Solicitante es uno o más de los siguientes:',
-      'Primer nombre', 'Vínculos políticos', 'Delitos/Sanciones', 'DOCUMENTOS DE IDENTIDAD CERTIFICADOS QUE DEBEN ADJUNTARSE',
+      'Primer nombre', 'Vínculos políticos', 'Delitos/Sanciones', 'DOCUMENTOS DE IDENTIDAD QUE DEBEN ADJUNTARSE',
       'Firma del Solicitante:', 'Fecha (dd/mm/aaaa):', 'Casado(a)']) {
       assert.ok(html.includes(txt), `falta "${txt}"`);
     }
