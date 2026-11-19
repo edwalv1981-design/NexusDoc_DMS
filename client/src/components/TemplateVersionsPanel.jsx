@@ -6,7 +6,8 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { Layers, Eye, Download, RotateCcw, CheckCircle, RefreshCw } from 'lucide-react';
+import { Layers, Eye, Download, RotateCcw, CheckCircle, RefreshCw, PencilLine } from 'lucide-react';
+import TemplateSchemaEditor from './TemplateSchemaEditor';
 import API_BASE_URL from '../config';
 import { useLang } from '../i18n';
 import { useToast } from './Toast';
@@ -53,6 +54,7 @@ const TX = {
     reanalyze: 'Volver a analizar',
     confirmReanalyze: 'Se volverá a analizar el PDF de la versión {v} y se creará una versión nueva PENDIENTE de revisión. No se activa sola ni cambia nada para los clientes. ¿Continuar?',
     scannedTag: 'Escaneado (OCR)',
+    review: 'Revisar / corregir',
   },
   en: {
     title: 'Template versions (form and PDF for new submissions)',
@@ -87,6 +89,7 @@ const TX = {
     reanalyze: 'Analyze again',
     confirmReanalyze: 'The PDF of version {v} will be analyzed again and a new version PENDING review will be created. It is not activated automatically and nothing changes for clients. Continue?',
     scannedTag: 'Scanned (OCR)',
+    review: 'Review / fix',
   },
 };
 
@@ -105,6 +108,7 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState(null);
+  const [editId, setEditId] = useState(null);
 
   const headers = () => ({ 'x-auth-token': localStorage.getItem('token') });
 
@@ -158,6 +162,7 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
 
   return (
     <div style={{ marginTop: 30, border: '1px solid #e2e8f0', borderRadius: 8, background: 'white' }}>
+      {editId ? <TemplateSchemaEditor versionId={editId} toast={toast} onClose={() => setEditId(null)} onSaved={load} /> : null}
       <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 10 }}>
         <Layers size={18} color="#0f766e" />
         <div>
@@ -241,6 +246,11 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
                           ) : v.fieldCount ? (
                             <button type="button" style={btn} disabled={busy} onClick={() => activate(v, label)}>
                               {tx.activate}
+                            </button>
+                          ) : null}{' '}
+                          {v.fieldCount ? (
+                            <button type="button" style={{ ...btn, borderColor: '#0f766e', color: '#0f766e' }} onClick={() => setEditId(v.id)}>
+                              <PencilLine size={12} /> {tx.review}
                             </button>
                           ) : null}{' '}
                           <button type="button" style={btn} onClick={() => openPdf(v.id, 'preview')}>

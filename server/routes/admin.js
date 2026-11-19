@@ -821,6 +821,42 @@ router.post('/template-versions/:id/reanalyze', [auth, isAdmin], async (req, res
     }
 });
 
+// @route   GET api/admin/template-versions/:id/schema  -> esquema completo para revisarlo
+router.get('/template-versions/:id/schema', [auth, isAdmin], async (req, res) => {
+    try {
+        const v = await templateVersionService.getVersion(sequelize, req.params.id);
+        if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
+        res.json({ version: templateVersionService.publicVersion(v), activatedAt: v.activatedAt });
+    } catch (err) {
+        console.error('Error leyendo esquema de plantilla:', err);
+        res.status(500).json({ msg: 'Error al leer la plantilla' });
+    }
+});
+
+// @route   PUT api/admin/template-versions/:id/schema  { schema }
+// @desc    Correcciones del administrador (textos, ayudas, obligatorios). Si la versión ya estuvo
+//          activa se guarda como versión nueva pendiente.
+router.put('/template-versions/:id/schema', [auth, isAdmin], async (req, res) => {
+    try {
+        const body = req.body && req.body.schema;
+        if (!body || typeof body !== 'object') return res.status(400).json({ msg: 'Datos inválidos' });
+        if (JSON.stringify(body).length > 2 * 1024 * 1024) return res.status(413).json({ msg: 'Esquema demasiado grande' });
+        const out = await templateVersionService.saveSchemaEdits(sequelize, req.params.id, body, req.user.id);
+        if (!out) return res.status(404).json({ msg: 'Versión no encontrada' });
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_VERSION_EDIT',
+            description: out.inPlace
+                ? `Corrigió la plantilla v${out.version} (${out.fieldCount} campos)`
+                : `Corrigió una plantilla ya usada: se creó la v${out.version} pendiente (${out.fieldCount} campos)`,
+        }).catch(() => {});
+        res.json({ msg: 'Cambios guardados', ...out });
+    } catch (err) {
+        console.error('Error guardando correcciones de plantilla:', err);
+        res.status(400).json({ msg: err.message || 'Error al guardar' });
+    }
+});
+
 // @route   GET api/admin/template-versions/:id/preview  -> PDF de prueba (etiquetas en cada campo y X en cada casilla)
 router.get('/template-versions/:id/preview', [auth, isAdmin], async (req, res) => {
     try {

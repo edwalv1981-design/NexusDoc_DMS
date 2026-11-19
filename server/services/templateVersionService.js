@@ -337,6 +337,47 @@ async function reanalyzeVersion(sequelize, id, uploadedBy) {
   });
 }
 
+/**
+ * Guarda las correcciones del administrador sobre el esquema (etiquetas, ayudas, obligatorios).
+ * - Versión que nunca estuvo activa: se actualiza en el mismo lugar (ningún trámite la usa).
+ * - Versión que estuvo activa: se crea una versión NUEVA con las correcciones (pendiente), así los
+ *   trámites que ya la usan no cambian.
+ */
+async function saveSchemaEdits(sequelize, id, editedSchema, userId) {
+  const { applySchemaEdits } = require('./templateSchemaEdit');
+  const v = await getVersion(sequelize, id, { withFile: true });
+  if (!v) return null;
+  const next = applySchemaEdits(v.schema, editedSchema);
+  if (!next.fieldCount) throw new Error('La plantilla debe tener al menos un campo');
+  const inUse = Boolean(v.activatedAt) || Boolean(v.isActive);
+  if (!inUse) {
+    next.review = { pending: true, reason: 'manual' };
+    await sequelize.query(
+      `UPDATE ${TABLE} SET "schema" = CAST(:schema AS JSONB), "fieldCount" = :fc, "updatedAt" = NOW() WHERE "id" = :id`,
+      { replacements: { id, schema: JSON.stringify(next), fc: next.fieldCount } }
+    );
+    return { id, version: v.version, inPlace: true, fieldCount: next.fieldCount };
+  }
+  await ensureTable(sequelize);
+  const rows = rowsOf(await sequelize.query(
+    `SELECT COALESCE(MAX("version"), 0) AS v FROM ${TABLE} WHERE "formType" = :formType`,
+    { replacements: { formType: v.formType } }
+  ));
+  const version = (Number(rows && rows[0] && rows[0].v) || 0) + 1;
+  const newId = crypto.randomUUID();
+  next.review = { pending: true, reason: 'manual' };
+  next.changes = { ...(v.schema.changes || {}), basedOnVersion: v.version, editedFrom: v.version };
+  await sequelize.query(
+    `INSERT INTO ${TABLE} ("id", "formType", "templateId", "version", "fileName", "fileData", "schema", "fieldCount",
+       "isActive", "uploadedBy", "activatedAt", "createdAt", "updatedAt")
+     VALUES (:id, :formType, :templateId, :version, :fileName, :fileData, CAST(:schema AS JSONB), :fc, false, :uploadedBy, NULL, NOW(), NOW())`,
+    { replacements: { id: newId, formType: v.formType, templateId: v.templateId, version, fileName: v.fileName,
+      fileData: Buffer.isBuffer(v.fileData) ? v.fileData : Buffer.from(v.fileData), schema: JSON.stringify(next),
+      fc: next.fieldCount, uploadedBy: userId || null } }
+  );
+  return { id: newId, version, inPlace: false, fieldCount: next.fieldCount };
+}
+
 /** Marca de versión guardada en los datos de un trámite (o null para trámites del formato estándar). */
 function versionRefOf(data) {
   const ref = data && typeof data === 'object' ? data.__templateVersion : null;
@@ -407,6 +448,7 @@ module.exports = {
   deactivateAll,
   createVersion,
   reanalyzeVersion,
+  saveSchemaEdits,
   versionRefOf,
   sanitizeVersionRef,
   generatePdfForForm,

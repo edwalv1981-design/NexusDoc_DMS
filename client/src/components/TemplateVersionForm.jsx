@@ -200,11 +200,14 @@ const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnl
   const errStyle = (key) => (missing.includes(key) ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : undefined);
 
   const Label = ({ f }) => (
-    <label>
-      {f.label}
-      {isFieldRequired(f, data) ? <span style={{ color: '#ef4444' }}> *</span> : null}
-      {newKeys.has(f.key) ? <span className="tv-new">{tx.newBadge}</span> : null}
-    </label>
+    <>
+      <label>
+        {f.label}
+        {isFieldRequired(f, data) ? <span style={{ color: '#ef4444' }}> *</span> : null}
+        {newKeys.has(f.key) ? <span className="tv-new">{tx.newBadge}</span> : null}
+      </label>
+      {f.hint && f.kind !== 'textarea' ? <span className="tv-guide">{f.hint}</span> : null}
+    </>
   );
 
   const renderField = (f) => {

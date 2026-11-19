@@ -250,6 +250,7 @@ class PageModel:
 
     def _load_scanned(self):
         """OCR (Tesseract) para el texto y OpenCV para recuadros, líneas y celdas de tabla."""
+        self.scanned_mode = True
         import numpy as np
         import cv2
         import pytesseract
@@ -378,7 +379,15 @@ class PageModel:
         for b in self.boxes:  # los recuadros tampoco son texto
             x0, y0, x1, y1 = [int(v * scale) for v in b["rect"]]
             clean[max(0, y0 - 2):y1 + 3, max(0, x0 - 2):x1 + 3] = 255
+        # psm 3: Tesseract conserva sus propias líneas (bloque/párrafo/línea), así una frase no se parte
         data = pytesseract.image_to_data(clean, lang=lang, config="--psm 11", output_type=pytesseract.Output.DICT)
+        line_band = {}
+        for i, txt in enumerate(data["text"]):
+            if str(txt or "").strip():
+                k = (data["block_num"][i], data["par_num"][i], data["line_num"][i])
+                t0, b0 = data["top"][i], data["top"][i] + data["height"][i]
+                band = line_band.get(k)
+                line_band[k] = (min(band[0], t0), max(band[1], b0)) if band else (t0, b0)
         heights = sorted(h for h, t in zip(data["height"], data["text"]) if str(t or "").strip())
         med_h = heights[len(heights) // 2] if heights else 30
         for i, txt in enumerate(data["text"]):
@@ -390,6 +399,10 @@ class PageModel:
             if not t or conf < 35:
                 continue
             x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+            # Todas las palabras de una línea de Tesseract comparten la misma banda vertical
+            band = line_band.get((data["block_num"][i], data["par_num"][i], data["line_num"][i]))
+            if band and band[1] - band[0] < 2.2 * max(h, 1):
+                y, h = band[0], band[1] - band[0]
             r = [pt(x), pt(y), pt(x + w), pt(y + h)]
             # Ruido del OCR sobre un recuadro ("O", "[]", "0"): se recorta la parte del recuadro
             skip = False
@@ -532,8 +545,23 @@ class PageModel:
     def _build_lines(self):
         words = sorted(self.words, key=lambda w: ((w["rect"][1] + w["rect"][3]) / 2, w["rect"][0]))
         rows = []
+        scanned = getattr(self, "scanned_mode", False)
         for w in words:
             cy = (w["rect"][1] + w["rect"][3]) / 2
+            if scanned:
+                # OCR: las cajas de palabra varían de alto (ascendentes/descendentes); se agrupa por
+                # solapamiento vertical con la banda de la línea en lugar de por el centro.
+                hw = w["rect"][3] - w["rect"][1]
+                best = None
+                for row in rows:
+                    ov = overlap(w["rect"][1], w["rect"][3], row["top"], row["bottom"])
+                    if ov >= 0.5 * min(hw, row["bottom"] - row["top"]) and (best is None or ov > best[0]):
+                        best = (ov, row)
+                if best:
+                    best[1]["words"].append(w)
+                else:
+                    rows.append({"cy": cy, "top": w["rect"][1], "bottom": w["rect"][3], "words": [w]})
+                continue
             for row in rows:
                 if abs(row["cy"] - cy) <= max(2.5, w["size"] * 0.35):
                     row["words"].append(w)
@@ -1277,20 +1305,73 @@ class Analyzer:
 
     def _text_elements(self, body_size):
         repeated = self._repeated_margin_text() if len(self.models) > 1 else set()
+
+        def skip(seg):
+            t = seg["text"].strip()
+            if not t or not norm(t) or norm(t) in repeated or seg.get("hint"):
+                return True
+            return bool(re.match(r"^(p[aá]gina|page)\s*\d+(\s*(de|of)\s*\d+)?$", t, re.I) or re.match(r"^\d+$", t))
+
+        def is_heading(seg, t):
+            letters = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", t)
+            if len(letters) < 4:
+                return False  # "A", "B.", "Y": restos, no títulos
+            ocr = any(w.get("font") == "ocr" for w in seg.get("words", []))
+            return ((seg["bold"] and len(t) <= 90 and not t.endswith((".", ","))) or
+                    (not ocr and seg["size"] >= body_size + 1.5) or
+                    bool(re.match(r"^([IVX]+|[0-9]+)[\.\)]\s+\S", t)) and len(t) <= 90)
+
+        def joined(segs):
+            """Une las líneas de un bloque; las viñetas y las frases que terminan en ':' van en línea nueva."""
+            lines = []
+            for sg in sorted(segs, key=lambda o: (round(o["rect"][1] / 3), o["rect"][0])):
+                t = sg["text"].strip()
+                if lines and abs(lines[-1][0] - sg["rect"][1]) <= 3:
+                    lines[-1][1] += " " + t
+                else:
+                    lines.append([sg["rect"][1], t])
+            out = ""
+            for i, (_, t) in enumerate(lines):
+                if i == 0:
+                    out = t
+                elif re.match(r"^\s*([✓✔•\-–·▪◦●○➤►]|\d+[\.\)]|[a-z][\.\)])\s", t, re.I) or out.rstrip().endswith((":", ".")):
+                    out += "\n" + t
+                else:
+                    out += " " + t
+            return out
+
         for pm in self.models:
+            field_points = [((f["rect"][0] + f["rect"][2]) / 2, (f["rect"][1] + f["rect"][3]) / 2)
+                            for f in self.fields.values() if f["page"] == pm.index and f.get("rect")]
+            field_points += [((o["rect"][0] + o["rect"][2]) / 2, (o["rect"][1] + o["rect"][3]) / 2)
+                             for f in self.fields.values() if f["page"] == pm.index for o in (f.get("options") or [])]
+            # 1) Texto dentro de una celda sin campos: un solo bloque, anclado al inicio de la celda.
+            #    Si la celda es la de la izquierda de una fila, es el título de esa fila.
+            by_cell = {}
+            for sg in pm.segments:
+                if not sg["used"] and sg["cell"] is not None and not skip(sg):
+                    by_cell.setdefault(id(sg["cell"]), (sg["cell"], []))[1].append(sg)
+            for cell, segs in by_cell.values():
+                cr = cell["rect"]
+                if any(rect_contains(cr, x, y) for x, y in field_points):
+                    continue  # celda con campos: su texto va en su posición (abajo)
+                text = joined(segs)
+                row = [o for o in pm.cells if o is not cell and o["table"] == cell["table"] and
+                       overlap(o["rect"][1], o["rect"][3], cr[1], cr[3]) >= 0.5 * min(cr[3] - cr[1], o["rect"][3] - o["rect"][1])]
+                row_label = bool(row) and all(o["rect"][0] >= cr[2] - 2 for o in row) and len(text) <= 160
+                kind = "label" if row_label else ("heading" if len(segs) == 1 and is_heading(segs[0], text) else "text")
+                for sg in segs:
+                    sg["used"] = True
+                self.elements.append((pm.index, cr[1] + 0.5, cr[0], kind,
+                                      {"text": text, "size": segs[0]["size"], "bottom": max(o["rect"][3] for o in segs)}))
+            # 2) El resto, línea por línea en su posición
             for line in pm.lines:
-                segs = [s for s in line["segments"] if not s["used"]]
-                for s in segs:
-                    t = s["text"].strip()
-                    if not t or not norm(t) or norm(t) in repeated or s.get("hint"):
+                for sg in [x for x in line["segments"] if not x["used"]]:
+                    t = sg["text"].strip()
+                    if skip(sg):
                         continue
-                    if re.match(r"^(p[aá]gina|page)\s*\d+(\s*(de|of)\s*\d+)?$", t, re.I) or re.match(r"^\d+$", t):
-                        continue
-                    heading = ((s["bold"] and len(t) <= 90 and not t.endswith((".", ","))) or
-                               s["size"] >= body_size + 1.5 or
-                               bool(re.match(r"^([IVX]+|[0-9]+)[\.\)]\s+\S", t)) and len(t) <= 90)
-                    self.elements.append((pm.index, s["rect"][1], s["rect"][0], "heading" if heading else "text",
-                                          {"text": t, "size": s["size"], "bottom": s["rect"][3]}))
+                    self.elements.append((pm.index, sg["rect"][1], sg["rect"][0], "heading" if is_heading(sg, t) else "text",
+                                          {"text": t, "size": sg["size"], "bottom": sg["rect"][3]}))
 
     # --- ejecución -------------------------------------------------------------
     def run(self):
@@ -1429,6 +1510,8 @@ class Analyzer:
                         continue
                     sections.append(cur)
                 cur = {"title": payload["text"], "items": []}
+            elif kind == "label":
+                cur["items"].append({"type": "guide", "text": payload["text"], "heading": True})
             elif kind == "text":
                 push_text({"text": payload["text"], "top": top}, payload["size"], payload["bottom"], page)
             else:
