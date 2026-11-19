@@ -483,15 +483,35 @@ router.post('/users/:id/reset-password', [auth, isAdmin], async (req, res) => {
         user.lockUntil = null;  // Desbloquear al resetear
         await user.save();
 
-        await sendTemporaryPassword(user.email, tempPassword);
-
+        // Mostrar la clave temporal al administrador (para entregarla en persona cuando el correo
+        // no llega). Solo administradores completos llegan aquí (isAdmin). El usuario debe cambiarla
+        // al ingresar (mustChangePassword).
+        const showToAdmin = Boolean(req.body && req.body.showToAdmin);
+        let emailSent = false;
+        try {
+            emailSent = Boolean(await sendTemporaryPassword(user.email, tempPassword));
+        } catch (mailErr) {
+            console.error('No se pudo enviar la clave temporal por correo:', mailErr.message);
+        }
         await AuditLog.create({
             userId: req.user.id,
             action: 'USER_PASSWORD_RESET',
-            description: `Admin reseteó manualmente la contraseña de ${user.email}`
+            description: `Admin reseteó manualmente la contraseña de ${user.email}` +
+                (showToAdmin ? ' (clave temporal mostrada en pantalla al administrador)' : '') +
+                (emailSent ? ' — correo enviado' : ' — el correo NO se pudo enviar')
         });
-
-        res.json({ msg: 'Contraseña reseteada y enviada al correo del usuario' });
+        res.setHeader('Cache-Control', 'no-store');
+        if (showToAdmin) {
+            return res.json({
+                msg: emailSent ? 'Contraseña reseteada y enviada al correo del usuario' : 'Contraseña reseteada (el correo no se pudo enviar)',
+                emailSent,
+                tempPassword,
+            });
+        }
+        if (!emailSent) {
+            return res.status(502).json({ msg: 'La contraseña se reseteó, pero el correo no se pudo enviar. Use la opción de mostrarla en pantalla para entregarla al usuario.', emailSent });
+        }
+        res.json({ msg: 'Contraseña reseteada y enviada al correo del usuario', emailSent });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server error');

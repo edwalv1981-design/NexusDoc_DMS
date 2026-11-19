@@ -437,12 +437,24 @@ const AdminDashboard = () => {
   const handleResetPassword = async (userId) => {
     if (window.confirm(t('admin.confirmResetPassword'))) {
       const token = localStorage.getItem('token');
+      // Si el correo no llega, el administrador puede ver la clave temporal y entregarla en persona.
+      const showToAdmin = window.confirm(lang === 'en'
+        ? 'Do you also want to SEE the temporary password on screen so you can give it to the user yourself?\n\nOK = show it (it is also emailed)\nCancel = email only'
+        : '¿Desea además VER la clave temporal en pantalla para entregársela usted al usuario?\n\nAceptar = mostrarla (también se envía por correo)\nCancelar = solo enviarla por correo');
       try {
-        await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/reset-password`, {}, { headers: { 'x-auth-token': token } });
-        toast.success(t('admin.passwordSent'));
+        const res = await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/reset-password`, { showToAdmin }, { headers: { 'x-auth-token': token } });
+        if (res.data?.tempPassword) {
+          window.prompt(lang === 'en'
+            ? `Temporary password (copy it now; it will not be shown again). The user must change it when signing in.${res.data.emailSent ? '' : '\nThe email could NOT be sent.'}`
+            : `Clave temporal (cópiela ahora; no se volverá a mostrar). El usuario deberá cambiarla al ingresar.${res.data.emailSent ? '' : '\nEl correo NO se pudo enviar.'}`,
+            res.data.tempPassword);
+          if (res.data.emailSent) toast.success(t('admin.passwordSent'));
+        } else {
+          toast.success(t('admin.passwordSent'));
+        }
       } catch (err) { 
           if (err.response?.status === 401) { localStorage.clear(); navigate('/'); }
-          toast.error(t('admin.errReset')); 
+          toast.error(err.response?.data?.msg || t('admin.errReset')); 
       }
     }
   };
