@@ -1,6 +1,6 @@
 /**
  * FundacionForm — Formulario de Constitución de Fundación de Interés Privado (Panamá).
- * 10 secciones: Nombre, Capital, Fundador, Protectores, Directores, Dignatarios,
+ * 10 secciones: Nombre, Capital, Fundador, Protectores, Miembros del Consejo, Dignatarios,
  * Beneficiarios, Poderes, Actividades, Declaración.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -20,6 +20,8 @@ import { useLang } from '../i18n';
 import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
 import FundacionPersonFields, { FUNDACION_MARITAL_OPTIONS } from '../components/FundacionPersonFields';
+import FundacionEntityFields from '../components/FundacionEntityFields';
+import EntityTypeSelector from '../components/common/EntityTypeSelector';
 
 import { validateField } from '../utils/fieldValidators';
 import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
@@ -756,9 +758,22 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
         <div className="expert-step animate-in fade-in slide-in-from-bottom-4">
 
-            <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founder' : 'Paso 3: Fundador'}</h2>
+            <div className="expert-section-header">
 
-            {formData.founders.map((_, i) => renderPersonCard('founders', i, lang === 'en' ? 'FOUNDER' : 'FUNDADOR', 'founder', false, 1))}
+                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 3: Founder' : 'Paso 3: Fundador'}</h2>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => addArrayItem('founders', emptyFundacionPerson('individual'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Founder (Individual)' : '+ Añadir Fundador (Persona)'}
+                    </button>
+                    <button type="button" onClick={() => addArrayItem('founders', emptyFundacionPerson('company'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Founder (Entity)' : '+ Añadir Fundador (Entidad)'}
+                    </button>
+                </div>
+
+            </div>
+
+            {formData.founders.map((_, i) => renderPersonCard('founders', i, formData.founders.length > 1 ? (lang === 'en' ? `FOUNDER #${i + 1}` : `FUNDADOR #${i + 1}`) : (lang === 'en' ? 'FOUNDER' : 'FUNDADOR'), 'founder', formData.founders.length > 1, 1))}
 
             {false && formData.founders.map((f, i) => (
 
@@ -836,11 +851,14 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                 <h2 className="expert-step-title"><Shield size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 4: Protectors' : 'Paso 4: Protectores'}</h2>
 
-                <button type="button" onClick={() => addArrayItem('protectors', emptyFundacionPerson())} className="expert-btn-add">
-
-                    <Plus size={16} /> {lang === 'en' ? 'ADD PROTECTOR' : 'AÑADIR PROTECTOR'}
-
-                </button>
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => addArrayItem('protectors', emptyFundacionPerson('individual'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Protector (Individual)' : '+ Añadir Protector (Persona)'}
+                    </button>
+                    <button type="button" onClick={() => addArrayItem('protectors', emptyFundacionPerson('company'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Protector (Entity)' : '+ Añadir Protector (Entidad)'}
+                    </button>
+                </div>
 
             </div>
 
@@ -876,13 +894,16 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
             <div className="expert-section-header">
 
-                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 5: Directors (Foundation Council)' : 'Paso 5: Directores (Consejo de Fundación)'}</h2>
+                <h2 className="expert-step-title"><Users size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 5: Members (Foundation Council)' : 'Paso 5: Miembros (Consejo de Fundación)'}</h2>
 
-                <button type="button" onClick={() => addArrayItem('councilMembers', emptyFundacionPerson())} className="expert-btn-add">
-
-                    <Plus size={16} /> {lang === 'en' ? 'ADD COUNCIL MEMBER' : 'AÑADIR MIEMBRO'}
-
-                </button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => addArrayItem('councilMembers', emptyFundacionPerson('individual'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Member (Individual)' : '+ Añadir Miembro (Persona)'}
+                    </button>
+                    <button type="button" onClick={() => addArrayItem('councilMembers', emptyFundacionPerson('company'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Member (Entity)' : '+ Añadir Miembro (Entidad)'}
+                    </button>
+                </div>
 
             </div>
 
@@ -894,7 +915,7 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                     i,
 
-                    lang === 'en' ? `DIRECTOR #${i + 1}` : `DIRECTOR #${i + 1}`,
+                    lang === 'en' ? `MEMBER #${i + 1}` : `MIEMBRO #${i + 1}`,
 
                     'director',
 
@@ -970,11 +991,14 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                 <h2 className="expert-step-title"><UserCheck size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 6: Dignitaries' : 'Paso 6: Dignatarios'}</h2>
 
-                <button type="button" onClick={() => addArrayItem('dignitaries', emptyFundacionDignitary())} className="expert-btn-add">
-
-                    <Plus size={16} /> {lang === 'en' ? 'ADD DIGNITARY' : 'AÑADIR DIGNATARIO'}
-
-                </button>
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => addArrayItem('dignitaries', emptyFundacionDignitary('', 'individual'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Dignitary (Individual)' : '+ Añadir Dignatario (Persona)'}
+                    </button>
+                    <button type="button" onClick={() => addArrayItem('dignitaries', emptyFundacionDignitary('', 'company'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Dignitary (Entity)' : '+ Añadir Dignatario (Entidad)'}
+                    </button>
+                </div>
 
             </div>
 
@@ -987,6 +1011,17 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                     {formData.dignitaries.length > 3 && <button type="button" onClick={() => removeArrayItem('dignitaries', i, 3)} className="expert-btn-remove"><Trash2 size={16} /></button>}
 
+                    <EntityTypeSelector value={d.entityType} lang={lang} onChange={(type) => updateArrayField('dignitaries', i, 'entityType', type)} />
+
+                    {d.entityType === 'company' ? (
+                    <div className="expert-grid">
+                        <div className="expert-field">
+                            <label>{t('fundacion.dignitary.role')}</label>
+                            <input className="expert-input" list="roles-dignitaries" value={d.role || ''} onChange={e => updateArrayField('dignitaries', i, 'role', e.target.value.toUpperCase())} placeholder="EJ: PRESIDENTE" />
+                        </div>
+                        <FundacionEntityFields item={d} lang={lang} nameKey="fullName" onChange={(field, value) => updateArrayField('dignitaries', i, field, value)} />
+                    </div>
+                    ) : (<>
                     <PersonSelector
                         people={registeredPeople}
                         onSelectPerson={(person) => handleAutoFillDignitary(i, person)}
@@ -1054,6 +1089,7 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
                         </div>
 
                     </div>
+                    </>)}
 
                 </div>
                 );
@@ -1073,11 +1109,14 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                 <h2 className="expert-step-title"><Award size={22} color={PRIMARY} /> {lang === 'en' ? 'Step 7: Beneficiaries' : 'Paso 7: Beneficiarios'}</h2>
 
-                <button type="button" onClick={() => addArrayItem('beneficiaries', emptyFundacionBeneficiary())} className="expert-btn-add">
-
-                    <Plus size={16} /> {lang === 'en' ? 'ADD BENEFICIARY' : 'AÑADIR BENEFICIARIO'}
-
-                </button>
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => addArrayItem('beneficiaries', emptyFundacionBeneficiary('individual'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Beneficiary (Individual)' : '+ Añadir Beneficiario (Persona)'}
+                    </button>
+                    <button type="button" onClick={() => addArrayItem('beneficiaries', emptyFundacionBeneficiary('company'))} className="expert-btn-add">
+                        <Plus size={14} /> {lang === 'en' ? '+ Add Beneficiary (Entity)' : '+ Añadir Beneficiario (Entidad)'}
+                    </button>
+                </div>
 
             </div>
 
@@ -1089,6 +1128,17 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                     {formData.beneficiaries.length > 1 && <button type="button" onClick={() => removeArrayItem('beneficiaries', i)} className="expert-btn-remove"><Trash2 size={16} /></button>}
 
+                    <EntityTypeSelector value={b.entityType} lang={lang} onChange={(type) => updateArrayField('beneficiaries', i, 'entityType', type)} />
+
+                    {b.entityType === 'company' ? (
+                    <div className="expert-grid">
+                        <div className="expert-field">
+                            <label>{t('fundacion.beneficiary.percentage')}</label>
+                            <input className="expert-input" placeholder={t('fundacion.beneficiary.percentagePlaceholder')} value={b.percentage || ''} onChange={e => updateArrayField('beneficiaries', i, 'percentage', e.target.value)} />
+                        </div>
+                        <FundacionEntityFields item={b} lang={lang} nameKey="shareholder" onChange={(field, value) => updateArrayField('beneficiaries', i, field, value)} />
+                    </div>
+                    ) : (
                     <div className="expert-grid">
 
                         <div className="expert-field">
@@ -1150,6 +1200,7 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
                         </div>
 
                     </div>
+                    )}
 
                 </div>
 
@@ -1658,7 +1709,7 @@ const FundacionForm = ({ initialData, onSave, saving, readOnly = false, startSte
 
                     {step === 4 && `IV. ${lang === 'en' ? 'Protectors' : 'Protectores'}`}
 
-                    {step === 5 && `V. ${lang === 'en' ? 'Directors (Foundation Council)' : 'Directores (Consejo)'}`}
+                    {step === 5 && `V. ${lang === 'en' ? 'Members (Foundation Council)' : 'Miembros (Consejo)'}`}
 
                     {step === 6 && `VI. ${lang === 'en' ? 'Dignitaries' : 'Dignatarios'}`}
 

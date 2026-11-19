@@ -33,7 +33,7 @@ const DEFS = {
     { es: 'Capital Social', en: 'Initial Endowment', complete: (d) => has(d.initialPatrimony), started: (d) => has(d.initialPatrimony) },
     { es: 'Fundadores', en: 'Founders', complete: (d) => anyName(d.founders) > 0, started: (d) => anyName(d.founders) > 0 },
     { es: 'Protectores', en: 'Protectors', complete: (d) => anyName(d.protectors) > 0, started: (d) => anyName(d.protectors) > 0 },
-    { es: 'Directores (Consejo)', en: 'Directors (Council)', complete: (d) => anyName(d.councilMembers) >= 3, started: (d) => anyName(d.councilMembers) > 0 },
+    { es: 'Miembros (Consejo)', en: 'Members (Council)', complete: (d) => anyName(d.councilMembers) >= 3, started: (d) => anyName(d.councilMembers) > 0 },
     { es: 'Dignatarios', en: 'Dignitaries',
       complete: (d) => arr(d.dignitaries).length > 0 && anyName(d.dignitaries) === arr(d.dignitaries).length, started: (d) => anyName(d.dignitaries) > 0 },
     { es: 'Beneficiarios', en: 'Beneficiaries', complete: (d) => anyName(d.beneficiaries) > 0, started: (d) => anyName(d.beneficiaries) > 0 },

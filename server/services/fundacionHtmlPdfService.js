@@ -51,13 +51,37 @@ function getFounderRecord(data) {
   return normalizeFundacionPerson(founders[0] || {});
 }
 
+/** Todos los fundadores (antes solo se imprimía el primero). */
+function getFounderRecords(data) {
+  if (Array.isArray(data.founders) && data.founders.length) {
+    return data.founders.map(normalizeFundacionPerson).filter(personHasData);
+  }
+  const single = getFounderRecord(data);
+  return personHasData(single) ? [single] : [];
+}
+
+/** Línea con los datos de empresa (dignatarios / beneficiarios tipo Entidad). */
+function entityDetailHtml(item) {
+  if (!item || item.entityType !== 'company') return '';
+  const parts = [
+    ['Entidad / Entity', ''],
+    ['Reg.', item.registrationNumber],
+    ['País / Country', item.companyCountry],
+    ['RUC / Tax ID', item.companyTaxId],
+    ['Rep. legal / Legal rep.', [item.legalRepName, item.legalRepPassport].filter(Boolean).join(' — ')],
+  ]
+    .filter(([label, v], i) => i === 0 || v)
+    .map(([label, v]) => (v ? `${esc(label)}: ${esc(v)}` : esc(label)));
+  return `<div class="entity-sub" style="font-size:8px;color:#475569;margin-top:2px;">${parts.join(' · ')}</div>`;
+}
+
 function personFieldRows(person, t, { includeEmpty = false } = {}) {
   const p = normalizeFundacionPerson(person);
   const isCompany = p.entityType === 'company';
   const fullName = p.fullName || [p.firstName, p.secondName, p.lastName].filter(Boolean).join(' ');
   const rows = isCompany ? [
     ['Company Name / Razón Social', fullName],
-    ['Country of Registration / País de Constitución', p.registrationCountry || p.country],
+    ['Country of Registration / País de Constitución', p.companyCountry || p.registrationCountry || p.country],
     ['Reg. Number / No. Registro', p.registrationNumber],
     ['RUC / Tax ID', p.companyTaxId || p.passport],
     ['Address / Dirección Registrada', p.address],
@@ -241,8 +265,8 @@ function buildDignitariesRows(dignitaries, t) {
       return `
     <tr>
       <td>${esc(d.role)}</td>
-      <td>${esc(dignitaryDisplayName(d))}</td>
-      <td>${esc(fmtDate(d.birthDate))}</td>
+      <td>${esc(dignitaryDisplayName(d))}${entityDetailHtml(d)}</td>
+      <td>${esc(d.entityType === 'company' ? '' : fmtDate(d.birthDate))}</td>
       <td>${esc(address)}</td>
     </tr>
   `;
@@ -260,8 +284,8 @@ function buildBeneficiariesRows(beneficiaries, t) {
       return `
     <tr>
       <td>${esc(b.percentage)}</td>
-      <td>${esc(beneficiaryDisplayName(b))}</td>
-      <td>${esc(fmtDate(b.birthDate))}</td>
+      <td>${esc(beneficiaryDisplayName(b))}${entityDetailHtml(b)}</td>
+      <td>${esc(b.entityType === 'company' ? '' : fmtDate(b.birthDate))}</td>
       <td>${esc(address)}</td>
     </tr>
   `;
@@ -331,7 +355,7 @@ class FundacionHtmlPdfService {
       const logoPath = path.join(rootDir, 'templates', 'logo_empresa.png');
       if (fs.existsSync(logoPath)) logoDataUri = toDataUri(logoPath);
 
-      const founder = getFounderRecord(data);
+      // fundadores: ver getFounderRecords(data)
       const directors = getDirectors(data);
       const protectors = Array.isArray(data.protectors) ? data.protectors : [];
       const beneficiaries = Array.isArray(data.beneficiaries) ? data.beneficiaries : [];
@@ -356,7 +380,7 @@ class FundacionHtmlPdfService {
 
       const founderSection = buildPersonStackSection(
         t.sectionFounder,
-        personHasData(founder) ? [founder] : [],
+        getFounderRecords(data),
         t,
         t.emptyFounder,
         t.roleFounder
@@ -532,7 +556,7 @@ class FundacionHtmlPdfService {
 /** Builds inner HTML for tests (no Puppeteer). */
 function buildFundacionPdfInnerHtml(data = {}, options = {}) {
   fundacionPdfI18n.assertFundacionPdfI18nParity();
-  const founder = getFounderRecord(data);
+  // fundadores: ver getFounderRecords(data)
   const directors = getDirectors(data).map(normalizeFundacionPerson).filter(personHasData);
   const protectors = (Array.isArray(data.protectors) ? data.protectors : [])
     .map(normalizeFundacionPerson)
@@ -543,7 +567,7 @@ function buildFundacionPdfInnerHtml(data = {}, options = {}) {
   const t = fundacionPdfI18n.getFundacionPdfDict(lang);
   const founderSection = buildPersonStackSection(
     t.sectionFounder,
-    personHasData(founder) ? [founder] : [],
+    getFounderRecords(data),
     t,
     t.emptyFounder,
     t.roleFounder

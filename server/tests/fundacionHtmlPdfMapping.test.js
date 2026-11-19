@@ -136,9 +136,37 @@ test('buildFundacionPdfInnerHtml renders 11 person labels per founder/protector/
   assertAllPersonLabelsInSection(extractSection(html, t.sectionDirectors), t, 'Directores');
 });
 
-test('director header renders fullName constructed from legacy parts', () => {
+test('council member header renders fullName constructed from legacy parts', () => {
   const html = buildFundacionPdfInnerHtml(sampleData, { language: 'es' });
-  assert.match(html, /Director #1 — Edwin Eduardo Alvarez Vivero/);
+  assert.match(html, /Miembro #1 — Edwin Eduardo Alvarez Vivero/);
+  const en = buildFundacionPdfInnerHtml(sampleData, { language: 'en' });
+  assert.match(en, /Member #1 — Edwin Eduardo Alvarez Vivero/);
+  assert.match(en, /Foundation Council \(Members\)/);
+});
+
+test('prints every founder (individual and entity), not only the first', () => {
+  const html = buildFundacionPdfInnerHtml({
+    founders: [
+      { entityType: 'individual', fullName: 'Ana Gómez', passport: 'P1' },
+      { entityType: 'company', fullName: 'Holding Uno S.A.', companyName: 'Holding Uno S.A.', companyCountry: 'Panamá', registrationNumber: '155', legalRepName: 'Luis Paz' },
+    ],
+  }, { language: 'es' });
+  assert.match(html, /Fundador #1 — Ana Gómez/);
+  assert.match(html, /Fundador #2 — Holding Uno S\.A\./);
+  assert.match(html, /Razón Social<\/td><td>Holding Uno S\.A\./);
+  assert.match(html, /País de Constitución<\/td><td>Panamá/);
+});
+
+test('dignitaries and beneficiaries of type entity show company details', () => {
+  const html = buildFundacionPdfInnerHtml({
+    dignitaries: [{ role: 'PRESIDENTE', entityType: 'company', fullName: 'Gestora S.A.', companyName: 'Gestora S.A.', registrationNumber: '99', companyCountry: 'BVI', legalRepName: 'Rita Mar', birthDate: '2000-01-01' }],
+    beneficiaries: [{ percentage: '50%', entityType: 'company', shareholder: 'Trust Dos Ltd.', companyName: 'Trust Dos Ltd.', companyTaxId: 'TX-1' },
+      { percentage: '50%', shareholder: 'Pedro Ruiz', birthDate: '1990-02-03' }],
+  }, { language: 'es' });
+  assert.match(html, /Gestora S\.A\.<div class="entity-sub"[^>]*>Entidad \/ Entity · Reg\.: 99 · País \/ Country: BVI/);
+  assert.match(html, /Trust Dos Ltd\.<div class="entity-sub"[^>]*>Entidad \/ Entity · RUC \/ Tax ID: TX-1/);
+  assert.match(html, /Pedro Ruiz<\/td>\s*<td>03\/02\/1990/);
+  assert.doesNotMatch(html, /01\/01\/2000/);
 });
 
 test('buildFundacionPdfInnerHtml renders POA yes/no and all grantee fields', () => {

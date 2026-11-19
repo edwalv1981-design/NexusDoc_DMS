@@ -13,28 +13,47 @@ export const FUNDACION_PERSON_FIELDS = [
   'country',
 ];
 
-/** Campos reducidos — paso Dignatarios. */
+/** Campos de integrante tipo Empresa / Entidad (mismos que en Incorporación). */
+export const FUNDACION_ENTITY_FIELDS = [
+  'entityType',
+  'companyName',
+  'companyCountry',
+  'companyTaxId',
+  'legalRepName',
+  'legalRepPassport',
+];
+
+/** Campos reducidos — paso Dignatarios (+ campos de entidad). */
 export const FUNDACION_DIGNITARY_FIELDS = [
   'role',
   'fullName',
   'birthDate',
   'address',
   'registrationNumber',
+  ...FUNDACION_ENTITY_FIELDS,
 ];
 
-/** Campos reducidos — paso Beneficiarios. */
-export const FUNDACION_BENEFICIARY_FIELDS = ['percentage', 'shareholder', 'birthDate', 'address'];
+/** Campos reducidos — paso Beneficiarios (+ campos de entidad). */
+export const FUNDACION_BENEFICIARY_FIELDS = [
+  'percentage',
+  'shareholder',
+  'birthDate',
+  'address',
+  'registrationNumber',
+  ...FUNDACION_ENTITY_FIELDS,
+];
 
-export function emptyFundacionPerson() {
-  return Object.fromEntries(FUNDACION_PERSON_FIELDS.map((k) => [k, '']));
+export function emptyFundacionPerson(entityType) {
+  const p = Object.fromEntries(FUNDACION_PERSON_FIELDS.map((k) => [k, '']));
+  return entityType ? { ...p, entityType } : p;
 }
 
-export function emptyFundacionDignitary(role = '') {
-  return { role, fullName: '', birthDate: '', address: '', registrationNumber: '' };
+export function emptyFundacionDignitary(role = '', entityType = 'individual') {
+  return { ...Object.fromEntries(FUNDACION_DIGNITARY_FIELDS.map((k) => [k, ''])), role, entityType };
 }
 
-export function emptyFundacionBeneficiary() {
-  return { percentage: '', shareholder: '', birthDate: '', address: '' };
+export function emptyFundacionBeneficiary(entityType = 'individual') {
+  return { ...Object.fromEntries(FUNDACION_BENEFICIARY_FIELDS.map((k) => [k, ''])), entityType };
 }
 
 /** Coerce legacy saves: null, single object, or non-array → array. */
