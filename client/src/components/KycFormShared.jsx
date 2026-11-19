@@ -159,3 +159,33 @@ export const kycFormSharedStyles = (primary = KYC_PRIMARY) => `
   .expert-btn-save { padding: 5px 14px; background: white; color: ${primary}; border: 1.5px solid ${primary}; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 11px; }
   .expert-btn-finish { padding: 7px 16px; background: ${primary}; color: white; border: none; border-radius: 5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; }
 `;
+
+/**
+ * Mensaje de validación que dice QUÉ falta (antes solo decía "complete los campos obligatorios").
+ * `missing` usa las claves del spec: 'campo' o 'grupo.opcion' (p. ej. 'certifiedDocs.proofOfAddress').
+ */
+export function describeMissingFields(missing, { labels = {}, fields = {}, lang = 'es', max = 8 } = {}) {
+  const names = [];
+  for (const k of missing || []) {
+    const [group, opt] = String(k).split('.');
+    let name = labels[group] || group;
+    if (opt) {
+      const o = (fields[group]?.options || []).find((x) => x.key === opt);
+      const optLabel = o ? (lang === 'en' ? o.en : o.es) : opt;
+      name = `${String(optLabel).replace(/[;,]?\s*(AND|Y)\s*$/i, '')}`;
+    }
+    if (name && !names.includes(name)) names.push(name);
+  }
+  if (!names.length) return '';
+  const head = lang === 'en' ? 'Please complete or tick:' : 'Complete o marque:';
+  const more = names.length > max ? (lang === 'en' ? `\n… and ${names.length - max} more` : `\n… y ${names.length - max} más`) : '';
+  return `${head}\n• ${names.slice(0, max).join('\n• ')}${more}`;
+}
+
+/** Lleva la vista al primer campo marcado en rojo. */
+export function scrollToFirstMissing() {
+  setTimeout(() => {
+    const el = document.querySelector('.nx-missing, .nx-choice[style*="248, 113, 113"], .nx-choice[style*="#f87171"], [data-missing="true"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 60);
+}

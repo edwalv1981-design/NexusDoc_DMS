@@ -22,7 +22,7 @@ import {
 import { useT, useLang } from '../i18n';
 import { extractRegisteredPeople } from '../utils/personExtractor';
 import PersonSelector from '../components/common/PersonSelector';
-import { KYC_PRIMARY, KycHintBox, kycFormSharedStyles } from '../components/KycFormShared';
+import { KYC_PRIMARY, KycHintBox, kycFormSharedStyles, describeMissingFields, scrollToFirstMissing } from '../components/KycFormShared';
 import {
   YES,
   NO,
@@ -405,7 +405,8 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
       const miss = missingFieldsForStep(step, formData);
       if (miss.length) {
         setMissing(miss);
-        window.alert(t('kyci.validationIncomplete'));
+        window.alert([t('kyci.validationIncomplete'), describeMissingFields(miss, { labels, fields: FIELDS, lang })].filter(Boolean).join('\n\n'));
+        scrollToFirstMissing();
         return;
       }
     }
@@ -424,7 +425,8 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
       setMissing(miss);
       const firstStep = [1, 2, 3, 4].find((s) => missingFieldsForStep(s, formData).length > 0) || step;
       setStep(firstStep);
-      window.alert(t('kyci.validationIncomplete'));
+      window.alert([t('kyci.validationIncomplete'), describeMissingFields(missingFieldsForStep(firstStep, formData), { labels, fields: FIELDS, lang })].filter(Boolean).join('\n\n'));
+      scrollToFirstMissing();
       return;
     }
     onSave(withProgress(withCompat(formData), step, TOTAL_STEPS, true), true);

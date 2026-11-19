@@ -20,7 +20,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useT, useLang } from '../i18n';
-import { KYC_PRIMARY, KycHintBox, kycFormSharedStyles } from '../components/KycFormShared';
+import { KYC_PRIMARY, KycHintBox, kycFormSharedStyles, describeMissingFields, scrollToFirstMissing } from '../components/KycFormShared';
 import {
   YES,
   NO,
@@ -363,7 +363,8 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       const miss = missingFieldsForStep(step, formData);
       if (miss.length) {
         setMissing(miss);
-        window.alert(t('kyce.validationIncomplete'));
+        window.alert([t('kyce.validationIncomplete'), describeMissingFields(miss, { labels, fields: FIELDS, lang })].filter(Boolean).join('\n\n'));
+        scrollToFirstMissing();
         return;
       }
     }
@@ -377,7 +378,8 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       setMissing(miss);
       const firstStep = [1, 2, 3, 4].find((s) => missingFieldsForStep(s, formData).length > 0) || step;
       setStep(firstStep);
-      window.alert(t('kyce.validationIncomplete'));
+      window.alert([t('kyce.validationIncomplete'), describeMissingFields(missingFieldsForStep(firstStep, formData), { labels, fields: FIELDS, lang })].filter(Boolean).join('\n\n'));
+      scrollToFirstMissing();
       return;
     }
     onSave(withProgress(formData, step, TOTAL_STEPS, true), true);
