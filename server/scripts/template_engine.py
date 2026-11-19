@@ -785,8 +785,10 @@ class Analyzer:
                     for o in pm.segments:
                         if o is cur or o["used"] or o["cell"] is not seg["cell"]:
                             continue
-                        if b["rect"][0] - 4 * pm.u <= o["rect"][0] <= seg["rect"][0] + 2.5 * pm.u and \
-                                0 <= o["rect"][1] - cur["rect"][3] <= max(3.5 * pm.u, 0.45 * seg["size"]):
+                        starts_ok = b["rect"][0] - 4 * pm.u <= o["rect"][0] <= seg["rect"][0] + 2.5 * pm.u or \
+                            (overlap(o["rect"][0], o["rect"][2], seg["rect"][0], seg["rect"][2]) > 0 and
+                             o["rect"][0] >= b["rect"][0] - 4 * pm.u)
+                        if starts_ok and 0 <= o["rect"][1] - cur["rect"][3] <= max(3.5 * pm.u, 0.6 * seg["size"]):
                             if any(abs(self._center(bb)[1] - (o["rect"][1] + o["rect"][3]) / 2) <= 5 and
                                    0 <= o["rect"][0] - bb["rect"][2] <= 24 * pm.u for bb in pm.boxes):
                                 continue
@@ -875,7 +877,7 @@ class Analyzer:
             return rect_contains(s["cell"]["rect"], *self._center(first)) and s["cell"]["table"] != cell["table"]
 
         left = [s for s in pm.segments if id(s) not in labels and not s["used"] and s["rect"][2] <= x_left + 1
-                and abs((s["rect"][1] + s["rect"][3]) / 2 - cy) <= 6 and (cell is None or s["cell"] is cell)
+                and abs((s["rect"][1] + s["rect"][3]) / 2 - cy) <= 6 * pm.u and (cell is None or s["cell"] is cell)
                 and not is_yes(s["text"].rstrip(":")) and not is_no(s["text"].rstrip(":"))]
         if left:
             left.sort(key=lambda s: s["rect"][0])
@@ -891,7 +893,7 @@ class Analyzer:
             if not segs:
                 continue
             bottom = max(s["rect"][3] for s in segs)
-            if cursor - bottom > (22 if not above else 8):
+            if cursor - bottom > (22 if not above else 8) * pm.u:
                 break
             if any(s["bold"] and len(s["text"]) < 70 and not s["text"].strip().endswith(("?", ":")) for s in segs) and above:
                 break
