@@ -708,12 +708,19 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
                     version: created.version,
                     fieldCount: created.fieldCount,
                     isActive: created.isActive,
+                    changes: created.changes ? created.changes.summary : null,
+                    pendingReview: Boolean(created.schema && created.schema.review && created.schema.review.pending),
                 };
+                const sm = created.changes && created.changes.summary;
                 await AuditLog.create({
                     userId: req.user.id,
                     action: 'TEMPLATE_VERSION_CREATE',
                     description: `Plantilla ${created.formType} v${created.version}: ${created.fieldCount} campos detectados` +
-                        (created.isActive ? ' — ACTIVA para trámites nuevos' : ' — sin campos, NO se activó'),
+                        (sm && created.changes.basedOnVersion
+                            ? ` (vs v${created.changes.basedOnVersion}: ${sm.same} iguales, ${sm.relabeled} renombrados, ${sm.added} nuevos, ${sm.removed} quitados)`
+                            : '') +
+                        (created.isActive ? ' — ACTIVA para trámites nuevos'
+                            : created.fieldCount ? ' — PENDIENTE de revisión (quita o cambia campos)' : ' — sin campos, NO se activó'),
                 }).catch(() => {});
             } catch (verErr) {
                 console.error('⚠️ No se pudo crear la versión de plantilla:', verErr);

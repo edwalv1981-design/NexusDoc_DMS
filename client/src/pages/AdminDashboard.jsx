@@ -494,6 +494,10 @@ const AdminDashboard = () => {
           toast.success(lang === 'en'
             ? `Template v${tv.version} is now active: new ${tv.formType} submissions will use it (${tv.fieldCount} fields).`
             : `Plantilla v${tv.version} activa: los trámites nuevos de ${tv.formType} la usarán (${tv.fieldCount} campos).`);
+        } else if (tv.fieldCount > 0) {
+          toast.error(lang === 'en'
+            ? `Template v${tv.version} removes or changes fields of the previous version: it is PENDING your review in «Template versions». Nothing was changed for clients yet.`
+            : `La plantilla v${tv.version} quita o cambia campos de la versión anterior: quedó PENDIENTE de su revisión en «Versiones de plantilla». Aún no cambió nada para los clientes.`);
         } else {
           toast.error(lang === 'en'
             ? 'No fields were detected in this PDF: the standard form remains in use.'

@@ -43,10 +43,12 @@ const TemplateFormRouter = ({
   readOnly,
   startStep,
   title,
+  allowUpgrade = false,
 }) => {
   const ref = templateVersionOf(initialData);
   const refId = ref ? ref.id : null;
-  const [state, setState] = useState({ loading: Boolean(refId || isNew), version: null, key: '' });
+  const finished = Boolean(initialData && initialData.__progress && initialData.__progress.finished);
+  const [state, setState] = useState({ loading: Boolean(refId || isNew), version: null, key: '', upgradedFrom: null });
 
   useEffect(() => {
     let alive = true;
@@ -60,12 +62,26 @@ const TemplateFormRouter = ({
       return undefined;
     }
     setState((s) => ({ ...s, loading: true }));
-    fetchJson(url).then((res) => {
+    (async () => {
+      const res = await fetchJson(url);
+      let version = res && res.version && res.version.schema ? res.version : null;
+      let upgradedFrom = null;
+      // Borrador (no enviado) llenado con una versión anterior: se abre con la versión activa.
+      // Los campos que ya existían conservan su clave, así que los datos aparecen igual;
+      // los campos nuevos quedan vacíos. Los trámites ENVIADOS se quedan con su versión.
+      if (version && refId && allowUpgrade && !finished) {
+        const act = await fetchJson(`${API_BASE_URL}/api/forms/template-version/active/${encodeURIComponent(version.formType || formType)}`);
+        const active = act && act.version && act.version.schema ? act.version : null;
+        if (active && active.id !== version.id && Number(active.version) > Number(version.version)) {
+          upgradedFrom = version.version;
+          version = active;
+        }
+      }
       if (!alive) return;
-      setState({ loading: false, version: res && res.version && res.version.schema ? res.version : null, key: url });
-    });
+      setState({ loading: false, version, key: url, upgradedFrom });
+    })();
     return () => { alive = false; };
-  }, [refId, isNew, formType]);
+  }, [refId, isNew, formType, allowUpgrade, finished]);
 
   if (state.loading) {
     return <div style={{ textAlign: 'center', padding: 50, color: '#64748b' }} aria-busy="true">…</div>;
@@ -81,6 +97,7 @@ const TemplateFormRouter = ({
         readOnly={readOnly}
         startStep={startStep}
         title={title}
+        upgradedFrom={state.upgradedFrom}
       />
     );
   }

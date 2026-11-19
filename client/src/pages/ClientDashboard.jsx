@@ -765,7 +765,7 @@ const ClientDashboard = () => {
                         />
                     </div>
                 ) : usesFondosWizard(currentFormType) && isFormReady(currentFormType) ? (
-                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} allowUpgrade onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <div>
                         <h1 style={{ marginBottom: '25px' }}>{getFormTypeLabel(currentFormType, lang)}</h1>
                         <form onSubmit={handleSaveForm} style={{ background: 'white', padding: '35px', border: `1px solid ${BORDER}`, borderRadius: RADIUS_LG, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
@@ -886,7 +886,7 @@ const ClientDashboard = () => {
                     </div>
                     )} />
                 ) : currentFormType.startsWith('Corporaci') ? (
-                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} allowUpgrade onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <CorporacionForm 
                         initialData={formData} 
                         onSave={saveDynamicForm} 
@@ -894,7 +894,7 @@ const ClientDashboard = () => {
                     />
                     )} />
                 ) : currentFormType === 'Fundaciones' ? (
-                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} allowUpgrade onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <FundacionForm
                         initialData={formData}
                         onSave={saveDynamicForm}
@@ -902,7 +902,7 @@ const ClientDashboard = () => {
                     />
                     )} />
                 ) : isKyciFormType(currentFormType) ? (
-                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} allowUpgrade onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <CumplimientoIndividualForm
                         initialData={formData}
                         onSave={saveDynamicForm}
@@ -910,7 +910,7 @@ const ClientDashboard = () => {
                     />
                     )} />
                 ) : isKyceFormType(currentFormType) ? (
-                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
+                    <TemplateFormRouter key={`tfr-${currentFormType}-${editId || "new"}`} formType={currentFormType} initialData={isEditingForm ? formData : {}} isNew={!isEditingForm} allowUpgrade onSave={saveDynamicForm} saving={saving} title={getFormTypeLabel(currentFormType, lang)} renderLegacy={() => (
                     <CumplimientoEntidadesForm
                         initialData={formData}
                         onSave={saveDynamicForm}

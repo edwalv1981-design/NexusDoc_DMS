@@ -28,6 +28,8 @@ const TX = {
     section: 'Sección {n}',
     selectOne: 'Seleccione…',
     annexNote: 'Si la respuesta no cabe en la plantilla, el PDF la incluye en un anexo.',
+    upgraded: 'Este formulario se actualizó (v{from} → v{to}). Sus datos se conservaron; complete los campos marcados como NUEVO.',
+    newBadge: 'NUEVO',
   },
   en: {
     saveDraft: 'Save draft',
@@ -44,6 +46,8 @@ const TX = {
     section: 'Section {n}',
     selectOne: 'Select…',
     annexNote: 'If the answer does not fit in the template, the PDF adds it in an annex.',
+    upgraded: 'This form was updated (v{from} → v{to}). Your data was kept; please complete the fields marked NEW.',
+    newBadge: 'NEW',
   },
 };
 
@@ -120,7 +124,7 @@ export function missingTemplateFields(schema, data, keys = null) {
   return list.filter((k) => fields[k] && isFieldRequired(fields[k], data) && !hasValue(data[k]));
 }
 
-const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnly = false, startStep, title }) => {
+const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnly = false, startStep, title, upgradedFrom = null }) => {
   const { lang } = useLang();
   const tx = TX[lang === 'en' ? 'en' : 'es'];
   const schema = versionInfo?.schema || {};
@@ -130,6 +134,10 @@ const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnl
   const [step, setStep] = useState(() => (startStep >= 1 && startStep <= total ? startStep : 1));
   const [data, setData] = useState(() => ({ ...(initialData || {}) }));
   const [missing, setMissing] = useState([]);
+  const newKeys = useMemo(
+    () => new Set(upgradedFrom && Array.isArray(schema.changes?.added) ? schema.changes.added : []),
+    [upgradedFrom, schema]
+  );
 
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) setData((prev) => ({ ...prev, ...initialData }));
@@ -195,6 +203,7 @@ const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnl
     <label>
       {f.label}
       {isFieldRequired(f, data) ? <span style={{ color: '#ef4444' }}> *</span> : null}
+      {newKeys.has(f.key) ? <span className="tv-new">{tx.newBadge}</span> : null}
     </label>
   );
 
@@ -353,6 +362,9 @@ const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnl
       </div>
 
       <div className="nx-panel">
+        {upgradedFrom ? (
+          <div className="tv-upgraded">{fmt(tx.upgraded, { from: upgradedFrom, to: versionInfo?.version ?? '' })}</div>
+        ) : null}
         <ReadOnlyFieldset readOnly={readOnly}>
           <div className="tv-grid">{blocks}</div>
         </ReadOnlyFieldset>
@@ -381,6 +393,8 @@ const TemplateVersionForm = ({ versionInfo, initialData, onSave, saving, readOnl
         .tv-guide { display: block; font-size: 11px; color: #64748b; line-height: 1.4; }
         .tv-signature { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px dashed #94a3b8; border-radius: 6px; color: #475569; font-size: 12px; }
         .tv-signature strong { display: block; font-size: 11px; color: #0f172a; }
+        .tv-new { margin-left: 6px; font-size: 9px; font-weight: 800; color: #1d4ed8; background: #dbeafe; padding: 1px 5px; border-radius: 3px; }
+        .tv-upgraded { margin-bottom: 14px; font-size: 12px; color: #1e3a8a; background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px 12px; border-radius: 6px; }
       `}</style>
     </div>
   );

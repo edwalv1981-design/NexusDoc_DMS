@@ -37,6 +37,17 @@ const TX = {
     noFields: 'sin campos detectados (no se activó)',
     loadError: 'No se pudieron cargar las versiones de plantilla.',
     done: 'Cambio aplicado.',
+    pending: 'Pendiente de revisión',
+    pendingHelp: 'Esta versión quita o cambia campos de la anterior. Revise el detalle y presione «Activar» si está de acuerdo. Los datos ya ingresados no se borran.',
+    chg: '{same} iguales · {relabeled} renombrados · {added} nuevos · {removed} quitados',
+    first: 'Primera versión',
+    details: 'Ver cambios',
+    hide: 'Ocultar',
+    lRelabeled: 'Renombrados (conservan los datos)',
+    lAdded: 'Nuevos',
+    lRemoved: 'Quitados (los datos guardados se conservan, solo dejan de mostrarse)',
+    lKind: 'Cambio de tipo',
+    lOptions: 'Opciones nuevas',
   },
   en: {
     title: 'Template versions (form and PDF for new submissions)',
@@ -55,6 +66,17 @@ const TX = {
     noFields: 'no fields detected (not activated)',
     loadError: 'Could not load template versions.',
     done: 'Change applied.',
+    pending: 'Pending review',
+    pendingHelp: 'This version removes or changes fields from the previous one. Review the details and press «Activate» if you agree. Data already entered is not deleted.',
+    chg: '{same} same · {relabeled} renamed · {added} new · {removed} removed',
+    first: 'First version',
+    details: 'Show changes',
+    hide: 'Hide',
+    lRelabeled: 'Renamed (data kept)',
+    lAdded: 'New',
+    lRemoved: 'Removed (saved data is kept, just no longer shown)',
+    lKind: 'Type changed',
+    lOptions: 'New options',
   },
 };
 
@@ -72,6 +94,7 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
   const [versions, setVersions] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [openId, setOpenId] = useState(null);
 
   const headers = () => ({ 'x-auth-token': localStorage.getItem('token') });
 
@@ -170,6 +193,32 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
                         </td>
                         <td style={{ padding: '6px 4px', color: v.fieldCount ? '#334155' : '#b91c1c' }}>
                           {v.fieldCount ? fmt(tx.fields, { n: v.fieldCount }) : tx.noFields}
+                          {v.review && v.review.pending && !v.isActive ? (
+                            <span title={tx.pendingHelp} style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#a16207', background: '#fef9c3', padding: '1px 6px', borderRadius: 4 }}>
+                              {tx.pending}
+                            </span>
+                          ) : null}
+                          <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                            {v.changes && v.changes.summary && v.changes.basedOnVersion
+                              ? fmt(tx.chg, v.changes.summary)
+                              : tx.first}
+                            {v.changes && v.changes.basedOnVersion ? (
+                              <button type="button" onClick={() => setOpenId(openId === v.id ? null : v.id)}
+                                style={{ marginLeft: 6, background: 'none', border: 'none', color: '#0f766e', fontWeight: 700, fontSize: 10, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                                {openId === v.id ? tx.hide : tx.details}
+                              </button>
+                            ) : null}
+                          </div>
+                          {openId === v.id && v.changes ? (
+                            <div style={{ fontSize: 10, color: '#334155', marginTop: 6, lineHeight: 1.5 }}>
+                              {v.review && v.review.pending ? <p style={{ color: '#a16207', margin: '0 0 4px' }}>{tx.pendingHelp}</p> : null}
+                              {(v.changes.relabeled || []).length ? <div><strong>{tx.lRelabeled}:</strong> {v.changes.relabeled.map((r) => `«${r.from}» → «${r.to}»`).join('; ')}</div> : null}
+                              {(v.changes.added || []).length ? <div><strong>{tx.lAdded}:</strong> {v.changes.added.join(', ')}</div> : null}
+                              {(v.changes.removed || []).length ? <div style={{ color: '#b91c1c' }}><strong>{tx.lRemoved}:</strong> {v.changes.removed.map((r) => r.label).join(', ')}</div> : null}
+                              {(v.changes.kindChanged || []).length ? <div style={{ color: '#b91c1c' }}><strong>{tx.lKind}:</strong> {v.changes.kindChanged.map((k) => `${k.key} (${k.from} → ${k.to})`).join(', ')}</div> : null}
+                              {(v.changes.optionsAdded || []).length ? <div><strong>{tx.lOptions}:</strong> {v.changes.optionsAdded.map((o) => o.option).join(', ')}</div> : null}
+                            </div>
+                          ) : null}
                         </td>
                         <td style={{ padding: '6px 4px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                           {v.isActive ? (

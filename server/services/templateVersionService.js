@@ -20,6 +20,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { resolvePythonCommand } = require('../utils/pythonCommand');
+const { reconcileSchema, isSafeToAutoActivate } = require('./templateReconcile');
 
 const ENGINE_SCRIPT = path.join(__dirname, '../scripts/template_engine.py');
 const TABLE = '"FormTemplateVersions"';
@@ -196,7 +197,8 @@ async function listVersions(sequelize, formType = null) {
   await ensureTable(sequelize);
   const where = formType ? 'WHERE "formType" = :formType' : '';
   const rows = rowsOf(await sequelize.query(
-    `SELECT ${META_COLS} FROM ${TABLE} ${where} ORDER BY "formType", "version" DESC`,
+    `SELECT ${META_COLS}, "schema"->'changes' AS "changes", "schema"->'review' AS "review"
+     FROM ${TABLE} ${where} ORDER BY "formType", "version" DESC`,
     { replacements: { formType } }
   ));
   return rows || [];
@@ -262,15 +264,26 @@ async function createVersion(sequelize, { templateId, formType, pdfBuffer, fileN
   const canonical = canonicalFormType(formType) || formTypeForTemplateId(templateId);
   if (!canonical) throw new Error('Tipo de formulario no soportado para versiones de plantilla');
   await ensureTable(sequelize);
-  const schema = await analyzeBuffer(pdfBuffer, canonical);
-  const fieldCount = Number(schema && schema.fieldCount) || 0;
-  const rows = rowsOf(await sequelize.query(
-    `SELECT COALESCE(MAX("version"), 0) AS v FROM ${TABLE} WHERE "formType" = :formType`,
+  const analyzed = await analyzeBuffer(pdfBuffer, canonical);
+
+  // Versiones anteriores (de la más reciente a la más antigua): los campos que ya existían
+  // conservan su clave para no perder ni duplicar datos.
+  const prevRows = rowsOf(await sequelize.query(
+    `SELECT "version", "schema" FROM ${TABLE} WHERE "formType" = :formType ORDER BY "version" DESC LIMIT 25`,
     { replacements: { formType: canonical } }
-  ));
-  const version = (Number(rows && rows[0] && rows[0].v) || 0) + 1;
+  )) || [];
+  const previous = prevRows
+    .map((r) => (r.schema && typeof r.schema === 'object' ? { ...r.schema, __version: r.version } : null))
+    .filter((p) => p && p.fields && Object.keys(p.fields).length);
+  const { schema, changes } = reconcileSchema(analyzed, previous);
+  const fieldCount = Number(schema && schema.fieldCount) || Object.keys(schema.fields || {}).length;
+  const version = (Number(prevRows[0] && prevRows[0].version) || 0) + 1;
   const id = crypto.randomUUID();
-  const willActivate = Boolean(activate) && fieldCount > 0;
+  // Se activa sola solo si no se pierde nada respecto de la versión anterior. Si se quitan
+  // campos o cambia el tipo de alguno, queda PENDIENTE para que el administrador revise.
+  const safe = previous.length === 0 || isSafeToAutoActivate(changes);
+  const willActivate = Boolean(activate) && fieldCount > 0 && safe;
+  schema.review = { pending: fieldCount > 0 && !willActivate && Boolean(activate), reason: safe ? null : 'changes' };
 
   await sequelize.transaction(async (transaction) => {
     if (willActivate) {
@@ -299,7 +312,7 @@ async function createVersion(sequelize, { templateId, formType, pdfBuffer, fileN
       }
     );
   });
-  return { id, formType: canonical, version, fieldCount, isActive: willActivate, schema };
+  return { id, formType: canonical, version, fieldCount, isActive: willActivate, schema, changes };
 }
 
 /** Marca de versión guardada en los datos de un trámite (o null para trámites del formato estándar). */
@@ -316,6 +329,30 @@ async function generatePdfForForm(sequelize, formData) {
   if (!v || !v.fileData) return null;
   const buf = Buffer.isBuffer(v.fileData) ? v.fileData : Buffer.from(v.fileData);
   return { buffer: await fillBuffer(buf, v.schema, formData), version: v };
+}
+
+/**
+ * Seguridad al guardar: la marca __templateVersion que envía el navegador solo se acepta si la
+ * versión existe y es del mismo formulario. Se reescribe con los datos del servidor.
+ */
+async function sanitizeVersionRef(sequelize, data, formType) {
+  if (!data || typeof data !== 'object' || data.__templateVersion === undefined) return data;
+  const ref = versionRefOf(data);
+  const out = { ...data };
+  delete out.__templateVersion;
+  if (!ref) return out;
+  let v;
+  try {
+    v = await getVersion(sequelize, ref.id);
+  } catch (err) {
+    // Si la base de datos no responde no se toca la marca: nunca se desliga un trámite de su plantilla.
+    console.warn('No se pudo validar __templateVersion:', err.message);
+    return data;
+  }
+  const canonical = canonicalFormType(formType);
+  if (!v || (canonical && v.formType !== canonical)) return out;
+  out.__templateVersion = { id: v.id, version: v.version, formType: v.formType };
+  return out;
 }
 
 /** Datos públicos del esquema para el formulario del cliente. */
@@ -348,6 +385,7 @@ module.exports = {
   deactivateAll,
   createVersion,
   versionRefOf,
+  sanitizeVersionRef,
   generatePdfForForm,
   publicVersion,
   knownLabelsFor,

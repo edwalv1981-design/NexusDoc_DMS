@@ -419,7 +419,12 @@ router.post('/save', auth, async (req, res) => {
     // Claves que solo controla el servidor (__metadata, __adminEditLog, __progress):
     // nunca se aceptan tal cual desde el cliente.
     const rawData = req.body.data;
-    const data = formVersions.stripServerKeys(rawData);
+    // __templateVersion solo se acepta si la versión existe y es de este mismo formulario.
+    const data = await templateVersionService.sanitizeVersionRef(
+      require('../config/db').sequelize,
+      formVersions.stripServerKeys(rawData),
+      req.body.type
+    );
     const clientProgress = rawData && typeof rawData === 'object' ? rawData.__progress : undefined;
     const formTypeLabel = type || 'Documento General';
 
