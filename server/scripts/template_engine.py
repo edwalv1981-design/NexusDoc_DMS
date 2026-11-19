@@ -44,7 +44,7 @@ def norm(text):
 def clean_label(text):
     t = re.sub(r"_{2,}", " ", str(text or ""))
     t = re.sub(r"[\s:·.\-–—➤►•*]+$", "", t.strip())
-    t = re.sub(r"^[\s➤►•\-–—*]+", "", t)
+    t = re.sub(r"^[\s➤►•\-–—*‘’'\"`´]+", "", t)
     return re.sub(r"\s+", " ", t).strip()
 
 
@@ -53,12 +53,22 @@ def slug(text, fallback="campo"):
     return s or fallback
 
 
+def _yn_token(text):
+    t = norm(text)
+    # El OCR a veces lee el recuadro pegado a la palabra: "SiO", "No0", "SiD"
+    if t not in YES_TOKENS and t not in NO_TOKENS and 2 <= len(t) <= 4:
+        t2 = re.sub(r"[o0d]+$", "", t)
+        if t2 in YES_TOKENS or t2 in NO_TOKENS:
+            return t2
+    return t
+
+
 def is_yes(text):
-    return norm(text) in YES_TOKENS
+    return _yn_token(text) in YES_TOKENS
 
 
 def is_no(text):
-    return norm(text) in NO_TOKENS
+    return _yn_token(text) in NO_TOKENS
 
 
 def overlap(a0, a1, b0, b1):
@@ -138,6 +148,14 @@ class PageModel:
 
     def _load(self):
         p = self.page
+        self.scanned = False
+        if self._looks_scanned():
+            try:
+                self._load_scanned()
+                self.scanned = True
+                return
+            except Exception as e:  # noqa: BLE001
+                self.ocr_error = str(e)
         try:
             words = p.extract_words(x_tolerance=1.5, y_tolerance=2, keep_blank_chars=False,
                                     extra_attrs=["fontname", "size"])
@@ -208,6 +226,181 @@ class PageModel:
         self._measure_glyph_boxes()
         # Quitar líneas que son bordes de tabla
         self.rules = [r for r in self.rules if r.get("underscore") or not self._is_table_edge(r)]
+        self._dedupe_rules()
+        self._build_lines()
+
+    # ------------------------------------------------------------------ páginas escaneadas
+    def _looks_scanned(self):
+        """Página que es solo imagen (escaneo): sin texto extraíble y con imágenes."""
+        try:
+            chars = len(self.page.chars)
+            imgs = self.page.images
+        except Exception:
+            return False
+        if chars > 20 or not imgs:
+            return False
+        area = sum(float(i.get("width", 0)) * float(i.get("height", 0)) for i in imgs)
+        return area >= 0.4 * self.width * self.height
+
+    def _load_scanned(self):
+        """OCR (Tesseract) para el texto y OpenCV para recuadros, líneas y celdas de tabla."""
+        import numpy as np
+        import cv2
+        import pytesseract
+
+        dpi = 300
+        scale = dpi / 72.0
+        img = self.page.to_image(resolution=dpi).original.convert("L")
+        arr = np.array(img)
+        H, W = arr.shape
+        binv = cv2.adaptiveThreshold(arr, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 31, 15)
+        pt = lambda v: v / scale  # noqa: E731
+
+        # Líneas horizontales y verticales
+        hk = cv2.getStructuringElement(cv2.MORPH_RECT, (max(int(28 * scale), 20), 1))
+        vk = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(int(14 * scale), 12)))
+        hmask = cv2.morphologyEx(binv, cv2.MORPH_OPEN, hk)
+        vmask = cv2.morphologyEx(binv, cv2.MORPH_OPEN, vk)
+        hsegs = []
+        for c in cv2.findContours(hmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]:
+            x, y, w, h = cv2.boundingRect(c)
+            if h <= 8 * scale / 2 and w >= 40 * scale:
+                hsegs.append((x, y, w, h))
+
+        # Celdas de tabla: regiones cerradas por la rejilla de líneas
+        grid = cv2.dilate(cv2.bitwise_or(hmask, vmask), np.ones((3, 3), np.uint8), iterations=1)
+        # En los escaneos suele faltar el borde izquierdo/derecho de una tabla: se cierra uniendo
+        # los extremos de las líneas horizontales que terminan a la misma altura.
+        tol = int(4 * scale)
+        for side in ("left", "right"):
+            ends = sorted(((x if side == "left" else x + w), y) for x, y, w, h in hsegs)
+            cluster = []
+            for xe, ye in ends + [(10 ** 9, 0)]:
+                if cluster and abs(xe - cluster[-1][0]) > tol:
+                    if len(cluster) >= 2:
+                        xs = int(sum(c[0] for c in cluster) / len(cluster))
+                        y0 = min(c[1] for c in cluster)
+                        y1 = max(c[1] for c in cluster)
+                        cv2.line(grid, (xs, y0), (xs, y1 + 2), 255, 3)
+                    cluster = []
+                cluster.append((xe, ye))
+        # Huecos de la rejilla = celdas. Se usa el fondo (no las líneas) para encontrar
+        # cada región cerrada, incluso en tablas anidadas.
+        holes = cv2.bitwise_not(grid)
+        n, labels, stats, _ = cv2.connectedComponentsWithStats(holes, connectivity=4)
+        tables = []
+        for x, y, w, h, _a in stats[1:] if n > 1 else []:
+            pass
+        cells_px = []
+        for i in range(1, n):
+            x, y, w, h, area = stats[i]
+            if x <= 1 or y <= 1 or x + w >= W - 1 or y + h >= H - 1:
+                continue  # el fondo exterior de la página
+            if w < 18 * scale or h < 8 * scale or w >= W * 0.98:
+                continue
+            if area < 0.85 * w * h:
+                continue  # región no rectangular (no es una celda)
+            cells_px.append((int(x), int(y), int(w), int(h)))
+        # Tabla = grupo de celdas que se tocan
+        tid_of = {}
+        for idx, (x, y, w, h) in enumerate(cells_px):
+            tid_of[idx] = idx
+        def root(i):
+            while tid_of[i] != i:
+                tid_of[i] = tid_of[tid_of[i]]
+                i = tid_of[i]
+            return i
+        gap = int(6 * scale / 2)
+        for i, a in enumerate(cells_px):
+            for j in range(i + 1, len(cells_px)):
+                b = cells_px[j]
+                if a[0] - gap <= b[0] + b[2] and b[0] - gap <= a[0] + a[2] and a[1] - gap <= b[1] + b[3] and b[1] - gap <= a[1] + a[3]:
+                    tid_of[root(i)] = root(j)
+        for idx, (x, y, w, h) in enumerate(cells_px):
+            r = [pt(x - 1), pt(y - 1), pt(x + w + 1), pt(y + h + 1)]
+            self.cells.append({"rect": r, "table": int(root(idx)) + 1000})
+            self.table_edges.append(r)
+
+        # Recuadros de check: cuadrados huecos pequeños
+        for c in cv2.findContours(binv, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[0]:
+            x, y, w, h = cv2.boundingRect(c)
+            side_pt = pt(max(w, h))
+            if not (5 <= pt(w) <= 20 and 5 <= pt(h) <= 20) or abs(w - h) > 0.25 * max(w, h):
+                continue
+            approx = cv2.approxPolyDP(c, 0.04 * cv2.arcLength(c, True), True)
+            if len(approx) != 4 or not cv2.isContourConvex(approx):
+                continue
+            # Un cuadrado dibujado llena casi todo su rectángulo; una "O" o una "D" no.
+            if cv2.contourArea(c) < 0.82 * w * h:
+                continue
+            inner = binv[y + max(2, h // 5): y + h - max(2, h // 5), x + max(2, w // 5): x + w - max(2, w // 5)]
+            if inner.size and inner.mean() / 255.0 > 0.25:
+                continue  # relleno (letra o casilla ya marcada), no es un recuadro vacío
+            r = [pt(x), pt(y), pt(x + w), pt(y + h)]
+            if side_pt and not any(abs(b["rect"][0] - r[0]) < 2 and abs(b["rect"][1] - r[1]) < 2 for b in self.boxes):
+                self.boxes.append({"rect": r, "glyph": False})
+        # Un recuadro no es una celda de tabla
+        self.cells = [c for c in self.cells if not self._cell_is_box(c)]
+
+        # Líneas para escribir (no bordes de tabla)
+        for x, y, w, h in hsegs:
+            r = [pt(x), pt(y), pt(x + w), pt(y + h)]
+            self.rules.append({"rect": r, "y": (r[1] + r[3]) / 2})
+
+        # Texto por OCR
+        try:
+            langs = pytesseract.get_languages(config="")
+        except Exception:
+            langs = ["eng"]
+        lang = "+".join([l for l in ("spa", "eng") if l in langs]) or "eng"
+        clean = cv2.bitwise_not(cv2.bitwise_and(binv, cv2.bitwise_not(cv2.bitwise_or(hmask, vmask))))
+        data = pytesseract.image_to_data(clean, lang=lang, config="--psm 11", output_type=pytesseract.Output.DICT)
+        heights = sorted(h for h, t in zip(data["height"], data["text"]) if str(t or "").strip())
+        med_h = heights[len(heights) // 2] if heights else 30
+        for i, txt in enumerate(data["text"]):
+            t = str(txt or "").strip()
+            try:
+                conf = float(data["conf"][i])
+            except Exception:
+                conf = -1
+            if not t or conf < 35:
+                continue
+            x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+            r = [pt(x), pt(y), pt(x + w), pt(y + h)]
+            # Ruido del OCR sobre un recuadro ("O", "[]", "0"): se recorta la parte del recuadro
+            skip = False
+            for b in self.boxes:
+                br = b["rect"]
+                if overlap(r[1], r[3], br[1], br[3]) <= 0.4 * (r[3] - r[1]):
+                    continue
+                ov = overlap(r[0], r[2], br[0], br[2])
+                if ov <= 0:
+                    continue
+                if ov > 0.5 * (r[2] - r[0]):
+                    skip = True
+                    break
+                n = len(t)
+                cw = (r[2] - r[0]) / max(n, 1)
+                if br[0] > r[0]:  # recuadro a la derecha de la palabra
+                    keep = max(0, int(round((br[0] - r[0]) / cw)))
+                    t, r = t[:keep], [r[0], r[1], r[0] + cw * keep, r[3]]
+                else:  # recuadro a la izquierda
+                    drop = min(n, int(round((br[2] - r[0]) / cw)))
+                    t, r = t[drop:], [r[0] + cw * drop, r[1], r[2], r[3]]
+                t = re.sub(r"^[\[\]|()0OoD]+|[\[\]|()0OoD]+$", "", t) if len(t) > 1 and re.search(r"[\[\]|]", t) else t
+            t = t.strip(" .,;|")
+            if skip or not t:
+                continue
+            if re.fullmatch(r"[_\-—–=.|]{2,}", t):
+                continue  # rayas: ya se detectaron como líneas
+            # Tamaño estable: el alto de la caja del OCR varía con mayúsculas/acentos
+            size = 12.0 if h > 1.55 * med_h else 9.0
+            letters = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", t)
+            bold = letters.isupper() if letters else False
+            self.words.append(self._word(t, *r, "ocr", size))
+            self.words[-1]["bold"] = bold
+
+        self.rules = [r for r in self.rules if not self._is_table_edge(r)]
         self._dedupe_rules()
         self._build_lines()
 
@@ -703,6 +896,14 @@ class Analyzer:
             for s in question:
                 s["used"] = True
             yn = len(g) >= 2 and all(is_yes(b["label"]) or is_no(b["label"]) for b in g)
+            if not yn and len(g) == 2 and any(is_yes(b["label"]) or is_no(b["label"]) for b in g) and \
+                    all(is_yes(b["label"]) or is_no(b["label"]) or len(norm(b["label"])) <= 2 for b in g):
+                yn = True  # par Sí/No donde el OCR no leyó una de las dos etiquetas
+            if yn and len(g) == 2:
+                ys = [is_yes(b["label"]) for b in g]
+                ns = [is_no(b["label"]) for b in g]
+                if not (ys[0] and ns[1]) and not (ns[0] and ys[1]):
+                    g[0]["label"], g[1]["label"] = "Sí", "No"  # orden habitual: Sí primero
             anchor_top = min([b["rect"][1] for b in g] + [s["rect"][1] for s in question])
             anchor_x = min([b["rect"][0] for b in g] + [s["rect"][0] for s in question])
             options = []
@@ -807,6 +1008,14 @@ class Analyzer:
                 lab = self._label_above(pm, rect, max_gap=10)
                 if lab is not None and lab["used"]:
                     lab = None
+            # Línea divisoria de ancho casi completo (bajo un título): no es una línea para escribir
+            if (r[2] - r[0]) > 0.6 * pm.width and not (lab and lab["text"].rstrip().endswith(":")):
+                continue
+            if lab is None and not rule.get("underscore"):
+                continue  # línea suelta sin etiqueta: no se puede saber qué pedir
+            if lab is not None and lab["bold"] and not lab["text"].rstrip().endswith(":") and \
+                    re.sub(r"[^A-Za-zÁÉÍÓÚÑ]", "", lab["text"]).isupper() and len(lab["text"].split()) >= 3:
+                continue  # título en mayúsculas junto a un borde: no es un campo
             label = lab["text"] if lab else "Campo"
             if lab:
                 lab["used"] = True
@@ -977,6 +1186,9 @@ class Analyzer:
             s = segs[0]
             if s["used"] or s["bold"] or len(s["text"].split()) > 6 or s["text"].strip().endswith("?"):
                 continue
+            letters = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", s["text"])
+            if letters.isupper() and len(s["text"].split()) >= 3:
+                continue  # título en mayúsculas
             if any(rect_contains(c["rect"], *self._center(b)) for b in pm.boxes):
                 continue
             r = c["rect"]
@@ -1008,7 +1220,7 @@ class Analyzer:
                 segs = [s for s in line["segments"] if not s["used"]]
                 for s in segs:
                     t = s["text"].strip()
-                    if not t or norm(t) in repeated or s.get("hint"):
+                    if not t or not norm(t) or norm(t) in repeated or s.get("hint"):
                         continue
                     if re.match(r"^(p[aá]gina|page)\s*\d+(\s*(de|of)\s*\d+)?$", t, re.I) or re.match(r"^\d+$", t):
                         continue
@@ -1026,6 +1238,10 @@ class Analyzer:
             for i, page in enumerate(pdf.pages):
                 pm = PageModel(page, i)
                 self.models.append(pm)
+                if pm.scanned:
+                    self.warnings.append(f"page {i + 1}: scanned (OCR)")
+                elif getattr(pm, "ocr_error", None):
+                    self.warnings.append(f"page {i + 1}: scanned page, OCR unavailable: {pm.ocr_error}")
                 self.pages.append({"w": round(pm.width, 2), "h": round(pm.height, 2)})
         sizes = [w["size"] for pm in self.models for w in pm.words]
         body = sorted(sizes)[len(sizes) // 2] if sizes else 9
@@ -1181,7 +1397,8 @@ class Analyzer:
         order = [it["key"] for s in out for it in s["items"] if it["type"] == "field"]
         return {
             "engineVersion": ENGINE_VERSION,
-            "source": "acroform" if any(f.get("acroName") for f in self.fields.values()) else "flat",
+            "source": "acroform" if any(f.get("acroName") for f in self.fields.values()) else
+                      ("scanned" if any(m.scanned for m in self.models) else "flat"),
             "pages": self.pages,
             "sections": out,
             "fields": self.fields,

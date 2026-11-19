@@ -494,6 +494,10 @@ const AdminDashboard = () => {
           toast.success(lang === 'en'
             ? `Template v${tv.version} is now active: new ${tv.formType} submissions will use it (${tv.fieldCount} fields).`
             : `Plantilla v${tv.version} activa: los trámites nuevos de ${tv.formType} la usarán (${tv.fieldCount} campos).`);
+        } else if (tv.fieldCount > 0 && tv.reviewReason === 'scanned') {
+          toast.success(lang === 'en'
+            ? `Scanned PDF: text was read with OCR and ${tv.fieldCount} fields were found. Template v${tv.version} is PENDING: check its Preview in «Template versions» and press Activate.`
+            : `PDF escaneado: se leyó el texto con OCR y se encontraron ${tv.fieldCount} campos. La plantilla v${tv.version} quedó PENDIENTE: revise su Vista previa en «Versiones de plantilla» y presione Activar.`);
         } else if (tv.fieldCount > 0) {
           toast.error(lang === 'en'
             ? `Template v${tv.version} removes or changes fields of the previous version: it is PENDING your review in «Template versions». Nothing was changed for clients yet.`

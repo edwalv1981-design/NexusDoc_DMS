@@ -710,6 +710,8 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
                     isActive: created.isActive,
                     changes: created.changes ? created.changes.summary : null,
                     pendingReview: Boolean(created.schema && created.schema.review && created.schema.review.pending),
+                    reviewReason: (created.schema && created.schema.review && created.schema.review.reason) || null,
+                    scanned: Boolean(created.schema && created.schema.source === 'scanned'),
                 };
                 const sm = created.changes && created.changes.summary;
                 await AuditLog.create({
@@ -720,7 +722,11 @@ router.post('/upload-template', [auth, isAdmin, upload.single('template')], asyn
                             ? ` (vs v${created.changes.basedOnVersion}: ${sm.same} iguales, ${sm.relabeled} renombrados, ${sm.added} nuevos, ${sm.removed} quitados)`
                             : '') +
                         (created.isActive ? ' — ACTIVA para trámites nuevos'
-                            : created.fieldCount ? ' — PENDIENTE de revisión (quita o cambia campos)' : ' — sin campos, NO se activó'),
+                            : created.fieldCount
+                                ? (created.schema.source === 'scanned'
+                                    ? ' — PDF escaneado (OCR): PENDIENTE de revisión'
+                                    : ' — PENDIENTE de revisión (quita o cambia campos)')
+                                : ' — sin campos, NO se activó'),
                 }).catch(() => {});
             } catch (verErr) {
                 console.error('⚠️ No se pudo crear la versión de plantilla:', verErr);
@@ -791,6 +797,27 @@ router.post('/template-versions/use-standard', [auth, isAdmin], async (req, res)
     } catch (err) {
         console.error('Error volviendo al formulario estándar:', err);
         res.status(500).json({ msg: 'Error al volver al formulario estándar' });
+    }
+});
+
+// @route   POST api/admin/template-versions/:id/reanalyze
+// @desc    Vuelve a analizar el PDF de una versión y crea una versión nueva PENDIENTE (no se activa sola)
+router.post('/template-versions/:id/reanalyze', [auth, isAdmin], async (req, res) => {
+    try {
+        const created = await templateVersionService.reanalyzeVersion(sequelize, req.params.id, req.user.id);
+        if (!created) return res.status(404).json({ msg: 'Versión no encontrada' });
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_VERSION_REANALYZE',
+            description: `Volvió a analizar la plantilla ${created.formType}: v${created.version} con ${created.fieldCount} campos (pendiente de revisión)`,
+        }).catch(() => {});
+        res.json({
+            msg: 'Versión creada para revisión',
+            version: { id: created.id, version: created.version, fieldCount: created.fieldCount, isActive: created.isActive },
+        });
+    } catch (err) {
+        console.error('Error al volver a analizar la plantilla:', err);
+        res.status(500).json({ msg: `No se pudo analizar la plantilla: ${err.message}` });
     }
 });
 

@@ -110,3 +110,20 @@ describe('motor de plantillas (Python)', { skip: !engineAvailable && 'librerías
     assert.ok(!out.toString('latin1').includes('/AcroForm'), 'sin AcroForm');
   });
 });
+
+const ocrProbe = spawnSync(resolvePythonCommand(), ['-c', 'import pytesseract, cv2; pytesseract.get_tesseract_version()'], { encoding: 'utf8' });
+describe('plantilla escaneada (OCR)', { skip: (!engineAvailable || ocrProbe.status !== 0) && 'OCR no instalado' }, () => {
+  it('lee el texto con OCR y detecta campos, casillas, Sí/No y firma', async () => {
+    const sc = await svc.analyzeBuffer(FIX('template_scanned.pdf'), 'Fondos Registros contables');
+    assert.equal(sc.source, 'scanned');
+    const byLabel = (re) => Object.values(sc.fields).find((f) => re.test(f.label));
+    assert.ok(sc.fieldCount >= 10, `campos: ${sc.fieldCount}`);
+    assert.equal(byLabel(/^Nombre completo$/).kind, 'text');
+    assert.deepEqual(byLabel(/origen de los fondos/).options.map((o) => o.label),
+      ['Salario', 'Herencia', 'Venta de inmuebles', 'Inversiones']);
+    assert.equal(byLabel(/expuesta pol/).kind, 'yesno');
+    assert.equal(byLabel(/Firma del declarante/).kind, 'signature');
+    const out = await svc.fillBuffer(FIX('template_scanned.pdf'), sc, { [byLabel(/^Nombre completo$/).key]: 'Ana Gómez' });
+    assert.equal(out.slice(0, 5).toString(), '%PDF-');
+  });
+});

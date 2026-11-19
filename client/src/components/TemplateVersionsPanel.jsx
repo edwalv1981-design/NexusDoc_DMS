@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { Layers, Eye, Download, RotateCcw, CheckCircle } from 'lucide-react';
+import { Layers, Eye, Download, RotateCcw, CheckCircle, RefreshCw } from 'lucide-react';
 import API_BASE_URL from '../config';
 import { useLang } from '../i18n';
 import { useToast } from './Toast';
@@ -48,6 +48,11 @@ const TX = {
     lRemoved: 'Quitados (los datos guardados se conservan, solo dejan de mostrarse)',
     lKind: 'Cambio de tipo',
     lOptions: 'Opciones nuevas',
+    pendingScanned: 'PDF escaneado: el texto se leyó con OCR. Revise la Vista previa (que cada campo esté en su lugar y con la etiqueta correcta) antes de activarla.',
+    pendingManual: 'Versión creada para revisión. Revise la Vista previa y presione «Activar» si está correcta.',
+    reanalyze: 'Volver a analizar',
+    confirmReanalyze: 'Se volverá a analizar el PDF de la versión {v} y se creará una versión nueva PENDIENTE de revisión. No se activa sola ni cambia nada para los clientes. ¿Continuar?',
+    scannedTag: 'Escaneado (OCR)',
   },
   en: {
     title: 'Template versions (form and PDF for new submissions)',
@@ -77,6 +82,11 @@ const TX = {
     lRemoved: 'Removed (saved data is kept, just no longer shown)',
     lKind: 'Type changed',
     lOptions: 'New options',
+    pendingScanned: 'Scanned PDF: text was read with OCR. Check the Preview (each field in place and with the right label) before activating it.',
+    pendingManual: 'Version created for review. Check the Preview and press «Activate» if it is correct.',
+    reanalyze: 'Analyze again',
+    confirmReanalyze: 'The PDF of version {v} will be analyzed again and a new version PENDING review will be created. It is not activated automatically and nothing changes for clients. Continue?',
+    scannedTag: 'Scanned (OCR)',
   },
 };
 
@@ -193,8 +203,11 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
                         </td>
                         <td style={{ padding: '6px 4px', color: v.fieldCount ? '#334155' : '#b91c1c' }}>
                           {v.fieldCount ? fmt(tx.fields, { n: v.fieldCount }) : tx.noFields}
+                          {v.source === 'scanned' ? (
+                            <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '1px 6px', borderRadius: 4 }}>{tx.scannedTag}</span>
+                          ) : null}
                           {v.review && v.review.pending && !v.isActive ? (
-                            <span title={tx.pendingHelp} style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#a16207', background: '#fef9c3', padding: '1px 6px', borderRadius: 4 }}>
+                            <span title={v.review.reason === 'scanned' ? tx.pendingScanned : v.review.reason === 'manual' ? tx.pendingManual : tx.pendingHelp} style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#a16207', background: '#fef9c3', padding: '1px 6px', borderRadius: 4 }}>
                               {tx.pending}
                             </span>
                           ) : null}
@@ -211,7 +224,7 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
                           </div>
                           {openId === v.id && v.changes ? (
                             <div style={{ fontSize: 10, color: '#334155', marginTop: 6, lineHeight: 1.5 }}>
-                              {v.review && v.review.pending ? <p style={{ color: '#a16207', margin: '0 0 4px' }}>{tx.pendingHelp}</p> : null}
+                              {v.review && v.review.pending ? <p style={{ color: '#a16207', margin: '0 0 4px' }}>{v.review.reason === 'scanned' ? tx.pendingScanned : v.review.reason === 'manual' ? tx.pendingManual : tx.pendingHelp}</p> : null}
                               {(v.changes.relabeled || []).length ? <div><strong>{tx.lRelabeled}:</strong> {v.changes.relabeled.map((r) => `«${r.from}» → «${r.to}»`).join('; ')}</div> : null}
                               {(v.changes.added || []).length ? <div><strong>{tx.lAdded}:</strong> {v.changes.added.join(', ')}</div> : null}
                               {(v.changes.removed || []).length ? <div style={{ color: '#b91c1c' }}><strong>{tx.lRemoved}:</strong> {v.changes.removed.map((r) => r.label).join(', ')}</div> : null}
@@ -235,6 +248,12 @@ const TemplateVersionsPanel = ({ refreshKey = 0 }) => {
                           </button>{' '}
                           <button type="button" style={btn} onClick={() => openPdf(v.id, 'file')}>
                             <Download size={12} /> {tx.original}
+                          </button>{' '}
+                          <button type="button" style={btn} disabled={busy} onClick={() => {
+                            if (!window.confirm(fmt(tx.confirmReanalyze, { v: v.version }))) return;
+                            act(() => axios.post(`${API_BASE_URL}/api/admin/template-versions/${v.id}/reanalyze`, {}, { headers: headers() }));
+                          }}>
+                            <RefreshCw size={12} /> {tx.reanalyze}
                           </button>
                         </td>
                       </tr>

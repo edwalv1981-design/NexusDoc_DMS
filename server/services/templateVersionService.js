@@ -99,7 +99,7 @@ async function ensureTable(sequelize) {
 
 // ------------------------------------------------------------------ motor Python
 
-function runEngine(payload, timeoutMs = 120000) {
+function runEngine(payload, timeoutMs = 240000) {
   return new Promise((resolve, reject) => {
     const proc = spawn(resolvePythonCommand(), [ENGINE_SCRIPT], { stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '';
@@ -197,7 +197,7 @@ async function listVersions(sequelize, formType = null) {
   await ensureTable(sequelize);
   const where = formType ? 'WHERE "formType" = :formType' : '';
   const rows = rowsOf(await sequelize.query(
-    `SELECT ${META_COLS}, "schema"->'changes' AS "changes", "schema"->'review' AS "review"
+    `SELECT ${META_COLS}, "schema"->'changes' AS "changes", "schema"->'review' AS "review", "schema"->>'source' AS "source"
      FROM ${TABLE} ${where} ORDER BY "formType", "version" DESC`,
     { replacements: { formType } }
   ));
@@ -282,8 +282,13 @@ async function createVersion(sequelize, { templateId, formType, pdfBuffer, fileN
   // Se activa sola solo si no se pierde nada respecto de la versión anterior. Si se quitan
   // campos o cambia el tipo de alguno, queda PENDIENTE para que el administrador revise.
   const safe = previous.length === 0 || isSafeToAutoActivate(changes);
-  const willActivate = Boolean(activate) && fieldCount > 0 && safe;
-  schema.review = { pending: fieldCount > 0 && !willActivate && Boolean(activate), reason: safe ? null : 'changes' };
+  // Plantilla escaneada: el OCR puede equivocarse en alguna etiqueta, siempre se revisa antes.
+  const scanned = schema && schema.source === 'scanned';
+  const willActivate = Boolean(activate) && fieldCount > 0 && safe && !scanned;
+  schema.review = {
+    pending: fieldCount > 0 && !willActivate,
+    reason: !safe ? 'changes' : scanned ? 'scanned' : !activate ? 'manual' : null,
+  };
 
   await sequelize.transaction(async (transaction) => {
     if (willActivate) {
@@ -313,6 +318,23 @@ async function createVersion(sequelize, { templateId, formType, pdfBuffer, fileN
     );
   });
   return { id, formType: canonical, version, fieldCount, isActive: willActivate, schema, changes };
+}
+
+/**
+ * Vuelve a analizar el PDF de una versión existente (p. ej. después de mejorar el motor) y crea
+ * una versión NUEVA, sin activarla: queda pendiente de revisión. No modifica la versión original.
+ */
+async function reanalyzeVersion(sequelize, id, uploadedBy) {
+  const v = await getVersion(sequelize, id, { withFile: true });
+  if (!v || !v.fileData) return null;
+  return createVersion(sequelize, {
+    templateId: v.templateId,
+    formType: v.formType,
+    pdfBuffer: Buffer.isBuffer(v.fileData) ? v.fileData : Buffer.from(v.fileData),
+    fileName: v.fileName,
+    uploadedBy,
+    activate: false,
+  });
 }
 
 /** Marca de versión guardada en los datos de un trámite (o null para trámites del formato estándar). */
@@ -384,6 +406,7 @@ module.exports = {
   setActive,
   deactivateAll,
   createVersion,
+  reanalyzeVersion,
   versionRefOf,
   sanitizeVersionRef,
   generatePdfForForm,

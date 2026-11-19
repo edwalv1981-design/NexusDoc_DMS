@@ -5,6 +5,9 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    tesseract-ocr-eng \
     python3-venv \
     gcc \
     python3-dev \
@@ -62,7 +65,7 @@ RUN cd client && npm install --legacy-peer-deps
 # Sin "|| true": si fallan, el build falla (antes el verificador de firmas quedaba
 # sin librerías y todo documento salía "pendiente" sin aviso).
 RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt \
-    && python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi, pdfplumber, pypdf, reportlab"
+    && python3 -c "import fitz, pyhanko, pyhanko_certvalidator, certifi, pdfplumber, pypdf, reportlab, pytesseract, cv2, numpy" && tesseract --list-langs | grep -q spa
 
 # 7. Copiar el resto del código
 COPY . .
