@@ -47,6 +47,39 @@ function pickLatest(rows) {
     return rows.length ? rows[rows.length - 1] : null;
 }
 
+/**
+ * De una lista de filas de trámites (pueden venir varias versiones del mismo trámite),
+ * deja solo la versión más reciente de cada trámite (misma cadena = mismo usuario + misma raíz).
+ * Conserva el orden de aparición de la primera fila de cada cadena en `rows`.
+ * `extraRows` (opcional): otras versiones de esas cadenas, para no quedarse con una versión
+ * vieja cuando la última no coincidió con la búsqueda.
+ */
+function latestPerChain(rows, extraRows = []) {
+    const order = [];
+    const best = new Map();
+    const keyOf = (r) => `${r.userId || ''}|${getRootId(r)}`;
+    const newer = (a, b) => {
+        const va = getMeta(a).version;
+        const vb = getMeta(b).version;
+        if (va !== vb) return va > vb;
+        return new Date(a.updatedAt || a.createdAt || 0) > new Date(b.updatedAt || b.createdAt || 0);
+    };
+    for (const r of rows || []) {
+        const k = keyOf(r);
+        if (!best.has(k)) {
+            order.push(k);
+            best.set(k, r);
+        } else if (newer(r, best.get(k))) {
+            best.set(k, r);
+        }
+    }
+    for (const r of extraRows || []) {
+        const k = keyOf(r);
+        if (best.has(k) && newer(r, best.get(k))) best.set(k, r);
+    }
+    return order.map((k) => best.get(k));
+}
+
 async function getLatest(form) {
     return pickLatest(await getChain(form));
 }
@@ -153,6 +186,7 @@ module.exports = {
     getChain,
     getLatest,
     pickLatest,
+    latestPerChain,
     stripServerKeys,
     sanitizeProgress,
     getAdminEditLog,

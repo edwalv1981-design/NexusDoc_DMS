@@ -8,6 +8,7 @@ const { User, AuditLog, FormData, PendingRegistration, UserDocument, SignedDocum
 const { sequelize } = require('../config/db');
 const templateFieldSchemaService = require('../services/templateFieldSchemaService');
 const templateVersionService = require('../services/templateVersionService');
+const formVersions = require('../services/formVersionService');
 const emailService = require('../services/emailService');
 const { sendTemporaryPassword, sendNewUserNotificationToAdmins, sendAccountAuthorizedNotice } = emailService;
 const multer = require('multer');
@@ -1226,6 +1227,43 @@ function extractAllParticipantsFromForm(d) {
   return participants;
 }
 
+/**
+ * Deja solo la última versión de cada trámite. Si la versión que coincidió con la búsqueda
+ * no es la última, se trae la última de esa misma cadena (mismo usuario y misma raíz).
+ */
+async function keepLatestFormVersions(forms) {
+    if (!Array.isArray(forms) || forms.length === 0) return [];
+    let extra = [];
+    try {
+        const rootIds = [...new Set(forms.map((f) => formVersions.getRootId(f)).filter(Boolean))];
+        if (rootIds.length) {
+            extra = await FormData.findAll({
+                where: {
+                    [Op.or]: [
+                        { id: { [Op.in]: rootIds } },
+                        { 'data.__metadata.parentId': { [Op.in]: rootIds } },
+                    ],
+                },
+                include: [{ model: User, required: false, attributes: ['id', 'name', 'email', 'uniqueCode'] }],
+            });
+        }
+    } catch (e) {
+        console.warn('Consultas: no se pudieron cargar las versiones de los trámites:', e.message);
+    }
+    return formVersions.latestPerChain(forms, extra).slice(0, 150);
+}
+
+/** Documentos: si el mismo usuario tiene varias versiones del mismo archivo, solo la más reciente. */
+function latestDocumentPerName(docs) {
+    const seen = new Map();
+    for (const d of docs || []) {
+        const k = `${d.type}|${d.userId || ''}|${String(d.filename || '').trim().toLowerCase()}`;
+        const prev = seen.get(k);
+        if (!prev || new Date(d.createdAt || 0) > new Date(prev.createdAt || 0)) seen.set(k, d);
+    }
+    return [...seen.values()].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}
+
 async function performAdminSearch(queryParams) {
     const { nombres, ruc, codigoUnico, usuario, empresa, formType } = queryParams;
 
@@ -1314,7 +1352,9 @@ async function performAdminSearch(queryParams) {
                 attributes: ['id', 'name', 'email', 'uniqueCode']
             }],
             order: [['updatedAt', 'DESC']],
-            limit: 150
+            // Se piden más filas porque cada guardado de un trámite es una versión (fila) nueva;
+            // abajo se deja solo la última versión de cada trámite y se recorta a 150.
+            limit: 600
         });
     } catch (ormErr) {
         console.error('Sequelize ORM search error in admin search-person:', ormErr.message);
@@ -1340,6 +1380,9 @@ async function performAdminSearch(queryParams) {
             data: typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {})
         }));
     }
+
+    // Consultas muestra solo la ÚLTIMA versión de cada trámite (no todas sus versiones).
+    forms = await keepLatestFormVersions(forms);
 
     let catalogPeople = [];
     try {
@@ -1390,7 +1433,8 @@ async function performAdminSearch(queryParams) {
             personDetails: {},
             entityName: entityName,
             formData: d,
-            formDate: f.updatedAt
+            formDate: f.updatedAt,
+            formVersion: formVersions.getMeta(f).version
         });
     });
 
@@ -1464,7 +1508,7 @@ async function performAdminSearch(queryParams) {
                 return [];
             });
 
-            matchingDocuments = [
+            matchingDocuments = latestDocumentPerName([
                 ...userDocs.map(d => ({
                     id: d.id,
                     filename: d.filename,
@@ -1487,7 +1531,7 @@ async function performAdminSearch(queryParams) {
                     userCode: d.User?.uniqueCode || '',
                     createdAt: d.createdAt
                 }))
-            ];
+            ]);
         }
     } catch (docErr) {
         console.error('Error fetching matching docs:', docErr.message);

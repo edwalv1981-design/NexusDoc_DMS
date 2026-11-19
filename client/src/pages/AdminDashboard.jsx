@@ -930,6 +930,11 @@ const AdminDashboard = () => {
                                   <h3 style={{ margin: 0, fontSize: 15, color: '#0f766e', fontWeight: 800 }}>{r.entityName || t('admin.formGeneric')}</h3>
                                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                     <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>{r.formType}</span>
+                                    {r.formVersion > 1 && (
+                                      <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: 4, marginRight: 8, fontWeight: 700 }}>
+                                        {lang === 'en' ? `Latest version (v${r.formVersion})` : `Última versión (v${r.formVersion})`}
+                                      </span>
+                                    )}
                                     {t('admin.uploadedBy')} <button onClick={() => handleViewUserForms(r.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: PRIMARY, fontWeight: 600, textDecoration: 'underline', padding: 0 }}>{r.userName}</button> ({r.userCode || t('admin.noCode')}) {t('admin.onDate')} {new Date(r.formDate).toLocaleDateString(locale)}
                                     <button onClick={() => handleOpenEditUser(r)} title={t('admin.editUser')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                                       <UserCog size={10} /> {t('admin.editUser')}
