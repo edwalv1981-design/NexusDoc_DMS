@@ -111,6 +111,9 @@ def is_date_hint(text):
     return bool(t) and bool(DATE_HINT_RE.match(t))
 
 
+_UNIT = [1.0]  # escala de la página en análisis (ver Analyzer)
+
+
 def infer_kind(label, rect):
     n = norm(label)
     if has_word(n, SIGN_WORDS, prefix=False):
@@ -118,7 +121,7 @@ def infer_kind(label, rect):
     if has_word(n, DATE_WORDS) and "lugar" not in n and "place" not in n:
         return "date"
     h = rect[3] - rect[1] if rect else 0
-    if h >= 30 or has_word(n, LONG_WORDS):
+    if h >= 30 * _UNIT[0] or has_word(n, LONG_WORDS):
         return "textarea"
     return "text"
 
@@ -134,6 +137,8 @@ class PageModel:
         self.index = index
         self.width = float(page.width)
         self.height = float(page.height)
+        # Escala de la página respecto de una hoja carta/A4 (algunos PDF escaneados son más grandes)
+        self.u = max(1.0, self.width / 612.0)
         self.ox = float(page.bbox[0])
         self.oy = float(page.bbox[1])
         self.words = []
@@ -326,7 +331,7 @@ class PageModel:
         for c in cv2.findContours(binv, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[0]:
             x, y, w, h = cv2.boundingRect(c)
             side_pt = pt(max(w, h))
-            if not (5 <= pt(w) <= 20 and 5 <= pt(h) <= 20) or abs(w - h) > 0.25 * max(w, h):
+            if not (5 * self.u <= pt(w) <= 20 * self.u and 5 * self.u <= pt(h) <= 20 * self.u) or abs(w - h) > 0.25 * max(w, h):
                 continue
             approx = cv2.approxPolyDP(c, 0.04 * cv2.arcLength(c, True), True)
             if len(approx) != 4 or not cv2.isContourConvex(approx):
@@ -337,6 +342,12 @@ class PageModel:
             inner = binv[y + max(2, h // 5): y + h - max(2, h // 5), x + max(2, w // 5): x + w - max(2, w // 5)]
             if inner.size and inner.mean() / 255.0 > 0.25:
                 continue  # relleno (letra o casilla ya marcada), no es un recuadro vacío
+            # Un cuadrado tiene tinta en sus 4 esquinas; una "O" o una "D" en negrita no.
+            k = max(2, min(w, h) // 6)
+            corners = [binv[y:y + k, x:x + k], binv[y:y + k, x + w - k:x + w],
+                       binv[y + h - k:y + h, x:x + k], binv[y + h - k:y + h, x + w - k:x + w]]
+            if sum(1 for cc in corners if cc.size and cc.mean() / 255.0 > 0.3) < 4:
+                continue
             r = [pt(x), pt(y), pt(x + w), pt(y + h)]
             if side_pt and not any(abs(b["rect"][0] - r[0]) < 2 and abs(b["rect"][1] - r[1]) < 2 for b in self.boxes):
                 self.boxes.append({"rect": r, "glyph": False})
@@ -409,7 +420,8 @@ class PageModel:
             if not re.search(r"[A-Za-z0-9ÁÉÍÓÚÑáéíóúñ¿?]", t):
                 continue  # ruido del OCR (restos de líneas): sin letras ni números
             # Tamaño estable: el alto de la caja del OCR varía con mayúsculas/acentos
-            size = 12.0 if h > 1.55 * med_h else 9.0
+            base = max(6.0, min(20.0, pt(med_h) * 1.35))
+            size = base * 1.33 if h > 1.55 * med_h else base
             letters = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", t)
             bold = letters.isupper() if letters else False
             self.words.append(self._word(t, *r, "ocr", size))
@@ -742,10 +754,10 @@ class Analyzer:
             sr = s["rect"]
             if abs((sr[1] + sr[3]) / 2 - cy) > max(5, (r[3] - r[1])):
                 continue
-            if sr[0] >= r[2] - 1 and sr[0] - r[2] <= 24:
+            if sr[0] >= r[2] - 1 and sr[0] - r[2] <= 24 * pm.u:
                 if right is None or sr[0] < right["rect"][0]:
                     right = s
-            if sr[2] <= r[0] + 1 and r[0] - sr[2] <= (60 if s["text"].rstrip().endswith(":") else 24):
+            if sr[2] <= r[0] + 1 and r[0] - sr[2] <= (60 if s["text"].rstrip().endswith(":") else 24) * pm.u:
                 if left is None or sr[2] > left["rect"][2]:
                     left = s
         # Patrón "Sí ☐ No ☐" o "Etiqueta: ☐": la etiqueta está a la izquierda
@@ -773,9 +785,10 @@ class Analyzer:
                     for o in pm.segments:
                         if o is cur or o["used"] or o["cell"] is not seg["cell"]:
                             continue
-                        if b["rect"][0] - 4 <= o["rect"][0] <= seg["rect"][0] + 2.5 and 0 <= o["rect"][1] - cur["rect"][3] <= 3.5:
+                        if b["rect"][0] - 4 * pm.u <= o["rect"][0] <= seg["rect"][0] + 2.5 * pm.u and \
+                                0 <= o["rect"][1] - cur["rect"][3] <= max(3.5 * pm.u, 0.45 * seg["size"]):
                             if any(abs(self._center(bb)[1] - (o["rect"][1] + o["rect"][3]) / 2) <= 5 and
-                                   0 <= o["rect"][0] - bb["rect"][2] <= 24 for bb in pm.boxes):
+                                   0 <= o["rect"][0] - bb["rect"][2] <= 24 * pm.u for bb in pm.boxes):
                                 continue
                             nxt = o
                             break
@@ -818,9 +831,9 @@ class Analyzer:
                     gap = g[0]["rect"][1] - max(b["rect"][3] for b in prev)
                     same_table = (pm.cell_of(*self._center(g[0])) or {}).get("table") is not None and \
                         (pm.cell_of(*self._center(g[0])) or {}).get("table") == (pm.cell_of(*self._center(prev[0])) or {}).get("table")
-                    aligned = abs(g[0]["rect"][0] - prev[0]["rect"][0]) <= 6
+                    aligned = abs(g[0]["rect"][0] - prev[0]["rect"][0]) <= 6 * pm.u
                     blocker = self._text_between(pm, prev, g)
-                    if 0 <= gap <= 30 and (same_table or aligned) and not blocker:
+                    if 0 <= gap <= 30 * pm.u and (same_table or aligned) and not blocker:
                         prev.extend(g)
                         continue
             merged.append(g)
@@ -1097,9 +1110,22 @@ class Analyzer:
             return
         s = min(cands, key=lambda o: (o["rect"][1], o["rect"][0]))
         s["used"] = True
+        label_text = s["text"]
+        # "If yes, provide" + "details:" en la línea siguiente -> una sola etiqueta
+        if not s["text"].rstrip().endswith((":", ".", "?")):
+            left_x = cell["rect"][0] if cell is not None else s["rect"][0]
+            for o in sorted(pm.segments, key=lambda o: o["rect"][1]):
+                if o["used"] or o is s or (cell is not None and o["cell"] is not cell):
+                    continue
+                if 0 <= o["rect"][1] - s["rect"][3] <= max(0.9 * s["size"], 4 * pm.u) and len(o["text"].split()) <= 4 and \
+                        (abs(o["rect"][0] - left_x) <= 8 * pm.u or abs(o["rect"][0] - s["rect"][0]) <= 4 * pm.u):
+                    o["used"] = True
+                    label_text += " " + o["text"]
+                    s = o
+                    break
         rect = self._space_for(pm, s, right_margin, multiline=True)
         flow = self._flow
-        label = clean_label(s["text"])
+        label = clean_label(label_text)
         self._add_field(pm.index, label, "textarea", rect=rect,
                         extra={"anchor": (s["rect"][1], s["rect"][0]), "requiredIf": {"key": yes_key, "value": "yes"},
                                **({"flow": [round(v, 2) for v in flow]} if flow else {}),
@@ -1195,7 +1221,24 @@ class Analyzer:
     def _inline_cell_fields(self, pm):
         """Celda con etiqueta corta y espacio libre a la derecha (p. ej. 'Primer nombre ______')."""
         for c in pm.cells:
-            segs = [s for s in pm.segments if s["cell"] is c]
+            segs = sorted([s for s in pm.segments if s["cell"] is c], key=lambda o: o["rect"][1])
+            if len(segs) > 1:
+                # Etiqueta corta partida en varias líneas alineadas ("Middle" / "Name")
+                aligned = all(abs(o["rect"][0] - segs[0]["rect"][0]) <= 3 * pm.u for o in segs)
+                close = all(0 <= b["rect"][1] - a["rect"][3] <= max(0.9 * a["size"], 4 * pm.u) for a, b in zip(segs, segs[1:]))
+                if not (aligned and close and len(segs) <= 3 and sum(len(o["text"].split()) for o in segs) <= 6) or \
+                        any(o["used"] for o in segs):
+                    continue
+                merged = dict(segs[0])
+                merged["text"] = " ".join(o["text"] for o in segs)
+                merged["rect"] = [min(o["rect"][0] for o in segs), segs[0]["rect"][1],
+                                  max(o["rect"][2] for o in segs), segs[-1]["rect"][3]]
+                merged["bold"] = all(o["bold"] for o in segs)
+                merged["used"] = False
+                parts = segs
+                segs = [merged]
+            else:
+                parts = segs
             if len(segs) != 1:
                 continue
             s = segs[0]
@@ -1211,10 +1254,12 @@ class Analyzer:
                    overlap(o["rect"][1], o["rect"][3], r[1], r[3]) > (r[3] - r[1]) * 0.5]
             if row and all(o["rect"][0] >= r[2] - 1 for o in row):
                 continue  # celda más a la izquierda de la fila: es etiqueta de grupo
-            if r[2] - s["rect"][2] < 100:
+            if r[2] - s["rect"][2] < 100 * pm.u * 0.8:
                 continue
             rect = [s["rect"][2] + 4, s["rect"][1] - 1, r[2] - 3, s["rect"][3] + 2]
             s["used"] = True
+            for o in parts:
+                o["used"] = True
             self._add_field(pm.index, s["text"], infer_kind(s["text"], rect), rect=rect,
                             extra={"anchor": (s["rect"][1], s["rect"][0])})
 
@@ -1267,6 +1312,7 @@ class Analyzer:
             self._from_acro(acro)
         else:
             for pm in self.models:
+                _UNIT[0] = pm.u
                 self._boxes_to_fields(pm)
                 self._cells_to_fields(pm)
                 self._rules_to_fields(pm)
