@@ -324,7 +324,8 @@ class KyceHtmlPdfService {
     .ind { margin: 7pt 0 7pt 22pt; }
     .sign td { vertical-align: middle; }
     .sign .sig-box { height: 44pt; }
-    .sign tr, .roles-grid tr { page-break-inside: avoid; }
+    /* Ninguna fila se parte entre páginas: cada recuadro sale siempre completo y cerrado. */
+    tr { page-break-inside: avoid; break-inside: avoid; }
 ` +
         '</style></head><body>' +
         inner +
