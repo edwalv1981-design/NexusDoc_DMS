@@ -73,11 +73,11 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
   const sourceOfWealth = String(data.sourceOfWealth || '').trim() || kyciMaster.legacySourceOfWealth(data);
 
   const introList = t.introItems
-    .map(([text, bold]) => `<li><span class="tick">&#10003;</span> ${esc(text)} (<b>${esc(bold)}</b>)</li>`)
+    .map(([text, bold]) => `<li><span class="bullet"></span>${esc(text)} (<b>${esc(bold)}</b>)</li>`)
     .join('');
 
   const roleCells = kyciMaster.APPLICANT_ROLE_OPTIONS.map(
-    (opt) => `<td>${box(roles.includes(opt.key))} ${esc(opt[t.roleLabel])}</td>`
+    (opt) => `<td><div class="role">${box(roles.includes(opt.key))}<span class="role-txt">${esc(opt[t.roleLabel]).replace(/\//g, '/<wbr>')}</span></div></td>`
   );
   const roleRows = `<tr>${roleCells.slice(0, 5).join('')}</tr><tr>${roleCells.slice(5).join('')}</tr>`;
 
@@ -239,11 +239,16 @@ class KyciHtmlPdfService {
     .entity .lbl { width: 32%; }
     .boxed { border: 1px solid #4b2e83; padding: 6px 8px; margin: 0; }
     .boxed + .boxed, .boxed + .frm, .frm + .boxed { border-top: none; }
+    .frm.entity + .boxed { border-top: 1px solid #4b2e83; margin-top: 6px; }
     .intro ul { list-style: none; margin: 4px 0; padding: 0 0 0 4px; }
     .intro li { margin: 1px 0; }
-    .tick { display: inline-block; width: 14px; }
+    .bullet { display: inline-block; width: 6px; height: 8px; background: #000; margin: 0 7px 0 2px; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .roles-grid { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
-    .roles-grid td { border: 1px solid #000; padding: 4px 6px 4px 22px; text-indent: -17px; width: 20%; }
+    .roles-grid { table-layout: fixed; }
+    .roles-grid td { border: 1px solid #000; padding: 5px 6px; width: 20%; vertical-align: middle; }
+    .role { display: flex; align-items: center; gap: 2px; }
+    .role .box { flex: 0 0 auto; }
+    .role-txt { min-width: 0; overflow-wrap: anywhere; }
     .box { display: inline-block; position: relative; width: 11px; height: 11px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .box.on { background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><path d='M1 1L7 7M7 1L1 7' stroke='%23000' stroke-width='1.3' stroke-linecap='round'/></svg>") center / 100% 100% no-repeat; }
     .yn { margin-right: 16px; white-space: nowrap; }

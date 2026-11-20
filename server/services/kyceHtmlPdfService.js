@@ -59,7 +59,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
   const tv = (k, field) => (sel(k) ? data[field] : '');
   const typeLabel = (k) => {
     const opt = [...kyceMaster.APPLICANT_TYPE_OPTIONS, ...kyceMaster.LEGACY_APPLICANT_TYPE_OPTIONS].find((o) => o.key === k);
-    return `<span class="arrow">&#10148;</span> <b>${esc(opt[L])}</b>`;
+    return `<span class="bullet"></span><b>${esc(opt[L])}</b>`;
   };
   const docs = (k, field) => (sel(k) && Array.isArray(data[field]) ? data[field] : []);
   const docCell = (opts, selected, keys) =>
@@ -76,7 +76,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
   const privDocs = docs('privateCompany', 'privateDocs');
   const bankDocs = docs('privateCompany', 'privateBankDocs');
   const roles = Array.isArray(data.applicantRoles) ? data.applicantRoles : [];
-  const roleCells = kyceMaster.APPLICANT_ROLE_OPTIONS.map((opt) => `<td>${box(roles.includes(opt.key))} ${esc(opt[L])}</td>`);
+  const roleCells = kyceMaster.APPLICANT_ROLE_OPTIONS.map((opt) => `<td><div class="role">${box(roles.includes(opt.key))}<span class="role-txt">${esc(opt[L]).replace(/\//g, '/<wbr>')}</span></div></td>`);
   // Documentos de empresa privada: los de la plantilla + "latest accounts" solo si un trámite antiguo lo marcó.
   const privOpts = [...kyceMaster.PRIVATE_DOC_OPTIONS, ...kyceMaster.LEGACY_PRIVATE_DOC_OPTIONS];
   const privCol3 = ['registeredAddressCert', 'ownershipChart', ...(privDocs.includes('latestAccounts') ? ['latestAccounts'] : [])];
@@ -284,7 +284,7 @@ class KyceHtmlPdfService {
     .yn { margin-right: 10px; white-space: nowrap; }
     .val { font-weight: 700; color: #000; font-size: 11.5px; }
     .ml { white-space: pre-wrap; margin: 2px 0 4px; }
-    .arrow { font-size: 9px; }
+    .bullet { display: inline-block; width: 6px; height: 8px; background: #000; margin: 0 7px 0 2px; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .benef { margin-top: 26px; }
     .attach { border-bottom: none !important; }
     .docs-row td { border-top: none; }
@@ -292,7 +292,10 @@ class KyceHtmlPdfService {
     .note { font-size: 10.5px; }
     .declaration { text-align: justify; }
     .roles-grid { width: 100%; border-collapse: collapse; margin: 6px 0 2px; table-layout: fixed; }
-    .roles-grid td { border: 1px solid #000; padding: 4px 6px; }
+    .roles-grid td { border: 1px solid #000; padding: 5px 6px; vertical-align: middle; }
+    .role { display: flex; align-items: center; gap: 2px; }
+    .role .box { flex: 0 0 auto; }
+    .role-txt { min-width: 0; overflow-wrap: anywhere; }
     .fatca-opt { display: inline-block; width: 100px; }
     .fatca-extra { margin-left: 20px; }
     .q { margin: 3px 0; }

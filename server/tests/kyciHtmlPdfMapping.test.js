@@ -65,9 +65,9 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
 
   it('marca las calidades del solicitante y los documentos', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Shareholder`));
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Beneficial Owner`));
-    assert.match(html, new RegExp(`${esc(BOX_OFF)} Director`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)}<span class="role-txt">Shareholder`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)}<span class="role-txt">Beneficial Owner`));
+    assert.match(html, new RegExp(`${esc(BOX_OFF)}<span class="role-txt">Director`));
     assert.match(html, new RegExp(`${esc(BOX_ON)} Colour Picture opened Passport`));
     assert.match(html, new RegExp(`${esc(BOX_ON)} Colour ID copy both sides`));
     assert.match(html, new RegExp(`${esc(BOX_OFF)} Credit Card Statement or Bank Reference`));
@@ -123,7 +123,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
       'Firma del Solicitante:', 'Nombre del solicitante:', 'Fecha (dd/mm/aaaa):', 'Casado(a)', 'Reconozco y autorizo']) {
       assert.ok(html.includes(txt), `falta "${txt}"`);
     }
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Accionista`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)}<span class="role-txt">Accionista`));
     assert.match(html, new RegExp(`${esc(BOX_ON)} Pasaporte a color`));
     assert.match(html, /Adjunto copias <b>escaneadas<\/b>/);
     assert.match(html, new RegExp(`Sí: ${esc(BOX_OFF)}</span><span class="yn">No: ${esc(BOX_ON)}`));

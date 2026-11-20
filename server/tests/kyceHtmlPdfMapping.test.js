@@ -74,9 +74,9 @@ describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
     }
     assert.match(html, new RegExp(`${esc(BOX_ON)} Copy of Trust Deed`));
     assert.match(html, new RegExp(`${esc(BOX_OFF)} Copy of Certificate of Registration \\(If Applicable\\)`));
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Shareholder`));
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Member`));
-    assert.match(html, new RegExp(`${esc(BOX_OFF)} Director`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)}<span class="role-txt">Shareholder`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)}<span class="role-txt">Member`));
+    assert.match(html, new RegExp(`${esc(BOX_OFF)}<span class="role-txt">Director`));
     assert.match(html, new RegExp(`class="declaration">${esc(BOX_ON)} I acknowledge and authorize`));
     assert.doesNotMatch(html, /Certified copy/);
     assert.match(html, new RegExp(`Registered FFI:</span> ${esc(BOX_ON)}`));
