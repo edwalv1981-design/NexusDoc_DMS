@@ -79,6 +79,7 @@ const AdminDashboard = () => {
   const [logsTotalPages, setLogsTotalPages] = useState(1);
   const [templates, setTemplates] = useState([]);
   const [templateVersionsKey, setTemplateVersionsKey] = useState(0);
+  const [templatePreview, setTemplatePreview] = useState(null);
   const [templateStatus, setTemplateStatus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -506,6 +507,7 @@ const AdminDashboard = () => {
           toast.success(lang === 'en'
             ? `Form updated: new ${tv.formType} submissions now use this template (${tv.fieldCount} fields).`
             : `Formulario actualizado: los trámites nuevos de ${tv.formType} ya usan esta plantilla (${tv.fieldCount} campos).`);
+          setTemplatePreview({ id: tv.id, formType: tv.formType, fieldCount: tv.fieldCount, nonce: Date.now() });
         } else {
           toast.error(lang === 'en'
             ? 'No fields could be read from this PDF: the current form remains in use.'
@@ -1450,7 +1452,7 @@ const AdminDashboard = () => {
                     </form>
                   </div>
                 </div>
-                <TemplateVersionsPanel refreshKey={templateVersionsKey} />
+                <TemplateVersionsPanel refreshKey={templateVersionsKey} autoPreview={templatePreview} />
               </div>
             )}
           </div>
