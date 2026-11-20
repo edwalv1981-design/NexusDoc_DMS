@@ -45,7 +45,8 @@ const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 describe('kyceHtmlPdfMapping (plantilla oficial)', () => {
   for (const lang of ['en', 'es']) it(`bloques en el orden de la plantilla (${lang})`, () => {
     const t = getKycePdfDict(lang);
-    const html = buildKycePdfInnerHtml(sampleData, { language: lang });
+    // El nombre de la entidad lleva "(Company/ Foundation/ Fund)" en negrita, como la plantilla.
+    const html = buildKycePdfInnerHtml(sampleData, { language: lang }).replace(/\(<b>([^<]*)<\/b>\)/, '($1)');
     const order = [
       t.docTitle.split('\n')[0], t.docSubtitle, t.panamaEntityName, t.intro, t.legalName, t.incorporationDate,
       t.jurisdiction, t.registrationNumber, t.registeredAddress, t.mailingAddress, t.phone, t.businessActivity,

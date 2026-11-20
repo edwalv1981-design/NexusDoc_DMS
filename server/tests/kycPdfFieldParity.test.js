@@ -97,7 +97,7 @@ describe('kyciHtmlPdf field parity', () => {
 describe('kyceHtmlPdf field parity', () => {
   for (const lang of ['es', 'en']) it(`cada bloque de la plantilla KYCE aparece en el PDF (${lang})`, () => {
     const t = getKycePdfDict(lang);
-    const html = buildKycePdfInnerHtml({ legalName: 'Inversiones Globales S.A.' }, { language: lang });
+    const html = buildKycePdfInnerHtml({ legalName: 'Inversiones Globales S.A.' }, { language: lang }).replace(/\(<b>([^<]*)<\/b>\)/, '($1)');
     assert.match(html, /Inversiones Globales/);
     for (const key of ['docTitle', 'panamaEntityName', 'intro', 'legalName', 'incorporationDate', 'jurisdiction', 'registrationNumber',
       'registeredAddress', 'mailingAddress', 'phone', 'businessActivity', 'offencesLabel', 'offenceConvicted', 'offenceInvestigation',

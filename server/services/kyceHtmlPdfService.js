@@ -105,12 +105,16 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
 
   return `
     <header class="doc-header">
-      <div class="title">${esc(t.docTitle).replace('\n', '<br/>')}</div>
-      <div class="subtitle">${esc(t.docSubtitle)}</div>
+      <div class="logo">${options.logoDataUri ? `<img src="${options.logoDataUri}" alt="" />` : ''}</div>
+      <div class="titles">
+        <div class="title">${esc(t.docTitle).replace('\n', '<br/>')}</div>
+        <div class="subtitle">${esc(t.docSubtitle)}</div>
+      </div>
     </header>
-    <div class="entity-line">${esc(t.panamaEntityName)} ${val(data.panamaEntityName)}</div>
+    <div class="entity-line">${esc(t.panamaEntityName).replace(/\(([^)]*)\)/, '(<b>$1</b>)')} ${val(data.panamaEntityName)}</div>
+    <div class="entity-rule"></div>
 
-    <table class="frm"><colgroup><col style="width:24%"/><col style="width:25%"/><col style="width:25%"/><col style="width:26%"/></colgroup><tbody>
+    <table class="frm"><colgroup><col style="width:22.7%"/><col style="width:25.8%"/><col style="width:25.8%"/><col style="width:25.7%"/></colgroup><tbody>
       <tr><td colspan="4">
         <div class="b">${esc(t.intro)}</div>
         <div class="line">${esc(t.introNote)}</div>
@@ -130,7 +134,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       <tr><td class="lbl">${esc(t.businessActivity)}</td><td colspan="3" class="tall">${multiline(data.businessActivity)}</td></tr>
       <tr>
         <td class="lbl mid">${esc(t.offencesLabel)}</td>
-        <td colspan="3">
+        <td colspan="3" class="offences">
           <div class="line">${esc(t.offenceConvicted)}</div>
           <div class="line">${yesNo(data.offenceConvicted, t)} <span class="gap">${esc(t.offenceDetails)}</span></div>
           ${multiline(data.offenceConvictedDetails)}
@@ -164,15 +168,21 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       </tr>
     </tbody></table>
 
-    <table class="frm page2"><colgroup><col style="width:24%"/><col style="width:25%"/><col style="width:25%"/><col style="width:26%"/></colgroup><tbody>
+    <table class="frm block"><colgroup><col style="width:22.7%"/><col style="width:25.8%"/><col style="width:25.8%"/><col style="width:25.7%"/></colgroup><tbody>
       <tr>
-        <td class="lbl" rowspan="2">${typeLabel('privateCompany')}</td>
+        <td class="lbl lbl-top" rowspan="2">${typeLabel('privateCompany')}</td>
         <td colspan="3" class="attach">${esc(t.pleaseAttach)}</td>
       </tr>
       <tr class="docs-row">
-        ${docCell(privOpts, privDocs, ['certIncorporation', 'registerDirectors'])}
-        ${docCell(privOpts, privDocs, ['certGoodStanding', 'registerMembers'])}
-        ${docCell(privOpts, privDocs, privCol3)}
+        ${docCell(privOpts, privDocs, ['certIncorporation'])}
+        ${docCell(privOpts, privDocs, ['certGoodStanding'])}
+        ${docCell(privOpts, privDocs, ['registeredAddressCert'])}
+      </tr>
+      <tr class="docs-row docs-row2">
+        <td class="lbl-cont"></td>
+        ${docCell(privOpts, privDocs, ['registerDirectors'])}
+        ${docCell(privOpts, privDocs, ['registerMembers'])}
+        ${docCell(privOpts, privDocs, privCol3.slice(1))}
       </tr>
       <tr class="bank-row">
         <td class="lbl">${esc(t.bankAccountLabel)}</td>
@@ -190,11 +200,11 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
         ${docCell(kyceMaster.TRUST_DOC_OPTIONS, trustDocs, ['certRegistration'])}
         ${docCell(kyceMaster.TRUST_DOC_OPTIONS, trustDocs, ['dueDiligence'])}
       </tr>
-      <tr><td class="lbl">${esc(t.settlorNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'settlorNameAddress'))}</td></tr>
-      <tr><td class="lbl">${esc(t.trusteesNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'trusteesNameAddress'))}</td></tr>
-      <tr><td class="lbl">${esc(t.enforcerNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'enforcerNameAddress'))}</td></tr>
-      <tr><td class="lbl">${esc(t.protectorNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'protectorNameAddress'))}</td></tr>
-      <tr><td class="lbl">${esc(t.beneficiary)}</td><td colspan="3">${multiline(beneficiaries)}</td></tr>
+      <tr class="name-row"><td class="lbl">${esc(t.settlorNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'settlorNameAddress'))}</td></tr>
+      <tr class="name-row"><td class="lbl">${esc(t.trusteesNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'trusteesNameAddress'))}</td></tr>
+      <tr class="name-row"><td class="lbl">${esc(t.enforcerNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'enforcerNameAddress'))}</td></tr>
+      <tr class="name-row"><td class="lbl">${esc(t.protectorNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'protectorNameAddress'))}</td></tr>
+      <tr class="name-row"><td class="lbl">${esc(t.beneficiary)}</td><td colspan="3">${multiline(beneficiaries)}</td></tr>
       ${note(t.trustNote)}
       ${sel('partnership') ? `
       <tr>
@@ -219,12 +229,12 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       </tr>
     </tbody></table>
 
-    <table class="frm tax"><colgroup><col style="width:24%"/><col style="width:76%"/></colgroup><tbody>
+    <table class="frm block tax"><colgroup><col style="width:22.7%"/><col style="width:77.3%"/></colgroup><tbody>
       <tr>
         <td class="lbl mid">${esc(t.taxResidencyLabel)}</td>
         <td>
           <div class="q"><span class="qn">A.</span> ${esc(t.usEntity)}</div>
-          <div class="ind">${yesNo(data.usEntity, t)}</div>
+          <div class="ind"><span class="yn">${esc(t.yes)}: ${box(isYes(data.usEntity))}</span><span class="yn">${esc(t.no)}: ${box(isNo(data.usEntity))}</span></div>
           <div class="ind">${esc(t.einPrompt)}</div>
           <div class="ind">${esc(t.einNumber)} ${val(data.einNumber)}</div>
           <div class="q"><span class="qn">B.</span> ${esc(t.otherTaxResidence)}</div>
@@ -233,11 +243,10 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
           <div class="ind">${esc(t.taxIdNumber)} ${val(data.taxIdNumber)}</div>
         </td>
       </tr>
-      <tr><td colspan="2" class="spacer">&nbsp;</td></tr>
       <tr><td colspan="2" class="declaration">${box(isYes(data.dataConsent))} ${esc(t.declaration)}</td></tr>
       <tr><td colspan="2">${esc(t.representativeName)} ${val(signerNames)}</td></tr>
     </tbody></table>
-    <table class="frm sign"><colgroup><col style="width:32%"/><col style="width:28%"/><col style="width:15%"/><col style="width:25%"/></colgroup><tbody>
+    <table class="frm block sign"><colgroup><col style="width:32%"/><col style="width:28%"/><col style="width:15%"/><col style="width:25%"/></colgroup><tbody>
       ${sigRow(data.declarationDate)}
       ${sigRow(data.declarationDate2)}
     </tbody></table>
@@ -256,58 +265,66 @@ class KyceHtmlPdfService {
       }
 
       const lang = normalizeLanguage(options.language || data.language);
-      const inner = buildKycePdfInnerHtml(data, { language: lang });
+      const inner = buildKycePdfInnerHtml(data, { language: lang, logoDataUri });
 
       const html =
         '<!DOCTYPE html><html lang="' +
         lang +
         '"><head><meta charset="utf-8" /><style>' +
         `
-    @page { size: A4; }
+    @page { size: Letter; }
     * { box-sizing: border-box; }
-    body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.35; color: #0f172a; margin: 0; padding: 0; }
-    .doc-header { text-align: right; margin-bottom: 8px; }
-    .doc-header .title { font-weight: 700; font-size: 14px; }
-    .doc-header .subtitle { font-weight: 700; font-size: 13px; margin-top: 2px; }
-    .entity-line { margin: 4px 0 10px; }
+    /* Plantilla original: Verdana 9 pt (DejaVu Sans en el servidor), títulos 11 pt, bordes morado oscuro #48207a, viñetas en flecha. */
+    body { font-family: Verdana, 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif; font-size: 9pt; line-height: 1.3; color: #000; margin: 0; padding: 0; }
+    .doc-header { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 0 6pt; }
+    .doc-header .logo { padding-left: 42pt; padding-top: 7pt; }
+    .doc-header .logo img { width: 108pt; height: auto; display: block; }
+    .doc-header .titles { text-align: right; }
+    .doc-header .title { font-weight: 700; font-size: 11pt; line-height: 1.25; }
+    .doc-header .subtitle { font-weight: 700; font-size: 11pt; margin-top: 4pt; }
+    .entity-line { margin: 4pt 0 0 9pt; }
+    .entity-rule { height: 16pt; border-right: 1px solid #48207a; margin-bottom: 4pt; }
     .b { font-weight: 700; }
     .frm { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .frm td { border: 1px solid #4b2e83; padding: 4px 6px; vertical-align: top; }
+    .frm td { border: 1px solid #48207a; padding: 2.5pt 5pt; vertical-align: top; }
+    .docs-row:not(.docs-row2) td.docs-cell { border-bottom: none; }
+    .name-row td { height: 23pt; }
+    .lbl-top { border-bottom: none !important; }
+    .lbl-cont { border-top: none !important; }
+    .docs-row2 td { border-top: none; }
     .frm .mid { vertical-align: middle; }
-    .frm + .frm td { }
-    .tall { height: 36px; }
-    .line { margin: 3px 0; }
-    .sp { margin-top: 10px; }
-    .gap { margin-left: 24px; }
-    .box { display: inline-block; position: relative; width: 11px; height: 11px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .block { margin-top: 12pt; }
+    .tall { height: 36pt; }
+    .line { margin: 4pt 0; }
+    .sp { margin-top: 18pt; }
+    .offences { padding-bottom: 20pt !important; }
+    .gap { margin-left: 30pt; }
+    .box { display: inline-block; position: relative; width: 9pt; height: 9pt; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: -1pt; margin: 0 3pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .box.on { background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><path d='M1 1L7 7M7 1L1 7' stroke='%23000' stroke-width='1.3' stroke-linecap='round'/></svg>") center / 100% 100% no-repeat; }
-    .yn { margin-right: 10px; white-space: nowrap; }
-    .val { font-weight: 700; color: #000; font-size: 11.5px; }
-    .ml { white-space: pre-wrap; margin: 2px 0 4px; }
-    .bullet { display: inline-block; width: 6px; height: 8px; background: #000; margin: 0 7px 0 2px; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .benef { margin-top: 26px; }
+    .yn { margin-right: 6pt; white-space: nowrap; }
+    .val { font-weight: 700; color: #000; }
+    .ml { white-space: pre-wrap; margin: 2pt 0 3pt; }
+    .bullet { display: inline-block; width: 8pt; height: 8pt; margin: 0 8pt 0 2pt; vertical-align: -1pt; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><path d='M1 1 L9.2 5 L1 9 L3.6 5 Z' fill='%23000'/></svg>") center / 100% 100% no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .attach { border-bottom: none !important; }
     .docs-row td { border-top: none; }
-    .docs-cell .doc { margin: 2px 0 10px; }
-    .note { font-size: 10.5px; }
-    .declaration { text-align: justify; }
-    .roles-grid { width: 100%; border-collapse: collapse; margin: 6px 0 2px; table-layout: fixed; }
-    .roles-grid td { border: 1px solid #000; padding: 5px 6px; vertical-align: middle; }
-    .role { display: flex; align-items: center; gap: 2px; }
-    .role .box { flex: 0 0 auto; }
+        .docs-cell .doc { margin: 8pt 0 10pt; }
+    .bank-row .docs-cell .doc { margin: 2pt 0; }
+    .note { font-size: 9pt; }
+    .declaration { text-align: left; }
+    .roles-grid { width: 100%; border-collapse: collapse; margin: 8pt 0 2pt; table-layout: fixed; }
+    .roles-grid td { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; height: 22pt; }
+    .role { display: flex; align-items: flex-start; gap: 1pt; }
+    .role .box { flex: 0 0 auto; margin-top: 1pt; }
     .role-txt { min-width: 0; overflow-wrap: anywhere; }
-    .fatca-opt { display: inline-block; width: 100px; }
-    .fatca-extra { margin-left: 20px; }
-    .q { margin: 3px 0; }
-    .qn { display: inline-block; width: 16px; }
-    .ind { margin: 3px 0 3px 16px; }
-    .spacer { height: 14px; }
-    .tax, .page2 { }
-    .page2 { page-break-before: always; }
-    .sign td { border-top: none; vertical-align: middle; }
-    .sign .sig-box { height: 46px; }
-    .sign .sig-name { font-weight: 700; font-size: 11px; color: #0f172a; }
-    tr { page-break-inside: avoid; }
+    .fatca-opt { display: inline-block; width: 74pt; }
+    .line.fatca { margin: 8pt 0; }
+    .fatca-extra { margin-left: 14pt; }
+    .q { margin: 3pt 0; }
+    .qn { display: inline-block; width: 14pt; }
+    .ind { margin: 7pt 0 7pt 22pt; }
+    .sign td { vertical-align: middle; }
+    .sign .sig-box { height: 44pt; }
+    .sign tr, .roles-grid tr { page-break-inside: avoid; }
 ` +
         '</style></head><body>' +
         inner +
@@ -320,19 +337,13 @@ class KyceHtmlPdfService {
       const page = await browser.newPage();
       await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      const headerTemplate = logoDataUri
-        ? `<div style="font-size:10px;width:100%;padding:6px 14mm 0 14mm;text-align:left;"><img src="${logoDataUri}" style="height:36px;width:auto;display:block;" /></div>`
-        : '<div style="font-size:1px;">&nbsp;</div>';
-      const footerTemplate = '<div style="font-size:1px;">&nbsp;</div>';
-
+      // Página Carta y márgenes medidos en la plantilla original.
       const pdfBytes = await page.pdf({
-        format: 'A4',
+        format: 'Letter',
         printBackground: true,
         scale: 1,
-        margin: { top: '20mm', bottom: '12mm', left: '14mm', right: '14mm' },
-        displayHeaderFooter: true,
-        headerTemplate,
-        footerTemplate,
+        margin: { top: '0.5in', bottom: '0.33in', left: '0.667in', right: '0.43in' },
+        displayHeaderFooter: false,
       });
       return Buffer.isBuffer(pdfBytes) ? pdfBytes : Buffer.from(pdfBytes);
     } finally {
