@@ -503,11 +503,11 @@ const AdminDashboard = () => {
       }
       const tv = res.data?.templateVersion;
       if (tv && !tv.error) {
-        if (tv.isActive) {
+        if (tv.fieldCount > 0) {
           toast.success(lang === 'en'
-            ? `Form updated: new ${tv.formType} submissions now use this template (${tv.fieldCount} fields).`
-            : `Formulario actualizado: los trámites nuevos de ${tv.formType} ya usan esta plantilla (${tv.fieldCount} campos).`);
-          setTemplatePreview({ id: tv.id, formType: tv.formType, fieldCount: tv.fieldCount, nonce: Date.now() });
+            ? `Template uploaded (${tv.fieldCount} fields). Clients will NOT use it until you review the preview and press «Confirm and use».`
+            : `Plantilla subida (${tv.fieldCount} campos). Los clientes NO la usan hasta que usted revise la vista preliminar y pulse «Confirmar y usar».`);
+          setTemplatePreview({ id: tv.id, formType: tv.formType, fieldCount: tv.fieldCount, pending: true, nonce: Date.now() });
         } else {
           toast.error(lang === 'en'
             ? 'No fields could be read from this PDF: the current form remains in use.'

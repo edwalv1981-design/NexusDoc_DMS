@@ -96,7 +96,7 @@ const es = {
     flatPdfHint: 'PDF sin campos AcroForm rellenables. Este trámite requiere una plantilla con campos de formulario.',
     templateSavedArchive: 'Plantilla guardada.',
     htmlEngineUploadHint:
-      'Al subir un PDF aquí, los trámites NUEVOS de este formulario usarán sus campos, textos guía y diseño de PDF. Los trámites ya registrados no cambian. Si algo no queda bien, use «Volver al formulario anterior» en «Formularios en uso».',
+      'Al subir un PDF aquí verá una vista preliminar. Los clientes solo usan la plantilla nueva cuando usted pulsa «Confirmar y usar». Los trámites ya registrados no cambian.',
     detectedFieldsTitle: 'Campos detectados: {count}',
     schemaSource: 'Origen del esquema',
     fieldsExtractError: 'No se pudieron extraer campos del PDF; revise Python en el servidor.',

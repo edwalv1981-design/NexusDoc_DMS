@@ -42,6 +42,18 @@ const {
 // sistema. Su pantalla solo usa /api/manager (subusuarios), que no cambia.
 const isAdmin = (req, res, next) => requireFullAdmin(req, res, next);
 
+// CANDADO de plantillas: si la variable TEMPLATE_OWNER_EMAILS está configurada en Railway
+// (correos separados por coma), SOLO esos usuarios pueden subir, confirmar, descartar o revertir
+// plantillas. Si no está configurada, pueden hacerlo los administradores reales (no gerentes).
+const templateOwner = (req, res, next) => {
+    const owners = String(process.env.TEMPLATE_OWNER_EMAILS || '')
+        .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+    if (!owners.length) return next();
+    const email = String(req.dbUser?.email || '').trim().toLowerCase();
+    if (email && owners.includes(email)) return next();
+    return res.status(403).json({ msg: 'Solo el administrador master autorizado puede cambiar los formularios.' });
+};
+
 // Administrador "real": rol admin en BD o perfil master. Un gerente (manager) NO lo es.
 // Solo un administrador real puede otorgar o quitar el rol "master" (equivale a admin).
 async function isFullAdmin(req) {
@@ -635,7 +647,7 @@ router.get(['/logs', '/logs/'], [auth, isAdmin], async (req, res) => {
 
 // @route   POST api/admin/upload-template
 // @desc    Admin uploads a new PDF template to DB
-router.post('/upload-template', [auth, isAdmin, upload.single('template')], async (req, res) => {
+router.post('/upload-template', [auth, isAdmin, templateOwner, upload.single('template')], async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ msg: 'No se subió ningún archivo' });
@@ -785,8 +797,13 @@ router.get('/template-versions', [auth, isAdmin], async (req, res) => {
 });
 
 // @route   POST api/admin/template-versions/:id/activate
-router.post('/template-versions/:id/activate', [auth, isAdmin], async (req, res) => {
+router.post('/template-versions/:id/activate', [auth, isAdmin, templateOwner], async (req, res) => {
     try {
+        const target = await templateVersionService.getVersion(sequelize, req.params.id);
+        if (!target) return res.status(404).json({ msg: 'Versión no encontrada' });
+        if (!(Number(target.fieldCount) > 0)) {
+            return res.status(400).json({ msg: 'Esta plantilla no tiene campos legibles; no se puede poner en uso.' });
+        }
         const v = await templateVersionService.setActive(sequelize, req.params.id);
         if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
         await AuditLog.create({
@@ -801,9 +818,28 @@ router.post('/template-versions/:id/activate', [auth, isAdmin], async (req, res)
     }
 });
 
+// @route   POST api/admin/template-versions/:id/discard
+// @desc    Descartar una plantilla subida que aún no se confirmó (no se borra; nunca toca la que está en uso)
+router.post('/template-versions/:id/discard', [auth, isAdmin, templateOwner], async (req, res) => {
+    try {
+        const v = await templateVersionService.discardVersion(sequelize, req.params.id);
+        if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
+        if (v.refused === 'active') return res.status(409).json({ msg: 'Esta plantilla está en uso; use «Volver al formulario anterior».' });
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_VERSION_DISCARD',
+            description: `Descartó la plantilla ${v.formType} v${v.version} sin ponerla en uso`,
+        }).catch(() => {});
+        res.json({ msg: 'Plantilla descartada', version: { id: v.id, formType: v.formType, version: v.version } });
+    } catch (err) {
+        console.error('Error descartando versión de plantilla:', err);
+        res.status(500).json({ msg: 'Error al descartar la plantilla' });
+    }
+});
+
 // @route   POST api/admin/template-versions/rollback  { formType }
 // @desc    Volver al formulario anterior (la plantilla que estaba en uso antes, o el estándar)
-router.post('/template-versions/rollback', [auth, isAdmin], async (req, res) => {
+router.post('/template-versions/rollback', [auth, isAdmin, templateOwner], async (req, res) => {
     try {
         const out = await templateVersionService.rollbackActive(sequelize, req.body && req.body.formType);
         if (!out) return res.status(400).json({ msg: 'Tipo de formulario no válido' });
@@ -823,7 +859,7 @@ router.post('/template-versions/rollback', [auth, isAdmin], async (req, res) => 
 
 // @route   POST api/admin/template-versions/use-standard  { formType }
 // @desc    Vuelve al formulario estándar del sistema (no borra versiones ni trámites)
-router.post('/template-versions/use-standard', [auth, isAdmin], async (req, res) => {
+router.post('/template-versions/use-standard', [auth, isAdmin, templateOwner], async (req, res) => {
     try {
         const formType = templateVersionService.canonicalFormType(req.body && req.body.formType);
         if (!formType) return res.status(400).json({ msg: 'Tipo de formulario no válido' });
@@ -842,7 +878,7 @@ router.post('/template-versions/use-standard', [auth, isAdmin], async (req, res)
 
 // @route   POST api/admin/template-versions/:id/reanalyze
 // @desc    Vuelve a analizar el PDF de una versión y crea una versión nueva PENDIENTE (no se activa sola)
-router.post('/template-versions/:id/reanalyze', [auth, isAdmin], async (req, res) => {
+router.post('/template-versions/:id/reanalyze', [auth, isAdmin, templateOwner], async (req, res) => {
     try {
         const created = await templateVersionService.reanalyzeVersion(sequelize, req.params.id, req.user.id);
         if (!created) return res.status(404).json({ msg: 'Versión no encontrada' });
@@ -876,7 +912,7 @@ router.get('/template-versions/:id/schema', [auth, isAdmin], async (req, res) =>
 // @route   PUT api/admin/template-versions/:id/schema  { schema }
 // @desc    Correcciones del administrador (textos, ayudas, obligatorios). Si la versión ya estuvo
 //          activa se guarda como versión nueva pendiente.
-router.put('/template-versions/:id/schema', [auth, isAdmin], async (req, res) => {
+router.put('/template-versions/:id/schema', [auth, isAdmin, templateOwner], async (req, res) => {
     try {
         const body = req.body && req.body.schema;
         if (!body || typeof body !== 'object') return res.status(400).json({ msg: 'Datos inválidos' });

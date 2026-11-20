@@ -236,7 +236,8 @@ async function setActive(sequelize, id) {
     await sequelize.query(`UPDATE ${TABLE} SET "isActive" = false, "updatedAt" = NOW() WHERE "formType" = :formType`,
       { replacements: { formType: v.formType }, transaction });
     await sequelize.query(
-      `UPDATE ${TABLE} SET "isActive" = true, "activatedAt" = NOW(), "updatedAt" = NOW() WHERE "id" = :id`,
+      `UPDATE ${TABLE} SET "isActive" = true, "activatedAt" = NOW(), "updatedAt" = NOW(),
+         "schema" = jsonb_set(COALESCE("schema", '{}'::jsonb), '{review}', COALESCE("schema"->'review', '{}'::jsonb) || '{"pending":false,"retired":false}'::jsonb) WHERE "id" = :id`,
       { replacements: { id }, transaction }
     );
   });
@@ -263,12 +264,31 @@ async function rollbackActive(sequelize, formType) {
   if (prev && prev[0]) {
     await setActive(sequelize, prev[0].id);
     // La versión retirada no debe volver a quedar como "anterior" de la restaurada
-    await sequelize.query(`UPDATE ${TABLE} SET "activatedAt" = NULL WHERE "id" = :id`, { replacements: { id: active.id } });
+    await markRetired(sequelize, active.id);
     return { formType: canonical, now: 'version', version: prev[0].version, from: active.version };
   }
   await deactivateAll(sequelize, canonical);
-  await sequelize.query(`UPDATE ${TABLE} SET "activatedAt" = NULL WHERE "id" = :id`, { replacements: { id: active.id } });
+  await markRetired(sequelize, active.id);
   return { formType: canonical, now: 'standard', from: active.version };
+}
+
+/** Marca una versión como retirada/descartada (no se borra; deja de figurar como pendiente). */
+async function markRetired(sequelize, id) {
+  await sequelize.query(
+    `UPDATE ${TABLE} SET "activatedAt" = NULL, "updatedAt" = NOW(),
+       "schema" = jsonb_set(COALESCE("schema", '{}'::jsonb), '{review}', COALESCE("schema"->'review', '{}'::jsonb) || '{"pending":false,"retired":true}'::jsonb)
+     WHERE "id" = :id`,
+    { replacements: { id } }
+  );
+}
+
+/** Descarta una plantilla subida que aún no se confirmó. Nunca toca la versión en uso. */
+async function discardVersion(sequelize, id) {
+  const v = await getVersion(sequelize, id);
+  if (!v) return null;
+  if (v.isActive) return { ...v, refused: 'active' };
+  await markRetired(sequelize, id);
+  return getVersion(sequelize, id);
 }
 
 /** Vuelve al formulario estándar del sistema (ninguna versión activa). No borra nada. */
@@ -312,9 +332,13 @@ async function createVersion(sequelize, { templateId, formType, pdfBuffer, fileN
   // Subir y listo: si se detectaron campos, la plantilla queda en uso para los trámites nuevos.
   // Los campos que ya existían conservan su clave (no se pierden datos) y siempre se puede
   // volver al formulario anterior con rollbackActive().
+  // CANDADO: una plantilla subida NUNCA entra en uso sola. Queda esperando que el administrador
+  // la vea en la vista preliminar y pulse "Confirmar y usar" (setActive). El parámetro `activate`
+  // se ignora a propósito para que ningún llamador pueda saltarse la confirmación.
+  void activate;
   const safe = previous.length === 0 || isSafeToAutoActivate(changes);
-  const willActivate = Boolean(activate) && fieldCount > 0;
-  schema.review = { pending: false, reason: null, safe };
+  const willActivate = false;
+  schema.review = { pending: fieldCount > 0, reason: fieldCount > 0 ? 'confirm' : 'no-fields', safe };
 
   await sequelize.transaction(async (transaction) => {
     if (willActivate) {
@@ -472,6 +496,7 @@ module.exports = {
   getActiveVersion,
   setActive,
   deactivateAll,
+  discardVersion,
   rollbackActive,
   createVersion,
   reanalyzeVersion,

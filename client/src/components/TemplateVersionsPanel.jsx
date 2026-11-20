@@ -21,7 +21,16 @@ const FORM_TYPES = [
 const TX = {
   es: {
     title: 'Formularios en uso',
-    intro: 'Al subir una plantilla, los trámites NUEVOS de ese formulario la usan de inmediato. Los trámites ya registrados conservan su formulario y sus datos.',
+    intro: 'Ninguna plantilla cambia el formulario de los clientes sin su autorización: después de subirla revise la vista preliminar y pulse «Confirmar y usar». Los trámites ya registrados conservan su formulario y sus datos.',
+    pending: 'Plantilla subida esperando su confirmación',
+    reviewConfirm: 'Ver y confirmar',
+    confirm: 'Confirmar y usar',
+    discard: 'Descartar',
+    confirmUse: '¿Poner en uso esta plantilla para los trámites NUEVOS de "{t}"? Los trámites ya registrados no cambian.',
+    confirmDiscard: '¿Descartar esta plantilla? El formulario actual sigue igual. La plantilla queda guardada en el historial.',
+    useDone: 'Listo: "{t}" ya usa la plantilla nueva para los trámites nuevos.',
+    discardDone: 'Plantilla descartada. "{t}" sigue con el formulario actual.',
+    close: 'Cerrar',
     standard: 'Formulario estándar del sistema',
     inUse: 'Plantilla subida en uso',
     fields: '{n} campos',
@@ -33,14 +42,23 @@ const TX = {
     backDone: 'Listo: "{t}" volvió al formulario anterior.',
     loadError: 'No se pudo cargar el estado de los formularios.',
     pvTitle: 'Vista preliminar · {t}',
-    pvHelp: 'Así queda el formulario: cada campo detectado muestra su nombre y cada casilla una X. Los trámites nuevos ya usan este formulario.',
+    pvHelp: 'Así queda el formulario: cada campo detectado muestra su nombre y cada casilla una X.',
+    pvHelpPending: 'Todavía NO está en uso. Si está conforme pulse «Confirmar y usar»; si no, «Descartar».',
     pvLoading: 'Generando vista preliminar…',
-    pvOk: 'Listo, usar este formulario',
     pvOpenTab: 'Abrir en otra pestaña',
   },
   en: {
     title: 'Forms in use',
-    intro: 'When you upload a template, NEW submissions of that form use it immediately. Existing submissions keep their form and data.',
+    intro: 'No template changes the clients\' form without your authorization: after uploading, review the preview and press «Confirm and use». Existing submissions keep their form and data.',
+    pending: 'Uploaded template awaiting your confirmation',
+    reviewConfirm: 'Review and confirm',
+    confirm: 'Confirm and use',
+    discard: 'Discard',
+    confirmUse: 'Use this template for NEW submissions of "{t}"? Existing submissions do not change.',
+    confirmDiscard: 'Discard this template? The current form stays the same. The template is kept in the history.',
+    useDone: 'Done: "{t}" now uses the new template for new submissions.',
+    discardDone: 'Template discarded. "{t}" keeps the current form.',
+    close: 'Close',
     standard: 'Standard system form',
     inUse: 'Uploaded template in use',
     fields: '{n} fields',
@@ -52,9 +70,9 @@ const TX = {
     backDone: 'Done: "{t}" is back to the previous form.',
     loadError: 'Could not load the forms status.',
     pvTitle: 'Preview · {t}',
-    pvHelp: 'This is how the form looks: each detected field shows its name and each checkbox an X. New submissions already use this form.',
+    pvHelp: 'This is how the form looks: each detected field shows its name and each checkbox an X.',
+    pvHelpPending: 'It is NOT in use yet. If it looks right press «Confirm and use»; otherwise «Discard».',
     pvLoading: 'Generating preview…',
-    pvOk: 'OK, use this form',
     pvOpenTab: 'Open in a new tab',
   },
 };
@@ -98,8 +116,8 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
     setPreview((p) => { if (p?.url) URL.revokeObjectURL(p.url); return null; });
   };
 
-  const showPreview = useCallback(async (id, formType) => {
-    setPreview((p) => { if (p?.url) URL.revokeObjectURL(p.url); return { id, formType, loading: true }; });
+  const showPreview = useCallback(async (id, formType, pending = false) => {
+    setPreview((p) => { if (p?.url) URL.revokeObjectURL(p.url); return { id, formType, pending, loading: true }; });
     try {
       const res = await axios.get(`${API_BASE_URL}/api/admin/template-versions/${id}/preview`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }, responseType: 'blob',
@@ -113,7 +131,7 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
   }, [toast]);
 
   useEffect(() => {
-    if (autoPreview?.id) showPreview(autoPreview.id, autoPreview.formType);
+    if (autoPreview?.id) showPreview(autoPreview.id, autoPreview.formType, Boolean(autoPreview.pending));
   }, [autoPreview, showPreview]);
 
   const openPdf = async (id, kind) => {
@@ -126,6 +144,36 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       toast?.error?.(e.response?.data?.msg || 'Error');
+    }
+  };
+
+  const confirmUse = async (id, label) => {
+    if (!window.confirm(fmt(tx.confirmUse, { t: label }))) return;
+    setBusy(true);
+    try {
+      await axios.post(`${API_BASE_URL}/api/admin/template-versions/${id}/activate`, {}, { headers: headers() });
+      closePreview();
+      toast?.success?.(fmt(tx.useDone, { t: label }));
+      await load();
+    } catch (e) {
+      toast?.error?.(e.response?.data?.msg || 'Error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const discard = async (id, label) => {
+    if (!window.confirm(tx.confirmDiscard)) return;
+    setBusy(true);
+    try {
+      await axios.post(`${API_BASE_URL}/api/admin/template-versions/${id}/discard`, {}, { headers: headers() });
+      closePreview();
+      toast?.success?.(fmt(tx.discardDone, { t: label }));
+      await load();
+    } catch (e) {
+      toast?.error?.(e.response?.data?.msg || 'Error');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -157,6 +205,11 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
       {FORM_TYPES.map((ft) => {
         const label = lang === 'en' ? ft.en : ft.es;
         const active = versions.find((v) => v.formType === ft.id && v.isActive);
+        const pending = versions
+          .filter((v) => v.formType === ft.id && !v.isActive && Number(v.fieldCount) > 0
+            && v.review && v.review.pending && !v.review.retired
+            && (!active || Number(v.version) > Number(active.version)))
+          .sort((a, b) => Number(b.version) - Number(a.version))[0];
         return (
           <div key={ft.id} style={{ padding: '12px 18px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 260px' }}>
@@ -179,6 +232,14 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
                 <button type="button" style={btn} disabled={busy} onClick={() => goBack(ft.id, label)}><RotateCcw size={12} /> {tx.back}</button>
               </div>
             ) : null}
+            {pending ? (
+              <div style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 6, padding: '6px 10px' }}>
+                <span style={{ fontSize: 11, color: '#92400e', fontWeight: 700, flex: 1 }}>
+                  {tx.pending} · {pending.fileName || ''} · {fmt(tx.fields, { n: pending.fieldCount })}
+                </span>
+                <button type="button" style={btn} onClick={() => showPreview(pending.id, ft.id, true)}><Eye size={12} /> {tx.reviewConfirm}</button>
+              </div>
+            ) : null}
           </div>
         );
       })}
@@ -189,6 +250,7 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
               <div style={{ flex: 1 }}>
                 <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{fmt(tx.pvTitle, { t: labelOf(preview.formType) })}</h3>
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>{tx.pvHelp}</p>
+                {preview.pending ? <p style={{ margin: '4px 0 0', fontSize: 11, color: '#92400e', fontWeight: 700 }}>{tx.pvHelpPending}</p> : null}
               </div>
               <button type="button" aria-label="Cerrar" onClick={closePreview} style={{ ...btn, border: 'none' }}><X size={16} /></button>
             </div>
@@ -203,8 +265,17 @@ const TemplateVersionsPanel = ({ refreshKey = 0, autoPreview = null }) => {
               {preview.url ? (
                 <button type="button" style={btn} onClick={() => window.open(preview.url, '_blank', 'noopener')}><Eye size={12} /> {tx.pvOpenTab}</button>
               ) : null}
-              <button type="button" style={btn} disabled={busy} onClick={() => goBack(preview.formType, labelOf(preview.formType))}><RotateCcw size={12} /> {tx.back}</button>
-              <button type="button" style={{ ...btn, background: '#0f766e', color: 'white', border: '1px solid #0f766e' }} onClick={closePreview}><CheckCircle size={12} /> {tx.pvOk}</button>
+              {preview.pending ? (
+                <>
+                  <button type="button" style={btn} disabled={busy} onClick={() => discard(preview.id, labelOf(preview.formType))}><X size={12} /> {tx.discard}</button>
+                  <button type="button" style={{ ...btn, background: '#0f766e', color: 'white', border: '1px solid #0f766e' }} disabled={busy || !preview.url} onClick={() => confirmUse(preview.id, labelOf(preview.formType))}><CheckCircle size={12} /> {tx.confirm}</button>
+                </>
+              ) : (
+                <>
+                  <button type="button" style={btn} disabled={busy} onClick={() => goBack(preview.formType, labelOf(preview.formType))}><RotateCcw size={12} /> {tx.back}</button>
+                  <button type="button" style={btn} onClick={closePreview}>{tx.close}</button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -96,7 +96,7 @@ const en = {
     flatPdfHint: 'PDF has no fillable AcroForm fields. This procedure needs a template with form fields.',
     templateSavedArchive: 'Template saved.',
     htmlEngineUploadHint:
-      'When you upload a PDF here, NEW submissions of this form use its fields, guide texts and PDF layout. Existing submissions do not change. If something is not right, use «Back to previous form» in «Forms in use».',
+      'When you upload a PDF here you will see a preview. Clients only use the new template after you press «Confirm and use». Existing submissions do not change.',
     detectedFieldsTitle: 'Detected fields: {count}',
     schemaSource: 'Schema source',
     fieldsExtractError: 'Could not extract PDF fields; check Python on the server.',
