@@ -653,7 +653,13 @@ router.get(['/logs', '/logs/'], [auth, isAdmin], async (req, res) => {
 
 // @route   POST api/admin/upload-template
 // @desc    Admin uploads a new PDF template to DB
-router.post('/upload-template', [auth, isAdmin, templateOwner, upload.single('template')], async (req, res) => {
+// Opción «PLANTILLAS PDF» del Master: RETIRADA por decisión del dueño (2026-11-19). Las plantillas
+// ya creadas se conservan y se siguen usando igual; ya no se pueden subir nuevas desde el panel.
+router.post('/upload-template', [auth, isAdmin, (req, res) => res.status(410).json({ msg: 'La opción «Plantillas PDF» fue retirada.' })]);
+
+// Código anterior de la carga, conservado sin registrar (no hay ruta activa) por si se decide volver.
+const UPLOAD_TEMPLATE_ENABLED = false;
+if (UPLOAD_TEMPLATE_ENABLED) router.post('/upload-template', [auth, isAdmin, templateOwner, upload.single('template')], async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ msg: 'No se subió ningún archivo' });
