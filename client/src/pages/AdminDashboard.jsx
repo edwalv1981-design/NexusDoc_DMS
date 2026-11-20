@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, FileText, Settings, LogOut, CheckCircle, XCircle, Trash2, Search, Clock, Shield, ChevronLeft, ChevronRight, Eye, EyeOff, Key, ShieldOff, UploadCloud, SearchCheck, Building2, User, BadgeCheck, UserCog, ChevronDown, ChevronUp, X, Edit2, Plus, Mail, ShieldCheck, FileSpreadsheet } from 'lucide-react';
 import AdminSignatureReview from '../components/AdminSignatureReview';
-import TemplateVersionsPanel from '../components/TemplateVersionsPanel';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -78,8 +77,6 @@ const AdminDashboard = () => {
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsTotalPages, setLogsTotalPages] = useState(1);
   const [templates, setTemplates] = useState([]);
-  const [templateVersionsKey, setTemplateVersionsKey] = useState(0);
-  const [templatePreview, setTemplatePreview] = useState(null);
   const [templateStatus, setTemplateStatus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -501,22 +498,6 @@ const AdminDashboard = () => {
           toast.error(`${t('admin.fieldsExtractError')} (${detected.extractError})`);
         }
       }
-      const tv = res.data?.templateVersion;
-      if (tv && !tv.error) {
-        if (tv.fieldCount > 0) {
-          toast.success(lang === 'en'
-            ? `Template uploaded (${tv.fieldCount} fields). Clients will NOT use it until you review the preview and press «Confirm and use».`
-            : `Plantilla subida (${tv.fieldCount} campos). Los clientes NO la usan hasta que usted revise la vista preliminar y pulse «Confirmar y usar».`);
-          setTemplatePreview({ id: tv.id, formType: tv.formType, fieldCount: tv.fieldCount, pending: true, nonce: Date.now() });
-        } else {
-          toast.error(lang === 'en'
-            ? 'No fields could be read from this PDF: the current form remains in use.'
-            : 'No se pudieron leer campos de este PDF: se mantiene el formulario actual.');
-        }
-      } else if (tv && tv.error) {
-        toast.error((lang === 'en' ? 'The template could not be analyzed: ' : 'No se pudo analizar la plantilla: ') + tv.error);
-      }
-      setTemplateVersionsKey((k) => k + 1);
       setTemplateFile(null);
       await fetchData();
     } catch (err) {
@@ -1452,7 +1433,6 @@ const AdminDashboard = () => {
                     </form>
                   </div>
                 </div>
-                <TemplateVersionsPanel refreshKey={templateVersionsKey} autoPreview={templatePreview} />
               </div>
             )}
           </div>

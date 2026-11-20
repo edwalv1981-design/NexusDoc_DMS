@@ -45,6 +45,12 @@ const isAdmin = (req, res, next) => requireFullAdmin(req, res, next);
 // CANDADO de plantillas: si la variable TEMPLATE_OWNER_EMAILS está configurada en Railway
 // (correos separados por coma), SOLO esos usuarios pueden subir, confirmar, descartar o revertir
 // plantillas. Si no está configurada, pueden hacerlo los administradores reales (no gerentes).
+// Opción de cambiar formularios con plantillas: ELIMINADA por decisión del dueño (2026-11-19).
+const templateVersionsDisabled = (req, res, next) => {
+    if (templateVersionService.TEMPLATE_VERSIONS_ENABLED) return next();
+    return res.status(410).json({ msg: 'La opción de cambiar formularios con plantillas fue retirada.' });
+};
+
 const templateOwner = (req, res, next) => {
     const owners = String(process.env.TEMPLATE_OWNER_EMAILS || '')
         .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
@@ -724,7 +730,8 @@ router.post('/upload-template', [auth, isAdmin, templateOwner, upload.single('te
         // Versión de plantilla para los 5 formularios del sistema: el formulario y el PDF de los
         // trámites NUEVOS pasan a seguir esta plantilla. Los trámites existentes no cambian.
         let templateVersion = null;
-        const versionFormType = templateVersionService.formTypeForTemplateId(templateName);
+        const versionFormType = templateVersionService.TEMPLATE_VERSIONS_ENABLED
+            ? templateVersionService.formTypeForTemplateId(templateName) : null;
         if (versionFormType) {
             try {
                 const created = await templateVersionService.createVersion(sequelize, {
@@ -797,7 +804,7 @@ router.get('/template-versions', [auth, isAdmin], async (req, res) => {
 });
 
 // @route   POST api/admin/template-versions/:id/activate
-router.post('/template-versions/:id/activate', [auth, isAdmin, templateOwner], async (req, res) => {
+router.post('/template-versions/:id/activate', [auth, isAdmin, templateVersionsDisabled, templateOwner], async (req, res) => {
     try {
         const target = await templateVersionService.getVersion(sequelize, req.params.id);
         if (!target) return res.status(404).json({ msg: 'Versión no encontrada' });
@@ -820,7 +827,7 @@ router.post('/template-versions/:id/activate', [auth, isAdmin, templateOwner], a
 
 // @route   POST api/admin/template-versions/:id/discard
 // @desc    Descartar una plantilla subida que aún no se confirmó (no se borra; nunca toca la que está en uso)
-router.post('/template-versions/:id/discard', [auth, isAdmin, templateOwner], async (req, res) => {
+router.post('/template-versions/:id/discard', [auth, isAdmin, templateVersionsDisabled, templateOwner], async (req, res) => {
     try {
         const v = await templateVersionService.discardVersion(sequelize, req.params.id);
         if (!v) return res.status(404).json({ msg: 'Versión no encontrada' });
@@ -839,7 +846,7 @@ router.post('/template-versions/:id/discard', [auth, isAdmin, templateOwner], as
 
 // @route   POST api/admin/template-versions/rollback  { formType }
 // @desc    Volver al formulario anterior (la plantilla que estaba en uso antes, o el estándar)
-router.post('/template-versions/rollback', [auth, isAdmin, templateOwner], async (req, res) => {
+router.post('/template-versions/rollback', [auth, isAdmin, templateVersionsDisabled, templateOwner], async (req, res) => {
     try {
         const out = await templateVersionService.rollbackActive(sequelize, req.body && req.body.formType);
         if (!out) return res.status(400).json({ msg: 'Tipo de formulario no válido' });
@@ -859,7 +866,7 @@ router.post('/template-versions/rollback', [auth, isAdmin, templateOwner], async
 
 // @route   POST api/admin/template-versions/use-standard  { formType }
 // @desc    Vuelve al formulario estándar del sistema (no borra versiones ni trámites)
-router.post('/template-versions/use-standard', [auth, isAdmin, templateOwner], async (req, res) => {
+router.post('/template-versions/use-standard', [auth, isAdmin, templateVersionsDisabled, templateOwner], async (req, res) => {
     try {
         const formType = templateVersionService.canonicalFormType(req.body && req.body.formType);
         if (!formType) return res.status(400).json({ msg: 'Tipo de formulario no válido' });
@@ -878,7 +885,7 @@ router.post('/template-versions/use-standard', [auth, isAdmin, templateOwner], a
 
 // @route   POST api/admin/template-versions/:id/reanalyze
 // @desc    Vuelve a analizar el PDF de una versión y crea una versión nueva PENDIENTE (no se activa sola)
-router.post('/template-versions/:id/reanalyze', [auth, isAdmin, templateOwner], async (req, res) => {
+router.post('/template-versions/:id/reanalyze', [auth, isAdmin, templateVersionsDisabled, templateOwner], async (req, res) => {
     try {
         const created = await templateVersionService.reanalyzeVersion(sequelize, req.params.id, req.user.id);
         if (!created) return res.status(404).json({ msg: 'Versión no encontrada' });
@@ -912,7 +919,7 @@ router.get('/template-versions/:id/schema', [auth, isAdmin], async (req, res) =>
 // @route   PUT api/admin/template-versions/:id/schema  { schema }
 // @desc    Correcciones del administrador (textos, ayudas, obligatorios). Si la versión ya estuvo
 //          activa se guarda como versión nueva pendiente.
-router.put('/template-versions/:id/schema', [auth, isAdmin, templateOwner], async (req, res) => {
+router.put('/template-versions/:id/schema', [auth, isAdmin, templateVersionsDisabled, templateOwner], async (req, res) => {
     try {
         const body = req.body && req.body.schema;
         if (!body || typeof body !== 'object') return res.status(400).json({ msg: 'Datos inválidos' });

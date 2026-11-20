@@ -212,7 +212,13 @@ async function getVersion(sequelize, id, { withFile = false } = {}) {
   return rows && rows[0] ? rows[0] : null;
 }
 
+// APAGADO por decisión del dueño (2026-11-19): las plantillas subidas ya NO cambian ningún
+// formulario. Los trámites nuevos usan siempre el formulario estándar del sistema. Los trámites
+// que ya se llenaron con una plantilla se siguen abriendo con ella (getVersion), sin perder datos.
+const TEMPLATE_VERSIONS_ENABLED = false;
+
 async function getActiveVersion(sequelize, formType) {
+  if (!TEMPLATE_VERSIONS_ENABLED) return null;
   const canonical = canonicalFormType(formType);
   if (!canonical) return null;
   try {
@@ -494,6 +500,7 @@ module.exports = {
   listVersions,
   getVersion,
   getActiveVersion,
+  TEMPLATE_VERSIONS_ENABLED,
   setActive,
   deactivateAll,
   discardVersion,
