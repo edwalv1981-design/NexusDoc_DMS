@@ -94,9 +94,9 @@ const es = {
     fieldsDetected: 'Plantilla guardada. Campos detectados: {count} ({type})',
     flatPdfWarning: 'Plantilla guardada sin campos AcroForm ({type}). Se usará relleno por anclas.',
     flatPdfHint: 'PDF sin campos AcroForm rellenables. Este trámite requiere una plantilla con campos de formulario.',
-    templateSavedArchive: 'Plantilla guardada. Revise abajo, en «Versiones de plantilla», si quedó activa para los trámites nuevos.',
+    templateSavedArchive: 'Plantilla guardada.',
     htmlEngineUploadHint:
-      'Al subir un PDF aquí, los trámites NUEVOS de este formulario usarán sus campos, textos guía y diseño de PDF. Los trámites ya registrados no cambian. Puede volver al formulario estándar en «Versiones de plantilla».',
+      'Al subir un PDF aquí, los trámites NUEVOS de este formulario usarán sus campos, textos guía y diseño de PDF. Los trámites ya registrados no cambian. Si algo no queda bien, use «Volver al formulario anterior» en «Formularios en uso».',
     detectedFieldsTitle: 'Campos detectados: {count}',
     schemaSource: 'Origen del esquema',
     fieldsExtractError: 'No se pudieron extraer campos del PDF; revise Python en el servidor.',

@@ -801,6 +801,26 @@ router.post('/template-versions/:id/activate', [auth, isAdmin], async (req, res)
     }
 });
 
+// @route   POST api/admin/template-versions/rollback  { formType }
+// @desc    Volver al formulario anterior (la plantilla que estaba en uso antes, o el estándar)
+router.post('/template-versions/rollback', [auth, isAdmin], async (req, res) => {
+    try {
+        const out = await templateVersionService.rollbackActive(sequelize, req.body && req.body.formType);
+        if (!out) return res.status(400).json({ msg: 'Tipo de formulario no válido' });
+        await AuditLog.create({
+            userId: req.user.id,
+            action: 'TEMPLATE_VERSION_ROLLBACK',
+            description: out.unchanged ? `Sin cambios: ${out.formType} ya usa el formulario estándar`
+                : out.now === 'standard' ? `Volvió al formulario estándar del sistema en ${out.formType} (retiró v${out.from})`
+                    : `Volvió a la plantilla v${out.version} en ${out.formType} (retiró v${out.from})`,
+        }).catch(() => {});
+        res.json(out);
+    } catch (err) {
+        console.error('Error al volver al formulario anterior:', err);
+        res.status(500).json({ msg: 'Error al volver al formulario anterior' });
+    }
+});
+
 // @route   POST api/admin/template-versions/use-standard  { formType }
 // @desc    Vuelve al formulario estándar del sistema (no borra versiones ni trámites)
 router.post('/template-versions/use-standard', [auth, isAdmin], async (req, res) => {

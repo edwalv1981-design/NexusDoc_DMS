@@ -94,9 +94,9 @@ const en = {
     fieldsDetected: 'Template saved. Fields detected: {count} ({type})',
     flatPdfWarning: 'Template saved with no AcroForm fields ({type}). Anchor fill will be used.',
     flatPdfHint: 'PDF has no fillable AcroForm fields. This procedure needs a template with form fields.',
-    templateSavedArchive: 'Template saved. Check «Template versions» below to see whether it is active for new submissions.',
+    templateSavedArchive: 'Template saved.',
     htmlEngineUploadHint:
-      'When you upload a PDF here, NEW submissions of this form use its fields, guide texts and PDF layout. Existing submissions do not change. You can go back to the standard form in «Template versions».',
+      'When you upload a PDF here, NEW submissions of this form use its fields, guide texts and PDF layout. Existing submissions do not change. If something is not right, use «Back to previous form» in «Forms in use».',
     detectedFieldsTitle: 'Detected fields: {count}',
     schemaSource: 'Schema source',
     fieldsExtractError: 'Could not extract PDF fields; check Python on the server.',

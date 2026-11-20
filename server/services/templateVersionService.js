@@ -243,6 +243,34 @@ async function setActive(sequelize, id) {
   return getVersion(sequelize, id);
 }
 
+/**
+ * "Volver al formulario anterior": activa la versión que estaba en uso antes de la actual; si no
+ * hubo ninguna, vuelve al formulario estándar del sistema. No borra nada.
+ */
+async function rollbackActive(sequelize, formType) {
+  const canonical = canonicalFormType(formType);
+  if (!canonical) return null;
+  await ensureTable(sequelize);
+  const active = await getActiveVersion(sequelize, canonical);
+  if (!active) return { formType: canonical, now: 'standard', unchanged: true };
+  const prev = rowsOf(await sequelize.query(
+    `SELECT "id", "version" FROM ${TABLE}
+     WHERE "formType" = :formType AND "id" <> :id AND "activatedAt" IS NOT NULL AND "fieldCount" > 0
+       AND "activatedAt" < :at
+     ORDER BY "activatedAt" DESC LIMIT 1`,
+    { replacements: { formType: canonical, id: active.id, at: active.activatedAt || new Date() } }
+  ));
+  if (prev && prev[0]) {
+    await setActive(sequelize, prev[0].id);
+    // La versión retirada no debe volver a quedar como "anterior" de la restaurada
+    await sequelize.query(`UPDATE ${TABLE} SET "activatedAt" = NULL WHERE "id" = :id`, { replacements: { id: active.id } });
+    return { formType: canonical, now: 'version', version: prev[0].version, from: active.version };
+  }
+  await deactivateAll(sequelize, canonical);
+  await sequelize.query(`UPDATE ${TABLE} SET "activatedAt" = NULL WHERE "id" = :id`, { replacements: { id: active.id } });
+  return { formType: canonical, now: 'standard', from: active.version };
+}
+
 /** Vuelve al formulario estándar del sistema (ninguna versión activa). No borra nada. */
 async function deactivateAll(sequelize, formType) {
   const canonical = canonicalFormType(formType);
@@ -281,14 +309,12 @@ async function createVersion(sequelize, { templateId, formType, pdfBuffer, fileN
   const id = crypto.randomUUID();
   // Se activa sola solo si no se pierde nada respecto de la versión anterior. Si se quitan
   // campos o cambia el tipo de alguno, queda PENDIENTE para que el administrador revise.
+  // Subir y listo: si se detectaron campos, la plantilla queda en uso para los trámites nuevos.
+  // Los campos que ya existían conservan su clave (no se pierden datos) y siempre se puede
+  // volver al formulario anterior con rollbackActive().
   const safe = previous.length === 0 || isSafeToAutoActivate(changes);
-  // Plantilla escaneada: el OCR puede equivocarse en alguna etiqueta, siempre se revisa antes.
-  const scanned = schema && schema.source === 'scanned';
-  const willActivate = Boolean(activate) && fieldCount > 0 && safe && !scanned;
-  schema.review = {
-    pending: fieldCount > 0 && !willActivate,
-    reason: !safe ? 'changes' : scanned ? 'scanned' : !activate ? 'manual' : null,
-  };
+  const willActivate = Boolean(activate) && fieldCount > 0;
+  schema.review = { pending: false, reason: null, safe };
 
   await sequelize.transaction(async (transaction) => {
     if (willActivate) {
@@ -446,6 +472,7 @@ module.exports = {
   getActiveVersion,
   setActive,
   deactivateAll,
+  rollbackActive,
   createVersion,
   reanalyzeVersion,
   saveSchemaEdits,

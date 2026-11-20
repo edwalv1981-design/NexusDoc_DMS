@@ -504,20 +504,12 @@ const AdminDashboard = () => {
       if (tv && !tv.error) {
         if (tv.isActive) {
           toast.success(lang === 'en'
-            ? `Template v${tv.version} is now active: new ${tv.formType} submissions will use it (${tv.fieldCount} fields).`
-            : `Plantilla v${tv.version} activa: los trámites nuevos de ${tv.formType} la usarán (${tv.fieldCount} campos).`);
-        } else if (tv.fieldCount > 0 && tv.reviewReason === 'scanned') {
-          toast.success(lang === 'en'
-            ? `Scanned PDF: text was read with OCR and ${tv.fieldCount} fields were found. Template v${tv.version} is PENDING: check its Preview in «Template versions» and press Activate.`
-            : `PDF escaneado: se leyó el texto con OCR y se encontraron ${tv.fieldCount} campos. La plantilla v${tv.version} quedó PENDIENTE: revise su Vista previa en «Versiones de plantilla» y presione Activar.`);
-        } else if (tv.fieldCount > 0) {
-          toast.error(lang === 'en'
-            ? `Template v${tv.version} removes or changes fields of the previous version: it is PENDING your review in «Template versions». Nothing was changed for clients yet.`
-            : `La plantilla v${tv.version} quita o cambia campos de la versión anterior: quedó PENDIENTE de su revisión en «Versiones de plantilla». Aún no cambió nada para los clientes.`);
+            ? `Form updated: new ${tv.formType} submissions now use this template (${tv.fieldCount} fields).`
+            : `Formulario actualizado: los trámites nuevos de ${tv.formType} ya usan esta plantilla (${tv.fieldCount} campos).`);
         } else {
           toast.error(lang === 'en'
-            ? 'No fields were detected in this PDF: the standard form remains in use.'
-            : 'No se detectaron campos en este PDF: se mantiene el formulario actual.');
+            ? 'No fields could be read from this PDF: the current form remains in use.'
+            : 'No se pudieron leer campos de este PDF: se mantiene el formulario actual.');
         }
       } else if (tv && tv.error) {
         toast.error((lang === 'en' ? 'The template could not be analyzed: ' : 'No se pudo analizar la plantilla: ') + tv.error);
