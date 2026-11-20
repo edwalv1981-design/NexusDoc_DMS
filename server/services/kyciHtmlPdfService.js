@@ -73,7 +73,7 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
   const sourceOfWealth = String(data.sourceOfWealth || '').trim() || kyciMaster.legacySourceOfWealth(data);
 
   const introList = t.introItems
-    .map(([text, bold]) => `<li><span class="bullet"></span>${esc(text)} (<b>${esc(bold)}</b>)</li>`)
+    .map(([text, bold]) => `<li><span class="check"></span>${esc(text)} (<b>${esc(bold)}</b>)</li>`)
     .join('');
 
   const roleCells = kyciMaster.APPLICANT_ROLE_OPTIONS.map(
@@ -241,8 +241,9 @@ class KyciHtmlPdfService {
     .boxed + .boxed, .boxed + .frm, .frm + .boxed { border-top: none; }
     .frm.entity + .boxed { border-top: 1px solid #4b2e83; margin-top: 6px; }
     .intro ul { list-style: none; margin: 4px 0; padding: 0 0 0 4px; }
-    .intro li { margin: 1px 0; }
-    .bullet { display: inline-block; width: 6px; height: 8px; background: #000; margin: 0 7px 0 2px; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .intro li { margin: 2px 0; padding-left: 22px; text-indent: -22px; }
+    /* Visto (✓) de la plantilla, dibujado como imagen: no depende de las fuentes del servidor. */
+    .check { display: inline-block; width: 11px; height: 11px; margin: 0 9px 0 2px; vertical-align: -1px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M1.5 6.5 L4.6 9.6 L10.5 2.2' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / 100% 100% no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .roles-grid { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
     .roles-grid { table-layout: fixed; }
     .roles-grid td { border: 1px solid #000; padding: 5px 6px; width: 20%; vertical-align: middle; }
