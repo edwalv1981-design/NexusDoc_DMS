@@ -19,6 +19,7 @@ const sampleData = {
   maritalStatus: 'Casado(a)',
   phone: '+507 6000-0000',
   email: 'maria@test.com',
+  idCard: '8-765-4321',
   taxResidenceCountries: 'Panamá',
   otherTaxResidence: 'No',
   usPerson: 'No',
@@ -27,7 +28,8 @@ const sampleData = {
   offenceConvicted: 'No',
   offenceBankrupt: 'No',
   offenceInvestigation: 'No',
-  certifiedDocs: ['passport', 'proofOfAddress', 'cv'],
+  certifiedDocs: ['passport', 'idCopy', 'proofOfAddress', 'cv'],
+  dataConsent: 'Sí',
   declarationName: 'María Elena González',
   declarationDate: '2026-05-19',
 };
@@ -42,9 +44,9 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: lang });
     const order = [
       t.docTitle.split('\n')[0], t.docSubtitle, t.panamaEntityName, t.introTitle, t.applicantRolesTitle,
-      t.fullNameLabel, t.birthDate, t.birthPlace, t.address, t.maritalStatus, t.phone, t.email,
+      t.fullNameLabel, t.birthDate, t.birthPlace, t.address, t.maritalStatus, t.phone, t.email, t.idCard,
       t.taxResidenceCountries, t.fatcaLabel, t.sourceOfWealthLabel, t.pepLabel, t.offencesLabel,
-      t.docsTitle, t.declaration.slice(0, 30), t.signature, t.declarationDate,
+      t.docsTitle, t.docsFooter, t.declaration.slice(0, 30), t.applicantName, t.signature, t.declarationDate,
     ];
     let pos = -1;
     for (const label of order) {
@@ -56,7 +58,7 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
 
   it('imprime los datos del solicitante', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
-    for (const v of ['Inversiones Atlántico S.A.', 'María', 'Elena', 'González', '15/03/1985', 'PA123456', 'maria@test.com', 'Salario de abogada', '19/05/2026']) {
+    for (const v of ['Inversiones Atlántico S.A.', 'María', 'Elena', 'González', '15/03/1985', 'PA123456', 'maria@test.com', '8-765-4321', 'Salario de abogada', '19/05/2026']) {
       assert.match(html, new RegExp(esc(v)));
     }
   });
@@ -66,8 +68,13 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
     assert.match(html, new RegExp(`${esc(BOX_ON)} Shareholder`));
     assert.match(html, new RegExp(`${esc(BOX_ON)} Beneficial Owner`));
     assert.match(html, new RegExp(`${esc(BOX_OFF)} Director`));
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Colour Picture Passport`));
-    assert.match(html, new RegExp(`${esc(BOX_OFF)} Bank Reference`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)} Colour Picture opened Passport`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)} Colour ID copy both sides`));
+    assert.match(html, new RegExp(`${esc(BOX_OFF)} Credit Card Statement or Bank Reference`));
+    assert.match(html, new RegExp(`declaration">${esc(BOX_ON)} I acknowledge and authorize`));
+    assert.match(html, /I hereby attach <b>scanned<\/b> copies/);
+    assert.match(html, /These documents must be valid and original\./);
+    assert.doesNotMatch(html, /W9|Self Certification|certified as true/);
   });
 
   it('preguntas Sí/No como casillas y detalle cuando es Sí', () => {
@@ -82,13 +89,20 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
 
   it('incluye el recuadro de firma del solicitante y ya no las notas del final', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'en' });
-    assert.match(html, /Signature of Applicant:<\/td>\s*<td class="sig-box"><span class="sig-name">María Elena González<\/span><\/td>/);
+    assert.match(html, /Name of the applicant:<\/td>\s*<td colspan="3"><span class="val">María Elena González<\/span><\/td>/);
+    assert.match(html, /Signature of Applicant:<\/td>\s*<td class="sig-box">&nbsp;<\/td>/);
     assert.match(html, /Date \(dd\/mm\/yyyy\):<\/td>\s*<td class="date-val"><span class="val">19\/05\/2026<\/span>/);
     assert.doesNotMatch(html, /I certify this to be a true copy|class="notes"/);
     assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: 'es' }), /Certifico que esta es una copia fiel|class="notes"/);
     for (const lang of ['es', 'en']) {
       assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: lang }), /see Note|ver Nota|see Notes|ver las Notas/, `${lang}: sin referencias a notas`);
     }
+  });
+
+  it('trámites del formato anterior: el W9 marcado se sigue mostrando', () => {
+    const html = buildKyciPdfInnerHtml({ ...sampleData, certifiedDocs: ['passport', 'w9'] }, { language: 'en' });
+    assert.match(html, new RegExp(`${esc(BOX_ON)} W9`));
+    assert.doesNotMatch(buildKyciPdfInnerHtml(sampleData, { language: 'en' }), /W9/);
   });
 
   it('trámites antiguos (fullName, fondos, ocupación) siguen generando PDF', () => {
@@ -106,11 +120,12 @@ describe('kyciHtmlPdfMapping (plantilla oficial)', () => {
     const html = buildKyciPdfInnerHtml(sampleData, { language: 'es' });
     for (const txt of ['FORMULARIO DE CUMPLIMIENTO', 'Procedimiento de Debida Diligencia del Cliente', 'El Solicitante es uno o más de los siguientes:',
       'Primer nombre', 'Vínculos políticos', 'Delitos/Sanciones', 'DOCUMENTOS DE IDENTIDAD QUE DEBEN ADJUNTARSE',
-      'Firma del Solicitante:', 'Fecha (dd/mm/aaaa):', 'Casado(a)']) {
+      'Firma del Solicitante:', 'Nombre del solicitante:', 'Fecha (dd/mm/aaaa):', 'Casado(a)', 'Reconozco y autorizo']) {
       assert.ok(html.includes(txt), `falta "${txt}"`);
     }
     assert.match(html, new RegExp(`${esc(BOX_ON)} Accionista`));
-    assert.match(html, new RegExp(`${esc(BOX_ON)} Pasaporte con fotografía a color; <b>Y</b>`));
+    assert.match(html, new RegExp(`${esc(BOX_ON)} Pasaporte a color`));
+    assert.match(html, /Adjunto copias <b>escaneadas<\/b>/);
     assert.match(html, new RegExp(`Sí: ${esc(BOX_OFF)}</span><span class="yn">No: ${esc(BOX_ON)}`));
     assert.doesNotMatch(html, /COMPLIANCE FORM|Signature of Applicant|Shareholder/);
   });

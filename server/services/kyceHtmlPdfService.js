@@ -58,7 +58,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
   // Solo se imprimen los datos del tipo de solicitante elegido.
   const tv = (k, field) => (sel(k) ? data[field] : '');
   const typeLabel = (k) => {
-    const opt = kyceMaster.APPLICANT_TYPE_OPTIONS.find((o) => o.key === k);
+    const opt = [...kyceMaster.APPLICANT_TYPE_OPTIONS, ...kyceMaster.LEGACY_APPLICANT_TYPE_OPTIONS].find((o) => o.key === k);
     return `<span class="arrow">&#10148;</span> <b>${esc(opt[L])}</b>`;
   };
   const docs = (k, field) => (sel(k) && Array.isArray(data[field]) ? data[field] : []);
@@ -66,6 +66,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
     `<td class="docs-cell">${keys
       .map((key) => {
         const opt = opts.find((o) => o.key === key);
+        if (!opt) return '';
         return `<div class="doc">${box(selected.includes(key))} ${esc(opt[L])}</div>`;
       })
       .join('')}</td>`;
@@ -73,6 +74,18 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
     `<tr><td colspan="4" class="note"><b><u>${esc(t.noteLabel)}</u>:</b> ${esc(text)}</td></tr>`;
 
   const privDocs = docs('privateCompany', 'privateDocs');
+  const bankDocs = docs('privateCompany', 'privateBankDocs');
+  const roles = Array.isArray(data.applicantRoles) ? data.applicantRoles : [];
+  const roleCells = kyceMaster.APPLICANT_ROLE_OPTIONS.map((opt) => `<td>${box(roles.includes(opt.key))} ${esc(opt[L])}</td>`);
+  // Documentos de empresa privada: los de la plantilla + "latest accounts" solo si un trámite antiguo lo marcó.
+  const privOpts = [...kyceMaster.PRIVATE_DOC_OPTIONS, ...kyceMaster.LEGACY_PRIVATE_DOC_OPTIONS];
+  const privCol3 = ['registeredAddressCert', 'ownershipChart', ...(privDocs.includes('latestAccounts') ? ['latestAccounts'] : [])];
+  // Beneficiarios: un solo campo; los del formato anterior (2..4) se agregan si no están ya incluidos.
+  const benef1 = String(tv('trustFoundation', 'beneficiary1') || '').trim();
+  const beneficiaries = [benef1, ...['beneficiary2', 'beneficiary3', 'beneficiary4']
+    .map((k) => String(tv('trustFoundation', k) || '').trim())
+    .filter((v) => v && !benef1.includes(v))].filter(Boolean).join('\n');
+  const signerNames = [data.declarationName, data.declarationName2].map((n) => String(n || '').trim()).filter(Boolean).join(' / ');
   const trustDocs = docs('trustFoundation', 'trustDocs');
   const partDocs = docs('partnership', 'partnershipDocs');
   const fatca = data.fatcaClassification || '';
@@ -82,10 +95,10 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       extraLabel ? ` <span class="fatca-extra">${esc(extraLabel)} ${val(fatca === key ? extraValue : '')}</span>` : ''
     }</div>`;
   };
-  const sigRow = (name, date) => `
+  const sigRow = (date) => `
       <tr>
         <td class="lbl">${esc(t.signature)}</td>
-        <td class="sig-box">${name ? `<span class="sig-name">${esc(name)}</span>` : '&nbsp;'}</td>
+        <td class="sig-box">&nbsp;</td>
         <td class="date-lbl">${esc(t.declarationDate)}</td>
         <td class="date-val">${date ? val(fmtDate(date)) : '<b>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</b>'}</td>
       </tr>`;
@@ -98,7 +111,12 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
     <div class="entity-line">${esc(t.panamaEntityName)} ${val(data.panamaEntityName)}</div>
 
     <table class="frm"><colgroup><col style="width:24%"/><col style="width:25%"/><col style="width:25%"/><col style="width:26%"/></colgroup><tbody>
-      <tr><td colspan="4"><div class="b">${esc(t.intro)}</div><div class="line">${esc(t.introNote)}</div></td></tr>
+      <tr><td colspan="4">
+        <div class="b">${esc(t.intro)}</div>
+        <div class="line">${esc(t.introNote)}</div>
+        <div class="b sp">${esc(t.applicantRolesTitle)}</div>
+        <table class="roles-grid"><tbody><tr>${roleCells.slice(0, 5).join('')}</tr><tr>${roleCells.slice(5).join('')}</tr></tbody></table>
+      </td></tr>
       <tr><td class="lbl">${esc(t.legalName)}</td><td colspan="3">${val(data.legalName)}</td></tr>
       <tr>
         <td class="lbl" rowspan="2">${esc(t.incorporationDate)}</td>
@@ -152,13 +170,19 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
         <td colspan="3" class="attach">${esc(t.pleaseAttach)}</td>
       </tr>
       <tr class="docs-row">
-        ${docCell(kyceMaster.PRIVATE_DOC_OPTIONS, privDocs, ['certIncorporation', 'registerDirectors'])}
-        ${docCell(kyceMaster.PRIVATE_DOC_OPTIONS, privDocs, ['certGoodStanding', 'registerMembers'])}
-        ${docCell(kyceMaster.PRIVATE_DOC_OPTIONS, privDocs, ['latestAccounts', 'ownershipChart'])}
+        ${docCell(privOpts, privDocs, ['certIncorporation', 'registerDirectors'])}
+        ${docCell(privOpts, privDocs, ['certGoodStanding', 'registerMembers'])}
+        ${docCell(privOpts, privDocs, privCol3)}
+      </tr>
+      <tr class="bank-row">
+        <td class="lbl">${esc(t.bankAccountLabel)}</td>
+        ${docCell(kyceMaster.PRIVATE_BANK_DOC_OPTIONS, bankDocs, ['bankStatement'])}
+        ${docCell(kyceMaster.PRIVATE_BANK_DOC_OPTIONS, bankDocs, ['attorneyLetter'])}
+        <td>&nbsp;</td>
       </tr>
       ${note(t.privateNote)}
       <tr>
-        <td class="lbl" rowspan="2">${typeLabel('trustFoundation')}<div class="benef">${esc(t.beneficiaries)}</div></td>
+        <td class="lbl" rowspan="2">${typeLabel('trustFoundation')}</td>
         <td colspan="3" class="attach">${esc(t.pleaseAttach)}</td>
       </tr>
       <tr class="docs-row">
@@ -170,10 +194,9 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
       <tr><td class="lbl">${esc(t.trusteesNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'trusteesNameAddress'))}</td></tr>
       <tr><td class="lbl">${esc(t.enforcerNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'enforcerNameAddress'))}</td></tr>
       <tr><td class="lbl">${esc(t.protectorNameAddress)}</td><td colspan="3">${val(tv('trustFoundation', 'protectorNameAddress'))}</td></tr>
-      ${[1, 2, 3, 4]
-        .map((n) => `<tr><td class="lbl">${esc(t.beneficiary)}</td><td colspan="3">${val(tv('trustFoundation', `beneficiary${n}`))}</td></tr>`)
-        .join('')}
+      <tr><td class="lbl">${esc(t.beneficiary)}</td><td colspan="3">${multiline(beneficiaries)}</td></tr>
       ${note(t.trustNote)}
+      ${sel('partnership') ? `
       <tr>
         <td class="lbl" rowspan="2">${typeLabel('partnership')}</td>
         <td colspan="3" class="attach">${esc(t.pleaseAttach)}</td>
@@ -183,7 +206,7 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
         ${docCell(kyceMaster.PARTNERSHIP_DOC_OPTIONS, partDocs, ['latestAccounts', 'certRegistration'])}
         ${docCell(kyceMaster.PARTNERSHIP_DOC_OPTIONS, partDocs, ['registerPartners'])}
       </tr>
-      ${note(t.partnershipNote)}
+      ${note(t.partnershipNote)}` : ''}
       <tr>
         <td class="lbl mid">${esc(t.fatcaLabel)}</td>
         <td colspan="3">
@@ -210,13 +233,13 @@ function buildKycePdfInnerHtml(data = {}, options = {}) {
           <div class="ind">${esc(t.taxIdNumber)} ${val(data.taxIdNumber)}</div>
         </td>
       </tr>
-      <tr><td colspan="2" class="note"><b><u>${esc(t.noteLabel)}:</u></b> ${esc(t.selfCertNote)}</td></tr>
       <tr><td colspan="2" class="spacer">&nbsp;</td></tr>
-      <tr><td colspan="2">${esc(t.declaration)}</td></tr>
+      <tr><td colspan="2" class="declaration">${box(isYes(data.dataConsent))} ${esc(t.declaration)}</td></tr>
+      <tr><td colspan="2">${esc(t.representativeName)} ${val(signerNames)}</td></tr>
     </tbody></table>
     <table class="frm sign"><colgroup><col style="width:32%"/><col style="width:28%"/><col style="width:15%"/><col style="width:25%"/></colgroup><tbody>
-      ${sigRow(data.declarationName, data.declarationDate)}
-      ${sigRow(data.declarationName2, data.declarationDate2)}
+      ${sigRow(data.declarationDate)}
+      ${sigRow(data.declarationDate2)}
     </tbody></table>
   `;
 }
@@ -242,10 +265,10 @@ class KyceHtmlPdfService {
         `
     @page { size: A4; }
     * { box-sizing: border-box; }
-    body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 9.5px; color: #0f172a; margin: 0; padding: 0; }
+    body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.35; color: #0f172a; margin: 0; padding: 0; }
     .doc-header { text-align: right; margin-bottom: 8px; }
-    .doc-header .title { font-weight: 700; font-size: 12px; }
-    .doc-header .subtitle { font-weight: 700; font-size: 12px; margin-top: 2px; }
+    .doc-header .title { font-weight: 700; font-size: 14px; }
+    .doc-header .subtitle { font-weight: 700; font-size: 13px; margin-top: 2px; }
     .entity-line { margin: 4px 0 10px; }
     .b { font-weight: 700; }
     .frm { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -256,18 +279,21 @@ class KyceHtmlPdfService {
     .line { margin: 3px 0; }
     .sp { margin-top: 10px; }
     .gap { margin-left: 24px; }
-    .box { display: inline-block; position: relative; width: 10px; height: 10px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .box { display: inline-block; position: relative; width: 11px; height: 11px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .box.on { background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><path d='M1 1L7 7M7 1L1 7' stroke='%23000' stroke-width='1.3' stroke-linecap='round'/></svg>") center / 100% 100% no-repeat; }
     .yn { margin-right: 10px; white-space: nowrap; }
-    .val { font-weight: 700; color: #0f172a; }
+    .val { font-weight: 700; color: #000; font-size: 11.5px; }
     .ml { white-space: pre-wrap; margin: 2px 0 4px; }
     .arrow { font-size: 9px; }
     .benef { margin-top: 26px; }
     .attach { border-bottom: none !important; }
     .docs-row td { border-top: none; }
     .docs-cell .doc { margin: 2px 0 10px; }
-    .note { font-size: 9.5px; }
-    .fatca-opt { display: inline-block; width: 80px; }
+    .note { font-size: 10.5px; }
+    .declaration { text-align: justify; }
+    .roles-grid { width: 100%; border-collapse: collapse; margin: 6px 0 2px; table-layout: fixed; }
+    .roles-grid td { border: 1px solid #000; padding: 4px 6px; }
+    .fatca-opt { display: inline-block; width: 100px; }
     .fatca-extra { margin-left: 20px; }
     .q { margin: 3px 0; }
     .qn { display: inline-block; width: 16px; }

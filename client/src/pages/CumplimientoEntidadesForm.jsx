@@ -6,7 +6,7 @@
  *  Paso 1  Solicitante (datos registrales, delitos y sanciones)
  *  Paso 2  Tipo de solicitante y documentos
  *  Paso 3  Clasificación FATCA/CRS y residencia fiscal
- *  Paso 4  Declaración y firmas
+ *  Paso 4  Autorización de datos y firmas
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -24,9 +24,13 @@ import { KYC_PRIMARY, KycHintBox, kycFormSharedStyles, describeMissingFields, sc
 import {
   YES,
   NO,
+  APPLICANT_ROLE_OPTIONS,
   APPLICANT_TYPE_OPTIONS,
+  LEGACY_APPLICANT_TYPE_OPTIONS,
   PRIVATE_DOC_OPTIONS,
+  PRIVATE_BANK_DOC_OPTIONS,
   TRUST_DOC_OPTIONS,
+  DATA_CONSENT_TEXT,
   PARTNERSHIP_DOC_OPTIONS,
   FATCA_OPTIONS,
   FIELDS,
@@ -43,7 +47,7 @@ import ReadOnlyFieldset from '../components/common/ReadOnlyFieldset';
 import { withProgress } from '../utils/formProgress';
 
 const TOTAL_STEPS = 4;
-const ARRAY_KEYS = ['privateDocs', 'trustDocs', 'partnershipDocs'];
+const ARRAY_KEYS = ['applicantRoles', 'privateDocs', 'privateBankDocs', 'trustDocs', 'partnershipDocs'];
 
 const emptyKyceState = () => {
   const state = {};
@@ -60,6 +64,12 @@ function adaptLoadedData(initialData) {
     const guess = legacyApplicantType(loaded.entityType);
     if (guess) loaded.applicantType = guess;
   }
+  // Formato anterior con 4 beneficiarios: se muestran juntos en el campo único (uno por línea).
+  // Las claves beneficiary2..4 se conservan tal cual en los datos.
+  const extra = ['beneficiary2', 'beneficiary3', 'beneficiary4']
+    .map((k) => String(loaded[k] || '').trim())
+    .filter((v) => v && !String(loaded.beneficiary1 || '').includes(v));
+  if (extra.length) loaded.beneficiary1 = [String(loaded.beneficiary1 || '').trim(), ...extra].filter(Boolean).join('\n');
   return loaded;
 }
 
@@ -67,21 +77,21 @@ const STEP_META = [
   { icon: Building2, es: 'I. Solicitante', en: 'I. Applicant' },
   { icon: Layers, es: 'II. Tipo de solicitante y documentos', en: 'II. Applicant type and documents' },
   { icon: Landmark, es: 'III. Clasificación FATCA/CRS y residencia fiscal', en: 'III. FATCA/CRS classification and tax residency' },
-  { icon: FileCheck, es: 'IV. Declaración y firmas', en: 'IV. Declaration and signatures' },
+  { icon: FileCheck, es: 'IV. Autorización y firmas', en: 'IV. Authorization and signatures' },
 ];
 
 const STEP_HINTS = {
   es: [
-    'Este formulario lo completa, respecto de la Sociedad, cada sociedad, fideicomiso o sociedad de personas que posea o proponga poseer, directa o indirectamente, el 10% o más del capital social; que sea Director Corporativo de la Sociedad, o titular de un Poder (el “Solicitante”). Se debe enviar una copia original del formulario firmado junto con los documentos de debida diligencia. Los campos con * son obligatorios.',
-    'Indique qué tipo de Solicitante es y complete la sección correspondiente con los documentos certificados que adjunta.',
-    'Indique la clasificación FATCA/CRS de la entidad y su residencia fiscal. Por favor complete y presente el Formulario de Declaración de Autocertificación de la Entidad.',
-    'Confirme la declaración. El PDF incluye los recuadros de firma para dos personas autorizadas a firmar por y en nombre del Solicitante, cada uno con su fecha.',
+    'Este formulario lo completa, respecto de la Sociedad, cada sociedad, fideicomiso o sociedad de personas que posea o proponga poseer, directa o indirectamente, el 10% o más del capital social; que sea Director Corporativo de la Sociedad o Miembro de la fundación, o titular de un Poder (el “Solicitante”). Se debe enviar una copia original del formulario firmado junto con los documentos de debida diligencia. Los campos con * son obligatorios.',
+    'Indique qué tipo de Solicitante es y complete la sección correspondiente con los documentos que adjunta.',
+    'Indique la clasificación FATCA/CRS de la entidad y su residencia fiscal.',
+    'Lea y acepte la autorización de uso de datos y escriba el nombre del representante legal o persona autorizada. El PDF incluye dos recuadros de firma, cada uno con su fecha.',
   ],
   en: [
-    'This form is completed, in respect of the Company, by each company, trust or partnership which owns or proposes owning, directly or indirectly, 10% or greater of the share capital; that is a Corporate Director of the Company, or is a holder of a Power of Attorney (the “Applicant”). An original copy of the executed form must be sent together with the due diligence documents. Fields marked * are required.',
-    'State which type of Applicant it is and complete the matching section with the certified documents attached.',
-    'State the entity’s FATCA/CRS classification and tax residency. Please complete and submit the Entity Self Certification Declaration Form.',
-    'Confirm the declaration. The PDF includes signature boxes for two persons authorised to sign for and on behalf of the Applicant, each with its date.',
+    'This form is completed, in respect of the Company, by each company, trust or partnership which owns or proposes owning, directly or indirectly, 10% or greater of the share capital; that is a Corporate Director of the Company or foundation Member, or is a holder of a Power of Attorney (the “Applicant”). An original copy of the executed form must be sent together with the due diligence documents. Fields marked * are required.',
+    'State which type of Applicant it is and complete the matching section with the documents attached.',
+    'State the entity’s FATCA/CRS classification and tax residency.',
+    'Read and accept the data authorization and type the name of the legal representative or authorized person. The PDF includes two signature boxes, each with its date.',
   ],
 };
 
@@ -150,7 +160,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
   );
   const FieldError = ({ name }) =>
     fieldErrors[name] ? (
-      <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600, display: 'block', marginTop: '1px' }}>{fieldErrors[name]}</span>
+      <span style={{ fontSize: '12px', color: '#b91c1c', fontWeight: 600, display: 'block', marginTop: '2px' }}>{fieldErrors[name]}</span>
     ) : null;
 
   const textInput = (key, { type = 'text', placeholder, full } = {}) =>
@@ -170,13 +180,13 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       </div>
     ) : null;
 
-  const textArea = (key, { placeholder } = {}) =>
+  const textArea = (key, { placeholder, rows = 3 } = {}) =>
     shown(key) ? (
       <div className="expert-group" style={{ gridColumn: '1 / -1' }} key={key}>
         <Label k={key} />
         <textarea
           className="expert-input"
-          rows={3}
+          rows={rows}
           style={{ ...errorStyle(key), resize: 'vertical' }}
           value={formData[key] || ''}
           onChange={(e) => setValue(key, e.target.value)}
@@ -206,11 +216,11 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       </div>
     ) : null;
 
-  const checkboxGroup = (key, options) =>
+  const checkboxGroup = (key, options, columns = 'repeat(auto-fill, minmax(260px, 1fr))') =>
     shown(key) ? (
       <div className="expert-group" style={{ gridColumn: '1 / -1' }} key={key}>
         <Label k={key} />
-        <div className={`nx-choices${isMissing(key) ? ' nx-missing' : ''}`} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', marginTop: 4 }}>
+        <div className={`nx-choices${isMissing(key) ? ' nx-missing' : ''}`} style={{ gridTemplateColumns: columns, marginTop: 4 }}>
           {options.map((opt) => {
             const selected = (formData[key] || []).includes(opt.key);
             const optMissing = isMissing(`${key}.${opt.key}`);
@@ -249,9 +259,14 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
     );
   };
 
+  // "Partnerships" ya no está en la plantilla: solo aparece si un trámite antiguo lo tenía elegido.
+  const typeOptions = formData.applicantType === 'partnership'
+    ? [...APPLICANT_TYPE_OPTIONS, ...LEGACY_APPLICANT_TYPE_OPTIONS]
+    : APPLICANT_TYPE_OPTIONS;
+
   const typeTitle = (key) => {
     if (formData.applicantType !== key) return null;
-    const opt = APPLICANT_TYPE_OPTIONS.find((o) => o.key === key);
+    const opt = typeOptions.find((o) => o.key === key);
     return (
       <div className="nx-subsection" style={{ gridColumn: '1 / -1' }} key={`title-${key}`}>
         ➤ {opt[L]}
@@ -265,6 +280,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       {grid(
         <>
           {textInput('panamaEntityName', { full: true, placeholder: L === 'en' ? 'e.g. Atlantic Investments S.A.' : 'Ej: Inversiones Atlántico S.A.' })}
+          {checkboxGroup('applicantRoles', APPLICANT_ROLE_OPTIONS, 'repeat(auto-fill, minmax(170px, 1fr))')}
           {textInput('legalName', { full: true })}
           {textInput('incorporationDate', { type: 'date' })}
           {textInput('jurisdiction', { placeholder: L === 'en' ? 'e.g. British Virgin Islands' : 'Ej: Islas Vírgenes Británicas' })}
@@ -287,7 +303,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       {header(2)}
       {grid(
         <>
-          {radio('applicantType', APPLICANT_TYPE_OPTIONS)}
+          {radio('applicantType', typeOptions)}
           {typeTitle('publicCompany')}
           {textInput('stockExchange')}
           {textInput('tickerSymbol')}
@@ -302,18 +318,16 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
           {textInput('governmentEntityType')}
           {typeTitle('privateCompany')}
           {checkboxGroup('privateDocs', PRIVATE_DOC_OPTIONS)}
+          {checkboxGroup('privateBankDocs', PRIVATE_BANK_DOC_OPTIONS)}
           {typeTitle('trustFoundation')}
           {checkboxGroup('trustDocs', TRUST_DOC_OPTIONS)}
           {textInput('settlorNameAddress', { full: true })}
           {textInput('trusteesNameAddress', { full: true })}
           {textInput('enforcerNameAddress', { full: true })}
           {textInput('protectorNameAddress', { full: true })}
-          {textInput('beneficiary1', { full: true })}
-          {textInput('beneficiary2', { full: true })}
-          {textInput('beneficiary3', { full: true })}
-          {textInput('beneficiary4', { full: true })}
-          {typeTitle('partnership')}
-          {checkboxGroup('partnershipDocs', PARTNERSHIP_DOC_OPTIONS)}
+          {textArea('beneficiary1', { rows: 4 })}
+          {formData.applicantType === 'partnership' ? typeTitle('partnership') : null}
+          {formData.applicantType === 'partnership' ? checkboxGroup('partnershipDocs', PARTNERSHIP_DOC_OPTIONS) : null}
         </>
       )}
     </div>
@@ -343,10 +357,24 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
       {header(4)}
       {grid(
         <>
-          <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: 10 }}>
-            {L === 'en'
-              ? 'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of the circumstances change within 14 days of those changes occurring.'
-              : 'Por la presente confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles en caso de que alguna de las circunstancias cambie, dentro de los 14 días siguientes a dicho cambio.'}
+          <div className="expert-group" style={{ gridColumn: '1 / -1' }} key="dataConsent">
+            <Label k="dataConsent" />
+            <div
+              className={isMissing('dataConsent') ? 'nx-missing' : undefined}
+              style={{ marginTop: 4, background: '#f8fafc', border: `1.5px solid ${isMissing('dataConsent') ? '#f87171' : '#cbd5e1'}`, borderRadius: 8, padding: '14px 16px' }}
+            >
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#0f172a', textAlign: 'justify' }}>{DATA_CONSENT_TEXT[L]}</p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, fontSize: 15, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  style={{ width: 20, height: 20, accentColor: PRIMARY, cursor: 'pointer' }}
+                  checked={formData.dataConsent === YES}
+                  onChange={(e) => setValue('dataConsent', e.target.checked ? YES : '')}
+                />
+                {L === 'en' ? 'I accept and authorize' : 'Acepto y autorizo'}
+                <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+            </div>
           </div>
           {textInput('declarationName')}
           {textInput('declarationDate', { type: 'date' })}
@@ -437,7 +465,7 @@ const CumplimientoEntidadesForm = ({ initialData, onSave, saving, readOnly = fal
         </div>
       </div>
 
-      <style>{kycFormSharedStyles(PRIMARY) + ' .kyc-guide { display: block; font-size: 12px; color: #64748b; line-height: 1.45; }'}</style>
+      <style>{kycFormSharedStyles(PRIMARY) + ' .kyc-guide { display: block; font-size: 13px; color: #475569; line-height: 1.5; margin-top: 2px; }'}</style>
     </div>
   );
 };

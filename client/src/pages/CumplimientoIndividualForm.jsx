@@ -6,7 +6,7 @@
  *  Paso 1  Solicitante (entidad panameña, calidad del solicitante, identidad, contacto)
  *  Paso 2  Residencia fiscal y FATCA
  *  Paso 3  Origen del patrimonio, PEP y sanciones
- *  Paso 4  Documentos certificados, declaración y fecha
+ *  Paso 4  Documentos de identidad, autorización de datos, nombre y fecha
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -29,6 +29,7 @@ import {
   MARITAL_STATUS_OPTIONS,
   APPLICANT_ROLE_OPTIONS,
   CERTIFIED_DOC_OPTIONS,
+  DATA_CONSENT_TEXT,
   YES_NO_DETAILS,
   FIELDS,
   FORM_LABELS,
@@ -59,6 +60,7 @@ const emptyKyciState = () => ({
   maritalStatus: '',
   phone: '',
   email: '',
+  idCard: '',
   taxResidenceCountries: '',
   otherTaxResidence: '',
   otherTaxResidenceDetails: '',
@@ -75,6 +77,7 @@ const emptyKyciState = () => ({
   offenceInvestigation: '',
   offenceInvestigationDetails: '',
   certifiedDocs: [],
+  dataConsent: '',
   declarationName: '',
   declarationDate: new Date().toISOString().split('T')[0],
 });
@@ -98,21 +101,21 @@ const STEP_META = [
   { icon: User, es: 'I. Solicitante', en: 'I. Applicant' },
   { icon: Landmark, es: 'II. Residencia fiscal y FATCA', en: 'II. Tax residency and FATCA' },
   { icon: ShieldCheck, es: 'III. Origen del patrimonio, PEP y sanciones', en: 'III. Source of wealth, PEP and offences' },
-  { icon: FileCheck, es: 'IV. Documentos certificados y declaración', en: 'IV. Certified documents and declaration' },
+  { icon: FileCheck, es: 'IV. Documentos, autorización y firma', en: 'IV. Documents, authorization and signature' },
 ];
 
 const STEP_HINTS = {
   es: [
     'Este formulario lo completa cada persona (el “Solicitante”) que sea accionista con 10% o más del capital, beneficiario final, director, socio general, firmante autorizado, apoderado, fundador/fideicomitente, ejecutor o protector. Los campos marcados con * son obligatorios.',
-    'Indique su residencia fiscal. Si es persona o residente fiscal de EE. UU., debe completar un formulario W9 e indicar su número de identificación tributaria (TIN).',
+    'Indique su residencia fiscal. Si es persona o residente fiscal de EE. UU., indique su número de identificación tributaria (TIN).',
     'Detalle el origen de su patrimonio y responda todas las preguntas de Sí/No. Si alguna respuesta es “Sí”, el detalle es obligatorio.',
-    'Marque los documentos certificados que adjunta. Pasaporte, comprobante de domicilio y hoja de vida son obligatorios; el W9 también lo es si es persona de EE. UU. El PDF incluye el recuadro “Signature of Applicant” para la firma.',
+    'Marque los documentos que adjunta (copias escaneadas, vigentes y originales). Todos son obligatorios excepto la referencia profesional. Luego lea y acepte la autorización de uso de datos, y escriba su nombre. El PDF incluye el recuadro “Signature of Applicant” para la firma.',
   ],
   en: [
     'This form is completed by each individual (the “Applicant”) who is a 10%+ shareholder, beneficial owner, director, general partner, authorised signatory, power of attorney holder, founder/settlor, enforcer or protector. Fields marked * are required.',
-    'State your tax residency. If you are a U.S. Person or U.S. tax resident, please complete a W9 and provide your tax identification number (TIN).',
+    'State your tax residency. If you are a U.S. Person or U.S. tax resident, please provide your tax identification number (TIN).',
     'Describe your source of wealth and answer every Yes/No question. If any answer is “Yes”, details are required.',
-    'Tick the certified documents you are attaching. Passport, proof of address and CV are required; W9 is also required for U.S. Persons. The PDF includes the “Signature of Applicant” box.',
+    'Tick the documents you are attaching (scanned copies, valid and original). All are required except the professional reference. Then read and accept the data authorization, and type your name. The PDF includes the “Signature of Applicant” box.',
   ],
 };
 
@@ -143,7 +146,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
     fieldErrors[key] || isMissing(key) ? { borderColor: '#ef4444', boxShadow: '0 0 0 1px #fecaca' } : {};
   const FieldError = ({ name }) =>
     fieldErrors[name] ? (
-      <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600, display: 'block', marginTop: '1px' }}>{fieldErrors[name]}</span>
+      <span style={{ fontSize: '12px', color: '#b91c1c', fontWeight: 600, display: 'block', marginTop: '2px' }}>{fieldErrors[name]}</span>
     ) : null;
 
   const setValue = (key, value) => {
@@ -309,6 +312,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
             maritalStatus: person.maritalStatus || prev.maritalStatus,
             nationality: person.nationality || prev.nationality,
             passport: person.passport || person.idNumber || prev.passport,
+            idCard: person.idCard || person.idNumber || prev.idCard,
             phone: person.phone || prev.phone,
             email: person.email || prev.email,
             address: person.address || prev.address,
@@ -339,6 +343,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
           </div>
           {textInput('phone', { placeholder: '+507 6000-0000' })}
           {textInput('email', { type: 'email', placeholder: 'correo@ejemplo.com' })}
+          {textInput('idCard', { placeholder: lang === 'en' ? 'e.g. 8-888-8888' : 'Ej: 8-888-8888' })}
         </>
       )}
     </div>
@@ -385,10 +390,26 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
       {grid(
         <>
           {checkboxGroup('certifiedDocs', CERTIFIED_DOC_OPTIONS, '1fr')}
-          <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: 10 }}>
-            {lang === 'en'
-              ? 'I hereby confirm that the above details are true and accurate and I undertake to advise you in the event that any of my circumstances change within 14 days of those changes occurring.'
-              : 'Confirmo que los datos anteriores son verdaderos y exactos, y me comprometo a informarles si alguna de mis circunstancias cambia, dentro de los 14 días siguientes a dicho cambio.'}
+          <div className="expert-group" style={{ gridColumn: '1 / -1' }} key="dataConsent">
+            <Label k="dataConsent" />
+            <div
+              className={isMissing('dataConsent') ? 'nx-missing' : undefined}
+              style={{ marginTop: 4, background: '#f8fafc', border: `1.5px solid ${isMissing('dataConsent') ? '#f87171' : '#cbd5e1'}`, borderRadius: 8, padding: '14px 16px' }}
+            >
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#0f172a', textAlign: 'justify' }}>
+                {DATA_CONSENT_TEXT[lang === 'en' ? 'en' : 'es']}
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, fontSize: 15, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  style={{ width: 20, height: 20, accentColor: PRIMARY, cursor: 'pointer' }}
+                  checked={formData.dataConsent === YES}
+                  onChange={(e) => setValue('dataConsent', e.target.checked ? YES : '')}
+                />
+                {lang === 'en' ? 'I accept and authorize' : 'Acepto y autorizo'}
+                <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+            </div>
           </div>
           {textInput('declarationName', { placeholder: computeFullName(formData) || undefined })}
           {textInput('declarationDate', { type: 'date' })}
@@ -484,7 +505,7 @@ const CumplimientoIndividualForm = ({ initialData, onSave, saving, readOnly = fa
         </div>
       </div>
 
-      <style>{kycFormSharedStyles(PRIMARY) + ' .kyci-guide { display: block; font-size: 12px; color: #64748b; line-height: 1.45; }'}</style>
+      <style>{kycFormSharedStyles(PRIMARY) + ' .kyci-guide { display: block; font-size: 13px; color: #475569; line-height: 1.5; margin-top: 2px; }'}</style>
     </div>
   );
 };

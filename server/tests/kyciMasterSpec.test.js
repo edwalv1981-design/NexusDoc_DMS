@@ -22,11 +22,11 @@ describe('kyciMasterSpec (plantilla oficial)', () => {
     const keys = kyciMaster.KYCI_ALL_FIELD_KEYS;
     for (const k of [
       'panamaEntityName', 'applicantRoles', 'firstName', 'secondName', 'lastName', 'birthDate',
-      'nationality', 'birthPlace', 'passport', 'address', 'maritalStatus', 'phone', 'email',
+      'nationality', 'birthPlace', 'passport', 'address', 'maritalStatus', 'phone', 'email', 'idCard',
       'taxResidenceCountries', 'otherTaxResidence', 'otherTaxResidenceDetails', 'usPerson', 'usTin', 'usDetails',
       'sourceOfWealth', 'pep', 'pepDetails',
       'offenceConvicted', 'offenceConvictedDetails', 'offenceBankrupt', 'offenceBankruptDetails',
-      'offenceInvestigation', 'offenceInvestigationDetails', 'certifiedDocs', 'declarationDate',
+      'offenceInvestigation', 'offenceInvestigationDetails', 'certifiedDocs', 'dataConsent', 'declarationName', 'declarationDate',
     ]) {
       assert.ok(keys.includes(k), `falta ${k}`);
     }
@@ -48,7 +48,8 @@ describe('kyciMasterSpec (plantilla oficial)', () => {
       'Shareholder', 'Director', 'General Partner', 'Beneficial Owner', 'Authorised Signatory',
       'Power of Attorney', 'Founder/Settlor', 'Enforcer', 'Protector', 'Member',
     ]);
-    assert.equal(kyciMaster.CERTIFIED_DOC_OPTIONS.length, 6);
+    assert.deepEqual(kyciMaster.CERTIFIED_DOC_OPTIONS.map((o) => o.key), ['passport', 'idCopy', 'proofOfAddress', 'bankReference', 'cv', 'professionalReference']);
+    assert.doesNotMatch(JSON.stringify(kyciMaster.CERTIFIED_DOC_OPTIONS), /W9|[Cc]ertified/);
   });
 
   it('registry y pdfFormSchemas alineados con master spec', () => {
@@ -61,25 +62,25 @@ describe('kyciMasterSpec (plantilla oficial)', () => {
 
   it('formulario vacío no se puede enviar', () => {
     const miss = kyciMaster.missingFields({});
-    for (const k of ['panamaEntityName', 'applicantRoles', 'firstName', 'lastName', 'passport', 'sourceOfWealth', 'pep', 'usPerson', 'declarationName', 'declarationDate']) {
+    for (const k of ['panamaEntityName', 'applicantRoles', 'firstName', 'lastName', 'passport', 'idCard', 'sourceOfWealth', 'pep', 'usPerson', 'dataConsent', 'declarationName', 'declarationDate']) {
       assert.ok(miss.includes(k), `debe exigir ${k}`);
     }
     assert.ok(!miss.includes('secondName'), 'segundo nombre es opcional');
     assert.ok(!miss.includes('pepDetails'), 'detalle PEP solo si responde Sí');
   });
 
-  it('respuestas "Sí" exigen su detalle; persona de EE. UU. exige TIN y W9', () => {
-    const data = { pep: 'Sí', offenceBankrupt: 'Sí', otherTaxResidence: 'Sí', usPerson: 'Sí', certifiedDocs: ['passport', 'proofOfAddress', 'cv'] };
+  it('respuestas "Sí" exigen su detalle; persona de EE. UU. exige TIN (ya no W9)', () => {
+    const data = { pep: 'Sí', offenceBankrupt: 'Sí', otherTaxResidence: 'Sí', usPerson: 'Sí', certifiedDocs: ['passport'] };
     const miss = kyciMaster.missingFields(data);
-    for (const k of ['pepDetails', 'offenceBankruptDetails', 'otherTaxResidenceDetails', 'usTin', 'certifiedDocs.w9']) {
+    for (const k of ['pepDetails', 'offenceBankruptDetails', 'otherTaxResidenceDetails', 'usTin']) {
       assert.ok(miss.includes(k), `debe exigir ${k}`);
     }
-    assert.ok(!kyciMaster.missingFields({ ...data, usPerson: 'No' }).includes('certifiedDocs.w9'));
+    assert.ok(!miss.includes('certifiedDocs.w9'));
   });
 
-  it('documentos obligatorios: pasaporte, domicilio y hoja de vida', () => {
-    const miss = kyciMaster.missingFieldsForStep(4, { certifiedDocs: ['bankReference'], declarationName: 'Ana', declarationDate: '2026-11-15' });
-    assert.deepEqual(miss, ['certifiedDocs.passport', 'certifiedDocs.proofOfAddress', 'certifiedDocs.cv']);
+  it('documentos obligatorios: todos menos la referencia profesional; autorización de datos obligatoria', () => {
+    const miss = kyciMaster.missingFieldsForStep(4, { certifiedDocs: ['professionalReference'], declarationName: 'Ana', declarationDate: '2026-11-15' });
+    assert.deepEqual(miss, ['certifiedDocs.passport', 'certifiedDocs.idCopy', 'certifiedDocs.proofOfAddress', 'certifiedDocs.bankReference', 'certifiedDocs.cv', 'dataConsent']);
   });
 
   it('formulario completo pasa la validación', () => {
@@ -98,10 +99,10 @@ function completeKyci() {
   return {
     panamaEntityName: 'Atlántico S.A.', applicantRoles: ['director'], firstName: 'Ana', lastName: 'Pérez',
     birthDate: '1990-01-01', nationality: 'Panameña', birthPlace: 'Panamá', passport: 'P1', address: 'Calle 1',
-    maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'a@b.com', taxResidenceCountries: 'Panamá',
+    maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'a@b.com', idCard: '8-888-8888', taxResidenceCountries: 'Panamá',
     otherTaxResidence: 'No', usPerson: 'No', sourceOfWealth: 'Salario', pep: 'No', offenceConvicted: 'No',
-    offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'proofOfAddress', 'cv'],
-    declarationName: 'Ana Pérez', declarationDate: '2026-11-15',
+    offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'idCopy', 'proofOfAddress', 'bankReference', 'cv'],
+    dataConsent: 'Sí', declarationName: 'Ana Pérez', declarationDate: '2026-11-15',
   };
 }
 

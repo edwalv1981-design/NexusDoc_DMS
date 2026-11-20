@@ -81,7 +81,12 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
   );
   const roleRows = `<tr>${roleCells.slice(0, 5).join('')}</tr><tr>${roleCells.slice(5).join('')}</tr>`;
 
-  const docLines = kyciMaster.CERTIFIED_DOC_OPTIONS.map((opt) => {
+  // Documentos de la plantilla vigente + los del formato anterior SOLO si el trámite los marcó.
+  const docOptions = [
+    ...kyciMaster.CERTIFIED_DOC_OPTIONS,
+    ...kyciMaster.LEGACY_DOC_OPTIONS.filter((opt) => docs.includes(opt.key)),
+  ];
+  const docLines = docOptions.map((opt) => {
     const label = esc(opt[t.roleLabel]).replace(/ (AND|Y)$/, ' <b>$1</b>');
     return `<div class="doc-line">${box(docs.includes(opt.key))} ${label}</div>`;
   }).join('');
@@ -133,13 +138,13 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
       <tr><td class="lbl">${esc(t.maritalStatus)}</td><td colspan="2">${val(t.lang === 'en' ? MARITAL_EN[data.maritalStatus] || data.maritalStatus : data.maritalStatus)}</td></tr>
       <tr><td class="lbl">${esc(t.phone)}</td><td colspan="2">${val(data.phone)}</td></tr>
       <tr><td class="lbl">${esc(t.email)}</td><td colspan="2">${val(data.email)}</td></tr>
+      <tr><td class="lbl">${esc(t.idCard)}</td><td colspan="2">${val(data.idCard)}</td></tr>
       <tr>
         <td class="lbl">${esc(t.taxResidenceCountries)}</td>
         <td colspan="2">
           <div class="line">${val(data.taxResidenceCountries)}</div>
           <div class="line">${esc(t.otherTaxResidence)} ${yesNo(data.otherTaxResidence, t)} ${esc(t.otherTaxResidenceDetails)}</div>
           ${multiline(data.otherTaxResidenceDetails)}
-          <div class="line">${esc(t.taxNote)}</div>
         </td>
       </tr>
       <tr>
@@ -184,11 +189,15 @@ function buildKyciPdfInnerHtml(data = {}, options = {}) {
       ${docLines}
       <div class="docs-footer">${esc(t.docsFooter)}</div>
     </div>
-    <div class="boxed declaration">${esc(t.declaration)}</div>
+    <div class="boxed declaration">${box(isYes(data.dataConsent))} ${esc(t.declaration)}</div>
     <table class="frm sign"><tbody>
       <tr>
+        <td class="lbl">${esc(t.applicantName)}</td>
+        <td colspan="3">${val(data.declarationName)}</td>
+      </tr>
+      <tr>
         <td class="lbl">${esc(t.signature)}</td>
-        <td class="sig-box">${data.declarationName ? `<span class="sig-name">${esc(data.declarationName)}</span>` : '&nbsp;'}</td>
+        <td class="sig-box">&nbsp;</td>
         <td class="lbl date-lbl">${esc(t.declarationDate)}</td>
         <td class="date-val">${data.declarationDate ? val(fmtDate(data.declarationDate)) : '&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/'}</td>
       </tr>
@@ -217,10 +226,10 @@ class KyciHtmlPdfService {
   <style>
     @page { size: A4; }
     * { box-sizing: border-box; }
-    body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 9.5px; color: #0f172a; margin: 0; padding: 0; }
+    body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.35; color: #0f172a; margin: 0; padding: 0; }
     .doc-header { text-align: right; margin-bottom: 8px; }
-    .doc-header .title { font-weight: 700; font-size: 12px; }
-    .doc-header .subtitle { font-weight: 700; font-size: 12px; margin-top: 2px; }
+    .doc-header .title { font-weight: 700; font-size: 14px; }
+    .doc-header .subtitle { font-weight: 700; font-size: 13px; margin-top: 2px; }
     .b { font-weight: 700; }
     .frm { width: 100%; border-collapse: collapse; }
     .frm td { border: 1px solid #4b2e83; padding: 4px 6px; vertical-align: top; }
@@ -235,16 +244,17 @@ class KyciHtmlPdfService {
     .tick { display: inline-block; width: 14px; }
     .roles-grid { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
     .roles-grid td { border: 1px solid #000; padding: 4px 6px 4px 22px; text-indent: -17px; width: 20%; }
-    .box { display: inline-block; position: relative; width: 10px; height: 10px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .box { display: inline-block; position: relative; width: 11px; height: 11px; line-height: 0; border: 1px solid #000; font-size: 0; color: transparent; overflow: hidden; vertical-align: middle; margin: 0 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .box.on { background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><path d='M1 1L7 7M7 1L1 7' stroke='%23000' stroke-width='1.3' stroke-linecap='round'/></svg>") center / 100% 100% no-repeat; }
     .yn { margin-right: 16px; white-space: nowrap; }
     .line { margin: 3px 0; }
     .q { margin: 3px 0 3px 18px; }
     .qn { display: inline-block; width: 18px; }
-    .val { font-weight: 700; color: #0f172a; }
+    .val { font-weight: 700; color: #000; font-size: 11.5px; }
     .ml { white-space: pre-wrap; margin: 2px 0 4px; }
-    .docs-title { text-align: center; font-weight: 700; margin: 8px 0 4px; }
-    .doc-line { margin: 1px 0; }
+    .docs-title { text-align: center; font-weight: 700; font-size: 12px; margin: 10px 0 4px; }
+    .declaration { text-align: justify; }
+    .doc-line { margin: 3px 0; }
     .docs-footer { margin-top: 8px; }
     .sign { page-break-inside: avoid; }
     .sign td { border-top: none; }

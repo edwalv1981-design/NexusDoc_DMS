@@ -81,13 +81,16 @@ describe('kyciHtmlPdf field parity', () => {
     const html = buildKyciPdfInnerHtml(kyciSample, { language: lang });
     assert.ok(html.includes(t.docTitle.split('\n')[0]));
     // Campos que el PDF muestra con su propia etiqueta de la plantilla.
-    const labelled = KYCI_ALL_FIELD_KEYS.filter((k) => !['applicantRoles', 'certifiedDocs', 'declarationName'].includes(k) && !/Details$/.test(k));
+    const labelled = KYCI_ALL_FIELD_KEYS.filter((k) => !['applicantRoles', 'certifiedDocs', 'dataConsent', 'declarationName'].includes(k) && !/Details$/.test(k));
     for (const key of labelled) {
       assert.ok(t[key], `falta etiqueta PDF para ${key}`);
       assert.ok(html.includes(t[key].replace(/&/g, '&amp;')), `PDF debe incluir etiqueta de ${key}`);
     }
     assert.ok(html.includes(t.applicantRolesTitle));
     assert.ok(html.includes(t.docsTitle));
+    // Plantilla 2026-11: autorización de datos y nombre del solicitante.
+    assert.ok(html.includes(t.declaration.slice(0, 40)));
+    assert.ok(html.includes(t.applicantName));
   });
 });
 
@@ -99,9 +102,10 @@ describe('kyceHtmlPdf field parity', () => {
     for (const key of ['docTitle', 'panamaEntityName', 'intro', 'legalName', 'incorporationDate', 'jurisdiction', 'registrationNumber',
       'registeredAddress', 'mailingAddress', 'phone', 'businessActivity', 'offencesLabel', 'offenceConvicted', 'offenceInvestigation',
       'applicantIsA', 'stockExchange', 'tickerSymbol', 'regulatorName', 'governmentEntityType', 'privateNote', 'settlorNameAddress',
-      'trusteesNameAddress', 'enforcerNameAddress', 'protectorNameAddress', 'beneficiary', 'trustNote', 'partnershipNote',
-      'fatcaLabel', 'taxResidencyLabel', 'usEntity', 'einNumber', 'otherTaxResidence', 'taxIdNumber', 'selfCertNote',
-      'declaration', 'signature', 'declarationDate']) {
+      'trusteesNameAddress', 'enforcerNameAddress', 'protectorNameAddress', 'beneficiary', 'trustNote',
+      'applicantRolesTitle', 'bankAccountLabel',
+      'fatcaLabel', 'taxResidencyLabel', 'usEntity', 'einNumber', 'otherTaxResidence', 'taxIdNumber',
+      'declaration', 'representativeName', 'signature', 'declarationDate']) {
       const text = String(t[key]).split('\n')[0];
       assert.ok(html.includes(text.replace(/&/g, '&amp;')), `${lang}: PDF debe incluir "${key}"`);
     }

@@ -165,9 +165,9 @@ ok('Editor del administrador funciona con KYC Individual');
 r = await api('POST', '/api/forms/save', client.token, { type: 'Cumplimiento Individual', data: {
   panamaEntityName: 'Atlántico S.A.', applicantRoles: ['director', 'shareholder'], firstName: 'Ana', secondName: 'María', lastName: 'Pérez Gil',
   fullName: 'Ana María Pérez Gil', birthDate: '1990-01-01', nationality: 'Panameña', birthPlace: 'Panamá', passport: 'A222',
-  address: 'Calle 1', maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'ana@test.com', taxResidenceCountries: 'Panamá',
+  address: 'Calle 1', maritalStatus: 'Soltero(a)', phone: '+507 1', email: 'ana@test.com', idCard: '8-888-8888', taxResidenceCountries: 'Panamá',
   otherTaxResidence: 'No', usPerson: 'Sí', usTin: '123-45-6789', sourceOfWealth: 'Salario', pep: 'No', offenceConvicted: 'No',
-  offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'proofOfAddress', 'cv', 'w9'], declarationName: 'Ana María Pérez Gil', declarationDate: '2026-11-15',
+  offenceBankrupt: 'No', offenceInvestigation: 'No', certifiedDocs: ['passport', 'idCopy', 'proofOfAddress', 'bankReference', 'cv'], dataConsent: 'Sí', declarationName: 'Ana María Pérez Gil', declarationDate: '2026-11-15',
   __progress: { step: 4, totalSteps: 4, finished: true } } });
 assert.equal(r.status, 200);
 const kycNew = r.body.data;
@@ -181,11 +181,11 @@ ok('KYC Individual: PDF de la plantilla oficial y de trámites antiguos se gener
 
 // 13c) KYC Entities: formato de la plantilla oficial y formato anterior → PDF (ES y EN)
 r = await api('POST', '/api/forms/save', client.token, { type: 'Cumplimiento Entidades', data: {
-  panamaEntityName: 'Atlántico S.A.', legalName: 'Atlantic Holdings Ltd.', incorporationDate: '2015-06-01', jurisdiction: 'BVI',
+  panamaEntityName: 'Atlántico S.A.', applicantRoles: ['shareholder'], legalName: 'Atlantic Holdings Ltd.', incorporationDate: '2015-06-01', jurisdiction: 'BVI',
   registrationNumber: 'BVI-1', registeredAddress: 'Road Town', phone: '+1 284', businessActivity: 'Holding',
   offenceConvicted: 'No', offenceInvestigation: 'No', applicantType: 'trustFoundation', trustDocs: ['trustDeed', 'dueDiligence'],
   settlorNameAddress: 'Juan Pérez, Quito', trusteesNameAddress: 'Trust Co.', beneficiary1: 'María Pérez',
-  fatcaClassification: 'passiveNFFE', usEntity: 'No', otherTaxResidence: 'No', declarationName: 'Pedro Ruiz', declarationDate: '2026-11-15',
+  fatcaClassification: 'passiveNFFE', usEntity: 'No', otherTaxResidence: 'No', dataConsent: 'Sí', declarationName: 'Pedro Ruiz', declarationDate: '2026-11-15',
   __progress: { step: 4, totalSteps: 4, finished: true } } });
 assert.equal(r.status, 200);
 const kyceNew = r.body.data;
